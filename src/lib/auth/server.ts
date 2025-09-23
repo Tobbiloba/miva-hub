@@ -5,6 +5,7 @@ import { nextCookies } from "better-auth/next-js";
 import { pgDb } from "lib/db/pg/db.pg";
 import { headers } from "next/headers";
 import { toast } from "sonner";
+import { eq } from "drizzle-orm";
 import {
   AccountSchema,
   SessionSchema,
@@ -12,6 +13,10 @@ import {
   VerificationSchema,
 } from "lib/db/pg/schema.pg";
 import { getAuthConfig } from "./config";
+import { 
+  validateSchoolEmail, 
+  prepareUserRegistrationData
+} from "lib/utils/email-validation";
 
 import logger from "logger";
 import { redirect } from "next/navigation";
@@ -37,6 +42,43 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: emailAndPasswordEnabled,
     disableSignUp: !signUpEnabled,
+    requireEmailVerification: true,
+    onValidate: async ({ email }) => {
+      // Validate school email before registration
+      const validation = validateSchoolEmail(email);
+      if (!validation.isValid) {
+        throw new Error(validation.error);
+      }
+    },
+    onSignUp: async ({ user }) => {
+      try {
+        // Prepare academic user data
+        const userData = prepareUserRegistrationData({
+          email: user.email,
+          name: user.name,
+        });
+        
+        // Update the user record with academic fields
+        await pgDb
+          .update(UserSchema)
+          .set({
+            studentId: userData.studentId,
+            role: userData.role,
+            academicYear: userData.academicYear,
+            enrollmentStatus: userData.enrollmentStatus,
+          })
+          .where(eq(UserSchema.id, user.id));
+          
+        logger.info(`User ${user.id} registered with academic fields:`, {
+          role: userData.role,
+          academicYear: userData.academicYear,
+          studentId: userData.studentId,
+        });
+      } catch (error) {
+        logger.error("Failed to set academic fields for user:", error);
+        // Don't throw here as the user is already created
+      }
+    },
   },
   session: {
     cookieCache: {

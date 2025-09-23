@@ -95,6 +95,16 @@ export const UserSchema = pgTable("user", {
   password: text("password"),
   image: text("image"),
   preferences: json("preferences").default({}).$type<UserPreferences>(),
+  
+  // Academic/Student fields
+  studentId: text("student_id").unique(),
+  major: text("major"),
+  year: text("year"), // freshman, sophomore, junior, senior, graduate, doctoral
+  role: text("role").default("student"), // student, faculty, admin, staff
+  academicYear: text("academic_year"), // 2024-2025, 2025-2026
+  enrollmentStatus: text("enrollment_status").default("active"), // active, inactive, graduated, suspended, transferred
+  graduationDate: timestamp("graduation_date"),
+  
   createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
