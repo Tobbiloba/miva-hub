@@ -102,7 +102,8 @@ export const UserSchema = pgTable("user", {
   // Academic/Student fields
   studentId: text("student_id").unique(),
   major: text("major"),
-  year: text("year"), // freshman, sophomore, junior, senior, graduate, doctoral
+  year: text("year"), // 100, 200, 300, 400, graduate, doctoral
+  currentSemester: text("current_semester"), // first, second
   role: text("role").default("student"), // student, faculty, admin, staff
   academicYear: text("academic_year"), // 2024-2025, 2025-2026
   enrollmentStatus: text("enrollment_status").default("active"), // active, inactive, graduated, suspended, transferred
