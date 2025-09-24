@@ -12,6 +12,9 @@ import {
   unique,
   varchar,
   index,
+  integer,
+  decimal,
+  date,
 } from "drizzle-orm/pg-core";
 import { isNotNull } from "drizzle-orm";
 import { DBWorkflow, DBEdge, DBNode } from "app-types/workflow";
@@ -313,6 +316,396 @@ export const McpOAuthSessionSchema = pgTable(
   ],
 );
 
+// ===============================
+// ACADEMIC SCHEMA TABLES
+// ===============================
+
+// Departments table
+export const DepartmentSchema = pgTable("department", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  code: text("code").notNull().unique(), // e.g., "CS", "MATH", "ENG"
+  name: text("name").notNull(), // e.g., "Computer Science", "Mathematics"
+  description: text("description"),
+  facultyHeadId: uuid("faculty_head_id").references(() => UserSchema.id),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  officeLocation: text("office_location"),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Courses table
+export const CourseSchema = pgTable(
+  "course",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    courseCode: text("course_code").notNull().unique(), // e.g., "CS101", "MATH201"
+    title: text("title").notNull(),
+    description: text("description"),
+    credits: integer("credits").notNull().default(3),
+    departmentId: uuid("department_id")
+      .notNull()
+      .references(() => DepartmentSchema.id),
+    level: varchar("level", { enum: ["undergraduate", "graduate"] })
+      .notNull()
+      .default("undergraduate"),
+    semesterOffered: varchar("semester_offered", { 
+      enum: ["fall", "spring", "summer", "both"] 
+    }).notNull().default("both"),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("course_department_idx").on(table.departmentId),
+    index("course_code_idx").on(table.courseCode),
+    index("course_level_idx").on(table.level),
+  ],
+);
+
+// Course prerequisites junction table
+export const CoursePrerequisiteSchema = pgTable(
+  "course_prerequisite",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    prerequisiteCourseId: uuid("prerequisite_course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    isRequired: boolean("is_required").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    unique().on(table.courseId, table.prerequisiteCourseId),
+    index("prerequisite_course_idx").on(table.courseId),
+  ],
+);
+
+// Course materials table
+export const CourseMaterialSchema = pgTable(
+  "course_material",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    materialType: varchar("material_type", {
+      enum: ["syllabus", "lecture", "assignment", "resource", "reading", "exam"],
+    }).notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    contentUrl: text("content_url"), // File path or URL
+    fileName: text("file_name"),
+    fileSize: integer("file_size"), // in bytes
+    mimeType: text("mime_type"),
+    weekNumber: integer("week_number"), // Which week of the semester
+    moduleNumber: integer("module_number"), // Which module/unit
+    isPublic: boolean("is_public").notNull().default(true),
+    uploadedById: uuid("uploaded_by_id")
+      .notNull()
+      .references(() => UserSchema.id),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("material_course_idx").on(table.courseId),
+    index("material_type_idx").on(table.materialType),
+    index("material_week_idx").on(table.weekNumber),
+    index("material_uploaded_by_idx").on(table.uploadedById),
+  ],
+);
+
+// Student enrollments table
+export const StudentEnrollmentSchema = pgTable(
+  "student_enrollment",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    semester: text("semester").notNull(), // e.g., "2024-fall", "2025-spring"
+    academicYear: text("academic_year").notNull(), // e.g., "2024-2025"
+    enrollmentDate: timestamp("enrollment_date").notNull().default(sql`CURRENT_TIMESTAMP`),
+    status: varchar("status", {
+      enum: ["enrolled", "dropped", "completed", "failed", "withdrawn"],
+    }).notNull().default("enrolled"),
+    finalGrade: text("final_grade"), // A, B, C, D, F, I, W
+    gradePoints: decimal("grade_points", { precision: 3, scale: 2 }), // GPA points
+    attendancePercentage: decimal("attendance_percentage", { precision: 5, scale: 2 }),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    unique().on(table.studentId, table.courseId, table.semester),
+    index("enrollment_student_idx").on(table.studentId),
+    index("enrollment_course_idx").on(table.courseId),
+    index("enrollment_semester_idx").on(table.semester),
+    index("enrollment_status_idx").on(table.status),
+  ],
+);
+
+// Faculty table (extends user information for faculty members)
+export const FacultySchema = pgTable(
+  "faculty",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .unique()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    employeeId: text("employee_id").notNull().unique(),
+    departmentId: uuid("department_id")
+      .notNull()
+      .references(() => DepartmentSchema.id),
+    position: varchar("position", {
+      enum: ["professor", "associate_professor", "assistant_professor", "lecturer", "instructor", "visiting_professor"],
+    }).notNull(),
+    specializations: json("specializations").$type<string[]>().default([]),
+    officeLocation: text("office_location"),
+    officeHours: json("office_hours").$type<{
+      day: string;
+      startTime: string;
+      endTime: string;
+    }[]>().default([]),
+    contactPhone: text("contact_phone"),
+    researchInterests: text("research_interests"),
+    qualifications: json("qualifications").$type<{
+      degree: string;
+      institution: string;
+      year: number;
+    }[]>().default([]),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("faculty_user_idx").on(table.userId),
+    index("faculty_department_idx").on(table.departmentId),
+    index("faculty_position_idx").on(table.position),
+  ],
+);
+
+// Course instructors junction table
+export const CourseInstructorSchema = pgTable(
+  "course_instructor",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    facultyId: uuid("faculty_id")
+      .notNull()
+      .references(() => FacultySchema.id, { onDelete: "cascade" }),
+    semester: text("semester").notNull(),
+    role: varchar("role", {
+      enum: ["primary", "assistant", "lab_instructor", "grader"],
+    }).notNull().default("primary"),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    unique().on(table.courseId, table.facultyId, table.semester),
+    index("instructor_course_idx").on(table.courseId),
+    index("instructor_faculty_idx").on(table.facultyId),
+    index("instructor_semester_idx").on(table.semester),
+  ],
+);
+
+// Class schedules table
+export const ClassScheduleSchema = pgTable(
+  "class_schedule",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    semester: text("semester").notNull(),
+    dayOfWeek: varchar("day_of_week", {
+      enum: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+    }).notNull(),
+    startTime: text("start_time").notNull(), // HH:MM format
+    endTime: text("end_time").notNull(), // HH:MM format
+    roomLocation: text("room_location"),
+    buildingName: text("building_name"),
+    classType: varchar("class_type", {
+      enum: ["lecture", "lab", "tutorial", "seminar"],
+    }).notNull().default("lecture"),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("schedule_course_idx").on(table.courseId),
+    index("schedule_day_idx").on(table.dayOfWeek),
+    index("schedule_semester_idx").on(table.semester),
+    index("schedule_room_idx").on(table.roomLocation),
+  ],
+);
+
+// Academic calendar table
+export const AcademicCalendarSchema = pgTable(
+  "academic_calendar",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    semester: text("semester").notNull().unique(), // e.g., "2024-fall"
+    academicYear: text("academic_year").notNull(), // e.g., "2024-2025"
+    semesterName: text("semester_name").notNull(), // e.g., "Fall 2024"
+    startDate: date("start_date").notNull(),
+    endDate: date("end_date").notNull(),
+    registrationStartDate: date("registration_start_date"),
+    registrationEndDate: date("registration_end_date"),
+    addDropDeadline: date("add_drop_deadline"),
+    midtermWeek: integer("midterm_week"), // Week number
+    finalsStartDate: date("finals_start_date"),
+    finalsEndDate: date("finals_end_date"),
+    graduationDate: date("graduation_date"),
+    isActive: boolean("is_active").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("calendar_semester_idx").on(table.semester),
+    index("calendar_academic_year_idx").on(table.academicYear),
+    index("calendar_active_idx").on(table.isActive),
+  ],
+);
+
+// Announcements table
+export const AnnouncementSchema = pgTable(
+  "announcement",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+    courseId: uuid("course_id").references(() => CourseSchema.id, { onDelete: "cascade" }),
+    departmentId: uuid("department_id").references(() => DepartmentSchema.id, { onDelete: "cascade" }),
+    createdById: uuid("created_by_id")
+      .notNull()
+      .references(() => UserSchema.id),
+    targetAudience: varchar("target_audience", {
+      enum: ["all", "students", "faculty", "course_specific", "department_specific"],
+    }).notNull().default("all"),
+    priority: varchar("priority", {
+      enum: ["low", "medium", "high", "urgent"],
+    }).notNull().default("medium"),
+    isActive: boolean("is_active").notNull().default(true),
+    expiresAt: timestamp("expires_at"),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("announcement_course_idx").on(table.courseId),
+    index("announcement_department_idx").on(table.departmentId),
+    index("announcement_target_idx").on(table.targetAudience),
+    index("announcement_priority_idx").on(table.priority),
+    index("announcement_active_idx").on(table.isActive),
+    index("announcement_created_by_idx").on(table.createdById),
+  ],
+);
+
+// Assignments table
+export const AssignmentSchema = pgTable(
+  "assignment",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    instructions: text("instructions"),
+    assignmentType: varchar("assignment_type", {
+      enum: ["homework", "project", "quiz", "exam", "presentation", "lab", "essay"],
+    }).notNull(),
+    totalPoints: decimal("total_points", { precision: 6, scale: 2 }).notNull(),
+    dueDate: timestamp("due_date").notNull(),
+    submissionType: varchar("submission_type", {
+      enum: ["file_upload", "text_entry", "online_test", "in_person"],
+    }).notNull().default("file_upload"),
+    allowLateSubmission: boolean("allow_late_submission").notNull().default(false),
+    lateSubmissionPenalty: decimal("late_submission_penalty", { precision: 5, scale: 2 }), // percentage
+    weekNumber: integer("week_number"),
+    moduleNumber: integer("module_number"),
+    isPublished: boolean("is_published").notNull().default(false),
+    createdById: uuid("created_by_id")
+      .notNull()
+      .references(() => UserSchema.id),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("assignment_course_idx").on(table.courseId),
+    index("assignment_due_date_idx").on(table.dueDate),
+    index("assignment_type_idx").on(table.assignmentType),
+    index("assignment_week_idx").on(table.weekNumber),
+    index("assignment_published_idx").on(table.isPublished),
+  ],
+);
+
+// Assignment submissions table
+export const AssignmentSubmissionSchema = pgTable(
+  "assignment_submission",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    assignmentId: uuid("assignment_id")
+      .notNull()
+      .references(() => AssignmentSchema.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    submissionText: text("submission_text"),
+    fileUrl: text("file_url"),
+    fileName: text("file_name"),
+    fileSize: integer("file_size"),
+    mimeType: text("mime_type"),
+    grade: decimal("grade", { precision: 6, scale: 2 }),
+    feedback: text("feedback"),
+    isLateSubmission: boolean("is_late_submission").notNull().default(false),
+    submittedAt: timestamp("submitted_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    gradedAt: timestamp("graded_at"),
+    gradedById: uuid("graded_by_id").references(() => UserSchema.id),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    unique().on(table.assignmentId, table.studentId),
+    index("submission_assignment_idx").on(table.assignmentId),
+    index("submission_student_idx").on(table.studentId),
+    index("submission_date_idx").on(table.submittedAt),
+    index("submission_graded_idx").on(table.gradedAt),
+  ],
+);
+
+// Attendance tracking table
+export const AttendanceSchema = pgTable(
+  "attendance",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    enrollmentId: uuid("enrollment_id")
+      .notNull()
+      .references(() => StudentEnrollmentSchema.id, { onDelete: "cascade" }),
+    classDate: date("class_date").notNull(),
+    status: varchar("status", {
+      enum: ["present", "absent", "late", "excused"],
+    }).notNull(),
+    markedById: uuid("marked_by_id")
+      .notNull()
+      .references(() => UserSchema.id),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    unique().on(table.enrollmentId, table.classDate),
+    index("attendance_enrollment_idx").on(table.enrollmentId),
+    index("attendance_date_idx").on(table.classDate),
+    index("attendance_status_idx").on(table.status),
+  ],
+);
+
 export type McpServerEntity = typeof McpServerSchema.$inferSelect;
 export type ChatThreadEntity = typeof ChatThreadSchema.$inferSelect;
 export type ChatMessageEntity = typeof ChatMessageSchema.$inferSelect;
@@ -327,3 +720,18 @@ export type McpServerCustomizationEntity =
 export type ArchiveEntity = typeof ArchiveSchema.$inferSelect;
 export type ArchiveItemEntity = typeof ArchiveItemSchema.$inferSelect;
 export type BookmarkEntity = typeof BookmarkSchema.$inferSelect;
+
+// Academic entity types
+export type DepartmentEntity = typeof DepartmentSchema.$inferSelect;
+export type CourseEntity = typeof CourseSchema.$inferSelect;
+export type CoursePrerequisiteEntity = typeof CoursePrerequisiteSchema.$inferSelect;
+export type CourseMaterialEntity = typeof CourseMaterialSchema.$inferSelect;
+export type StudentEnrollmentEntity = typeof StudentEnrollmentSchema.$inferSelect;
+export type FacultyEntity = typeof FacultySchema.$inferSelect;
+export type CourseInstructorEntity = typeof CourseInstructorSchema.$inferSelect;
+export type ClassScheduleEntity = typeof ClassScheduleSchema.$inferSelect;
+export type AcademicCalendarEntity = typeof AcademicCalendarSchema.$inferSelect;
+export type AnnouncementEntity = typeof AnnouncementSchema.$inferSelect;
+export type AssignmentEntity = typeof AssignmentSchema.$inferSelect;
+export type AssignmentSubmissionEntity = typeof AssignmentSubmissionSchema.$inferSelect;
+export type AttendanceEntity = typeof AttendanceSchema.$inferSelect;

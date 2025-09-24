@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       body: {
         email: userData.email,
         name: userData.name,
-        password: userData.password,
+        password: password, // Use original password directly to ensure it's defined
       },
       headers: request.headers,
     });
