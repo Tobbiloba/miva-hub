@@ -1,0 +1,14 @@
+[project]
+name = "miva-academic-mcp-server"
+version = "1.0.0"
+description = "MCP server for MIVA University academic operations"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "mcp>=1.4.1",
+    "starlette>=0.46.1",
+    "uvicorn>=0.34.0",
+    "psycopg2>=2.9.0",
+    "python-dotenv>=1.0.0",
+]
