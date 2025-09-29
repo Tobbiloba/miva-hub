@@ -10,7 +10,10 @@ from mcp.server import Server
 import uvicorn
 
 # Import our database module
-from database import academic_repo
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from core.database import academic_repo
 
 # Initialize FastMCP server for MIVA Academic tools
 mcp = FastMCP("miva-academic")

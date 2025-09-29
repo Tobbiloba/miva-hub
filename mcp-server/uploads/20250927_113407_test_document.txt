@@ -1,0 +1,28 @@
+Advanced Object-Oriented Programming - Test Document
+
+This is a test document for the MIVA University AI content processing system.
+
+Key Topics:
+- Inheritance and class hierarchies
+- Polymorphism and method overriding
+- Encapsulation and data hiding
+- Abstract classes and interfaces
+
+Learning Objectives:
+1. Understand the principles of object-oriented programming
+2. Implement inheritance relationships effectively
+3. Apply polymorphism in practical scenarios
+4. Design maintainable class structures
+
+This document demonstrates how the AI system can process educational content,
+extract key concepts, and make it searchable for students.
+
+Example Code Concepts:
+- Base classes and derived classes
+- Virtual functions and overriding
+- Access modifiers (public, private, protected)
+- Constructor and destructor patterns
+
+Assessment Methods:
+Students will be evaluated through practical coding exercises
+that test their understanding of these core OOP concepts.
