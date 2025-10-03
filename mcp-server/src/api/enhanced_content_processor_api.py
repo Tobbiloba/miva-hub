@@ -7,6 +7,7 @@ FastAPI service with comprehensive error handling, validation, and monitoring
 import asyncio
 import json
 import logging
+import queue
 import mimetypes
 import os
 import re
@@ -17,13 +18,15 @@ import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
+from uuid import UUID
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, BackgroundTasks, Depends, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+from sse_starlette.sse import EventSourceResponse
 from pydantic import BaseModel, Field, field_validator
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -88,6 +91,471 @@ except ImportError:
 # Load environment
 load_dotenv()
 
+# Real-time status tracking
+import threading
+from collections import defaultdict
+from typing import Set
+
+class ProcessingStatusTracker:
+    """Thread-safe status tracker for real-time updates"""
+    def __init__(self):
+        self._status_data = {}
+        self._subscribers = defaultdict(set)  # job_id -> set of queue objects
+        self._lock = threading.Lock()
+    
+    def update_status(self, job_id: str, status_data: dict):
+        """Update status and notify all subscribers"""
+        with self._lock:
+            self._status_data[job_id] = {
+                **status_data,
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            # Notify all subscribers
+            for queue in self._subscribers[job_id]:
+                try:
+                    queue.put_nowait(status_data)
+                except:
+                    pass  # Queue might be full or closed
+    
+    def subscribe(self, job_id: str, queue):
+        """Subscribe to status updates for a job"""
+        with self._lock:
+            self._subscribers[job_id].add(queue)
+    
+    def unsubscribe(self, job_id: str, queue):
+        """Unsubscribe from status updates"""
+        with self._lock:
+            self._subscribers[job_id].discard(queue)
+    
+    def get_current_status(self, job_id: str) -> dict:
+        """Get current status for a job"""
+        with self._lock:
+            return self._status_data.get(job_id, {})
+
+# Global status tracker
+status_tracker = ProcessingStatusTracker()
+
+# Processing Queue System
+import asyncio
+from asyncio import Queue, Lock
+from dataclasses import dataclass
+from enum import Enum
+from typing import Callable, Optional
+
+class JobPriority(Enum):
+    LOW = 1
+    NORMAL = 2 
+    HIGH = 3
+    URGENT = 4
+
+@dataclass
+class ProcessingJob:
+    job_id: str
+    material_id: str
+    file_path: str
+    priority: JobPriority
+    created_at: datetime
+    retries: int = 0
+    max_retries: int = 3
+    callback: Optional[Callable] = None
+
+class ProcessingQueue:
+    """Async processing queue with priority support and worker management."""
+    
+    def __init__(self, max_workers: int = 3, max_queue_size: int = 100):
+        self.max_workers = max_workers
+        self.max_queue_size = max_queue_size
+        self.queues = {
+            JobPriority.URGENT: Queue(maxsize=max_queue_size),
+            JobPriority.HIGH: Queue(maxsize=max_queue_size), 
+            JobPriority.NORMAL: Queue(maxsize=max_queue_size),
+            JobPriority.LOW: Queue(maxsize=max_queue_size)
+        }
+        self.workers = []
+        self.active_jobs = {}  # job_id -> ProcessingJob
+        self.queue_lock = Lock()
+        self.stats = {
+            'jobs_queued': 0,
+            'jobs_completed': 0,
+            'jobs_failed': 0,
+            'jobs_active': 0,
+            'queue_sizes': {}
+        }
+        self.running = False
+    
+    async def start(self):
+        """Start the queue workers."""
+        if self.running:
+            return
+        
+        self.running = True
+        for i in range(self.max_workers):
+            worker = asyncio.create_task(self._worker(f"worker-{i}"))
+            self.workers.append(worker)
+        
+        logger.info(f"🔧 Processing queue started with {self.max_workers} workers")
+    
+    async def stop(self):
+        """Stop the queue workers gracefully."""
+        self.running = False
+        
+        # Cancel all workers
+        for worker in self.workers:
+            worker.cancel()
+        
+        # Wait for workers to finish
+        await asyncio.gather(*self.workers, return_exceptions=True)
+        self.workers.clear()
+        
+        logger.info("🛑 Processing queue stopped")
+    
+    async def add_job(self, job: ProcessingJob) -> bool:
+        """Add a job to the appropriate priority queue."""
+        try:
+            async with self.queue_lock:
+                queue = self.queues[job.priority]
+                
+                # Check if queue is full
+                if queue.full():
+                    logger.warning(f"Queue for priority {job.priority.name} is full")
+                    return False
+                
+                await queue.put(job)
+                self.stats['jobs_queued'] += 1
+                
+                # Update status tracker
+                status_tracker.update_status(job.job_id, {
+                    "status": "queued",
+                    "stage": "queue",
+                    "message": f"Job queued with {job.priority.name} priority",
+                    "queue_position": queue.qsize(),
+                    "priority": job.priority.name
+                })
+                
+                logger.info(f"📝 Job {job.job_id} queued with {job.priority.name} priority")
+                return True
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to queue job {job.job_id}: {str(e)}")
+            return False
+    
+    async def _worker(self, worker_name: str):
+        """Worker coroutine that processes jobs from the queues."""
+        logger.info(f"👷 Worker {worker_name} started")
+        
+        while self.running:
+            try:
+                # Get next job from highest priority queue
+                job = await self._get_next_job()
+                
+                if job is None:
+                    await asyncio.sleep(1)  # No jobs available, wait a bit
+                    continue
+                
+                # Process the job
+                await self._process_job(job, worker_name)
+                
+            except asyncio.CancelledError:
+                logger.info(f"👷 Worker {worker_name} cancelled")
+                break
+            except Exception as e:
+                logger.error(f"❌ Worker {worker_name} error: {str(e)}")
+                await asyncio.sleep(5)  # Wait before retrying
+        
+        logger.info(f"👷 Worker {worker_name} stopped")
+    
+    async def _get_next_job(self) -> Optional[ProcessingJob]:
+        """Get the next job from the highest priority queue that has jobs."""
+        async with self.queue_lock:
+            # Check queues in priority order
+            for priority in [JobPriority.URGENT, JobPriority.HIGH, JobPriority.NORMAL, JobPriority.LOW]:
+                queue = self.queues[priority]
+                if not queue.empty():
+                    try:
+                        job = await asyncio.wait_for(queue.get(), timeout=0.1)
+                        self.active_jobs[job.job_id] = job
+                        self.stats['jobs_active'] += 1
+                        return job
+                    except asyncio.TimeoutError:
+                        continue
+            
+            return None
+    
+    async def _process_job(self, job: ProcessingJob, worker_name: str):
+        """Process a single job."""
+        try:
+            logger.info(f"🔄 {worker_name} processing job {job.job_id}")
+            
+            # Update status to processing
+            status_tracker.update_status(job.job_id, {
+                "status": "processing",
+                "stage": "dequeued",
+                "message": f"Processing started by {worker_name}",
+                "worker": worker_name,
+                "retries": job.retries
+            })
+            
+            # Process the actual content
+            await start_background_processing(job.material_id, job.job_id, job.file_path)
+            
+            # Job completed successfully
+            await self._job_completed(job, worker_name)
+            
+        except Exception as e:
+            logger.error(f"❌ {worker_name} job {job.job_id} failed: {str(e)}")
+            await self._job_failed(job, worker_name, str(e))
+    
+    async def _job_completed(self, job: ProcessingJob, worker_name: str):
+        """Handle successful job completion."""
+        async with self.queue_lock:
+            self.active_jobs.pop(job.job_id, None)
+            self.stats['jobs_completed'] += 1
+            self.stats['jobs_active'] -= 1
+        
+        logger.info(f"✅ {worker_name} completed job {job.job_id}")
+        
+        # Call callback if provided
+        if job.callback:
+            try:
+                await job.callback(job, 'completed')
+            except Exception as e:
+                logger.error(f"Callback error for job {job.job_id}: {str(e)}")
+    
+    async def _job_failed(self, job: ProcessingJob, worker_name: str, error: str):
+        """Handle job failure with retry logic."""
+        async with self.queue_lock:
+            self.active_jobs.pop(job.job_id, None)
+            self.stats['jobs_active'] -= 1
+        
+        # Check if we should retry
+        if job.retries < job.max_retries:
+            job.retries += 1
+            logger.warning(f"🔄 Retrying job {job.job_id} (attempt {job.retries}/{job.max_retries})")
+            
+            # Re-queue with lower priority for retry
+            retry_priority = JobPriority.LOW if job.priority != JobPriority.LOW else JobPriority.LOW
+            job.priority = retry_priority
+            
+            await asyncio.sleep(2 ** job.retries)  # Exponential backoff
+            await self.add_job(job)
+        else:
+            # Max retries exceeded
+            self.stats['jobs_failed'] += 1
+            logger.error(f"❌ Job {job.job_id} failed permanently after {job.retries} retries")
+            
+            # Call callback if provided
+            if job.callback:
+                try:
+                    await job.callback(job, 'failed', error)
+                except Exception as e:
+                    logger.error(f"Callback error for failed job {job.job_id}: {str(e)}")
+    
+    def get_queue_stats(self) -> dict:
+        """Get current queue statistics."""
+        self.stats['queue_sizes'] = {
+            priority.name: queue.qsize() 
+            for priority, queue in self.queues.items()
+        }
+        return self.stats.copy()
+
+# Global processing queue
+processing_queue = ProcessingQueue(max_workers=3, max_queue_size=50)
+
+# Duplicate Content Detection System
+import hashlib
+from difflib import SequenceMatcher
+import re
+
+class DuplicateDetector:
+    """Advanced duplicate detection with multiple similarity algorithms."""
+    
+    def __init__(self):
+        self.similarity_threshold = 0.85  # 85% similarity threshold
+        self.hash_algorithms = ['md5', 'sha256']
+    
+    def calculate_file_hash(self, content: bytes, algorithm: str = 'sha256') -> str:
+        """Calculate hash of file content."""
+        hash_func = getattr(hashlib, algorithm)()
+        hash_func.update(content)
+        return hash_func.hexdigest()
+    
+    def calculate_content_hash(self, text: str) -> str:
+        """Calculate hash of normalized text content."""
+        # Normalize text for better comparison
+        normalized_text = self.normalize_text(text)
+        return hashlib.sha256(normalized_text.encode('utf-8')).hexdigest()
+    
+    def normalize_text(self, text: str) -> str:
+        """Normalize text by removing whitespace, case, and non-essential characters."""
+        # Convert to lowercase
+        text = text.lower()
+        # Remove extra whitespace
+        text = re.sub(r'\s+', ' ', text)
+        # Remove punctuation (keeping alphanumeric and spaces)
+        text = re.sub(r'[^\w\s]', '', text)
+        # Strip leading/trailing whitespace
+        return text.strip()
+    
+    def calculate_text_similarity(self, text1: str, text2: str) -> float:
+        """Calculate similarity between two texts using sequence matching."""
+        # Normalize both texts
+        norm_text1 = self.normalize_text(text1)
+        norm_text2 = self.normalize_text(text2)
+        
+        # Use SequenceMatcher for similarity
+        matcher = SequenceMatcher(None, norm_text1, norm_text2)
+        return matcher.ratio()
+    
+    def calculate_semantic_similarity(self, text1: str, text2: str) -> float:
+        """Calculate semantic similarity using word overlap and structure."""
+        # Normalize texts
+        norm_text1 = self.normalize_text(text1)
+        norm_text2 = self.normalize_text(text2)
+        
+        # Split into words
+        words1 = set(norm_text1.split())
+        words2 = set(norm_text2.split())
+        
+        # Calculate Jaccard similarity (intersection over union)
+        if not words1 and not words2:
+            return 1.0
+        if not words1 or not words2:
+            return 0.0
+        
+        intersection = words1.intersection(words2)
+        union = words1.union(words2)
+        
+        return len(intersection) / len(union)
+    
+    async def find_duplicates(self, content: bytes, text_content: str, 
+                            filename: str, course_id: str = None) -> dict:
+        """Find potential duplicates in the database."""
+        duplicates = {
+            "exact_file_matches": [],
+            "content_matches": [],
+            "similar_content": [],
+            "is_duplicate": False,
+            "similarity_scores": {}
+        }
+        
+        try:
+            # Calculate hashes
+            file_hash = self.calculate_file_hash(content)
+            content_hash = self.calculate_content_hash(text_content)
+            
+            # Query database for potential matches
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            # First check for exact file matches (same hash)
+            cursor.execute("""
+                SELECT DISTINCT cm.id, cm.title, cm."fileName", cm."filePath", 
+                       apc."extractedText", cm."courseId"
+                FROM course_material cm
+                LEFT JOIN ai_processed_content apc ON cm.id = apc."courseMaterialId"
+                WHERE (%s IS NULL OR cm."courseId" = %s)
+                AND cm."filePath" IS NOT NULL
+            """, (course_id, course_id))
+            
+            existing_materials = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            
+            # Check each existing material
+            for material in existing_materials:
+                if isinstance(material, dict):
+                    material_id = material['id']
+                    title = material['title']
+                    file_name = material['file_name']
+                    file_path = material['file_path']
+                    extracted_text = material['extracted_text']
+                    material_course_id = material['course_id']
+                else:
+                    material_id, title, file_name, file_path, extracted_text, material_course_id = material
+                
+                # Skip if no extracted text
+                if not extracted_text:
+                    continue
+                
+                # Check file hash if file exists
+                try:
+                    if file_path and Path(file_path).exists():
+                        with open(file_path, 'rb') as f:
+                            existing_content = f.read()
+                        existing_file_hash = self.calculate_file_hash(existing_content)
+                        
+                        if existing_file_hash == file_hash:
+                            duplicates["exact_file_matches"].append({
+                                "material_id": material_id,
+                                "title": title,
+                                "filename": file_name,
+                                "course_id": material_course_id,
+                                "match_type": "exact_file"
+                            })
+                            duplicates["is_duplicate"] = True
+                            continue
+                except Exception as e:
+                    logger.warning(f"Could not check file hash for {file_path}: {str(e)}")
+                
+                # Check content hash
+                existing_content_hash = self.calculate_content_hash(extracted_text)
+                if existing_content_hash == content_hash:
+                    duplicates["content_matches"].append({
+                        "material_id": material_id,
+                        "title": title,
+                        "filename": file_name,
+                        "course_id": material_course_id,
+                        "match_type": "exact_content"
+                    })
+                    duplicates["is_duplicate"] = True
+                    continue
+                
+                # Calculate similarity scores
+                text_similarity = self.calculate_text_similarity(text_content, extracted_text)
+                semantic_similarity = self.calculate_semantic_similarity(text_content, extracted_text)
+                
+                # Average the similarities for overall score
+                overall_similarity = (text_similarity + semantic_similarity) / 2
+                
+                if overall_similarity >= self.similarity_threshold:
+                    duplicates["similar_content"].append({
+                        "material_id": material_id,
+                        "title": title,
+                        "filename": file_name,
+                        "course_id": material_course_id,
+                        "text_similarity": round(text_similarity, 3),
+                        "semantic_similarity": round(semantic_similarity, 3),
+                        "overall_similarity": round(overall_similarity, 3),
+                        "match_type": "similar_content"
+                    })
+                    
+                    duplicates["similarity_scores"][material_id] = {
+                        "text_similarity": text_similarity,
+                        "semantic_similarity": semantic_similarity,
+                        "overall_similarity": overall_similarity
+                    }
+                    
+                    # Mark as duplicate if very high similarity
+                    if overall_similarity >= 0.95:
+                        duplicates["is_duplicate"] = True
+            
+            return duplicates
+            
+        except Exception as e:
+            logger.error(f"❌ Duplicate detection failed: {str(e)}")
+            return {
+                "exact_file_matches": [],
+                "content_matches": [],
+                "similar_content": [],
+                "is_duplicate": False,
+                "similarity_scores": {},
+                "error": str(e)
+            }
+
+# Global duplicate detector
+duplicate_detector = DuplicateDetector()
+
 # Enhanced logging configuration
 logging.basicConfig(
     level=logging.INFO,
@@ -110,15 +578,35 @@ class Config:
     UPLOAD_DIR = Path(os.getenv('UPLOAD_DIR', 'uploads'))
     UPLOAD_DIR.mkdir(exist_ok=True)
 
-# Database configuration
-DB_CONFIG = {
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'port': int(os.getenv('DB_PORT', '5432')),
-    'database': os.getenv('DB_NAME', 'miva_academic'),
-    'user': os.getenv('DB_USER', 'postgres'),
-    'password': os.getenv('DB_PASSWORD', ''),
-    'cursor_factory': RealDictCursor
-}
+# Database configuration - unified with Next.js frontend
+def get_db_config():
+    """Get unified database configuration using POSTGRES_URL"""
+    postgres_url = os.getenv('POSTGRES_URL') or os.getenv('DATABASE_URL')
+    
+    if postgres_url:
+        # Parse POSTGRES_URL
+        import urllib.parse as urlparse
+        parsed = urlparse.urlparse(postgres_url)
+        return {
+            'host': parsed.hostname,
+            'port': parsed.port or 5432,
+            'database': parsed.path.lstrip('/'),
+            'user': parsed.username,
+            'password': parsed.password,
+            'cursor_factory': RealDictCursor
+        }
+    else:
+        # Fallback to individual environment variables
+        return {
+            'host': os.getenv('DB_HOST', 'localhost'),
+            'port': int(os.getenv('DB_PORT', '5432')),
+            'database': os.getenv('DB_NAME', 'better_chatbot'),  # Changed from miva_academic
+            'user': os.getenv('DB_USER', 'postgres'),
+            'password': os.getenv('DB_PASSWORD', ''),
+            'cursor_factory': RealDictCursor
+        }
+
+DB_CONFIG = get_db_config()
 
 # Custom Exception Classes
 class ContentProcessingError(Exception):
@@ -501,7 +989,7 @@ enhanced_audio_video_processor = EnhancedAudioVideoProcessor()
 # Pydantic Models for Request/Response Validation
 class ContentUploadRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=200, description="Content title")
-    course_id: Optional[int] = Field(None, ge=1, description="Course ID")
+    course_id: Optional[str] = Field(None, description="Course ID (UUID)")
     week_number: Optional[int] = Field(None, ge=1, le=20, description="Week number")
     material_type: Optional[str] = Field(None, pattern="^(pdf|video|audio|text|interactive)$")
     
@@ -514,8 +1002,8 @@ class ContentUploadRequest(BaseModel):
 
 class ProcessingStatusResponse(BaseModel):
     processing_id: str
-    material_id: int
-    job_id: int
+    material_id: str  # UUID
+    job_id: str  # UUID
     status: str = Field(..., pattern="^(pending|processing|completed|failed)$")
     progress: int = Field(..., ge=0, le=100)
     error_message: Optional[str] = None
@@ -533,7 +1021,7 @@ class SearchRequest(BaseModel):
     limit: int = Field(10, ge=1, le=50)
 
 class SearchResult(BaseModel):
-    course_material_id: int
+    course_material_id: str  # UUID
     material_title: str
     material_type: str
     chunk_text: str
@@ -876,11 +1364,33 @@ async def startup_event():
         logger.error(f"❌ AI stack initialization failed: {e}")
         raise
     
+    # Start processing queue
+    try:
+        await processing_queue.start()
+        logger.info("✅ Processing queue started")
+    except Exception as e:
+        logger.error(f"❌ Processing queue startup failed: {e}")
+        raise
+    
     # Create upload directory
     Config.UPLOAD_DIR.mkdir(exist_ok=True)
     logger.info(f"✅ Upload directory ready: {Config.UPLOAD_DIR}")
     
     logger.info("🎉 Enhanced MIVA Content Processor ready for requests!")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Gracefully shutdown services."""
+    logger.info("🛑 Shutting down Enhanced MIVA Content Processor...")
+    
+    try:
+        await processing_queue.stop()
+        logger.info("✅ Processing queue stopped gracefully")
+    except Exception as e:
+        logger.error(f"❌ Error stopping processing queue: {e}")
+    
+    logger.info("👋 Enhanced MIVA Content Processor shutdown complete")
 
 # Enhanced API Endpoints
 @app.get("/", response_model=Dict[str, Any])
@@ -1011,11 +1521,603 @@ async def validate_file_enhanced(file: UploadFile) -> None:
     except Exception as e:
         raise FileValidationError(f"Failed to read file: {str(e)}")
 
+
+async def validate_file_security(file: UploadFile) -> dict:
+    """Advanced security validation with malware detection and content analysis."""
+    validation_results = {
+        "is_safe": True,
+        "security_score": 100,
+        "warnings": [],
+        "threats_detected": [],
+        "file_metadata": {}
+    }
+    
+    try:
+        # Basic file validation first
+        await validate_file_enhanced(file)
+        
+        # Read file content for analysis
+        await file.seek(0)
+        content = await file.read()
+        await file.seek(0)
+        
+        # File metadata extraction
+        validation_results["file_metadata"] = {
+            "size_bytes": len(content),
+            "extension": Path(file.filename).suffix.lower(),
+            "content_type": file.content_type,
+            "filename": secure_filename(file.filename)
+        }
+        
+        # 1. Magic byte validation (file signature check)
+        if not await validate_file_signature(content, file.filename):
+            validation_results["warnings"].append("File signature doesn't match extension")
+            validation_results["security_score"] -= 20
+        
+        # 2. Suspicious pattern detection
+        suspicious_patterns = await detect_suspicious_patterns(content)
+        if suspicious_patterns:
+            validation_results["threats_detected"].extend(suspicious_patterns)
+            validation_results["security_score"] -= len(suspicious_patterns) * 15
+        
+        # 3. Embedded content analysis for documents
+        if file.filename.lower().endswith(('.pdf', '.docx', '.pptx')):
+            embedded_threats = await analyze_embedded_content(content, file.filename)
+            if embedded_threats:
+                validation_results["threats_detected"].extend(embedded_threats)
+                validation_results["security_score"] -= len(embedded_threats) * 25
+        
+        # 4. File size anomaly detection
+        expected_size_range = get_expected_file_size_range(file.filename)
+        if len(content) < expected_size_range[0] or len(content) > expected_size_range[1]:
+            validation_results["warnings"].append(f"Unusual file size for {Path(file.filename).suffix} file")
+            validation_results["security_score"] -= 10
+        
+        # 5. Content entropy analysis (detect compressed/encrypted content)
+        entropy = calculate_file_entropy(content)
+        if entropy > 7.5:  # High entropy might indicate compression or encryption
+            validation_results["warnings"].append(f"High entropy content detected ({entropy:.2f})")
+            validation_results["security_score"] -= 15
+        
+        # 6. Filename security check
+        if not is_filename_safe(file.filename):
+            validation_results["warnings"].append("Potentially unsafe filename patterns")
+            validation_results["security_score"] -= 10
+        
+        # Determine overall safety
+        validation_results["is_safe"] = (
+            validation_results["security_score"] >= 60 and
+            len(validation_results["threats_detected"]) == 0
+        )
+        
+        # Log security analysis
+        if validation_results["security_score"] < 80:
+            logger.warning(f"Security concerns for file {file.filename}: Score {validation_results['security_score']}")
+        
+        return validation_results
+        
+    except Exception as e:
+        logger.error(f"Security validation failed for {file.filename}: {str(e)}")
+        return {
+            "is_safe": False,
+            "security_score": 0,
+            "warnings": ["Security validation failed"],
+            "threats_detected": [f"Validation error: {str(e)}"],
+            "file_metadata": {}
+        }
+
+
+async def validate_file_signature(content: bytes, filename: str) -> bool:
+    """Validate file magic bytes match the expected format."""
+    if len(content) < 16:
+        return False
+    
+    file_ext = Path(filename).suffix.lower()
+    magic_bytes = content[:16]
+    
+    # Common file signatures
+    signatures = {
+        '.pdf': [b'%PDF'],
+        '.docx': [b'PK\x03\x04'],  # ZIP-based format
+        '.pptx': [b'PK\x03\x04'],  # ZIP-based format
+        '.zip': [b'PK\x03\x04', b'PK\x05\x06', b'PK\x07\x08'],
+        '.mp4': [b'\x00\x00\x00\x18ftypmp4', b'\x00\x00\x00\x1cftypmp42'],
+        '.mp3': [b'ID3', b'\xff\xfb', b'\xff\xf3', b'\xff\xf2'],
+        '.wav': [b'RIFF'],
+        '.txt': [],  # Text files don't have consistent magic bytes
+    }
+    
+    if file_ext not in signatures:
+        return True  # Unknown extension, can't validate
+    
+    expected_signatures = signatures[file_ext]
+    if not expected_signatures:  # No specific signature required
+        return True
+    
+    return any(magic_bytes.startswith(sig) for sig in expected_signatures)
+
+
+async def detect_suspicious_patterns(content: bytes) -> list:
+    """Detect suspicious patterns that might indicate malware or malicious content."""
+    threats = []
+    
+    # Convert to string for pattern matching (ignore decode errors)
+    try:
+        text_content = content.decode('utf-8', errors='ignore').lower()
+    except:
+        text_content = str(content).lower()
+    
+    # Suspicious patterns to detect
+    suspicious_patterns = {
+        'javascript_injection': [
+            '<script', 'javascript:', 'eval(', 'document.write',
+            'window.location', 'document.cookie'
+        ],
+        'sql_injection': [
+            'union select', 'drop table', 'exec(', '--',
+            'xp_cmdshell', 'sp_executesql'
+        ],
+        'shell_commands': [
+            '/bin/sh', '/bin/bash', 'cmd.exe', 'powershell',
+            'system(', 'exec(', 'passthru('
+        ],
+        'suspicious_urls': [
+            'http://bit.ly', 'http://tinyurl', 'data:text/html',
+            'javascript:void', 'vbscript:'
+        ],
+        'embedded_executables': [
+            'mz\x90\x00', 'elf', '\x7felf', 'pe\x00\x00'
+        ]
+    }
+    
+    for threat_type, patterns in suspicious_patterns.items():
+        for pattern in patterns:
+            if pattern in text_content:
+                threats.append(f"{threat_type}: {pattern}")
+    
+    return threats
+
+
+async def analyze_embedded_content(content: bytes, filename: str) -> list:
+    """Analyze document files for embedded suspicious content."""
+    threats = []
+    
+    try:
+        file_ext = Path(filename).suffix.lower()
+        
+        if file_ext == '.pdf':
+            # Check for JavaScript in PDF
+            text_content = content.decode('latin1', errors='ignore').lower()
+            if '/js' in text_content or '/javascript' in text_content:
+                threats.append("PDF contains JavaScript")
+            if '/launch' in text_content:
+                threats.append("PDF contains launch actions")
+                
+        elif file_ext in ['.docx', '.pptx']:
+            # Check for macros or embedded objects in Office documents
+            text_content = content.decode('latin1', errors='ignore').lower()
+            if 'vbaproject' in text_content:
+                threats.append("Document contains VBA macros")
+            if 'oleobject' in text_content:
+                threats.append("Document contains embedded objects")
+                
+    except Exception as e:
+        logger.warning(f"Embedded content analysis failed for {filename}: {str(e)}")
+    
+    return threats
+
+
+def get_expected_file_size_range(filename: str) -> tuple:
+    """Get expected file size range based on file type."""
+    file_ext = Path(filename).suffix.lower()
+    
+    # Size ranges in bytes (min, max)
+    size_ranges = {
+        '.txt': (1, 50 * 1024 * 1024),  # 1B to 50MB
+        '.pdf': (100, 100 * 1024 * 1024),  # 100B to 100MB
+        '.docx': (1000, 50 * 1024 * 1024),  # 1KB to 50MB
+        '.pptx': (10000, 100 * 1024 * 1024),  # 10KB to 100MB
+        '.mp4': (1000, 500 * 1024 * 1024),  # 1KB to 500MB
+        '.mp3': (1000, 100 * 1024 * 1024),  # 1KB to 100MB
+        '.wav': (1000, 200 * 1024 * 1024),  # 1KB to 200MB
+    }
+    
+    return size_ranges.get(file_ext, (1, 100 * 1024 * 1024))  # Default: 1B to 100MB
+
+
+def calculate_file_entropy(content: bytes) -> float:
+    """Calculate Shannon entropy of file content."""
+    if len(content) == 0:
+        return 0
+    
+    # Count frequency of each byte
+    frequency = {}
+    for byte in content:
+        frequency[byte] = frequency.get(byte, 0) + 1
+    
+    # Calculate entropy
+    entropy = 0
+    for count in frequency.values():
+        probability = count / len(content)
+        entropy -= probability * (probability).bit_length()
+    
+    return entropy
+
+
+def is_filename_safe(filename: str) -> bool:
+    """Check if filename contains safe patterns."""
+    # Check for path traversal attempts
+    if '..' in filename or '/' in filename or '\\' in filename:
+        return False
+    
+    # Check for suspicious extensions
+    suspicious_extensions = [
+        '.exe', '.bat', '.cmd', '.com', '.scr', '.pif',
+        '.vbs', '.js', '.jar', '.sh', '.ps1'
+    ]
+    
+    filename_lower = filename.lower()
+    for ext in suspicious_extensions:
+        if filename_lower.endswith(ext):
+            return False
+    
+    # Check for double extensions (file.pdf.exe)
+    parts = filename.split('.')
+    if len(parts) > 2:
+        for i in range(len(parts) - 1):
+            potential_ext = '.' + parts[i]
+            if potential_ext in suspicious_extensions:
+                return False
+    
+    return True
+
+# Security Validation Endpoint
+@app.post("/validate-file")
+@limiter.limit("10/minute")
+async def validate_file_security_endpoint(
+    request: Request,
+    file: UploadFile = File(...)
+):
+    """Validate file security and return detailed security report."""
+    try:
+        logger.info(f"🔍 Security validation requested for: {file.filename}")
+        
+        # Perform comprehensive security validation
+        validation_results = await validate_file_security(file)
+        
+        # Add recommendations based on results
+        recommendations = []
+        if validation_results["security_score"] < 60:
+            recommendations.append("File rejected due to security concerns")
+        elif validation_results["security_score"] < 80:
+            recommendations.append("File accepted with caution - monitor during processing")
+        else:
+            recommendations.append("File passed security validation")
+        
+        validation_results["recommendations"] = recommendations
+        
+        # Return detailed security report
+        return {
+            "status": "validation_complete",
+            "filename": file.filename,
+            "timestamp": datetime.now().isoformat(),
+            **validation_results
+        }
+        
+    except FileValidationError as e:
+        raise e
+    except Exception as e:
+        logger.error(f"❌ Security validation endpoint error: {str(e)}")
+        raise ContentProcessingError(f"Security validation failed: {str(e)}")
+
+
+# Queue Management Endpoints
+@app.get("/queue/stats")
+@limiter.limit("30/minute")
+async def get_queue_stats(request: Request):
+    """Get processing queue statistics and status."""
+    try:
+        stats = processing_queue.get_queue_stats()
+        
+        return {
+            "queue_stats": stats,
+            "worker_count": processing_queue.max_workers,
+            "queue_capacity": processing_queue.max_queue_size,
+            "is_running": processing_queue.running,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting queue stats: {str(e)}")
+        raise ContentProcessingError(f"Failed to get queue stats: {str(e)}")
+
+
+@app.get("/queue/jobs/active")
+@limiter.limit("20/minute")
+async def get_active_jobs(request: Request):
+    """Get currently active processing jobs."""
+    try:
+        active_jobs = []
+        
+        for job_id, job in processing_queue.active_jobs.items():
+            active_jobs.append({
+                "job_id": job.job_id,
+                "material_id": job.material_id,
+                "priority": job.priority.name,
+                "created_at": job.created_at.isoformat(),
+                "retries": job.retries,
+                "max_retries": job.max_retries
+            })
+        
+        return {
+            "active_jobs": active_jobs,
+            "count": len(active_jobs),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting active jobs: {str(e)}")
+        raise ContentProcessingError(f"Failed to get active jobs: {str(e)}")
+
+
+@app.post("/queue/priority/{job_id}")
+@limiter.limit("5/minute")
+async def update_job_priority(
+    request: Request,
+    job_id: str,
+    priority: str = Form(...)
+):
+    """Update the priority of a queued job."""
+    try:
+        # Validate priority
+        try:
+            new_priority = JobPriority[priority.upper()]
+        except KeyError:
+            raise ContentProcessingError(
+                f"Invalid priority '{priority}'. Valid options: LOW, NORMAL, HIGH, URGENT"
+            )
+        
+        # Check if job is in any queue
+        job_found = False
+        for queue_priority, queue in processing_queue.queues.items():
+            # This is a simple approach - in production you'd want a more efficient job lookup
+            temp_jobs = []
+            while not queue.empty():
+                try:
+                    job = await asyncio.wait_for(queue.get(), timeout=0.1)
+                    if job.job_id == job_id:
+                        job.priority = new_priority
+                        job_found = True
+                    temp_jobs.append(job)
+                except asyncio.TimeoutError:
+                    break
+            
+            # Put jobs back
+            for job in temp_jobs:
+                await processing_queue.add_job(job)
+        
+        if not job_found:
+            raise ContentProcessingError(f"Job {job_id} not found in queue or already processing")
+        
+        return {
+            "message": f"Job {job_id} priority updated to {new_priority.name}",
+            "job_id": job_id,
+            "new_priority": new_priority.name,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except ContentProcessingError:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error updating job priority: {str(e)}")
+        raise ContentProcessingError(f"Failed to update job priority: {str(e)}")
+
+
+# Duplicate Detection Endpoint
+@app.post("/check-duplicates")
+@limiter.limit("10/minute")
+async def check_for_duplicates(
+    request: Request,
+    file: UploadFile = File(...),
+    course_id: str = Form(None)
+):
+    """Check if uploaded file is a duplicate of existing content."""
+    try:
+        logger.info(f"🔍 Checking for duplicates: {file.filename}")
+        
+        # Read file content
+        await file.seek(0)
+        content = await file.read()
+        await file.seek(0)
+        
+        # Extract text for comparison
+        try:
+            # Use a simplified text extraction for duplicate checking
+            text_content = ""
+            file_ext = Path(file.filename).suffix.lower()
+            
+            if file_ext == '.txt':
+                text_content = content.decode('utf-8', errors='ignore')
+            elif file_ext == '.pdf' and PDF_AVAILABLE:
+                try:
+                    import io
+                    pdf_reader = PyPDF2.PdfReader(io.BytesIO(content))
+                    text_parts = []
+                    for page in pdf_reader.pages:
+                        text_parts.append(page.extract_text())
+                    text_content = '\n'.join(text_parts)
+                except Exception as e:
+                    logger.warning(f"PDF text extraction failed: {str(e)}")
+                    text_content = ""
+            else:
+                # For other file types, use content as string representation
+                text_content = content.decode('utf-8', errors='ignore')
+            
+        except Exception as e:
+            logger.warning(f"Text extraction for duplicate check failed: {str(e)}")
+            text_content = ""
+        
+        # Check for duplicates
+        duplicates = await duplicate_detector.find_duplicates(
+            content, text_content, file.filename, course_id
+        )
+        
+        # Add file metadata
+        duplicates["file_info"] = {
+            "filename": file.filename,
+            "size_bytes": len(content),
+            "content_type": file.content_type,
+            "file_hash": duplicate_detector.calculate_file_hash(content),
+            "content_hash": duplicate_detector.calculate_content_hash(text_content) if text_content else None
+        }
+        
+        return {
+            "status": "duplicate_check_complete",
+            "filename": file.filename,
+            "course_id": course_id,
+            "timestamp": datetime.now().isoformat(),
+            **duplicates
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Duplicate check failed: {str(e)}")
+        raise ContentProcessingError(f"Duplicate detection failed: {str(e)}")
+
+
+@app.post("/process-with-duplicate-check")
+@limiter.limit("3/minute")
+async def process_material_with_duplicate_check(
+    request: Request,
+    material_id: str = Form(...),
+    file_path: str = Form(...),
+    processing_job_id: str = Form(...),
+    force_processing: bool = Form(False)
+):
+    """Process material with automatic duplicate detection."""
+    try:
+        logger.info(f"🔄 Processing with duplicate check: {material_id}")
+        
+        # Validate that the file exists
+        file_path_obj = Path(file_path)
+        if not file_path_obj.exists():
+            raise FileValidationError(f"File not found at path: {file_path}")
+        
+        # Read file for duplicate checking
+        with open(file_path, 'rb') as f:
+            content = f.read()
+        
+        # Extract text for duplicate checking
+        try:
+            text_content = await extract_text_from_file(file_path)
+        except Exception as e:
+            logger.warning(f"Text extraction failed for duplicate check: {str(e)}")
+            text_content = ""
+        
+        # Check for duplicates unless forced
+        if not force_processing:
+            duplicates = await duplicate_detector.find_duplicates(
+                content, text_content, file_path_obj.name
+            )
+            
+            if duplicates["is_duplicate"]:
+                return {
+                    "status": "duplicate_detected",
+                    "message": "Duplicate content detected - processing skipped",
+                    "material_id": material_id,
+                    "processing_job_id": processing_job_id,
+                    "duplicates": duplicates,
+                    "force_processing_available": True
+                }
+        
+        # If no duplicates or forced processing, proceed with normal processing
+        # (This would call the existing process_existing_material logic)
+        
+        # Verify material exists in database
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT cm.title, cm.material_type, cm.course_id
+                FROM course_material cm
+                WHERE cm.id = %s
+            """, (material_id,))
+            
+            result = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if not result:
+                raise ContentProcessingError(
+                    f"Course material {material_id} not found in database",
+                    error_code="MATERIAL_NOT_FOUND"
+                )
+            
+            # Handle both tuple and dict results from cursor
+            if isinstance(result, dict):
+                material_title = result['title']
+                material_type = result['material_type']
+                course_id = result['course_id']
+            else:
+                material_title, material_type, course_id = result
+                
+            logger.info(f"✅ Material found: {material_title} ({material_type})")
+            
+        except ContentProcessingError:
+            raise
+        except Exception as e:
+            logger.error(f"❌ Database verification failed: {str(e)}")
+            raise DatabaseError(f"Failed to verify material: {str(e)}")
+        
+        # Add job to processing queue
+        try:
+            # Determine priority based on material type
+            priority = JobPriority.NORMAL
+            if material_type in ['exam', 'assignment']:
+                priority = JobPriority.HIGH
+            elif material_type == 'syllabus':
+                priority = JobPriority.URGENT
+            
+            # Create processing job
+            job = ProcessingJob(
+                job_id=processing_job_id,
+                material_id=material_id,
+                file_path=file_path,
+                priority=priority,
+                created_at=datetime.now()
+            )
+            
+            # Add to queue
+            success = await processing_queue.add_job(job)
+            if not success:
+                raise AIProcessingError("Processing queue is full, please try again later")
+            
+            logger.info(f"🚀 Material {material_id} queued for processing with {priority.name} priority")
+        except Exception as e:
+            logger.error(f"❌ Failed to queue processing job: {str(e)}")
+            raise AIProcessingError(f"Failed to queue AI processing: {str(e)}")
+        
+        return {
+            "status": "queued_for_processing",
+            "message": "Material queued for processing successfully",
+            "material_id": material_id,
+            "processing_job_id": processing_job_id,
+            "priority": priority.name,
+            "material_title": material_title,
+            "duplicate_check_passed": True
+        }
+        
+    except (FileValidationError, ContentProcessingError, DatabaseError, AIProcessingError) as e:
+        raise e
+    except Exception as e:
+        logger.error(f"❌ Unexpected error in process with duplicate check: {str(e)}")
+        raise ContentProcessingError(f"Processing with duplicate check failed: {str(e)}")
+
+
 # Content Processing Endpoints with Enhanced Error Handling
 
 @app.post("/process-content")
 @limiter.limit("5/minute")
-async def process_content(
+async def process_content_legacy(
     request: Request,
     title: str = Form(...),
     course_id: Optional[int] = Form(None),
@@ -1023,6 +2125,9 @@ async def process_content(
     material_type: Optional[str] = Form(None),
     file: UploadFile = File(...)
 ):
+    """Legacy endpoint for direct file uploads - will be deprecated"""
+    # This is the existing implementation for backward compatibility
+    # TODO: Remove once Next.js migration is complete
     """Process uploaded content with enhanced validation and error handling."""
     try:
         logger.info(f"🔄 Processing content upload: {title}")
@@ -1056,14 +2161,15 @@ async def process_content(
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO course_materials (title, course_id, week_number, material_type, file_url, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s) RETURNING id
+                INSERT INTO course_material (title, "courseId", "weekNumber", "materialType", "contentUrl", "uploadedById", "createdAt")
+                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
             """, (
                 request_data.title,
                 request_data.course_id,
                 request_data.week_number,
-                request_data.material_type or 'text',
+                request_data.material_type or 'lecture',
                 str(file_path),
+                'system',  # We'll need to get actual user ID later
                 datetime.now()
             ))
             result = cursor.fetchone()
@@ -1107,7 +2213,7 @@ async def process_content(
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO ai_processing_jobs (course_material_id, job_type, status, created_at)
+                INSERT INTO ai_processing_job ("courseMaterialId", "jobType", status, "createdAt")
                 VALUES (%s, %s, 'pending', %s) RETURNING id
             """, (material_id, job_type, datetime.now()))
             
@@ -1145,9 +2251,106 @@ async def process_content(
         logger.error(f"❌ Unexpected error in process_content: {str(e)}")
         raise ContentProcessingError(f"Unexpected error during processing: {str(e)}")
 
+@app.post("/process-material")
+@limiter.limit("5/minute")
+async def process_existing_material(
+    request: Request,
+    material_id: str = Form(...),
+    file_path: str = Form(...),
+    processing_job_id: str = Form(...)
+):
+    """Process existing course material that was already uploaded and saved by Next.js frontend."""
+    try:
+        logger.info(f"🔄 Processing existing material: {material_id}")
+        
+        # Validate that the file exists
+        file_path_obj = Path(file_path)
+        if not file_path_obj.exists():
+            raise FileValidationError(f"File not found at path: {file_path}")
+        
+        # Verify material exists in database
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT cm.title, cm.material_type, cm.course_id
+                FROM course_material cm
+                WHERE cm.id = %s
+            """, (material_id,))
+            
+            result = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if not result:
+                raise ContentProcessingError(
+                    f"Course material {material_id} not found in database",
+                    error_code="MATERIAL_NOT_FOUND"
+                )
+            
+            # Handle both tuple and dict results from cursor
+            if isinstance(result, dict):
+                material_title = result['title']
+                material_type = result['material_type']
+                course_id = result['course_id']
+            else:
+                material_title, material_type, course_id = result
+                
+            logger.info(f"✅ Material found: {material_title} ({material_type})")
+            
+        except ContentProcessingError:
+            raise
+        except Exception as e:
+            logger.error(f"❌ Database verification failed: {str(e)}")
+            raise DatabaseError(f"Failed to verify material: {str(e)}")
+        
+        # Add job to processing queue instead of direct processing
+        try:
+            # Determine priority based on material type (can be enhanced later)
+            priority = JobPriority.NORMAL
+            if material_type in ['exam', 'assignment']:
+                priority = JobPriority.HIGH
+            elif material_type == 'syllabus':
+                priority = JobPriority.URGENT
+            
+            # Create processing job
+            job = ProcessingJob(
+                job_id=processing_job_id,
+                material_id=material_id,
+                file_path=file_path,
+                priority=priority,
+                created_at=datetime.now()
+            )
+            
+            # Add to queue
+            success = await processing_queue.add_job(job)
+            if not success:
+                raise AIProcessingError("Processing queue is full, please try again later")
+            
+            logger.info(f"🚀 Material {material_id} queued for processing with {priority.name} priority")
+        except Exception as e:
+            logger.error(f"❌ Failed to queue processing job: {str(e)}")
+            raise AIProcessingError(f"Failed to queue AI processing: {str(e)}")
+        
+        return {
+            "message": "Material queued for processing successfully",
+            "material_id": material_id,
+            "processing_job_id": processing_job_id,
+            "status": "queued",
+            "priority": priority.name,
+            "material_title": material_title
+        }
+        
+    except (FileValidationError, ContentProcessingError, DatabaseError, AIProcessingError) as e:
+        # These are our custom exceptions, re-raise them
+        raise e
+    except Exception as e:
+        logger.error(f"❌ Unexpected error in process_existing_material: {str(e)}")
+        raise ContentProcessingError(f"Unexpected error during processing: {str(e)}")
+
 @app.get("/processing-status/{processing_id}")
 @limiter.limit("30/minute")
-async def get_processing_status(request: Request, processing_id: int):
+async def get_processing_status(request: Request, processing_id: str):
     """Get processing status with enhanced error handling."""
     try:
         logger.info(f"📊 Checking status for processing ID: {processing_id}")
@@ -1155,10 +2358,10 @@ async def get_processing_status(request: Request, processing_id: int):
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT aj.status, aj.started_at, aj.completed_at, aj.error_message,
+            SELECT aj.status, aj."startedAt", aj."completedAt", aj."errorMessage",
                    cm.title, cm.id as material_id
-            FROM ai_processing_jobs aj
-            JOIN course_materials cm ON aj.course_material_id = cm.id
+            FROM ai_processing_job aj
+            JOIN course_material cm ON aj."courseMaterialId" = cm.id
             WHERE aj.id = %s
         """, (processing_id,))
         
@@ -1248,14 +2451,14 @@ async def search_content(request: Request, search_request: SearchRequest):
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT cm.id, cm.title::TEXT, cm.material_type, cm.week_number,
-                       apc.ai_summary, apc.key_concepts,
+                SELECT cm.id, cm.title::TEXT, cm."materialType", cm."weekNumber",
+                       apc."aiSummary", apc."keyConcepts",
                        (ce.embedding <=> %s::vector) as similarity_score
-                FROM course_materials cm
-                JOIN ai_processed_content apc ON cm.id = apc.course_material_id
-                JOIN content_embeddings ce ON apc.id = ce.ai_processed_id
-                JOIN courses c ON cm.course_id = c.id
-                WHERE (%s IS NULL OR c.course_code = %s)
+                FROM course_material cm
+                JOIN ai_processed_content apc ON cm.id = apc."courseMaterialId"
+                JOIN content_embedding ce ON apc.id = ce."aiProcessedId"
+                JOIN course c ON cm."courseId" = c.id
+                WHERE (%s IS NULL OR c."courseCode" = %s)
                 ORDER BY ce.embedding <=> %s::vector
                 LIMIT %s
             """, (
@@ -1329,14 +2532,14 @@ async def get_course_materials(request: Request, course_code: str):
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT cm.id, cm.title, cm.material_type, cm.week_number, 
-                   cm.created_at, apc.ai_summary, apc.key_concepts
-            FROM course_materials cm
-            LEFT JOIN ai_processed_content apc ON cm.id = apc.course_material_id
-            WHERE cm.course_id = (
-                SELECT id FROM courses WHERE course_code = %s LIMIT 1
+            SELECT cm.id, cm.title, cm."materialType", cm."weekNumber", 
+                   cm."createdAt", apc."aiSummary", apc."keyConcepts"
+            FROM course_material cm
+            LEFT JOIN ai_processed_content apc ON cm.id = apc."courseMaterialId"
+            WHERE cm."courseId" = (
+                SELECT id FROM course WHERE "courseCode" = %s LIMIT 1
             )
-            ORDER BY cm.week_number, cm.created_at
+            ORDER BY cm."weekNumber", cm."createdAt"
         """, (course_code,))
         
         results = cursor.fetchall()
@@ -1379,34 +2582,315 @@ async def get_course_materials(request: Request, course_code: str):
         logger.error(f"❌ Error getting course materials: {str(e)}")
         raise DatabaseError(f"Failed to retrieve course materials: {str(e)}")
 
+
+@app.post("/retry-processing/{job_id}")
+@limiter.limit("3/minute")
+async def retry_failed_processing(request: Request, job_id: str):
+    """Retry a failed processing job with enhanced recovery capabilities."""
+    try:
+        logger.info(f"🔄 Retrying failed processing job: {job_id}")
+        
+        # Get job details and verify it can be retried
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT aj.status, aj."errorMessage", aj.metadata, 
+                   cm.id as material_id, cm."filePath"
+            FROM ai_processing_job aj
+            JOIN course_material cm ON aj."courseMaterialId" = cm.id
+            WHERE aj.id = %s
+        """, (job_id,))
+        
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if not result:
+            raise ContentProcessingError(
+                f"Processing job {job_id} not found",
+                error_code="JOB_NOT_FOUND"
+            )
+        
+        # Handle both tuple and dict results
+        if isinstance(result, dict):
+            status = result['status']
+            error_message = result['error_message']
+            metadata = result['metadata']
+            material_id = result['material_id']
+            file_path = result['file_path']
+        else:
+            status, error_message, metadata, material_id, file_path = result
+        
+        # Check if job can be retried
+        if status != 'failed':
+            raise ContentProcessingError(
+                f"Job {job_id} is not in failed state (current: {status})",
+                error_code="INVALID_STATUS"
+            )
+        
+        # Parse metadata to check retry eligibility
+        can_retry = True
+        if metadata:
+            try:
+                metadata_dict = json.loads(metadata) if isinstance(metadata, str) else metadata
+                can_retry = metadata_dict.get('can_retry', True)
+            except (json.JSONDecodeError, AttributeError):
+                pass
+        
+        if not can_retry:
+            raise ContentProcessingError(
+                f"Job {job_id} cannot be retried due to permanent failure",
+                error_code="RETRY_NOT_ALLOWED"
+            )
+        
+        # Verify file still exists
+        if not Path(file_path).exists():
+            raise FileValidationError(f"Source file no longer exists: {file_path}")
+        
+        # Clean up any existing failed processing data
+        await cleanup_failed_job_data(material_id)
+        
+        # Reset job status and start retry
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE ai_processing_job 
+                SET status = 'pending', 
+                    "startedAt" = NULL, 
+                    "completedAt" = NULL,
+                    "errorMessage" = NULL,
+                    metadata = COALESCE(metadata, '{}'::jsonb) || %s::jsonb
+                WHERE id = %s
+            """, (
+                json.dumps({
+                    "retry_attempt": True,
+                    "retry_timestamp": datetime.now().isoformat(),
+                    "original_error": error_message
+                }),
+                job_id
+            ))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            logger.info(f"✅ Job {job_id} reset for retry")
+            
+        except Exception as db_error:
+            raise DatabaseError(f"Failed to reset job for retry: {str(db_error)}")
+        
+        # Start background processing
+        try:
+            await start_background_processing(material_id, job_id, file_path)
+            logger.info(f"🚀 Retry processing started for job {job_id}")
+        except Exception as e:
+            logger.error(f"❌ Retry processing failed: {str(e)}")
+            raise AIProcessingError(f"Failed to start retry processing: {str(e)}")
+        
+        return {
+            "message": "Processing job retry started successfully",
+            "job_id": job_id,
+            "material_id": material_id,
+            "status": "processing",
+            "retry_attempt": True
+        }
+        
+    except (FileValidationError, ContentProcessingError, DatabaseError, AIProcessingError) as e:
+        raise e
+    except Exception as e:
+        logger.error(f"❌ Unexpected error in retry processing: {str(e)}")
+        raise ContentProcessingError(f"Retry operation failed: {str(e)}")
+
+
+async def cleanup_failed_job_data(material_id: str):
+    """Clean up any partial data from failed processing attempts."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Remove any partial AI processed content
+        cursor.execute("""
+            DELETE FROM content_embedding 
+            WHERE "courseMaterialId" = %s
+        """, (material_id,))
+        
+        cursor.execute("""
+            DELETE FROM ai_processed_content 
+            WHERE "courseMaterialId" = %s
+        """, (material_id,))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        logger.info(f"🧹 Cleaned up partial data for material: {material_id}")
+        
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to cleanup partial data for {material_id}: {str(e)}")
+
+
+@app.get("/processing-status/{job_id}/stream")
+async def stream_processing_status(job_id: str):
+    """Stream real-time processing status updates via Server-Sent Events"""
+    async def event_generator():
+        # Create a queue for this client
+        status_queue = asyncio.Queue(maxsize=100)
+        
+        try:
+            # Subscribe to status updates
+            status_tracker.subscribe(job_id, status_queue)
+            
+            # Send current status first
+            current_status = status_tracker.get_current_status(job_id)
+            if current_status:
+                yield {
+                    "event": "status_update",
+                    "data": json.dumps(current_status)
+                }
+            else:
+                # If no status available, send initial pending status
+                yield {
+                    "event": "status_update", 
+                    "data": json.dumps({
+                        "status": "pending",
+                        "message": "Waiting for processing to start",
+                        "timestamp": datetime.now().isoformat()
+                    })
+                }
+            
+            # Stream updates as they come
+            while True:
+                try:
+                    # Wait for status update with timeout
+                    status_update = await asyncio.wait_for(
+                        status_queue.get(), 
+                        timeout=30.0  # 30 second timeout
+                    )
+                    
+                    yield {
+                        "event": "status_update",
+                        "data": json.dumps(status_update)
+                    }
+                    
+                    # If processing is complete or failed, send one more update and close
+                    if status_update.get("status") in ["completed", "failed"]:
+                        await asyncio.sleep(1)  # Give client time to process
+                        break
+                        
+                except asyncio.TimeoutError:
+                    # Send heartbeat to keep connection alive
+                    yield {
+                        "event": "heartbeat",
+                        "data": json.dumps({
+                            "timestamp": datetime.now().isoformat()
+                        })
+                    }
+                    
+        except asyncio.CancelledError:
+            logger.info(f"Client disconnected from job {job_id} status stream")
+        except Exception as e:
+            logger.error(f"Error in status stream for job {job_id}: {str(e)}")
+            yield {
+                "event": "error",
+                "data": json.dumps({
+                    "error": "Stream error occurred",
+                    "timestamp": datetime.now().isoformat()
+                })
+            }
+        finally:
+            # Clean up subscription
+            status_tracker.unsubscribe(job_id, status_queue)
+    
+    return EventSourceResponse(event_generator())
+
+
 # Helper function for background processing
-async def start_background_processing(material_id: int, job_id: int, file_path: str):
-    """Start background AI processing with enhanced error handling."""
+async def start_background_processing(material_id: str, job_id: str, file_path: str):
+    """Start background AI processing with comprehensive error handling and recovery."""
     conn = None
+    ai_processed_id = None
+    processing_stage = "initialization"
+    
     try:
         # Update job status to processing
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            UPDATE ai_processing_jobs 
-            SET status = 'processing', started_at = %s 
+            UPDATE ai_processing_job 
+            SET status = 'processing', "startedAt" = %s 
             WHERE id = %s
         """, (datetime.now(), job_id))
         conn.commit()
         cursor.close()
         
-        # Process the content
-        extracted_text = await extract_text_from_file(file_path)
+        # Send real-time status update
+        status_tracker.update_status(job_id, {
+            "status": "processing",
+            "stage": "initialization",
+            "message": "Starting content processing...",
+            "progress": 0
+        })
         
-        # Generate AI summary and analysis
-        ai_summary = await ai_stack.generate_llm_response(
-            f"Summarize this educational content in 2-3 sentences:\n\n{extracted_text[:2000]}"
+        # Stage 1: Text Extraction with retry
+        processing_stage = "text_extraction"
+        status_tracker.update_status(job_id, {
+            "status": "processing",
+            "stage": "text_extraction",
+            "message": "Extracting text from file...",
+            "progress": 20
+        })
+        extracted_text = await retry_with_backoff(
+            lambda: extract_text_from_file(file_path),
+            max_retries=3,
+            stage="text_extraction"
         )
+        logger.info(f"✅ Text extraction completed: {len(extracted_text)} characters")
         
-        key_concepts = await ai_stack.analyze_content(extracted_text[:3000])
+        # Stage 2: AI Summary Generation with retry
+        processing_stage = "ai_summary"
+        status_tracker.update_status(job_id, {
+            "status": "processing",
+            "stage": "ai_summary",
+            "message": "Generating AI summary...",
+            "progress": 40
+        })
+        ai_summary = await retry_with_backoff(
+            lambda: ai_stack.generate_llm_response(
+                f"Summarize this educational content in 2-3 sentences:\n\n{extracted_text[:2000]}"
+            ),
+            max_retries=3,
+            stage="ai_summary"
+        )
+        logger.info("✅ AI summary generation completed")
         
-        # Generate embeddings
-        embeddings_response = await ai_stack.generate_embeddings(extracted_text[:8000])
+        # Stage 3: Key Concepts Analysis with retry
+        processing_stage = "key_concepts"
+        status_tracker.update_status(job_id, {
+            "status": "processing",
+            "stage": "key_concepts",
+            "message": "Analyzing key concepts...",
+            "progress": 60
+        })
+        key_concepts = await retry_with_backoff(
+            lambda: ai_stack.analyze_content(extracted_text[:3000]),
+            max_retries=3,
+            stage="key_concepts"
+        )
+        logger.info("✅ Key concepts analysis completed")
+        
+        # Stage 4: Embeddings Generation with retry
+        processing_stage = "embeddings"
+        status_tracker.update_status(job_id, {
+            "status": "processing",
+            "stage": "embeddings",
+            "message": "Generating embeddings for semantic search...",
+            "progress": 80
+        })
+        embeddings_response = await retry_with_backoff(
+            lambda: ai_stack.generate_embeddings(extracted_text[:8000]),
+            max_retries=3,
+            stage="embeddings"
+        )
         
         # Extract embedding array from AI response
         if isinstance(embeddings_response, dict) and 'embedding' in embeddings_response:
@@ -1414,73 +2898,202 @@ async def start_background_processing(material_id: int, job_id: int, file_path: 
         elif isinstance(embeddings_response, list):
             embeddings_array = embeddings_response
         else:
-            logger.error(f"❌ Unexpected embeddings format: {type(embeddings_response)}")
+            logger.warning(f"⚠️ Unexpected embeddings format: {type(embeddings_response)}, using fallback")
             embeddings_array = []
+        
+        logger.info("✅ Embeddings generation completed")
+        
+        # Stage 5: Database Operations with transaction safety
+        processing_stage = "database_save"
+        status_tracker.update_status(job_id, {
+            "status": "processing",
+            "stage": "database_save",
+            "message": "Saving processed content to database...",
+            "progress": 95
+        })
         
         # Serialize key_concepts for database storage
         if isinstance(key_concepts, dict):
-            # Convert dict to list of strings for PostgreSQL array
             key_concepts_array = [f"{k}: {v}" for k, v in key_concepts.items()]
         elif isinstance(key_concepts, list):
             key_concepts_array = [str(item) for item in key_concepts]
         else:
             key_concepts_array = [str(key_concepts)] if key_concepts else []
         
-        # Save processed content
+        # Use database transaction for atomicity
+        conn.autocommit = False
         cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO ai_processed_content 
-            (course_material_id, extracted_text, ai_summary, key_concepts)
-            VALUES (%s, %s, %s, %s) RETURNING id
-        """, (
-            material_id,
-            extracted_text,
-            ai_summary.get('response', '') if ai_summary else '',
-            key_concepts_array
-        ))
         
-        result = cursor.fetchone()
-        ai_processed_id = result['id'] if isinstance(result, dict) else result[0]
+        try:
+            # Save processed content
+            cursor.execute("""
+                INSERT INTO ai_processed_content 
+                ("courseMaterialId", "extractedText", "aiSummary", "keyConcepts", "createdAt")
+                VALUES (%s, %s, %s, %s, %s) RETURNING id
+            """, (
+                material_id,
+                extracted_text,
+                ai_summary.get('response', '') if ai_summary else '',
+                key_concepts_array,
+                datetime.now()
+            ))
+            
+            result = cursor.fetchone()
+            ai_processed_id = result['id'] if isinstance(result, dict) else result[0]
+            
+            # Save embeddings only if they exist
+            if embeddings_array:
+                cursor.execute("""
+                    INSERT INTO content_embedding ("courseMaterialId", "aiProcessedId", "chunkText", "chunkIndex", "chunkType", embedding, "createdAt")
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (material_id, ai_processed_id, extracted_text[:1000], 1, 'content', str(embeddings_array), datetime.now()))
+            
+            # Mark job as completed
+            cursor.execute("""
+                UPDATE ai_processing_job 
+                SET status = 'completed', "completedAt" = %s 
+                WHERE id = %s
+            """, (datetime.now(), job_id))
+            
+            # Commit transaction
+            conn.commit()
+            logger.info(f"✅ Background processing completed for material {material_id}")
+            
+            # Send completion status update
+            status_tracker.update_status(job_id, {
+                "status": "completed",
+                "stage": "completed",
+                "message": "Content processing completed successfully!",
+                "progress": 100,
+                "material_id": material_id,
+                "ai_processed_id": ai_processed_id
+            })
+            
+        except Exception as db_error:
+            # Rollback transaction on database error
+            conn.rollback()
+            raise DatabaseError(f"Database transaction failed: {str(db_error)}")
+        finally:
+            cursor.close()
+            conn.close()
         
-        # Save embeddings
-        cursor.execute("""
-            INSERT INTO content_embeddings (course_material_id, ai_processed_id, chunk_text, chunk_index, chunk_type, embedding)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (material_id, ai_processed_id, extracted_text[:1000], 1, 'content', str(embeddings_array)))
+    except Exception as e:
+        logger.error(f"❌ Background processing failed at stage '{processing_stage}': {str(e)}")
         
-        # Mark job as completed
+        # Send failure status update
+        status_tracker.update_status(job_id, {
+            "status": "failed",
+            "stage": processing_stage,
+            "message": f"Processing failed at {processing_stage}: {str(e)}",
+            "error": str(e),
+            "progress": -1
+        })
+        
+        # Enhanced error recovery with detailed logging
+        await handle_processing_failure(
+            conn, job_id, material_id, ai_processed_id, 
+            str(e), processing_stage
+        )
+        
+        raise AIProcessingError(f"Background processing failed at {processing_stage}: {str(e)}")
+
+
+async def retry_with_backoff(func, max_retries: int = 3, stage: str = "unknown", 
+                           base_delay: float = 1.0, max_delay: float = 60.0):
+    """Retry function with exponential backoff and detailed logging."""
+    for attempt in range(max_retries + 1):
+        try:
+            result = await func()
+            if attempt > 0:
+                logger.info(f"✅ {stage} succeeded on attempt {attempt + 1}")
+            return result
+        except Exception as e:
+            if attempt == max_retries:
+                logger.error(f"❌ {stage} failed after {max_retries + 1} attempts: {str(e)}")
+                raise e
+            
+            delay = min(base_delay * (2 ** attempt), max_delay)
+            logger.warning(f"⚠️ {stage} failed on attempt {attempt + 1}/{max_retries + 1}, retrying in {delay}s: {str(e)}")
+            await asyncio.sleep(delay)
+
+
+async def handle_processing_failure(conn, job_id: str, material_id: str, 
+                                  ai_processed_id: Optional[str], error_msg: str, 
+                                  failed_stage: str):
+    """Handle processing failure with comprehensive cleanup and recovery options."""
+    try:
+        # Ensure we have a database connection
+        if conn is None or conn.closed:
+            conn = get_db_connection()
+        
+        cursor = conn.cursor()
+        
+        # Clean up any partial data if database operations had started
+        if ai_processed_id:
+            try:
+                # Remove partial content embeddings
+                cursor.execute("""
+                    DELETE FROM content_embedding WHERE "aiProcessedId" = %s
+                """, (ai_processed_id,))
+                
+                # Remove partial processed content
+                cursor.execute("""
+                    DELETE FROM ai_processed_content WHERE id = %s
+                """, (ai_processed_id,))
+                
+                logger.info(f"🧹 Cleaned up partial data for ai_processed_id: {ai_processed_id}")
+            except Exception as cleanup_error:
+                logger.error(f"❌ Failed to cleanup partial data: {str(cleanup_error)}")
+        
+        # Update job status with detailed error information
         cursor.execute("""
-            UPDATE ai_processing_jobs 
-            SET status = 'completed', completed_at = %s 
+            UPDATE ai_processing_job 
+            SET status = 'failed', 
+                "errorMessage" = %s, 
+                "completedAt" = %s,
+                metadata = COALESCE(metadata, '{}'::jsonb) || %s::jsonb
             WHERE id = %s
-        """, (datetime.now(), job_id))
+        """, (
+            error_msg, 
+            datetime.now(), 
+            json.dumps({
+                "failed_stage": failed_stage,
+                "failure_timestamp": datetime.now().isoformat(),
+                "can_retry": failed_stage in ["text_extraction", "ai_summary", "key_concepts", "embeddings"]
+            }),
+            job_id
+        ))
         
         conn.commit()
         cursor.close()
-        conn.close()
         
-        logger.info(f"✅ Background processing completed for material {material_id}")
-        
-    except Exception as e:
-        logger.error(f"❌ Background processing failed: {str(e)}")
-        
-        # Mark job as failed
+        # Log recovery suggestions
+        if failed_stage in ["ai_summary", "key_concepts", "embeddings"]:
+            logger.info(f"💡 Job {job_id} can be retried - AI service may be temporarily unavailable")
+        elif failed_stage == "text_extraction":
+            logger.info(f"💡 Job {job_id} file format issue - check file integrity")
+        else:
+            logger.info(f"💡 Job {job_id} requires manual intervention")
+            
+    except Exception as recovery_error:
+        logger.error(f"❌ Error recovery failed: {str(recovery_error)}")
+        # Fallback: try to at least update the job status
         try:
-            if conn is None:
+            if conn is None or conn.closed:
                 conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                UPDATE ai_processing_jobs 
-                SET status = 'failed', error_message = %s, completed_at = %s 
+                UPDATE ai_processing_job 
+                SET status = 'failed', "errorMessage" = %s, "completedAt" = %s 
                 WHERE id = %s
-            """, (str(e), datetime.now(), job_id))
+            """, (f"Processing failed: {error_msg}. Recovery also failed: {str(recovery_error)}", datetime.now(), job_id))
             conn.commit()
             cursor.close()
+        except Exception:
+            logger.critical(f"❌ Complete failure - unable to update job {job_id} status")
+    finally:
+        if conn and not conn.closed:
             conn.close()
-        except Exception as db_error:
-            logger.error(f"❌ Failed to update job status: {str(db_error)}")
-        
-        raise AIProcessingError(f"Background processing failed: {str(e)}")
 
 async def extract_text_from_file(file_path: str) -> str:
     """Extract text from various file formats using enhanced processors."""

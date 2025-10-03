@@ -1,0 +1,26 @@
+# MIVA University MCP Server Dependencies
+
+# Database
+psycopg2-binary>=2.9.9
+
+# MCP Framework
+mcp>=1.0.0
+
+# Web Framework
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+sse-starlette>=1.6.5
+starlette>=0.27.0
+
+# Data Validation
+pydantic>=2.5.0
+
+# Environment & Configuration
+python-dotenv>=1.0.0
+
+# Utilities
+httpx>=0.27.0
+aiofiles>=23.2.1
+
+# Development
+python-multipart>=0.0.6

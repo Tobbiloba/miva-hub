@@ -45,7 +45,12 @@ export const facultyDirectoryTool = createTool({
 
         // Get current semester course instructor info
         const currentSemester = await pgAcademicRepository.getActiveAcademicCalendar();
-        const semesterCode = currentSemester ? currentSemester.semester : "2024-fall";
+        let semesterCode = currentSemester?.semester;
+        
+        if (!semesterCode) {
+          const { getCurrentSemester } = await import("@/lib/utils/semester");
+          semesterCode = await getCurrentSemester();
+        }
 
         const courseWithInstructor = await pgAcademicRepository.getCourseWithInstructor(course.id, semesterCode);
         

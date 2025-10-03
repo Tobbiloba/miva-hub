@@ -80,12 +80,19 @@ export async function POST(request: NextRequest) {
           })
           .where(eq(UserSchema.id, signUpResponse.user.id));
 
+        // Get current semester/year if not available in calendar
+        const { getCurrentSemester, getCurrentAcademicYear } = await import("@/lib/utils/semester");
+        const [currentSemester, currentAcademicYear] = await Promise.all([
+          getCurrentSemester(),
+          getCurrentAcademicYear()
+        ]);
+
         // Create student enrollments for selected courses
         const enrollments = selectedCourses.map((courseId: string) => ({
           studentId: signUpResponse.user.id,
           courseId: courseId,
-          semester: activeCalendar?.semester || "2024-fall",
-          academicYear: activeCalendar?.academicYear || "2024-2025",
+          semester: activeCalendar?.semester || currentSemester,
+          academicYear: activeCalendar?.academicYear || currentAcademicYear,
           status: "enrolled" as const,
         }));
 

@@ -39,28 +39,3 @@ def register_assignment_tools(mcp):
         except Exception as e:
             return json.dumps({"error": f"Failed to fetch upcoming assignments: {str(e)}"})
 
-    @mcp.tool()
-    async def view_assignment_info(
-        assignment_id: str,
-        student_id: str
-    ) -> str:
-        """Get detailed information about a specific assignment.
-        
-        Provides comprehensive assignment details including requirements,
-        rubric, submission guidelines, and current submission status.
-        
-        Args:
-            assignment_id: Unique assignment identifier
-            student_id: Student ID for verification and personalized info
-            
-        Returns:
-            Formatted JSON string with assignment details or error message
-        """
-        try:
-            result = await academic_repo.get_assignment_details(
-                assignment_id=assignment_id,
-                student_id=student_id
-            )
-            return json.dumps(result, indent=2)
-        except Exception as e:
-            return json.dumps({"error": f"Failed to fetch assignment info: {str(e)}"})

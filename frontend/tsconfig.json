@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -25,25 +29,42 @@
       }
     ],
     "paths": {
-      "ui/*": ["./src/components/ui/*"],
-      "auth/*": ["./src/lib/auth/*"],
-      "app-types/*": ["./src/types/*"],
-      "logger": ["./src/lib/logger.ts"],
-      "lib/*": ["./src/lib/*"],
-      "load-env": ["./src/lib/load-env.ts"],
-      "@/*": ["./src/*"]
+      "ui/*": [
+        "./src/components/ui/*"
+      ],
+      "auth/*": [
+        "./src/lib/auth/*"
+      ],
+      "app-types/*": [
+        "./src/types/*"
+      ],
+      "logger": [
+        "./src/lib/logger.ts"
+      ],
+      "lib/*": [
+        "./src/lib/*"
+      ],
+      "load-env": [
+        "./src/lib/load-env.ts"
+      ],
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
   "include": [
-    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "frontend/.next/types/**/*.ts",
-    "src/types/global.d.ts",
-    "vitest.setup.ts",
-    "vitest.config.ts",
     "drizzle.config.ts",
-    "tests/**/*.ts"
+    "frontend/.next/types/**/*.ts",
+    "next-env.d.ts",
+    "src/types/global.d.ts",
+    "tests/**/*.ts",
+    "vitest.config.ts",
+    "vitest.setup.ts",
+    ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

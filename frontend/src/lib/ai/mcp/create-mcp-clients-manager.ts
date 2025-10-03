@@ -242,6 +242,7 @@ export class MCPClientsManager {
     serverName: string,
     toolName: string,
     input: unknown,
+    userContext?: any,
   ) {
     const clients = await this.getClients();
     const client = clients.find((c) => c.client.getInfo().name === serverName);
@@ -250,20 +251,24 @@ export class MCPClientsManager {
         const servers = await this.storage.loadAll();
         const server = servers.find((s) => s.name === serverName);
         if (server) {
-          return this.toolCall(server.id, toolName, input);
+          return this.toolCall(server.id, toolName, input, userContext);
         }
       }
       throw new Error(`Client ${serverName} not found`);
     }
-    return this.toolCall(client.id, toolName, input);
+    return this.toolCall(client.id, toolName, input, userContext);
   }
-  async toolCall(id: string, toolName: string, input: unknown) {
+  async toolCall(id: string, toolName: string, input: unknown, userContext?: any) {
     return safe(() => this.getClient(id))
       .map((client) => {
         if (!client) throw new Error(`Client ${id} not found`);
         return client.client;
       })
-      .map((client) => client.callTool(toolName, input))
+      .map((client) => {
+        // Inject user context into input if available and tool supports it
+        const enrichedInput = this.enrichInputWithUserContext(input, userContext, toolName, id);
+        return client.callTool(toolName, enrichedInput);
+      })
       .map((res) => {
         if (res?.content && Array.isArray(res.content)) {
           const parsedResult = {
@@ -294,6 +299,95 @@ export class MCPClientsManager {
         };
       })
       .unwrap();
+  }
+
+  /**
+   * Enrich tool input with user context for academic MCP tools
+   */
+  private enrichInputWithUserContext(
+    input: any, 
+    userContext: any, 
+    toolName: string, 
+    serverId: string
+  ): any {
+    console.log(`[MCP Context] Tool: ${toolName}, Original input:`, input);
+    console.log(`[MCP Context] User context:`, userContext);
+    
+    // Only enrich for MIVA Academic MCP server tools
+    if (!serverId.includes('miva-academic') && !this.isAcademicTool(toolName)) {
+      console.log(`[MCP Context] Skipping enrichment - not academic tool`);
+      return input;
+    }
+
+    // Skip if no user context available
+    if (!userContext?.studentId) {
+      console.log(`[MCP Context] No user context available`);
+      return input;
+    }
+
+    const enrichedInput = { ...input };
+
+    // Auto-inject/override student_id for academic tools (ALWAYS replace wrong IDs)
+    if (this.toolExpectsStudentId(toolName)) {
+      const oldStudentId = enrichedInput.student_id;
+      enrichedInput.student_id = userContext.studentId;
+      console.log(`[MCP Context] Overriding student_id: "${oldStudentId}" -> "${userContext.studentId}"`);
+    }
+
+    // Auto-inject course_code for study buddy tools if not provided
+    if (this.isStudyBuddyTool(toolName) && !enrichedInput.course_code) {
+      // For study buddy tools, we might need to get the course from context
+      // For now, we'll let the tool handle missing course_code
+    }
+
+    console.log(`[MCP Context] Final enriched input:`, enrichedInput);
+    return enrichedInput;
+  }
+
+  /**
+   * Check if tool is an academic tool that needs context enrichment
+   */
+  private isAcademicTool(toolName: string): boolean {
+    const academicTools = [
+      'get_course_materials',
+      'get_course_info', 
+      'list_enrolled_courses',
+      'get_course_videos',
+      'get_reading_materials',
+      'view_course_announcements',
+      'get_course_syllabus',
+      'ask_study_question',
+      'start_study_session',
+      'view_study_history'
+    ];
+    return academicTools.includes(toolName);
+  }
+
+  /**
+   * Check if tool expects student_id parameter
+   */
+  private toolExpectsStudentId(toolName: string): boolean {
+    const studentIdTools = [
+      'get_course_materials',
+      'list_enrolled_courses', 
+      'get_course_videos',
+      'get_reading_materials',
+      'view_course_announcements',
+      'get_course_syllabus'
+    ];
+    return studentIdTools.includes(toolName);
+  }
+
+  /**
+   * Check if tool is a Study Buddy tool
+   */
+  private isStudyBuddyTool(toolName: string): boolean {
+    const studyBuddyTools = [
+      'ask_study_question',
+      'start_study_session', 
+      'view_study_history'
+    ];
+    return studyBuddyTools.includes(toolName);
   }
 }
 

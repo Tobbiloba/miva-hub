@@ -1,8 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { requireAdmin } from "@/lib/auth/admin";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Check admin authentication
+    const sessionOrError = await requireAdmin();
+    if (sessionOrError instanceof NextResponse) {
+      return sessionOrError;
+    }
+
     const departments = await pgAcademicRepository.getDepartments();
     
     // Format for dropdown consumption

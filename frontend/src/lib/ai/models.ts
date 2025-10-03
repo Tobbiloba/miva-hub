@@ -14,6 +14,63 @@ import {
 } from "./create-openai-compatiable";
 import { ChatModel } from "app-types/chat";
 
+// Helper function to construct Ollama API URL
+function getOllamaApiUrl(endpoint: string = ''): string {
+  const baseURL = process.env.OLLAMA_BASE_URL || "http://localhost:11434/api";
+  // Remove /api from the end if it exists to avoid double /api
+  const cleanBaseURL = baseURL.replace(/\/api\/?$/, '');
+  return `${cleanBaseURL}/api${endpoint}`;
+}
+
+// Dynamic Ollama model detection
+async function fetchOllamaModels(): Promise<{ [key: string]: LanguageModel }> {
+  try {
+    const response = await fetch(getOllamaApiUrl('/tags'), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.warn('Ollama is not available, using fallback models');
+      return {};
+    }
+
+    const data = await response.json();
+    const ollamaModels: { [key: string]: LanguageModel } = {};
+    
+    if (data.models && Array.isArray(data.models)) {
+      for (const model of data.models) {
+        const modelName = model.name;
+        ollamaModels[modelName] = ollama(modelName);
+      }
+    }
+    
+    return ollamaModels;
+  } catch (error) {
+    console.warn('Failed to fetch Ollama models:', error);
+    return {};
+  }
+}
+
+// Check if Ollama is available
+async function checkOllamaAvailability(): Promise<boolean> {
+  try {
+    const response = await fetch(getOllamaApiUrl('/tags'), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      signal: AbortSignal.timeout(5000), // 5 second timeout
+    });
+    return response.ok;
+  } catch (error) {
+    console.warn('Ollama availability check failed:', error);
+    return false;
+  }
+}
+
 const ollama = createOllama({
   baseURL: process.env.OLLAMA_BASE_URL || "http://localhost:11434/api",
 });
@@ -47,11 +104,6 @@ const staticModels = {
     "grok-3": xai("grok-3"),
     "grok-3-mini": xai("grok-3-mini"),
   },
-  ollama: {
-    "gemma3:1b": ollama("gemma3:1b"),
-    "gemma3:4b": ollama("gemma3:4b"),
-    "gemma3:12b": ollama("gemma3:12b"),
-  },
   groq: {
     "kimi-k2-instruct": groq("moonshotai/kimi-k2-instruct"),
     "llama-4-scout-17b": groq("meta-llama/llama-4-scout-17b-16e-instruct"),
@@ -70,11 +122,17 @@ const staticModels = {
   },
 };
 
+// Create all models including dynamic Ollama models
+async function createAllModels() {
+  const dynamicOllamaModels = await fetchOllamaModels();
+  return {
+    ...staticModels,
+    ollama: dynamicOllamaModels,
+  };
+}
+
 const staticUnsupportedModels = new Set([
   staticModels.openai["o4-mini"],
-  staticModels.ollama["gemma3:1b"],
-  staticModels.ollama["gemma3:4b"],
-  staticModels.ollama["gemma3:12b"],
   staticModels.openRouter["gpt-oss-20b:free"],
   staticModels.openRouter["qwen3-8b:free"],
   staticModels.openRouter["qwen3-14b:free"],
@@ -91,35 +149,52 @@ const {
   unsupportedModels: openaiCompatibleUnsupportedModels,
 } = createOpenAICompatibleModels(openaiCompatibleProviders);
 
-const allModels = { ...openaiCompatibleModels, ...staticModels };
+const fallbackModel = staticModels.openai["gpt-4.1"];
 
-const allUnsupportedModels = new Set([
-  ...openaiCompatibleUnsupportedModels,
-  ...staticUnsupportedModels,
-]);
+// Create models info with async API key checking
+async function createModelsInfo() {
+  const allModels = await createAllModels();
+  const allUnsupportedModels = new Set([
+    ...openaiCompatibleUnsupportedModels,
+    ...staticUnsupportedModels,
+  ]);
+
+  const fullModels = { ...openaiCompatibleModels, ...allModels };
+
+  const providersWithAPIKeys = await Promise.all(
+    Object.entries(fullModels).map(async ([provider, models]) => ({
+      provider,
+      models: Object.entries(models).map(([name, model]) => ({
+        name,
+        isToolCallUnsupported: allUnsupportedModels.has(model),
+      })),
+      hasAPIKey: await checkProviderAPIKey(provider as keyof typeof staticModels | 'ollama'),
+    }))
+  );
+  return { providersWithAPIKeys, fullModels };
+}
 
 export const isToolCallUnsupportedModel = (model: LanguageModel) => {
+  const allUnsupportedModels = new Set([
+    ...openaiCompatibleUnsupportedModels,
+    ...staticUnsupportedModels,
+  ]);
   return allUnsupportedModels.has(model);
 };
 
-const fallbackModel = staticModels.openai["gpt-4.1"];
-
 export const customModelProvider = {
-  modelsInfo: Object.entries(allModels).map(([provider, models]) => ({
-    provider,
-    models: Object.entries(models).map(([name, model]) => ({
-      name,
-      isToolCallUnsupported: isToolCallUnsupportedModel(model),
-    })),
-    hasAPIKey: checkProviderAPIKey(provider as keyof typeof staticModels),
-  })),
-  getModel: (model?: ChatModel): LanguageModel => {
+  async getModelsInfo() {
+    const { providersWithAPIKeys } = await createModelsInfo();
+    return providersWithAPIKeys;
+  },
+  async getModel(model?: ChatModel): Promise<LanguageModel> {
     if (!model) return fallbackModel;
-    return allModels[model.provider]?.[model.model] || fallbackModel;
+    const { fullModels } = await createModelsInfo();
+    return fullModels[model.provider]?.[model.model] || fallbackModel;
   },
 };
 
-function checkProviderAPIKey(provider: keyof typeof staticModels) {
+async function checkProviderAPIKey(provider: keyof typeof staticModels | 'ollama') {
   let key: string | undefined;
   switch (provider) {
     case "openai":
@@ -135,8 +210,8 @@ function checkProviderAPIKey(provider: keyof typeof staticModels) {
       key = process.env.XAI_API_KEY;
       break;
     case "ollama":
-      key = process.env.OLLAMA_API_KEY;
-      break;
+      // For Ollama, check if the service is available instead of API key
+      return await checkOllamaAvailability();
     case "groq":
       key = process.env.GROQ_API_KEY;
       break;

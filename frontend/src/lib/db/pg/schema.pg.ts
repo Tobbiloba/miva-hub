@@ -347,13 +347,16 @@ export const CourseSchema = pgTable(
     departmentId: uuid("department_id")
       .notNull()
       .references(() => DepartmentSchema.id),
-    level: varchar("level", { enum: ["undergraduate", "graduate"] })
+    level: varchar("level", { enum: ["100L", "200L", "300L", "400L", "graduate", "doctoral"] })
       .notNull()
-      .default("undergraduate"),
+      .default("100L"),
     semesterOffered: varchar("semester_offered", { 
       enum: ["fall", "spring", "summer", "both"] 
     }).notNull().default("both"),
     isActive: boolean("is_active").notNull().default(true),
+    totalWeeks: integer("total_weeks").default(16), // Total weeks for the course
+    startDate: timestamp("start_date"), // Course start date
+    endDate: timestamp("end_date"), // Course end date
     createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   },
@@ -361,6 +364,32 @@ export const CourseSchema = pgTable(
     index("course_department_idx").on(table.departmentId),
     index("course_code_idx").on(table.courseCode),
     index("course_level_idx").on(table.level),
+  ],
+);
+
+// Course weeks table for structured weekly planning
+export const CourseWeekSchema = pgTable(
+  "course_week",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    weekNumber: integer("week_number").notNull(), // 1, 2, 3, ..., 16
+    title: text("title").notNull(), // Week title/topic
+    description: text("description"), // Week description
+    learningObjectives: text("learning_objectives"), // JSON array of objectives
+    topics: text("topics"), // JSON array of topics to cover
+    isPublished: boolean("is_published").notNull().default(false),
+    plannedStartDate: timestamp("planned_start_date"), // When this week should start
+    plannedEndDate: timestamp("planned_end_date"), // When this week should end
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    unique().on(table.courseId, table.weekNumber),
+    index("course_week_course_idx").on(table.courseId),
+    index("course_week_number_idx").on(table.weekNumber),
   ],
 );
 
@@ -398,6 +427,7 @@ export const CourseMaterialSchema = pgTable(
     title: text("title").notNull(),
     description: text("description"),
     contentUrl: text("content_url"), // File path or URL
+    publicUrl: text("public_url"), // Public URL for frontend access (e.g., /api/files/[id])
     fileName: text("file_name"),
     fileSize: integer("file_size"), // in bytes
     mimeType: text("mime_type"),
@@ -707,6 +737,92 @@ export const AttendanceSchema = pgTable(
   ],
 );
 
+// AI Processing Tables
+// Track AI processing jobs for content analysis
+export const AIProcessingJobSchema = pgTable(
+  "ai_processing_job",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    courseMaterialId: uuid("course_material_id")
+      .notNull()
+      .references(() => CourseMaterialSchema.id, { onDelete: "cascade" }),
+    jobType: varchar("job_type", {
+      enum: ["pdf_processing", "video_transcription", "interactive_parsing", "text_analysis"],
+    }).notNull(),
+    status: varchar("status", {
+      enum: ["pending", "processing", "completed", "failed"],
+    }).notNull().default("pending"),
+    startedAt: timestamp("started_at"),
+    completedAt: timestamp("completed_at"),
+    errorMessage: text("error_message"),
+    metadata: json("metadata").default({}),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("ai_job_material_idx").on(table.courseMaterialId),
+    index("ai_job_status_idx").on(table.status),
+    index("ai_job_type_idx").on(table.jobType),
+  ],
+);
+
+// Store AI processed content (extracted text, summaries, analysis)
+export const AIProcessedContentSchema = pgTable(
+  "ai_processed_content",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    courseMaterialId: uuid("course_material_id")
+      .notNull()
+      .references(() => CourseMaterialSchema.id, { onDelete: "cascade" }),
+    extractedText: text("extracted_text"),
+    aiSummary: text("ai_summary"),
+    keyConcepts: json("key_concepts").$type<string[]>().default([]),
+    difficulty: varchar("difficulty", {
+      enum: ["beginner", "intermediate", "advanced"],
+    }),
+    estimatedReadTime: integer("estimated_read_time"), // in minutes
+    wordCount: integer("word_count"),
+    languageDetected: varchar("language_detected", { length: 10 }).default("en"),
+    processingMetadata: json("processing_metadata").default({}),
+    qualityScore: decimal("quality_score", { precision: 3, scale: 2 }), // 0.00 to 1.00
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    unique().on(table.courseMaterialId), // One processed content per material
+    index("ai_content_material_idx").on(table.courseMaterialId),
+    index("ai_content_difficulty_idx").on(table.difficulty),
+  ],
+);
+
+// Store vector embeddings for semantic search
+export const ContentEmbeddingSchema = pgTable(
+  "content_embedding",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    courseMaterialId: uuid("course_material_id")
+      .notNull()
+      .references(() => CourseMaterialSchema.id, { onDelete: "cascade" }),
+    aiProcessedId: uuid("ai_processed_id")
+      .notNull()
+      .references(() => AIProcessedContentSchema.id, { onDelete: "cascade" }),
+    chunkText: text("chunk_text").notNull(),
+    chunkIndex: integer("chunk_index").notNull(),
+    chunkType: varchar("chunk_type", {
+      enum: ["content", "summary", "key_concept", "question"],
+    }).notNull().default("content"),
+    embedding: text("embedding").notNull(), // JSON string of vector array
+    embeddingModel: varchar("embedding_model", { length: 100 }).default("nomic-embed-text"),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("embedding_material_idx").on(table.courseMaterialId),
+    index("embedding_processed_idx").on(table.aiProcessedId),
+    index("embedding_type_idx").on(table.chunkType),
+    index("embedding_chunk_idx").on(table.chunkIndex),
+  ],
+);
+
 export type McpServerEntity = typeof McpServerSchema.$inferSelect;
 export type ChatThreadEntity = typeof ChatThreadSchema.$inferSelect;
 export type ChatMessageEntity = typeof ChatMessageSchema.$inferSelect;
@@ -725,6 +841,7 @@ export type BookmarkEntity = typeof BookmarkSchema.$inferSelect;
 // Academic entity types
 export type DepartmentEntity = typeof DepartmentSchema.$inferSelect;
 export type CourseEntity = typeof CourseSchema.$inferSelect;
+export type CourseWeekEntity = typeof CourseWeekSchema.$inferSelect;
 export type CoursePrerequisiteEntity = typeof CoursePrerequisiteSchema.$inferSelect;
 export type CourseMaterialEntity = typeof CourseMaterialSchema.$inferSelect;
 export type StudentEnrollmentEntity = typeof StudentEnrollmentSchema.$inferSelect;
@@ -736,3 +853,8 @@ export type AnnouncementEntity = typeof AnnouncementSchema.$inferSelect;
 export type AssignmentEntity = typeof AssignmentSchema.$inferSelect;
 export type AssignmentSubmissionEntity = typeof AssignmentSubmissionSchema.$inferSelect;
 export type AttendanceEntity = typeof AttendanceSchema.$inferSelect;
+
+// AI Processing entity types
+export type AIProcessingJobEntity = typeof AIProcessingJobSchema.$inferSelect;
+export type AIProcessedContentEntity = typeof AIProcessedContentSchema.$inferSelect;
+export type ContentEmbeddingEntity = typeof ContentEmbeddingSchema.$inferSelect;

@@ -43,7 +43,7 @@ def main():
     # Start MCP Server
     mcp_process = start_service(
         "MCP Academic Server",
-        "python3 src/mcp/server_clean.py",
+        "venv/bin/python src/mcp/server_clean.py",
         cwd=os.path.dirname(os.path.abspath(__file__))
     )
     if mcp_process:
@@ -52,11 +52,20 @@ def main():
     # Start Content Processor API  
     api_process = start_service(
         "Enhanced Content Processor API",
-        "python3 src/api/enhanced_content_processor_api.py",
+        "venv/bin/python src/api/enhanced_content_processor_api.py",
         cwd=os.path.dirname(os.path.abspath(__file__))
     )
     if api_process:
         services.append(("Content Processor", api_process))
+    
+    # Start Study Buddy API
+    study_buddy_process = start_service(
+        "Study Buddy API",
+        "venv/bin/python src/api/study_buddy_api.py",
+        cwd=os.path.dirname(os.path.abspath(__file__))
+    )
+    if study_buddy_process:
+        services.append(("Study Buddy API", study_buddy_process))
     
     if not services:
         print("❌ No services started successfully!")
@@ -69,7 +78,9 @@ def main():
     print("\n📊 Service Endpoints:")
     print("   🧠 MCP Server: http://localhost:8080")
     print("   ⚡ Content Processor: http://localhost:8082")
-    print("   📖 API Docs: http://localhost:8082/docs")
+    print("   🤖 Study Buddy API: http://localhost:8083")
+    print("   📖 Content Processor Docs: http://localhost:8082/docs")
+    print("   📖 Study Buddy Docs: http://localhost:8083/docs")
     
     print(f"\n✨ System ready! Press Ctrl+C to stop all services.")
     

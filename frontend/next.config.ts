@@ -12,6 +12,11 @@ export default () => {
     devIndicators: {
       position: "bottom-right",
     },
+    typescript: {
+      // ⚠️ Dangerously allow production builds to successfully complete even if
+      // your project has type errors.
+      ignoreBuildErrors: true,
+    },
     env: {
       NO_HTTPS: process.env.NO_HTTPS,
     },

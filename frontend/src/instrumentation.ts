@@ -3,18 +3,17 @@ import { IS_VERCEL_ENV } from "lib/const";
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     if (!IS_VERCEL_ENV) {
-      // run DB migration
-      const runMigrate = await import("./lib/db/pg/migrate.pg").then(
-        (m) => m.runMigrate,
-      );
-      await runMigrate().catch((e) => {
-        console.error(e);
-        process.exit(1);
-      });
+      // Migrations disabled - using db:push for schema synchronization
+      console.log("🔧 Migrations disabled - using db:push for schema sync");
+      
+      // Initialize MCP Manager only
       const initMCPManager = await import("./lib/ai/mcp/mcp-manager").then(
         (m) => m.initMCPManager,
       );
-      await initMCPManager();
+      await initMCPManager().catch((e) => {
+        console.warn("⚠️ MCP Manager initialization failed:", e.message);
+        // Don't exit on MCP failure - continue with app startup
+      });
     }
   }
 }

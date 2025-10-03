@@ -116,6 +116,7 @@ export function manualToolExecuteByLastMessage(
   part: ToolUIPart,
   tools: Record<string, VercelAIMcpTool | VercelAIWorkflowTool | Tool>,
   abortSignal?: AbortSignal,
+  userContext?: any,
 ) {
   const { input } = part;
 
@@ -141,6 +142,7 @@ export function manualToolExecuteByLastMessage(
           tool._mcpServerId,
           tool._originToolName,
           input,
+          userContext,
         );
       }
       return tool.execute!(input, {
@@ -396,13 +398,33 @@ export const workflowToVercelAITools = (
 export const loadMcpTools = (opt?: {
   mentions?: ChatMention[];
   allowedMcpServers?: Record<string, AllowedMCPServer>;
+  userContext?: any;
 }) =>
   safe(() => mcpClientsManager.tools())
     .map((tools) => {
-      if (opt?.mentions?.length) {
-        return filterMCPToolsByMentions(tools, opt.mentions);
+      const filteredTools = opt?.mentions?.length 
+        ? filterMCPToolsByMentions(tools, opt.mentions)
+        : filterMCPToolsByAllowedMCPServers(tools, opt?.allowedMcpServers);
+      
+      // If user context is available, enhance tools with context-aware execute functions
+      if (opt?.userContext) {
+        return Object.entries(filteredTools).reduce((acc, [toolId, tool]) => {
+          acc[toolId] = {
+            ...tool,
+            execute: (params: any, options: any) => {
+              return mcpClientsManager.toolCall(
+                tool._mcpServerId,
+                tool._originToolName,
+                params,
+                opt.userContext
+              );
+            }
+          };
+          return acc;
+        }, {} as Record<string, VercelAIMcpTool>);
       }
-      return filterMCPToolsByAllowedMCPServers(tools, opt?.allowedMcpServers);
+      
+      return filteredTools;
     })
     .orElse({} as Record<string, VercelAIMcpTool>);
 

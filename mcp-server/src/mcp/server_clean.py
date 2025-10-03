@@ -23,7 +23,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tools.course_tools import register_course_tools
 from tools.assignment_tools import register_assignment_tools
 from tools.schedule_tools import register_schedule_tools
-from tools.faculty_tools import register_faculty_tools
+from tools.study_buddy_tools import register_study_buddy_tools
 
 # Initialize FastMCP server for MIVA Academic tools
 mcp = FastMCP("miva-academic")
@@ -32,7 +32,7 @@ mcp = FastMCP("miva-academic")
 register_course_tools(mcp)
 register_assignment_tools(mcp)
 register_schedule_tools(mcp)
-register_faculty_tools(mcp)
+register_study_buddy_tools(mcp)
 
 def create_starlette_app(mcp_server, *, debug: bool = False):
     """Create a Starlette application that can serve the provided MCP server with SSE."""
@@ -80,11 +80,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print("🎓 Starting MIVA Academic MCP Server...")
-    print("📚 Available Tools:")
-    print("   📖 Course Management (7 tools)")
-    print("   📝 Assignment Management (2 tools)")  
+    print("📚 Complete Academic Toolkit:")
+    print("   📖 Course Management (5 tools)")
+    print("   📝 Assignment Management (1 tool)")  
     print("   📅 Schedule Management (1 tool)")
-    print("   👨‍🏫 Faculty Information (1 tool)")
+    print("   🧠 Study Buddy (4 tools)")
+    print("🎯 Total: 11 essential tools - full AI study capabilities")
     print(f"🚀 Server mode: {args.transport}")
 
     # Launch the server with the selected transport mode

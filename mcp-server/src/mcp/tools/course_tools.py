@@ -87,65 +87,6 @@ def register_course_tools(mcp):
         except Exception as e:
             return json.dumps({"error": f"Failed to fetch enrollments: {str(e)}"})
 
-    @mcp.tool()
-    async def get_course_videos(
-        course_code: str,
-        student_id: str,
-        week_number: int | None = None
-    ) -> str:
-        """Get video materials for a specific course.
-        
-        Retrieves video lectures, recorded sessions, and multimedia content
-        for enrolled students, optionally filtered by week.
-        
-        Args:
-            course_code: Course code (e.g., CS101, MATH201)
-            student_id: Student ID for enrollment verification
-            week_number: Optional week number filter (1-16)
-            
-        Returns:
-            Formatted JSON string with video materials or error message
-        """
-        try:
-            result = await academic_repo.get_course_materials(
-                course_code=course_code.upper(),
-                student_id=student_id,
-                week_number=week_number,
-                material_type='video'
-            )
-            return json.dumps(result, indent=2)
-        except Exception as e:
-            return json.dumps({"error": f"Failed to fetch course videos: {str(e)}"})
-
-    @mcp.tool()
-    async def get_reading_materials(
-        course_code: str,
-        student_id: str,
-        week_number: int | None = None
-    ) -> str:
-        """Get reading materials and textbook resources for a course.
-        
-        Retrieves assigned readings, textbook chapters, research papers,
-        and supplementary materials for enrolled students.
-        
-        Args:
-            course_code: Course code (e.g., CS101, MATH201)
-            student_id: Student ID for enrollment verification
-            week_number: Optional week number filter (1-16)
-            
-        Returns:
-            Formatted JSON string with reading materials or error message
-        """
-        try:
-            result = await academic_repo.get_course_materials(
-                course_code=course_code.upper(),
-                student_id=student_id,
-                week_number=week_number,
-                material_type='reading'
-            )
-            return json.dumps(result, indent=2)
-        except Exception as e:
-            return json.dumps({"error": f"Failed to fetch reading materials: {str(e)}"})
 
     @mcp.tool()
     async def view_course_announcements(

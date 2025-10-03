@@ -5,7 +5,7 @@ import {
   ThemeProvider,
   ThemeStyleProvider,
 } from "@/components/layouts/theme-provider";
-import { Toaster } from "ui/sonner";
+import { Toaster } from "sonner";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 const geistSans = Geist({
