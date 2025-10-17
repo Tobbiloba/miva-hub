@@ -19,7 +19,43 @@ if (!globalThis.__mcpClientsManager__) {
 }
 
 export const initMCPManager = async () => {
+  // Ensure default MCP server exists in database before initializing
+  await ensureDefaultMCPServer();
   return globalThis.__mcpClientsManager__.init();
 };
+
+async function ensureDefaultMCPServer() {
+  try {
+    const { mcpRepository } = await import("lib/db/repository");
+    const { generateUUID } = await import("lib/utils");
+    
+    const serverName = "miva-academic";
+    const serverConfig = {
+      url: "http://localhost:8080/sse",
+    };
+
+    // Clean up old server name if it exists
+    const oldServer = await mcpRepository.selectByServerName("my-local-mcp");
+    if (oldServer) {
+      await mcpRepository.deleteById(oldServer.id);
+    }
+
+    // Check if server already exists
+    const existingServer = await mcpRepository.selectByServerName(serverName);
+    
+    if (!existingServer) {
+      // Create the default MCP server
+      await mcpRepository.save({
+        id: generateUUID(),
+        name: serverName,
+        config: serverConfig,
+      });
+      console.log("✅ MIVA Academic MCP server initialized");
+    }
+  } catch (error) {
+    console.warn("⚠️ Failed to ensure default MCP server:", error);
+    // Don't throw - allow app to continue even if MCP init fails
+  }
+}
 
 export const mcpClientsManager = globalThis.__mcpClientsManager__;

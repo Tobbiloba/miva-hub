@@ -31,19 +31,31 @@ export function SystemSettingsClient({ category, currentSettings, children }: Sy
     setIsLoading(true);
     try {
       // Get form data from the children form elements
-      const formData = new FormData();
       const form = document.querySelector(`form[data-category="${category}"]`) as HTMLFormElement;
       
-      if (form) {
-        new FormData(form).forEach((value, key) => {
-          formData.append(key, value);
-        });
+      if (!form) {
+        throw new Error("Form not found");
       }
+
+      const formData = new FormData(form);
+      const settingsToUpdate: Array<{ id: string; value: string }> = [];
+
+      // Convert form data to API format
+      formData.forEach((value, key) => {
+        // Assuming the input names contain the setting ID (e.g., "setting-id-123")
+        if (key.startsWith('setting-')) {
+          const settingId = key.replace('setting-', '');
+          settingsToUpdate.push({
+            id: settingId,
+            value: value.toString()
+          });
+        }
+      });
 
       const response = await fetch("/api/admin/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [category]: Object.fromEntries(formData) }),
+        body: JSON.stringify({ settings: settingsToUpdate }),
       });
 
       const result = await response.json();
@@ -54,7 +66,7 @@ export function SystemSettingsClient({ category, currentSettings, children }: Sy
           description: `${category} settings have been updated successfully.`,
         });
       } else {
-        throw new Error(result.error || "Failed to save settings");
+        throw new Error(result.message || "Failed to save settings");
       }
     } catch (error) {
       toast({

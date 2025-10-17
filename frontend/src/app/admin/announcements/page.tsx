@@ -1,3 +1,5 @@
+"use client";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,148 +49,101 @@ import {
   BookOpen,
   GraduationCap,
   Building2,
-  Target
+  Target,
+  Loader2
 } from "lucide-react";
-import { getSession } from "@/lib/auth/server";
-import { requireAdmin } from "@/lib/auth/admin";
+import { toast } from "sonner";
 
-export default async function AnnouncementsManagePage() {
-  const session = await getSession();
-  const adminAccess = await requireAdmin();
+interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  author: string;
+  audience: string;
+  department: string;
+  priority: string;
+  status: string;
+  publishedAt: string | null;
+  scheduledFor: string | null;
+  readCount: number;
+  totalTargeted: number;
+  isPinned: boolean;
+  expiresAt: string | null;
+  courses: string[];
+  attachments: string[];
+}
 
-  if (adminAccess instanceof Response) {
-    return <div>Access denied. Admin privileges required.</div>;
-  }
+export default function AnnouncementsManagePage() {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [audienceFilter, setAudienceFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
-  // Mock announcements data (in real app, this would come from database)
-  const announcements = [
-    {
-      id: "1",
-      title: "Fall 2024 Final Exam Schedule Released",
-      content: "The final examination schedule for Fall 2024 semester is now available. Please check your student portal for specific exam times and locations.",
-      author: "Academic Office",
-      audience: "students",
-      department: "all",
-      priority: "high",
-      status: "published",
-      publishedAt: "2024-03-20T08:00:00Z",
-      scheduledFor: null,
-      readCount: 342,
-      totalTargeted: 450,
-      isPinned: true,
-      expiresAt: "2024-12-31T23:59:59Z",
-      courses: [],
-      attachments: ["fall_2024_exam_schedule.pdf"]
-    },
-    {
-      id: "2",
-      title: "Faculty Development Workshop - March 25",
-      content: "Join us for a professional development workshop on modern teaching methodologies. Registration is required by March 23rd.",
-      author: "HR Department",
-      audience: "faculty",
-      department: "all",
-      priority: "medium",
-      status: "published",
-      publishedAt: "2024-03-18T10:00:00Z",
-      scheduledFor: null,
-      readCount: 28,
-      totalTargeted: 45,
-      isPinned: false,
-      expiresAt: "2024-03-26T23:59:59Z",
-      courses: [],
-      attachments: []
-    },
-    {
-      id: "3",
-      title: "Spring 2025 Course Registration Opens April 1st",
-      content: "Course registration for Spring 2025 will begin on April 1st at 8:00 AM. Please review the course catalog and meet with your academic advisor before registration.",
-      author: "Registrar Office",
-      audience: "students",
-      department: "all",
-      priority: "high",
-      status: "scheduled",
-      publishedAt: null,
-      scheduledFor: "2024-03-30T08:00:00Z",
-      readCount: 0,
-      totalTargeted: 450,
-      isPinned: false,
-      expiresAt: "2024-04-15T23:59:59Z",
-      courses: [],
-      attachments: ["spring_2025_course_catalog.pdf"]
-    },
-    {
-      id: "4",
-      title: "CS Department: Database Systems Project Deadline Extension",
-      content: "Due to technical difficulties with the lab servers, the Database Systems final project deadline has been extended by one week.",
-      author: "Prof. Michael Chen",
-      audience: "students",
-      department: "computer-science",
-      priority: "medium",
-      status: "published",
-      publishedAt: "2024-03-19T14:30:00Z",
-      scheduledFor: null,
-      readCount: 32,
-      totalTargeted: 35,
-      isPinned: false,
-      expiresAt: "2024-04-30T23:59:59Z",
-      courses: ["CS301"],
-      attachments: []
-    },
-    {
-      id: "5",
-      title: "Campus Wi-Fi Maintenance - March 22",
-      content: "The campus Wi-Fi network will undergo scheduled maintenance on March 22nd from 2:00 AM to 6:00 AM. Internet services may be intermittent during this time.",
-      author: "IT Services",
-      audience: "all",
-      department: "all",
-      priority: "medium",
-      status: "published",
-      publishedAt: "2024-03-17T16:00:00Z",
-      scheduledFor: null,
-      readCount: 523,
-      totalTargeted: 650,
-      isPinned: true,
-      expiresAt: "2024-03-23T06:00:00Z",
-      courses: [],
-      attachments: []
-    },
-    {
-      id: "6",
-      title: "Graduation Ceremony Information",
-      content: "Important details about the upcoming graduation ceremony including dress code, seating arrangements, and ticket distribution.",
-      author: "Academic Office",
-      audience: "students",
-      department: "all",
-      priority: "high",
-      status: "draft",
-      publishedAt: null,
-      scheduledFor: null,
-      readCount: 0,
-      totalTargeted: 0,
-      isPinned: false,
-      expiresAt: "2024-12-25T23:59:59Z",
-      courses: [],
-      attachments: []
-    },
-    {
-      id: "7",
-      title: "Mathematics Department Seminar Series",
-      content: "Join us for weekly seminars featuring guest speakers from industry and academia. All mathematics students and faculty are welcome.",
-      author: "Prof. David Wilson",
-      audience: "all",
-      department: "mathematics",
-      priority: "low",
-      status: "published",
-      publishedAt: "2024-03-15T09:00:00Z",
-      scheduledFor: null,
-      readCount: 67,
-      totalTargeted: 85,
-      isPinned: false,
-      expiresAt: "2024-06-30T23:59:59Z",
-      courses: [],
-      attachments: ["seminar_schedule.pdf"]
+  const fetchAnnouncements = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
+      if (audienceFilter !== 'all') params.append('audience', audienceFilter);
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (priorityFilter !== 'all') params.append('priority', priorityFilter);
+      
+      const response = await fetch(`/api/admin/announcements?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch announcements');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setAnnouncements(data.data);
+      } else {
+        throw new Error(data.message || 'Failed to fetch announcements');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      toast.error('Failed to load announcements');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchAnnouncements();
+  }, [debouncedSearchTerm, audienceFilter, statusFilter, priorityFilter]);
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  const handleAudienceFilter = (value: string) => {
+    setAudienceFilter(value);
+  };
+
+  const handleStatusFilter = (value: string) => {
+    setStatusFilter(value);
+  };
+
+  const handlePriorityFilter = (value: string) => {
+    setPriorityFilter(value);
+  };
 
   const getAudienceColor = (audience: string) => {
     switch (audience) {
@@ -344,10 +299,15 @@ export default async function AnnouncementsManagePage() {
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search announcements by title, content, or author..." className="pl-10" />
+                <Input 
+                  placeholder="Search announcements by title, content, or author..." 
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                />
               </div>
             </div>
-            <Select>
+            <Select value={audienceFilter} onValueChange={handleAudienceFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Audience" />
               </SelectTrigger>
@@ -358,7 +318,7 @@ export default async function AnnouncementsManagePage() {
                 <SelectItem value="all-users">All Users</SelectItem>
               </SelectContent>
             </Select>
-            <Select>
+            <Select value={statusFilter} onValueChange={handleStatusFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -370,7 +330,7 @@ export default async function AnnouncementsManagePage() {
                 <SelectItem value="expired">Expired</SelectItem>
               </SelectContent>
             </Select>
-            <Select>
+            <Select value={priorityFilter} onValueChange={handlePriorityFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
@@ -381,7 +341,7 @@ export default async function AnnouncementsManagePage() {
                 <SelectItem value="low">Low Priority</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" disabled={loading}>
               <Filter className="mr-2 h-4 w-4" />
               More Filters
             </Button>
@@ -398,21 +358,59 @@ export default async function AnnouncementsManagePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Announcement</TableHead>
-                  <TableHead>Audience</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Engagement</TableHead>
-                  <TableHead>Timing</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {announcements.map((announcement) => {
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span>Loading announcements...</span>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Error Loading Announcements</h3>
+                <p className="text-muted-foreground mb-4">{error}</p>
+                <Button onClick={fetchAnnouncements} variant="outline">
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          ) : announcements.length === 0 ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <Megaphone className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Announcements Found</h3>
+                <p className="text-muted-foreground mb-4">
+                  {debouncedSearchTerm || audienceFilter !== 'all' || statusFilter !== 'all' || priorityFilter !== 'all'
+                    ? 'Try adjusting your search or filters'
+                    : 'Create your first announcement to get started'
+                  }
+                </p>
+                <Button asChild>
+                  <a href="/admin/announcements/create">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Announcement
+                  </a>
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Announcement</TableHead>
+                    <TableHead>Audience</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Engagement</TableHead>
+                    <TableHead>Timing</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {announcements.map((announcement) => {
                   const StatusIcon = getStatusIcon(announcement.status);
                   const AudienceIcon = getAudienceIcon(announcement.audience);
                   const readPercentage = getReadPercentage(announcement.readCount, announcement.totalTargeted);
@@ -570,10 +568,11 @@ export default async function AnnouncementsManagePage() {
                       </TableCell>
                     </TableRow>
                   );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

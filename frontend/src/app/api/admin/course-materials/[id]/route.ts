@@ -5,7 +5,7 @@ import { pgAcademicRepository as academicRepository } from "@/lib/db/pg/reposito
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication and admin permissions
@@ -17,7 +17,8 @@ export async function DELETE(
       );
     }
 
-    const materialId = params.id;
+    const { id } = await params;
+    const materialId = id;
 
     // Check if the course material exists
     const existingMaterial = await academicRepository.getCourseMaterialById(materialId);
@@ -57,7 +58,7 @@ export async function DELETE(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication and admin permissions
@@ -69,7 +70,8 @@ export async function GET(
       );
     }
 
-    const materialId = params.id;
+    const { id } = await params;
+    const materialId = id;
 
     // Get the course material
     const courseMaterial = await academicRepository.getCourseMaterialById(materialId);

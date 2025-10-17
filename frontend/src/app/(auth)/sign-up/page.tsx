@@ -52,7 +52,7 @@ export default function SignUpPage() {
   });
 
   // Fetch departments and courses data
-  const { data: departments } = useSWR('/api/departments', fetcher);
+  const { data: departments } = useSWR('/api/departments/public', fetcher);
   const { data: coursesData } = useSWR('/api/courses/available', fetcher);
 
   const steps = [

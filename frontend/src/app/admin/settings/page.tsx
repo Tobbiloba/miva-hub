@@ -1,3 +1,5 @@
+"use client";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,74 +35,117 @@ import {
   CheckCircle,
   Globe,
   Clock,
-  Zap
+  Zap,
+  Loader2
 } from "lucide-react";
-import { getSession } from "@/lib/auth/server";
-import { requireAdmin } from "@/lib/auth/admin";
 import { SystemSettingsClient } from "@/components/admin/system-settings-client";
+import { toast } from "sonner";
 
-export default async function SystemSettingsPage() {
-  const session = await getSession();
-  const adminAccess = await requireAdmin();
+interface Setting {
+  id: string;
+  category: string;
+  key: string;
+  value: string | null;
+  valueType: string;
+  description?: string;
+  isEditable: boolean;
+  isSecret: boolean;
+}
 
-  if (adminAccess instanceof Response) {
-    return <div>Access denied. Admin privileges required.</div>;
-  }
+interface GroupedSettings {
+  [category: string]: Setting[];
+}
 
-  // Mock current settings - in a real app, these would come from a database
-  const currentSettings = {
-    university: {
-      name: "MIVA University",
-      shortName: "MIVA",
-      address: "Lagos, Nigeria",
-      phone: "+234-xxx-xxx-xxxx",
-      email: "admin@miva.edu.ng",
-      website: "https://miva.edu.ng",
-      logoUrl: "/logo.png"
-    },
-    academic: {
-      currentSemester: "2024-fall",
-      semesterStartDate: "2024-08-15",
-      semesterEndDate: "2024-12-15",
-      gradeScale: "4.0",
-      passingGrade: "60",
-      maxCreditsPerSemester: "24",
-      dropDeadline: "2024-09-30"
-    },
-    email: {
-      enabled: true,
-      smtpHost: "smtp.miva.edu.ng",
-      smtpPort: "587",
-      smtpUser: "system@miva.edu.ng",
-      enableNotifications: true,
-      enableWelcomeEmails: true,
-      enableGradeNotifications: true
-    },
-    security: {
-      sessionTimeout: "30",
-      passwordMinLength: "8",
-      requireEmailVerification: true,
-      enableTwoFactor: false,
-      maxLoginAttempts: "5",
-      lockoutDuration: "15"
-    },
-    features: {
-      enableChatbot: true,
-      enableAnalytics: true,
-      enableContentUpload: true,
-      enableStudentPortal: true,
-      enableFacultyPortal: true,
-      enableMobileApp: false
-    },
-    system: {
-      maintenanceMode: false,
-      debugMode: false,
-      logLevel: "info",
-      backupFrequency: "daily",
-      maxFileSize: "50",
-      allowedFileTypes: "pdf,doc,docx,ppt,pptx,xls,xlsx"
+export default function SystemSettingsPage() {
+  const [settings, setSettings] = useState<GroupedSettings>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchSettings = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/admin/settings');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch settings');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSettings(data.data);
+      } else {
+        throw new Error(data.message || 'Failed to fetch settings');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      toast.error('Failed to load settings');
+    } finally {
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  // Convert grouped settings to the format expected by the UI
+  const getSettingValue = (category: string, key: string, defaultValue: any = '') => {
+    const categorySettings = settings[category];
+    if (!categorySettings) return defaultValue;
+    
+    const setting = categorySettings.find(s => s.key === key);
+    return setting ? setting.value : defaultValue;
+  };
+
+  const getSettingId = (category: string, key: string) => {
+    const categorySettings = settings[category];
+    if (!categorySettings) return '';
+    
+    const setting = categorySettings.find(s => s.key === key);
+    return setting ? setting.id : '';
+  };
+
+  // Helper function to create properly named inputs
+  const createSettingInput = (category: string, key: string, type: string = 'text', defaultValue: any = '') => {
+    const settingId = getSettingId(category, key);
+    const value = getSettingValue(category, key, defaultValue);
+    
+    return {
+      id: settingId,
+      name: `setting-${settingId}`,
+      value: value || defaultValue,
+      defaultValue: value || defaultValue
+    };
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading system settings...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Error Loading Settings</h3>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={fetchSettings} variant="outline">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -218,37 +263,52 @@ export default async function SystemSettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <SystemSettingsClient category="university" currentSettings={currentSettings.university}>
+              <SystemSettingsClient category="university" currentSettings={settings.university || []}>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="universityName">University Name</Label>
-                    <Input id="universityName" defaultValue={currentSettings.university.name} />
+                    <Input 
+                      id="universityName" 
+                      {...createSettingInput('university', 'name', 'text', 'MIVA University')} 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="shortName">Short Name</Label>
-                    <Input id="shortName" defaultValue={currentSettings.university.shortName} />
+                    <Input 
+                      id="shortName" 
+                      {...createSettingInput('university', 'shortName', 'text', 'MIVA')} 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="address">Address</Label>
-                    <Input id="address" defaultValue={currentSettings.university.address} />
+                    <Input 
+                      id="address" 
+                      {...createSettingInput('university', 'address', 'text', 'Lagos, Nigeria')} 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone</Label>
-                    <Input id="phone" defaultValue={currentSettings.university.phone} />
+                    <Input 
+                      id="phone" 
+                      {...createSettingInput('university', 'phone', 'text', '+234-xxx-xxx-xxxx')} 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" defaultValue={currentSettings.university.email} />
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      {...createSettingInput('university', 'email', 'email', 'admin@miva.edu.ng')} 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="website">Website</Label>
-                    <Input id="website" defaultValue={currentSettings.university.website} />
+                    <Input 
+                      id="website" 
+                      {...createSettingInput('university', 'website', 'text', 'https://miva.edu.ng')} 
+                    />
                   </div>
                 </div>
-                <Button className="mt-4">
-                  <Save className="mr-2 h-4 w-4" />
-                  Save University Information
-                </Button>
               </SystemSettingsClient>
             </CardContent>
           </Card>

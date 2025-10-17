@@ -16,18 +16,15 @@ def start_service(name, command, cwd=None):
         process = subprocess.Popen(
             command.split(),
             cwd=cwd or os.getcwd(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stdout=subprocess.DEVNULL,  # Don't capture - avoid pipe deadlock
+            stderr=subprocess.DEVNULL   # Services log to their own files
         )
-        time.sleep(2)  # Give service time to start
+        time.sleep(3)  # Give service time to start (increased from 2)
         if process.poll() is None:
             print(f"✅ {name} started successfully (PID: {process.pid})")
             return process
         else:
-            stdout, stderr = process.communicate()
-            print(f"❌ {name} failed to start:")
-            print(f"   stdout: {stdout.decode()[:200]}")
-            print(f"   stderr: {stderr.decode()[:200]}")
+            print(f"❌ {name} failed to start (check service logs)")
             return None
     except Exception as e:
         print(f"❌ Failed to start {name}: {e}")

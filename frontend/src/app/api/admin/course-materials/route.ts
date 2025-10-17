@@ -18,24 +18,20 @@ export async function GET(request: NextRequest) {
     const courseId = searchParams.get('courseId');
     const weekNumber = searchParams.get('weekNumber');
 
-    if (!courseId) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: "courseId parameter is required" 
-        },
-        { status: 400 }
-      );
-    }
-
     let materials;
 
-    if (weekNumber) {
-      // Get materials for a specific week
-      materials = await academicRepository.getCourseMaterialsByWeek(courseId, parseInt(weekNumber));
+    if (courseId) {
+      // Get materials for a specific course
+      if (weekNumber) {
+        // Get materials for a specific week
+        materials = await academicRepository.getCourseMaterialsByWeek(courseId, parseInt(weekNumber));
+      } else {
+        // Get all materials for the course
+        materials = await academicRepository.getCourseMaterials(courseId);
+      }
     } else {
-      // Get all materials for the course
-      materials = await academicRepository.getCourseMaterials(courseId);
+      // Get all materials across all courses
+      materials = await academicRepository.getAllCourseMaterials();
     }
 
     return NextResponse.json({

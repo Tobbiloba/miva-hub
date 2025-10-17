@@ -45,6 +45,9 @@ export interface AppState {
     };
   };
   pendingThreadMention?: ChatMention;
+  chatSidebar: {
+    visible: boolean;
+  };
 }
 
 export interface AppDispatch {
@@ -85,6 +88,9 @@ const initialState: AppState = {
     },
   },
   pendingThreadMention: undefined,
+  chatSidebar: {
+    visible: false,
+  },
 };
 
 export const appStore = create<AppState & AppDispatch>()(

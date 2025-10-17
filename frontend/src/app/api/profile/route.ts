@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { UserSchema, FacultySchema } from "@/lib/db/pg/schema.pg";
+import { UserSchema, FacultySchema, DepartmentSchema } from "@/lib/db/pg/schema.pg";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
+import { getUserRole } from "@/lib/auth/user-utils";
 
 // Validation schemas for different profile categories
 const personalProfileSchema = z.object({
@@ -53,24 +55,93 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get faculty data if user is faculty
-    let facultyData = null;
-    if ((user[0] as any).role === 'faculty') {
-      const faculty = await pgDb
-        .select()
-        .from(FacultySchema)
-        .where(eq(FacultySchema.userId, session.user.id))
-        .limit(1);
-      
-      facultyData = faculty.length > 0 ? faculty[0] : null;
-    }
+    const userData = user[0];
+    const userRole = getUserRole(userData);
 
     // Remove sensitive information
-    const { password: _, ...userProfile } = user[0];
+    const { password: _, ...userProfile } = userData;
+
+    // Get role-specific data
+    let roleSpecificData: any = {};
     
+    if (userRole === 'faculty') {
+      // Get faculty record first
+      const facultyRecord = await pgAcademicRepository.getFacultyByUserId(session.user.id);
+      
+      if (facultyRecord) {
+        // Get faculty data and related information using facultyId
+        const [facultyCourses, facultyStudents, gradingQueue] = await Promise.all([
+          pgAcademicRepository.getFacultyCourses(facultyRecord.id).catch(() => []),
+          pgAcademicRepository.getFacultyStudents(facultyRecord.id).catch(() => []),
+          pgAcademicRepository.getFacultyGradingQueue(facultyRecord.id, 5).catch(() => [])
+        ]);
+
+        let departmentData = null;
+        if (facultyRecord.departmentId) {
+          departmentData = await pgAcademicRepository.getDepartmentById(facultyRecord.departmentId);
+        }
+
+        roleSpecificData = {
+          faculty: facultyRecord,
+          department: departmentData,
+          courses: facultyCourses.slice(0, 6),
+          students: facultyStudents.slice(0, 8),
+          pendingGrades: gradingQueue,
+          stats: {
+            activeCourses: facultyCourses.length,
+            totalStudents: facultyStudents.length,
+            pendingGrades: gradingQueue.length
+          }
+        };
+      } else {
+        roleSpecificData = {
+          faculty: null,
+          department: null,
+          courses: [],
+          students: [],
+          pendingGrades: [],
+          stats: {
+            activeCourses: 0,
+            totalStudents: 0,
+            pendingGrades: 0
+          }
+        };
+      }
+    } else if (userRole === 'student') {
+      // Get student data and related information
+      const [enrollmentStats, studentCourses, upcomingAssignments, recentAnnouncements] = await Promise.all([
+        pgAcademicRepository.getStudentEnrollmentStats(session.user.id),
+        pgAcademicRepository.getStudentCourses(session.user.id),
+        pgAcademicRepository.getStudentUpcomingAssignments(session.user.id, 5),
+        pgAcademicRepository.getStudentRecentAnnouncements(session.user.id, 5)
+      ]);
+
+      // Get department info from first enrolled course
+      let departmentData = null;
+      if (studentCourses.length > 0) {
+        departmentData = studentCourses[0].department;
+      }
+
+      roleSpecificData = {
+        department: departmentData,
+        courses: studentCourses,
+        upcomingAssignments: upcomingAssignments,
+        recentAnnouncements: recentAnnouncements,
+        stats: {
+          enrolledCourses: enrollmentStats.enrolledCourses,
+          totalCredits: enrollmentStats.totalCredits,
+          upcomingAssignments: upcomingAssignments.length
+        }
+      };
+    }
+
+    // Get recent activity (simplified for now)
+    const recentActivity = await getRecentActivity(session.user.id, userRole);
+
     const profileData = {
       ...userProfile,
-      faculty: facultyData,
+      ...roleSpecificData,
+      recentActivity
     };
 
     return NextResponse.json({
@@ -86,6 +157,75 @@ export async function GET(request: NextRequest) {
       error: 'Failed to fetch profile',
       message: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
+  }
+}
+
+// Helper function to get recent activity
+async function getRecentActivity(userId: string, userRole: string | null) {
+  const activities = [];
+  
+  try {
+    if (userRole === 'student') {
+      // Get recent assignment submissions (without grades)
+      const submissions = await pgAcademicRepository.getStudentUpcomingAssignments(userId, 3);
+      submissions.forEach(({ assignment, course }) => {
+        activities.push({
+          type: 'assignment',
+          message: `Assignment due: ${assignment.title}`,
+          course: course.courseCode,
+          time: new Date(assignment.dueDate).toLocaleDateString(),
+          icon: 'FileText'
+        });
+      });
+
+      // Get recent announcements
+      const announcements = await pgAcademicRepository.getStudentRecentAnnouncements(userId, 2);
+      announcements.forEach(({ announcement, course }) => {
+        activities.push({
+          type: 'announcement',
+          message: `New announcement: ${announcement.title}`,
+          course: course?.courseCode || 'General',
+          time: new Date(announcement.createdAt).toLocaleDateString(),
+          icon: 'Bell'
+        });
+      });
+    } else if (userRole === 'faculty') {
+      // Get faculty record first to get facultyId
+      const facultyRecord = await pgAcademicRepository.getFacultyByUserId(userId);
+      if (facultyRecord) {
+        // Get recent grading queue items
+        const gradingQueue = await pgAcademicRepository.getFacultyGradingQueue(facultyRecord.id, 3);
+        gradingQueue.forEach(({ assignment, course, student }) => {
+          activities.push({
+            type: 'grading',
+            message: `Pending: ${assignment.title} from ${student.name}`,
+            course: course.courseCode,
+            time: 'Pending review',
+            icon: 'GraduationCap'
+          });
+        });
+      }
+    }
+
+    // Add generic login activity
+    activities.push({
+      type: 'login',
+      message: 'Logged into system',
+      time: 'Today',
+      icon: 'Activity'
+    });
+
+    return activities.slice(0, 4); // Limit to 4 recent activities
+  } catch (error) {
+    console.error('Error fetching recent activity:', error);
+    return [
+      {
+        type: 'login',
+        message: 'Logged into system',
+        time: 'Today',
+        icon: 'Activity'
+      }
+    ];
   }
 }
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { requireAdmin } from "@/lib/auth/admin";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, count } from "drizzle-orm";
 import { pgDb as db } from "@/lib/db/pg/db.pg";
 import { AIProcessingJobSchema, CourseMaterialSchema } from "@/lib/db/pg/schema.pg";
 
@@ -50,17 +50,17 @@ export async function GET(request: NextRequest) {
 
     // Get total count for pagination
     const totalCountResult = await db
-      .select({ count: AIProcessingJobSchema.id })
+      .select({ count: count(AIProcessingJobSchema.id) })
       .from(AIProcessingJobSchema)
       .where(conditions.length > 0 ? and(...conditions) : undefined);
 
-    const totalCount = totalCountResult.length;
+    const totalCount = totalCountResult[0]?.count || 0;
 
     // Calculate statistics
     const stats = await db
       .select({
         status: AIProcessingJobSchema.status,
-        count: AIProcessingJobSchema.id,
+        count: count(AIProcessingJobSchema.id),
       })
       .from(AIProcessingJobSchema)
       .groupBy(AIProcessingJobSchema.status);

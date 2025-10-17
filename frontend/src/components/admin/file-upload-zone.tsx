@@ -14,7 +14,7 @@ import {
   Video,
   Music
 } from "lucide-react";
-import { cn } from "lib/utils";
+import { cn } from "@/lib/utils";
 
 interface FileUploadItem {
   file: File;
@@ -149,9 +149,10 @@ export function FileUploadZone({
       {/* Drop Zone */}
       <Card
         className={cn(
-          "border-2 border-dashed transition-colors cursor-pointer",
-          isDragOver && "border-primary bg-primary/5",
-          disabled && "opacity-50 cursor-not-allowed"
+          "border-2 border-dashed transition-all duration-200",
+          isDragOver && !disabled && "border-primary bg-primary/5 scale-[1.02]",
+          !disabled && "cursor-pointer hover:border-primary/50 hover:bg-muted/30",
+          disabled && "opacity-50 cursor-not-allowed border-muted-foreground/30"
         )}
         onDrop={handleDrop}
         onDragOver={(e) => {
@@ -166,11 +167,37 @@ export function FileUploadZone({
         }}
       >
         <CardContent className="p-8 text-center">
-          <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Upload Course Materials</h3>
-          <p className="text-muted-foreground mb-4">
-            Drag and drop files here, or click to browse
+          <Upload className={cn(
+            "mx-auto h-12 w-12 mb-4 transition-colors",
+            disabled ? "text-muted-foreground/50" : "text-primary"
+          )} />
+          <h3 className={cn(
+            "text-lg font-semibold mb-2",
+            disabled && "text-muted-foreground"
+          )}>
+            {disabled ? "Complete form to upload" : "Upload Course Materials"}
+          </h3>
+          <p className={cn(
+            "mb-4",
+            disabled ? "text-muted-foreground/70" : "text-muted-foreground"
+          )}>
+            {disabled 
+              ? "Please fill in all required fields above" 
+              : "Drag and drop files here, or click to browse"
+            }
           </p>
+          
+          {!disabled && (
+            <Button 
+              variant="outline" 
+              className="mb-4"
+              onClick={() => document.getElementById('file-input')?.click()}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Choose Files
+            </Button>
+          )}
+          
           <p className="text-sm text-muted-foreground">
             Supports PDF, DOCX, PPTX, MP4, MOV, AVI, MP3, WAV files up to {maxSize}MB
           </p>

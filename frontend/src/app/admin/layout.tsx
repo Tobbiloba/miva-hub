@@ -24,11 +24,11 @@ export default async function AdminLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen bg-background w-screen">
         <AdminSidebar session={session} />
         <main className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto">
-            <div className="container mx-auto p-6 max-w-7xl">
+            <div className="container mx-auto p-6 flex-1">
               {children}
             </div>
           </div>

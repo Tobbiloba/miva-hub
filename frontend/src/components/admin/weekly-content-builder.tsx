@@ -55,6 +55,21 @@ interface ContentItem {
   fileSize: number;
   uploadedAt: Date;
   isProcessed: boolean;
+  s3Key?: string;
+  s3Url?: string;
+  cloudFrontUrl?: string;
+  publicUrl?: string;
+}
+
+interface UploadTask {
+  id: string;
+  file: File;
+  materialType: string;
+  title: string;
+  status: 'pending' | 'uploading' | 'completed' | 'error';
+  progress: number;
+  error?: string;
+  result?: any;
 }
 
 const MATERIAL_TYPES = [
@@ -86,6 +101,8 @@ export function WeeklyContentBuilder({
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [isLoadingContent, setIsLoadingContent] = useState(true);
   const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [uploadTasks, setUploadTasks] = useState<UploadTask[]>([]);
+  const [selectedMaterialType, setSelectedMaterialType] = useState('resource');
   const { toast } = useToast();
 
   // Load existing content for this week
@@ -103,7 +120,11 @@ export function WeeklyContentBuilder({
             fileName: material.fileName || "Unknown file",
             fileSize: material.fileSize || 0,
             uploadedAt: new Date(material.uploadedAt),
-            isProcessed: material.isProcessed || false
+            isProcessed: material.isProcessed || false,
+            s3Key: material.s3Key,
+            s3Url: material.contentUrl,
+            cloudFrontUrl: material.cloudFrontUrl,
+            publicUrl: material.publicUrl
           }));
           setContentItems(items);
         }
@@ -203,34 +224,69 @@ export function WeeklyContentBuilder({
   const handleFilesSelected = async (files: File[]) => {
     setUploadingFiles(true);
 
+    // Create upload tasks
+    const newTasks: UploadTask[] = files.map(file => ({
+      id: `upload_${Date.now()}_${Math.random()}`,
+      file,
+      materialType: selectedMaterialType,
+      title: file.name.split('.')[0],
+      status: 'pending',
+      progress: 0
+    }));
+
+    setUploadTasks(prev => [...prev, ...newTasks]);
+
     try {
-      for (const file of files) {
+      // Process uploads with progress tracking
+      for (const task of newTasks) {
+        setUploadTasks(prev => prev.map(t => 
+          t.id === task.id ? { ...t, status: 'uploading' } : t
+        ));
+
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', task.file);
         formData.append('courseId', courseId);
-        formData.append('materialType', 'resource'); // Default type, can be changed later
+        formData.append('materialType', task.materialType);
         formData.append('weekNumber', weekData.weekNumber.toString());
-        formData.append('title', file.name.split('.')[0]); // Use filename without extension as title
+        formData.append('title', task.title);
 
-        const response = await fetch('/api/content/upload', {
-          method: 'POST',
-          body: formData,
-        });
+        try {
+          const response = await fetch('/api/content/upload', {
+            method: 'POST',
+            body: formData,
+          });
 
-        if (!response.ok) {
-          throw new Error(`Failed to upload ${file.name}`);
+          if (!response.ok) {
+            throw new Error(`Failed to upload ${task.file.name}`);
+          }
+
+          const result = await response.json();
+          
+          setUploadTasks(prev => prev.map(t => 
+            t.id === task.id ? { ...t, status: 'completed', progress: 100, result } : t
+          ));
+        } catch (error) {
+          setUploadTasks(prev => prev.map(t => 
+            t.id === task.id ? { ...t, status: 'error', error: error instanceof Error ? error.message : 'Upload failed' } : t
+          ));
         }
-
-        await response.json();
       }
 
-      toast({
-        title: "Success",
-        description: `${files.length} file(s) uploaded successfully`
-      });
+      const successfulUploads = newTasks.filter(task => 
+        uploadTasks.find(t => t.id === task.id)?.status === 'completed'
+      ).length;
 
-      // Reload content
-      window.location.reload();
+      if (successfulUploads > 0) {
+        toast({
+          title: "Success",
+          description: `${successfulUploads} file(s) uploaded successfully to AWS S3`
+        });
+
+        // Refresh content list
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      }
     } catch (error) {
       console.error('Upload error:', error);
       toast({
@@ -240,6 +296,10 @@ export function WeeklyContentBuilder({
       });
     } finally {
       setUploadingFiles(false);
+      // Clear completed tasks after 5 seconds
+      setTimeout(() => {
+        setUploadTasks(prev => prev.filter(t => t.status !== 'completed'));
+      }, 5000);
     }
   };
 
@@ -452,10 +512,81 @@ export function WeeklyContentBuilder({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <FileUploadZone
-                onFilesSelected={handleFilesSelected}
-                disabled={uploadingFiles}
-              />
+              <div className="space-y-4">
+                {/* Material Type Selection */}
+                <div>
+                  <Label htmlFor="material-type">Material Type</Label>
+                  <Select value={selectedMaterialType} onValueChange={setSelectedMaterialType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select material type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MATERIAL_TYPES.map((type) => {
+                        const IconComponent = type.icon;
+                        return (
+                          <SelectItem key={type.value} value={type.value}>
+                            <div className="flex items-center gap-2">
+                              <IconComponent className="h-4 w-4" />
+                              {type.label}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* File Upload Zone */}
+                <FileUploadZone
+                  onFilesSelected={handleFilesSelected}
+                  disabled={uploadingFiles}
+                />
+
+                {/* Upload Progress */}
+                {uploadTasks.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Upload Progress</h4>
+                    {uploadTasks.map((task) => (
+                      <div key={task.id} className="border rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium">{task.title}</span>
+                          <div className="flex items-center gap-2">
+                            {task.status === 'uploading' && (
+                              <Clock className="h-4 w-4 animate-spin" />
+                            )}
+                            {task.status === 'completed' && (
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                            )}
+                            {task.status === 'error' && (
+                              <AlertCircle className="h-4 w-4 text-red-600" />
+                            )}
+                            <Badge 
+                              variant={task.status === 'completed' ? 'default' : 
+                                      task.status === 'error' ? 'destructive' : 'secondary'}
+                            >
+                              {task.status}
+                            </Badge>
+                          </div>
+                        </div>
+                        {task.status === 'uploading' && (
+                          <Progress value={task.progress} className="h-2" />
+                        )}
+                        {task.error && (
+                          <p className="text-sm text-red-600 mt-1">{task.error}</p>
+                        )}
+                        {task.result && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            <p>S3 Key: {task.result.s3Key}</p>
+                            {task.result.cloudFrontUrl && (
+                              <p>CloudFront: Available ✓</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -538,6 +669,14 @@ export function WeeklyContentBuilder({
                         <p className="text-sm text-muted-foreground">
                           {item.fileName} • {(item.fileSize / 1024 / 1024).toFixed(1)} MB
                         </p>
+                        {item.s3Key && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            <p>S3: {item.s3Key}</p>
+                            {item.cloudFrontUrl && (
+                              <p className="text-green-600">CloudFront: Available ✓</p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                     
@@ -554,13 +693,24 @@ export function WeeklyContentBuilder({
                         </Badge>
                       )}
                       
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteContentItem(item.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-2">
+                        {item.publicUrl && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(item.publicUrl, '_blank')}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteContentItem(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 );

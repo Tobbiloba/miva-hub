@@ -16,6 +16,8 @@ import { ChevronDown, ChevronUp, TriangleAlertIcon } from "lucide-react";
 import { Button } from "ui/button";
 import { useTranslations } from "next-intl";
 import { ChatMetadata } from "app-types/chat";
+import { MaterialsMessagePart } from "./message-parts/MaterialsMessagePart";
+import { extractRichMaterials } from "lib/video-utils";
 
 interface Props {
   message: UIMessage;
@@ -45,12 +47,13 @@ const PurePreviewMessage = ({
   sendMessage,
 }: Props) => {
   const isUserMessage = useMemo(() => message.role === "user", [message.role]);
+  
   if (message.role == "system") {
     return null; // system message is not shown
   }
   if (!message.parts.length) return null;
   return (
-    <div className="w-full mx-auto max-w-3xl px-6 group/message">
+    <div className="w-full mx-auto max-w-4xl px-6 group/message">
       <div
         className={cn(
           "flex gap-4 w-full group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl",
@@ -113,19 +116,39 @@ const PurePreviewMessage = ({
                 isLastPart &&
                 part.state == "input-available" &&
                 isLoading;
+              
+              // Check if this tool has rich materials
+              const richMaterials = part.output ? extractRichMaterials(part.output) : [];
+              const hasMaterials = richMaterials.length > 0;
+              
+              console.log('🔍 Tool Part Material Check:', {
+                toolCallId: part.toolCallId,
+                hasMaterials,
+                materialCount: richMaterials.length
+              });
+              
               return (
-                <ToolMessagePart
-                  isLast={isLast}
-                  messageId={message.id}
-                  isManualToolInvocation={isManualToolInvocation}
-                  showActions={
-                    isLastMessage ? isLastPart && !isLoading : isLastPart
-                  }
-                  addToolResult={addToolResult}
-                  key={key}
-                  part={part}
-                  setMessages={setMessages}
-                />
+                <>
+                  <ToolMessagePart
+                    isLast={isLast}
+                    messageId={message.id}
+                    isManualToolInvocation={isManualToolInvocation}
+                    showActions={
+                      isLastMessage ? isLastPart && !isLoading : isLastPart
+                    }
+                    addToolResult={addToolResult}
+                    key={key}
+                    part={part}
+                    setMessages={setMessages}
+                  />
+                  {hasMaterials && (
+                    <MaterialsMessagePart
+                      key={`materials-${part.toolCallId}`}
+                      materials={richMaterials}
+                      toolCallId={part.toolCallId}
+                    />
+                  )}
+                </>
               );
             } else if (part.type === "step-start") {
               return null;

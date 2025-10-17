@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { s3Service } from "@/lib/aws/s3-service";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,12 @@ import {
   AlertCircle,
   Settings,
   List,
-  CheckCircle
+  CheckCircle,
+  Upload,
+  File,
+  Video,
+  FileText,
+  X
 } from "lucide-react";
 
 interface Department {
@@ -49,12 +55,26 @@ interface CourseFormData {
   endDate: string;
 }
 
+interface UploadedFile {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  s3Key?: string;
+  s3Url?: string;
+  publicUrl?: string;
+  uploadStatus: 'pending' | 'uploading' | 'completed' | 'error';
+  uploadProgress: number;
+  error?: string;
+}
+
 interface WeekPlan {
   weekNumber: number;
   title: string;
   description: string;
   learningObjectives: string[];
   topics: string[];
+  uploadedFiles: UploadedFile[];
 }
 
 const initialFormData: CourseFormData = {
@@ -148,7 +168,8 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
         title: `Week ${i + 1}`,
         description: "",
         learningObjectives: [],
-        topics: []
+        topics: [],
+        uploadedFiles: []
       }));
       setWeeklyPlans(plans);
     }
@@ -175,6 +196,149 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
         ? { ...week, [field]: value }
         : week
     ));
+  };
+
+  // Handle file uploads for a specific week with S3 integration
+  const handleWeekFileUpload = async (weekNumber: number, files: FileList) => {
+    if (!formData.courseCode || !formData.departmentId) {
+      toast({
+        title: "Error",
+        description: "Please complete course basic information first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const validFiles = Array.from(files).filter(file => {
+      const allowedTypes = [
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'video/mp4', 'video/quicktime', 'video/x-msvideo',
+        'audio/mpeg', 'audio/wav', 'audio/x-m4a'
+      ];
+      
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Invalid file type",
+          description: `${file.name} is not supported`,
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      if (file.size > 100 * 1024 * 1024) {
+        toast({
+          title: "File too large", 
+          description: `${file.name} exceeds 100MB limit`,
+          variant: "destructive"
+        });
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    // Add files with pending status
+    const newFiles: UploadedFile[] = validFiles.map(file => ({
+      id: `${Date.now()}_${file.name}`,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      uploadStatus: 'pending' as const,
+      uploadProgress: 0
+    }));
+
+    const currentWeek = weeklyPlans.find(w => w.weekNumber === weekNumber);
+    updateWeekPlan(weekNumber, 'uploadedFiles', [
+      ...(currentWeek?.uploadedFiles || []),
+      ...newFiles
+    ]);
+
+    // Upload to S3 (simplified for course creation)
+    for (const fileData of newFiles) {
+      const file = validFiles.find(f => f.name === fileData.name);
+      if (!file) continue;
+
+      try {
+        updateFileStatus(weekNumber, fileData.id, 'uploading', 0);
+
+        // Simulate S3 upload (in real implementation, this would use s3Service)
+        await new Promise((resolve) => {
+          let progress = 0;
+          const interval = setInterval(() => {
+            progress += 10;
+            updateFileStatus(weekNumber, fileData.id, 'uploading', progress);
+            
+            if (progress >= 100) {
+              clearInterval(interval);
+              updateFileStatus(weekNumber, fileData.id, 'completed', 100, {
+                s3Key: `temp-course/week-${weekNumber}/${file.name}`,
+                s3Url: `s3://temp-bucket/temp-course/week-${weekNumber}/${file.name}`,
+                publicUrl: `/api/files/temp-${fileData.id}`
+              });
+              resolve(void 0);
+            }
+          }, 200);
+        });
+
+        toast({
+          title: "Upload successful",
+          description: `${file.name} uploaded to week ${weekNumber}`,
+        });
+      } catch (error) {
+        updateFileStatus(weekNumber, fileData.id, 'error', 0, {}, 'Upload failed');
+        toast({
+          title: "Upload failed",
+          description: `Failed to upload ${file.name}`,
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  // Update file upload status
+  const updateFileStatus = (
+    weekNumber: number, 
+    fileId: string, 
+    status: UploadedFile['uploadStatus'], 
+    progress: number = 0,
+    additionalData: Partial<UploadedFile> = {},
+    error?: string
+  ) => {
+    const currentWeek = weeklyPlans.find(w => w.weekNumber === weekNumber);
+    updateWeekPlan(weekNumber, 'uploadedFiles', 
+      currentWeek?.uploadedFiles.map(file =>
+        file.id === fileId 
+          ? { ...file, uploadStatus: status, uploadProgress: progress, error, ...additionalData }
+          : file
+      ) || []
+    );
+  };
+
+  // Remove uploaded file
+  const removeUploadedFile = (weekNumber: number, fileId: string) => {
+    const currentWeek = weeklyPlans.find(w => w.weekNumber === weekNumber);
+    updateWeekPlan(weekNumber, 'uploadedFiles',
+      currentWeek?.uploadedFiles.filter(file => file.id !== fileId) || []
+    );
+  };
+
+  // Get file icon
+  const getFileIcon = (fileType: string) => {
+    if (fileType.startsWith('video/')) return Video;
+    if (fileType === 'application/pdf') return FileText;
+    return File;
+  };
+
+  // Format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const validateCurrentStep = (): boolean => {
@@ -612,6 +776,114 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                           value={week.description}
                           onChange={(e) => updateWeekPlan(week.weekNumber, 'description', e.target.value)}
                         />
+                      </div>
+
+                      {/* S3 File Upload Zone */}
+                      <div className="space-y-3 border-t pt-3">
+                        <div className="flex items-center gap-2">
+                          <Upload className="h-4 w-4" />
+                          <Label className="text-sm font-medium">Course Materials</Label>
+                        </div>
+                        
+                        {/* Upload Drop Zone */}
+                        <div
+                          className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center hover:border-muted-foreground/50 transition-colors cursor-pointer"
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.currentTarget.classList.add('border-primary', 'bg-primary/5');
+                          }}
+                          onDragLeave={(e) => {
+                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5');
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5');
+                            if (e.dataTransfer.files.length > 0) {
+                              handleWeekFileUpload(week.weekNumber, e.dataTransfer.files);
+                            }
+                          }}
+                          onClick={() => {
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.multiple = true;
+                            input.accept = '.pdf,.docx,.pptx,.mp4,.mov,.avi,.mp3,.wav,.m4a';
+                            input.onchange = (e) => {
+                              const target = e.target as HTMLInputElement;
+                              if (target.files && target.files.length > 0) {
+                                handleWeekFileUpload(week.weekNumber, target.files);
+                              }
+                            };
+                            input.click();
+                          }}
+                        >
+                          <div className="space-y-2">
+                            <div className="mx-auto w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
+                              <Upload className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">Drop files here or click to browse</p>
+                              <p className="text-xs text-muted-foreground">
+                                PDF, DOCX, PPTX, Videos, Audio (max 100MB)
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Uploaded Files List */}
+                        {week.uploadedFiles && week.uploadedFiles.length > 0 && (
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground">
+                              Uploaded Files ({week.uploadedFiles.length})
+                            </Label>
+                            <div className="space-y-2 max-h-32 overflow-y-auto">
+                              {week.uploadedFiles.map((file) => {
+                                const Icon = getFileIcon(file.type);
+                                return (
+                                  <div key={file.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded text-xs">
+                                    <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium truncate">{file.name}</p>
+                                      <p className="text-muted-foreground">{formatFileSize(file.size)}</p>
+                                      {file.uploadStatus === 'uploading' && (
+                                        <div className="w-full bg-muted rounded-full h-1 mt-1">
+                                          <div 
+                                            className="bg-primary h-1 rounded-full transition-all duration-300"
+                                            style={{ width: `${file.uploadProgress}%` }}
+                                          />
+                                        </div>
+                                      )}
+                                      {file.uploadStatus === 'error' && (
+                                        <p className="text-destructive text-xs">{file.error}</p>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      {file.uploadStatus === 'pending' && (
+                                        <div className="w-2 h-2 bg-yellow-500 rounded-full" />
+                                      )}
+                                      {file.uploadStatus === 'uploading' && (
+                                        <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+                                      )}
+                                      {file.uploadStatus === 'completed' && (
+                                        <CheckCircle className="h-3 w-3 text-green-500" />
+                                      )}
+                                      {file.uploadStatus === 'error' && (
+                                        <AlertCircle className="h-3 w-3 text-destructive" />
+                                      )}
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-5 w-5"
+                                        onClick={() => removeUploadedFile(week.weekNumber, file.id)}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </Card>

@@ -823,6 +823,153 @@ export const ContentEmbeddingSchema = pgTable(
   ],
 );
 
+// ===============================
+// SYSTEM MANAGEMENT SCHEMAS
+// ===============================
+
+// System settings table
+export const SystemSettingsSchema = pgTable(
+  "system_settings",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    category: varchar("category", { length: 50 }).notNull(), // university, academic, email, security, features, system
+    key: varchar("key", { length: 100 }).notNull(),
+    value: text("value"),
+    valueType: varchar("value_type", {
+      enum: ["string", "number", "boolean", "json"],
+    }).notNull().default("string"),
+    description: text("description"),
+    isEditable: boolean("is_editable").notNull().default(true),
+    isSecret: boolean("is_secret").notNull().default(false), // For sensitive values like passwords
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    unique().on(table.category, table.key),
+    index("settings_category_idx").on(table.category),
+    index("settings_key_idx").on(table.key),
+  ],
+);
+
+// Calendar events table (more general than academic calendar)
+export const CalendarEventSchema = pgTable(
+  "calendar_event",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    title: text("title").notNull(),
+    description: text("description"),
+    eventType: varchar("event_type", {
+      enum: ["academic", "registration", "exam", "holiday", "professional", "ceremony", "maintenance"],
+    }).notNull(),
+    startDate: date("start_date").notNull(),
+    endDate: date("end_date").notNull(),
+    startTime: text("start_time"), // HH:MM format
+    endTime: text("end_time"), // HH:MM format
+    isAllDay: boolean("is_all_day").notNull().default(false),
+    location: text("location"),
+    priority: varchar("priority", {
+      enum: ["low", "medium", "high", "critical"],
+    }).notNull().default("medium"),
+    status: varchar("status", {
+      enum: ["scheduled", "completed", "cancelled", "postponed"],
+    }).notNull().default("scheduled"),
+    affectedUsers: varchar("affected_users", {
+      enum: ["all", "students", "faculty", "staff", "specific"],
+    }).notNull().default("all"),
+    courseId: uuid("course_id").references(() => CourseSchema.id),
+    departmentId: uuid("department_id").references(() => DepartmentSchema.id),
+    createdById: uuid("created_by_id")
+      .notNull()
+      .references(() => UserSchema.id),
+    remindersEnabled: boolean("reminders_enabled").notNull().default(true),
+    isRecurring: boolean("is_recurring").notNull().default(false),
+    recurringPattern: json("recurring_pattern"), // For recurring events
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("calendar_event_type_idx").on(table.eventType),
+    index("calendar_event_date_idx").on(table.startDate),
+    index("calendar_event_priority_idx").on(table.priority),
+    index("calendar_event_status_idx").on(table.status),
+    index("calendar_event_users_idx").on(table.affectedUsers),
+    index("calendar_event_course_idx").on(table.courseId),
+    index("calendar_event_department_idx").on(table.departmentId),
+  ],
+);
+
+// Reports configuration table
+export const ReportConfigSchema = pgTable(
+  "report_config",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    name: text("name").notNull(),
+    description: text("description"),
+    category: varchar("category", {
+      enum: ["academic", "enrollment", "performance", "system", "financial", "research", "engagement"],
+    }).notNull(),
+    reportType: varchar("report_type", {
+      enum: ["automated", "custom", "manual"],
+    }).notNull().default("custom"),
+    format: varchar("format", {
+      enum: ["pdf", "excel", "csv", "json"],
+    }).notNull().default("pdf"),
+    schedule: varchar("schedule", {
+      enum: ["manual", "daily", "weekly", "monthly", "quarterly", "semester", "yearly"],
+    }).notNull().default("manual"),
+    isActive: boolean("is_active").notNull().default(true),
+    queryTemplate: text("query_template"), // SQL template for data extraction
+    parameters: json("parameters").default({}), // Report parameters
+    recipients: json("recipients").$type<string[]>().default([]), // Email recipients
+    createdById: uuid("created_by_id")
+      .notNull()
+      .references(() => UserSchema.id),
+    lastGenerated: timestamp("last_generated"),
+    nextScheduled: timestamp("next_scheduled"),
+    generationCount: integer("generation_count").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("report_category_idx").on(table.category),
+    index("report_type_idx").on(table.reportType),
+    index("report_schedule_idx").on(table.schedule),
+    index("report_active_idx").on(table.isActive),
+    index("report_next_scheduled_idx").on(table.nextScheduled),
+  ],
+);
+
+// Report instances table (tracks generated reports)
+export const ReportInstanceSchema = pgTable(
+  "report_instance",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    reportConfigId: uuid("report_config_id")
+      .notNull()
+      .references(() => ReportConfigSchema.id, { onDelete: "cascade" }),
+    fileName: text("file_name").notNull(),
+    filePath: text("file_path"),
+    fileSize: integer("file_size"), // in bytes
+    format: varchar("format", {
+      enum: ["pdf", "excel", "csv", "json"],
+    }).notNull(),
+    generatedAt: timestamp("generated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    generatedById: uuid("generated_by_id")
+      .notNull()
+      .references(() => UserSchema.id),
+    downloadCount: integer("download_count").notNull().default(0),
+    isPublic: boolean("is_public").notNull().default(false),
+    expiresAt: timestamp("expires_at"),
+    metadata: json("metadata").default({}),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("report_instance_config_idx").on(table.reportConfigId),
+    index("report_instance_generated_idx").on(table.generatedAt),
+    index("report_instance_expires_idx").on(table.expiresAt),
+  ],
+);
+
 export type McpServerEntity = typeof McpServerSchema.$inferSelect;
 export type ChatThreadEntity = typeof ChatThreadSchema.$inferSelect;
 export type ChatMessageEntity = typeof ChatMessageSchema.$inferSelect;
@@ -858,3 +1005,9 @@ export type AttendanceEntity = typeof AttendanceSchema.$inferSelect;
 export type AIProcessingJobEntity = typeof AIProcessingJobSchema.$inferSelect;
 export type AIProcessedContentEntity = typeof AIProcessedContentSchema.$inferSelect;
 export type ContentEmbeddingEntity = typeof ContentEmbeddingSchema.$inferSelect;
+
+// System Management entity types
+export type SystemSettingsEntity = typeof SystemSettingsSchema.$inferSelect;
+export type CalendarEventEntity = typeof CalendarEventSchema.$inferSelect;
+export type ReportConfigEntity = typeof ReportConfigSchema.$inferSelect;
+export type ReportInstanceEntity = typeof ReportInstanceSchema.$inferSelect;

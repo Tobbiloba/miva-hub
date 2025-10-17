@@ -26,7 +26,7 @@ import { isShortcutEvent, Shortcuts } from "lib/keyboard-shortcuts";
 import { Button } from "ui/button";
 import { deleteThreadAction } from "@/app/api/chat/actions";
 import { useRouter } from "next/navigation";
-import { ArrowDown, Loader } from "lucide-react";
+import { ArrowDown, Loader, PanelRightOpen, PanelRightClose } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +42,7 @@ import dynamic from "next/dynamic";
 import { useMounted } from "@/hooks/use-mounted";
 import { getStorageManager } from "lib/browser-stroage";
 import { AnimatePresence, motion } from "framer-motion";
+import { ChatDrawer } from "./chat/ChatSidebar";
 
 type Props = {
   threadId: string;
@@ -76,6 +77,7 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
     threadList,
     threadMentions,
     pendingThreadMention,
+    chatSidebar,
   ] = appStore(
     useShallow((state) => [
       state.mutate,
@@ -86,6 +88,7 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
       state.threadList,
       state.threadMentions,
       state.pendingThreadMention,
+      state.chatSidebar,
     ]),
   );
 
@@ -285,6 +288,24 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
     });
   }, []);
 
+  const toggleDrawer = useCallback(() => {
+    appStoreMutate((state) => ({
+      chatSidebar: {
+        ...state.chatSidebar,
+        visible: !state.chatSidebar.visible,
+      },
+    }));
+  }, [appStoreMutate]);
+
+  const handleDrawerOpenChange = useCallback((open: boolean) => {
+    appStoreMutate((state) => ({
+      chatSidebar: {
+        ...state.chatSidebar,
+        visible: open,
+      },
+    }));
+  }, [appStoreMutate]);
+
   useEffect(() => {
     appStoreMutate({ currentThreadId: threadId });
     return () => {
@@ -432,6 +453,30 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
           threadId={threadId}
           onClose={() => setIsDeleteThreadPopupOpen(false)}
           open={isDeleteThreadPopupOpen}
+        />
+        
+        {/* Drawer Toggle Button */}
+        <div className="fixed top-1/2 right-4 -translate-y-1/2 z-50">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleDrawer}
+            className="bg-background/80 backdrop-blur-sm border shadow-lg"
+            title={chatSidebar.visible ? "Close drawer" : "Open drawer"}
+          >
+            {chatSidebar.visible ? (
+              <PanelRightClose className="w-4 h-4" />
+            ) : (
+              <PanelRightOpen className="w-4 h-4" />
+            )}
+          </Button>
+        </div>
+        
+        {/* Chat Drawer */}
+        <ChatDrawer
+          messages={messages}
+          open={chatSidebar.visible}
+          onOpenChange={handleDrawerOpenChange}
         />
       </div>
     </>

@@ -1,3 +1,5 @@
+"use client";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,159 +54,113 @@ import {
   DollarSign,
   FileSpreadsheet,
   Mail,
-  Share
+  Share,
+  Loader2,
+  AlertTriangle
 } from "lucide-react";
-import { getSession } from "@/lib/auth/server";
-import { requireAdmin } from "@/lib/auth/admin";
+import { toast } from "sonner";
 
-export default async function ReportsManagePage() {
-  const session = await getSession();
-  const adminAccess = await requireAdmin();
+interface Report {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  type: string;
+  format: string;
+  schedule: string;
+  status: string;
+  createdBy: string;
+  lastGenerated: string | null;
+  nextScheduled: string | null;
+  downloads: number;
+  size: string;
+  recipients: string[];
+  generationCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
 
-  if (adminAccess instanceof Response) {
-    return <div>Access denied. Admin privileges required.</div>;
-  }
+export default function ReportsManagePage() {
+  const [reports, setReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
-  // Mock reports data (in real app, this would come from database)
-  const reports = [
-    {
-      id: "1",
-      name: "Student Enrollment Summary",
-      description: "Comprehensive overview of student enrollment across all departments and programs",
-      category: "enrollment",
-      type: "automated",
-      format: "pdf",
-      schedule: "weekly",
-      lastGenerated: "2024-03-20T08:00:00Z",
-      nextScheduled: "2024-03-27T08:00:00Z",
-      status: "active",
-      createdBy: "System",
-      downloads: 23,
-      size: "2.4 MB",
-      recipients: ["admin@miva.edu.ng", "registrar@miva.edu.ng"]
-    },
-    {
-      id: "2",
-      name: "Faculty Performance Dashboard",
-      description: "Teaching effectiveness metrics, course evaluations, and research activities",
-      category: "performance",
-      type: "automated",
-      format: "excel",
-      schedule: "monthly",
-      lastGenerated: "2024-03-01T09:00:00Z",
-      nextScheduled: "2024-04-01T09:00:00Z",
-      status: "active",
-      createdBy: "HR Department",
-      downloads: 15,
-      size: "5.1 MB",
-      recipients: ["hr@miva.edu.ng", "dean@miva.edu.ng"]
-    },
-    {
-      id: "3",
-      name: "Course Completion Rates by Department",
-      description: "Analysis of course completion rates, dropout patterns, and academic success metrics",
-      category: "academic",
-      type: "custom",
-      format: "pdf",
-      schedule: "semester",
-      lastGenerated: "2024-02-15T14:30:00Z",
-      nextScheduled: "2024-06-15T14:30:00Z",
-      status: "active",
-      createdBy: "Dr. Sarah Johnson",
-      downloads: 8,
-      size: "3.7 MB",
-      recipients: ["academic.affairs@miva.edu.ng"]
-    },
-    {
-      id: "4",
-      name: "System Usage Analytics",
-      description: "Platform engagement metrics, user activity patterns, and feature utilization",
-      category: "system",
-      type: "automated",
-      format: "excel",
-      schedule: "daily",
-      lastGenerated: "2024-03-21T06:00:00Z",
-      nextScheduled: "2024-03-22T06:00:00Z",
-      status: "active",
-      createdBy: "IT Services",
-      downloads: 45,
-      size: "1.8 MB",
-      recipients: ["it@miva.edu.ng", "admin@miva.edu.ng"]
-    },
-    {
-      id: "5",
-      name: "Grade Distribution Analysis",
-      description: "Statistical analysis of grade distributions across courses and departments",
-      category: "academic",
-      type: "custom",
-      format: "pdf",
-      schedule: "manual",
-      lastGenerated: "2024-03-10T11:15:00Z",
-      nextScheduled: null,
-      status: "paused",
-      createdBy: "Prof. Michael Chen",
-      downloads: 12,
-      size: "4.2 MB",
-      recipients: ["academic.committee@miva.edu.ng"]
-    },
-    {
-      id: "6",
-      name: "Financial Aid Disbursement Report",
-      description: "Summary of financial aid applications, approvals, and disbursements",
-      category: "financial",
-      type: "automated",
-      format: "excel",
-      schedule: "monthly",
-      lastGenerated: "2024-03-01T10:00:00Z",
-      nextScheduled: "2024-04-01T10:00:00Z",
-      status: "active",
-      createdBy: "Financial Aid Office",
-      downloads: 6,
-      size: "2.9 MB",
-      recipients: ["finaid@miva.edu.ng", "bursar@miva.edu.ng"]
-    },
-    {
-      id: "7",
-      name: "Alumni Engagement Metrics",
-      description: "Alumni participation rates, event attendance, and donation tracking",
-      category: "engagement",
-      type: "custom",
-      format: "pdf",
-      schedule: "quarterly",
-      lastGenerated: "2024-01-15T16:00:00Z",
-      nextScheduled: "2024-04-15T16:00:00Z",
-      status: "active",
-      createdBy: "Alumni Relations",
-      downloads: 4,
-      size: "1.5 MB",
-      recipients: ["alumni@miva.edu.ng"]
-    },
-    {
-      id: "8",
-      name: "Research Publications Summary",
-      description: "Faculty research output, publication metrics, and grant funding status",
-      category: "research",
-      type: "custom",
-      format: "pdf",
-      schedule: "semester",
-      lastGenerated: "2024-02-20T13:45:00Z",
-      nextScheduled: "2024-06-20T13:45:00Z",
-      status: "draft",
-      createdBy: "Research Office",
-      downloads: 0,
-      size: "0 MB",
-      recipients: ["research@miva.edu.ng", "dean@miva.edu.ng"]
+  const fetchReports = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
+      if (categoryFilter !== 'all') params.append('category', categoryFilter);
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (typeFilter !== 'all') params.append('reportType', typeFilter);
+      
+      const response = await fetch(`/api/admin/reports?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch reports');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setReports(data.data);
+      } else {
+        throw new Error(data.message || 'Failed to fetch reports');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      toast.error('Failed to load reports');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchReports();
+  }, [debouncedSearchTerm, categoryFilter, statusFilter, typeFilter]);
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  const handleCategoryFilter = (value: string) => {
+    setCategoryFilter(value);
+  };
+
+  const handleStatusFilter = (value: string) => {
+    setStatusFilter(value);
+  };
+
+  const handleTypeFilter = (value: string) => {
+    setTypeFilter(value);
+  };
+
+  // Calculate dynamic report categories based on actual data
   const reportCategories = [
-    { name: "Academic Reports", icon: BookOpen, color: "bg-blue-100 text-blue-800", count: 2 },
-    { name: "Enrollment Reports", icon: Users, color: "bg-green-100 text-green-800", count: 1 },
-    { name: "Performance Reports", icon: TrendingUp, color: "bg-purple-100 text-purple-800", count: 1 },
-    { name: "System Reports", icon: Activity, color: "bg-orange-100 text-orange-800", count: 1 },
-    { name: "Financial Reports", icon: DollarSign, color: "bg-yellow-100 text-yellow-800", count: 1 },
-    { name: "Research Reports", icon: Award, color: "bg-indigo-100 text-indigo-800", count: 1 },
-    { name: "Engagement Reports", icon: Target, color: "bg-pink-100 text-pink-800", count: 1 }
+    { name: "Academic Reports", icon: BookOpen, color: "bg-blue-100 text-blue-800", count: reports.filter(r => r.category === 'academic').length },
+    { name: "Enrollment Reports", icon: Users, color: "bg-green-100 text-green-800", count: reports.filter(r => r.category === 'enrollment').length },
+    { name: "Performance Reports", icon: TrendingUp, color: "bg-purple-100 text-purple-800", count: reports.filter(r => r.category === 'performance').length },
+    { name: "System Reports", icon: Activity, color: "bg-orange-100 text-orange-800", count: reports.filter(r => r.category === 'system').length },
+    { name: "Financial Reports", icon: DollarSign, color: "bg-yellow-100 text-yellow-800", count: reports.filter(r => r.category === 'financial').length },
+    { name: "Research Reports", icon: Award, color: "bg-indigo-100 text-indigo-800", count: reports.filter(r => r.category === 'research').length },
+    { name: "Engagement Reports", icon: Target, color: "bg-pink-100 text-pink-800", count: reports.filter(r => r.category === 'engagement').length }
   ];
 
   const getCategoryColor = (category: string) => {
@@ -266,6 +222,32 @@ export default async function ReportsManagePage() {
   const activeReports = reports.filter(r => r.status === 'active').length;
   const automatedReports = reports.filter(r => r.type === 'automated').length;
   const totalDownloads = reports.reduce((sum, report) => sum + report.downloads, 0);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading reports...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Error Loading Reports</h3>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={fetchReports} variant="outline">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -382,10 +364,15 @@ export default async function ReportsManagePage() {
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search reports by name, category, or creator..." className="pl-10" />
+                <Input 
+                  placeholder="Search reports by name, category, or creator..." 
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                />
               </div>
             </div>
-            <Select>
+            <Select value={categoryFilter} onValueChange={handleCategoryFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
@@ -400,7 +387,7 @@ export default async function ReportsManagePage() {
                 <SelectItem value="engagement">Engagement</SelectItem>
               </SelectContent>
             </Select>
-            <Select>
+            <Select value={statusFilter} onValueChange={handleStatusFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -412,7 +399,7 @@ export default async function ReportsManagePage() {
                 <SelectItem value="error">Error</SelectItem>
               </SelectContent>
             </Select>
-            <Select>
+            <Select value={typeFilter} onValueChange={handleTypeFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
@@ -422,7 +409,7 @@ export default async function ReportsManagePage() {
                 <SelectItem value="custom">Custom</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" disabled={loading}>
               <Filter className="mr-2 h-4 w-4" />
               More Filters
             </Button>
@@ -439,21 +426,41 @@ export default async function ReportsManagePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Report</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Schedule</TableHead>
-                  <TableHead>Last Generated</TableHead>
-                  <TableHead>Downloads</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {reports.map((report) => {
+          {reports.length === 0 ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Reports Found</h3>
+                <p className="text-muted-foreground mb-4">
+                  {debouncedSearchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || typeFilter !== 'all'
+                    ? 'Try adjusting your search or filters'
+                    : 'Create your first report to get started'
+                  }
+                </p>
+                <Button asChild>
+                  <a href="/admin/reports/create">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Report
+                  </a>
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Report</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Schedule</TableHead>
+                    <TableHead>Last Generated</TableHead>
+                    <TableHead>Downloads</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {reports.map((report) => {
                   const FormatIcon = getFormatIcon(report.format);
                   return (
                     <TableRow key={report.id}>
@@ -579,10 +586,11 @@ export default async function ReportsManagePage() {
                       </TableCell>
                     </TableRow>
                   );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

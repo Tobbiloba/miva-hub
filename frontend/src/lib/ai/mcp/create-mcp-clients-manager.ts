@@ -259,14 +259,38 @@ export class MCPClientsManager {
     return this.toolCall(client.id, toolName, input, userContext);
   }
   async toolCall(id: string, toolName: string, input: unknown, userContext?: any) {
+    console.log(`🔧 [MCP DEBUG] Starting toolCall:`, {
+      clientId: id,
+      toolName,
+      originalInput: input,
+      userContext,
+      inputType: typeof input,
+      inputKeys: input && typeof input === 'object' ? Object.keys(input) : 'not object'
+    });
+
     return safe(() => this.getClient(id))
       .map((client) => {
         if (!client) throw new Error(`Client ${id} not found`);
+        console.log(`🔧 [MCP DEBUG] Client found:`, {
+          clientId: id,
+          clientStatus: client.status,
+          toolInfo: client.toolInfo?.length || 0
+        });
         return client.client;
       })
       .map((client) => {
         // Inject user context into input if available and tool supports it
         const enrichedInput = this.enrichInputWithUserContext(input, userContext, toolName, id);
+        
+        console.log(`🔧 [MCP DEBUG] About to call tool:`, {
+          clientId: id,
+          toolName,
+          originalInput: JSON.stringify(input, null, 2),
+          enrichedInput: JSON.stringify(enrichedInput, null, 2),
+          inputChanged: JSON.stringify(input) !== JSON.stringify(enrichedInput),
+          userContext: JSON.stringify(userContext, null, 2)
+        });
+        
         return client.callTool(toolName, enrichedInput);
       })
       .map((res) => {
@@ -289,6 +313,16 @@ export class MCPClientsManager {
         return res;
       })
       .ifFail((err) => {
+        console.log(`🔧 [MCP DEBUG] Tool call failed:`, {
+          clientId: id,
+          toolName,
+          error: err,
+          errorMessage: errorToString(err),
+          errorName: err?.name || "ERROR",
+          errorStack: err?.stack,
+          errorDetails: JSON.stringify(err, null, 2)
+        });
+        
         return {
           isError: true,
           error: {
@@ -310,18 +344,28 @@ export class MCPClientsManager {
     toolName: string, 
     serverId: string
   ): any {
-    console.log(`[MCP Context] Tool: ${toolName}, Original input:`, input);
-    console.log(`[MCP Context] User context:`, userContext);
+    console.log(`🔧 [MCP Context] Starting enrichment:`, {
+      toolName,
+      serverId,
+      originalInput: JSON.stringify(input, null, 2),
+      originalInputType: typeof input,
+      originalInputKeys: input && typeof input === 'object' ? Object.keys(input) : 'not object',
+      userContext: JSON.stringify(userContext, null, 2),
+      userContextType: typeof userContext,
+      hasStudentId: !!userContext?.studentId,
+      studentIdValue: userContext?.studentId,
+      studentIdType: typeof userContext?.studentId
+    });
     
     // Only enrich for MIVA Academic MCP server tools
     if (!serverId.includes('miva-academic') && !this.isAcademicTool(toolName)) {
-      console.log(`[MCP Context] Skipping enrichment - not academic tool`);
+      console.log(`🔧 [MCP Context] Skipping enrichment - not academic tool`);
       return input;
     }
 
     // Skip if no user context available
     if (!userContext?.studentId) {
-      console.log(`[MCP Context] No user context available`);
+      console.log(`🔧 [MCP Context] No user context available`);
       return input;
     }
 
@@ -330,8 +374,17 @@ export class MCPClientsManager {
     // Auto-inject/override student_id for academic tools (ALWAYS replace wrong IDs)
     if (this.toolExpectsStudentId(toolName)) {
       const oldStudentId = enrichedInput.student_id;
-      enrichedInput.student_id = userContext.studentId;
-      console.log(`[MCP Context] Overriding student_id: "${oldStudentId}" -> "${userContext.studentId}"`);
+      const newStudentId = userContext.studentId;
+      enrichedInput.student_id = newStudentId;
+      
+      console.log(`🔧 [MCP Context] Student ID override:`, {
+        toolName,
+        oldStudentId: oldStudentId,
+        oldStudentIdType: typeof oldStudentId,
+        newStudentId: newStudentId,
+        newStudentIdType: typeof newStudentId,
+        changed: oldStudentId !== newStudentId
+      });
     }
 
     // Auto-inject course_code for study buddy tools if not provided
@@ -340,7 +393,14 @@ export class MCPClientsManager {
       // For now, we'll let the tool handle missing course_code
     }
 
-    console.log(`[MCP Context] Final enriched input:`, enrichedInput);
+    console.log(`🔧 [MCP Context] Final enriched input:`, {
+      toolName,
+      finalInput: JSON.stringify(enrichedInput, null, 2),
+      finalInputType: typeof enrichedInput,
+      finalInputKeys: enrichedInput && typeof enrichedInput === 'object' ? Object.keys(enrichedInput) : 'not object',
+      inputChanged: JSON.stringify(input) !== JSON.stringify(enrichedInput)
+    });
+    
     return enrichedInput;
   }
 
@@ -356,6 +416,9 @@ export class MCPClientsManager {
       'get_reading_materials',
       'view_course_announcements',
       'get_course_syllabus',
+      'get_academic_schedule',
+      'get_upcoming_assignments',
+      'get_course_schedule',
       'ask_study_question',
       'start_study_session',
       'view_study_history'
@@ -373,7 +436,10 @@ export class MCPClientsManager {
       'get_course_videos',
       'get_reading_materials',
       'view_course_announcements',
-      'get_course_syllabus'
+      'get_course_syllabus',
+      'get_academic_schedule',
+      'get_upcoming_assignments',
+      'get_course_schedule'
     ];
     return studentIdTools.includes(toolName);
   }

@@ -1,3 +1,5 @@
+"use client";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,126 +45,132 @@ import {
   CalendarDays,
   Users,
   FileText,
-  Bell
+  Bell,
+  Loader2
 } from "lucide-react";
-import { getSession } from "@/lib/auth/server";
-import { requireAdmin } from "@/lib/auth/admin";
+import { toast } from "sonner";
 
-export default async function CalendarManagePage() {
-  const session = await getSession();
-  const adminAccess = await requireAdmin();
+interface CalendarEvent {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  date: string;
+  endDate: string;
+  time?: string;
+  endTime?: string;
+  location?: string;
+  priority: string;
+  status: string;
+  affectedUsers: string;
+  creator: string;
+  course?: string | null;
+  department?: string | null;
+  isAllDay: boolean;
+  isRecurring: boolean;
+  remindersEnabled: boolean;
+  attendeeCount: number;
+  color?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
-  if (adminAccess instanceof Response) {
-    return <div>Access denied. Admin privileges required.</div>;
-  }
+export default function CalendarManagePage() {
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [timeRangeFilter, setTimeRangeFilter] = useState("all");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
-  // Mock calendar events (in real app, this would come from database)
-  const calendarEvents = [
-    {
-      id: "1",
-      title: "Fall 2024 Semester Begins",
-      date: "2024-08-26",
-      endDate: "2024-08-26",
-      type: "academic",
-      priority: "high",
-      status: "scheduled",
-      description: "First day of classes for Fall 2024 semester",
-      affectedUsers: "all",
-      createdBy: "Academic Office",
-      reminders: true
-    },
-    {
-      id: "2", 
-      title: "Course Registration Opens",
-      date: "2024-04-01",
-      endDate: "2024-04-15",
-      type: "registration",
-      priority: "high",
-      status: "completed",
-      description: "Spring 2025 course registration period",
-      affectedUsers: "students",
-      createdBy: "Registrar",
-      reminders: true
-    },
-    {
-      id: "3",
-      title: "Midterm Examinations",
-      date: "2024-10-14",
-      endDate: "2024-10-18",
-      type: "exam",
-      priority: "high",
-      status: "scheduled",
-      description: "Fall 2024 midterm examination week",
-      affectedUsers: "students,faculty",
-      createdBy: "Academic Office",
-      reminders: true
-    },
-    {
-      id: "4",
-      title: "Thanksgiving Break",
-      date: "2024-11-25",
-      endDate: "2024-11-29",
-      type: "holiday",
-      priority: "medium",
-      status: "scheduled", 
-      description: "University closed for Thanksgiving holiday",
-      affectedUsers: "all",
-      createdBy: "Administration",
-      reminders: false
-    },
-    {
-      id: "5",
-      title: "Faculty Development Workshop",
-      date: "2024-09-15",
-      endDate: "2024-09-15",
-      type: "professional",
-      priority: "medium",
-      status: "scheduled",
-      description: "Professional development workshop for teaching staff",
-      affectedUsers: "faculty",
-      createdBy: "HR Department",
-      reminders: true
-    },
-    {
-      id: "6",
-      title: "Final Examinations",
-      date: "2024-12-09",
-      endDate: "2024-12-13",
-      type: "exam",
-      priority: "high",
-      status: "scheduled",
-      description: "Fall 2024 final examination week",
-      affectedUsers: "students,faculty",
-      createdBy: "Academic Office",
-      reminders: true
-    },
-    {
-      id: "7",
-      title: "Spring 2025 Semester Begins",
-      date: "2025-01-13",
-      endDate: "2025-01-13",
-      type: "academic",
-      priority: "high",
-      status: "scheduled",
-      description: "First day of classes for Spring 2025 semester",
-      affectedUsers: "all",
-      createdBy: "Academic Office",
-      reminders: true
-    },
-    {
-      id: "8",
-      title: "Graduation Ceremony",
-      date: "2024-12-20",
-      endDate: "2024-12-20",
-      type: "ceremony",
-      priority: "high",
-      status: "scheduled",
-      description: "Fall 2024 commencement ceremony",
-      affectedUsers: "students,faculty",
-      createdBy: "Academic Office",
-      reminders: true
+  const fetchCalendarEvents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
+      if (typeFilter !== 'all') params.append('eventType', typeFilter);
+      if (priorityFilter !== 'all') params.append('priority', priorityFilter);
+      
+      // Handle time range filters
+      if (timeRangeFilter !== 'all') {
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        
+        switch (timeRangeFilter) {
+          case 'upcoming':
+            const futureDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+            params.append('startDate', todayStr);
+            params.append('endDate', futureDate.toISOString().split('T')[0]);
+            break;
+          case 'this-month':
+            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            params.append('startDate', monthStart.toISOString().split('T')[0]);
+            params.append('endDate', monthEnd.toISOString().split('T')[0]);
+            break;
+          case 'next-month':
+            const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+            const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+            params.append('startDate', nextMonthStart.toISOString().split('T')[0]);
+            params.append('endDate', nextMonthEnd.toISOString().split('T')[0]);
+            break;
+        }
+      }
+      
+      const response = await fetch(`/api/admin/calendar?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch calendar events');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setCalendarEvents(data.data);
+      } else {
+        throw new Error(data.message || 'Failed to fetch calendar events');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      toast.error('Failed to load calendar events');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchCalendarEvents();
+  }, [debouncedSearchTerm, typeFilter, priorityFilter, timeRangeFilter]);
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  const handleTypeFilter = (value: string) => {
+    setTypeFilter(value);
+  };
+
+  const handlePriorityFilter = (value: string) => {
+    setPriorityFilter(value);
+  };
+
+  const handleTimeRangeFilter = (value: string) => {
+    setTimeRangeFilter(value);
+  };
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -215,7 +223,33 @@ export default async function CalendarManagePage() {
   const totalEvents = calendarEvents.length;
   const upcomingEvents = calendarEvents.filter(event => isUpcoming(event.date)).length;
   const highPriorityEvents = calendarEvents.filter(event => event.priority === 'high').length;
-  const activeReminders = calendarEvents.filter(event => event.reminders).length;
+  const activeReminders = calendarEvents.filter(event => event.remindersEnabled).length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading calendar events...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Error Loading Calendar</h3>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={fetchCalendarEvents} variant="outline">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -303,10 +337,15 @@ export default async function CalendarManagePage() {
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search events by title, type, or description..." className="pl-10" />
+                <Input 
+                  placeholder="Search events by title, type, or description..." 
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                />
               </div>
             </div>
-            <Select>
+            <Select value={typeFilter} onValueChange={handleTypeFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Event Type" />
               </SelectTrigger>
@@ -320,7 +359,7 @@ export default async function CalendarManagePage() {
                 <SelectItem value="ceremony">Ceremonies</SelectItem>
               </SelectContent>
             </Select>
-            <Select>
+            <Select value={priorityFilter} onValueChange={handlePriorityFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
@@ -331,7 +370,7 @@ export default async function CalendarManagePage() {
                 <SelectItem value="low">Low Priority</SelectItem>
               </SelectContent>
             </Select>
-            <Select>
+            <Select value={timeRangeFilter} onValueChange={handleTimeRangeFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Time Range" />
               </SelectTrigger>
@@ -343,7 +382,7 @@ export default async function CalendarManagePage() {
                 <SelectItem value="this-semester">This Semester</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" disabled={loading}>
               <Filter className="mr-2 h-4 w-4" />
               More Filters
             </Button>
@@ -360,22 +399,42 @@ export default async function CalendarManagePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Event</TableHead>
-                  <TableHead>Date Range</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Affected Users</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Reminders</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {calendarEvents.map((event) => {
+          {calendarEvents.length === 0 ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Events Found</h3>
+                <p className="text-muted-foreground mb-4">
+                  {debouncedSearchTerm || typeFilter !== 'all' || priorityFilter !== 'all' || timeRangeFilter !== 'all'
+                    ? 'Try adjusting your search or filters'
+                    : 'Create your first calendar event to get started'
+                  }
+                </p>
+                <Button asChild>
+                  <a href="/admin/calendar/create">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Event
+                  </a>
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Event</TableHead>
+                    <TableHead>Date Range</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Affected Users</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Reminders</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {calendarEvents.map((event) => {
                   const StatusIcon = getStatusIcon(event.status);
                   const isDateRange = event.date !== event.endDate;
                   return (
@@ -442,9 +501,9 @@ export default async function CalendarManagePage() {
                       
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Bell className={`h-4 w-4 ${event.reminders ? 'text-green-600' : 'text-gray-400'}`} />
+                          <Bell className={`h-4 w-4 ${event.remindersEnabled ? 'text-green-600' : 'text-gray-400'}`} />
                           <span className="text-sm">
-                            {event.reminders ? 'Enabled' : 'Disabled'}
+                            {event.remindersEnabled ? 'Enabled' : 'Disabled'}
                           </span>
                         </div>
                       </TableCell>
@@ -484,10 +543,11 @@ export default async function CalendarManagePage() {
                       </TableCell>
                     </TableRow>
                   );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

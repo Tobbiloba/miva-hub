@@ -22,5 +22,12 @@ python-dotenv>=1.0.0
 httpx>=0.27.0
 aiofiles>=23.2.1
 
+# AWS S3 Integration
+boto3>=1.34.0
+botocore>=1.34.0
+
+# Rate Limiting & Security
+slowapi>=0.1.9
+
 # Development
 python-multipart>=0.0.6

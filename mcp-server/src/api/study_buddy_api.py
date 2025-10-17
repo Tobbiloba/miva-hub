@@ -226,7 +226,7 @@ class StudyBuddyEngine:
                 FROM course_material cm
                 JOIN ai_processed_content apc ON cm.id = apc."courseMaterialId"
                 JOIN content_embedding ce ON apc.id = ce."aiProcessedId"
-                WHERE (%s IS NULL OR cm."courseId" = %s)
+                WHERE (%s IS NULL OR cm."course_id" = %s)
                   AND ce."chunkText" IS NOT NULL
                 ORDER BY ce.embedding <=> %s::vector
                 LIMIT %s

@@ -41,6 +41,7 @@ import { ChatMetadata, ChatModel, ManualToolConfirmTag } from "app-types/chat";
 import { useTranslations } from "next-intl";
 import { extractMCPToolId } from "lib/ai/mcp/mcp-tool-id";
 import { Separator } from "ui/separator";
+import { MediaRenderer } from "./chat/MediaRenderer";
 
 import { TextShimmer } from "ui/text-shimmer";
 import equal from "lib/equal";
@@ -359,6 +360,7 @@ export const AssistMessagePart = memo(function AssistMessagePart({
         })}
       >
         <MarkdownWithFiles>{part.text}</MarkdownWithFiles>
+        <MediaRenderer content={part.text} />
       </div>
       {showActions && (
         <div className="flex w-full">
@@ -893,6 +895,7 @@ export const ToolMessagePart = memo(
       return null;
     }, [toolName, state, onToolCallDirect, result, input]);
 
+
     const { serverName: mcpServerName, toolName: mcpToolName } = useMemo(() => {
       return extractMCPToolId(toolName);
     }, [toolName]);
@@ -1039,7 +1042,8 @@ export const ToolMessagePart = memo(
                       )}
                     </div>
                     {isExpanded && (
-                      <div className="p-2 max-h-[300px] overflow-y-auto">
+                      <div className="p-2 max-h-[600px] overflow-y-auto">
+                        {/* Raw JSON Data */}
                         <JsonView data={result} />
                       </div>
                     )}

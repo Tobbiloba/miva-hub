@@ -26,7 +26,7 @@ const updateCourseSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check admin access
@@ -35,7 +35,8 @@ export async function GET(
       return adminAccess;
     }
 
-    const courseId = params.id;
+    const { id } = await params;
+    const courseId = id;
 
     // Get course by ID
     const course = await pgAcademicRepository.getCourseById(courseId);

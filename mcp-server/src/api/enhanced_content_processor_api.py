@@ -37,6 +37,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.ai_integration import MIVAAIStack
+from core.s3_service import s3_service
 
 # Utility functions
 def secure_filename(filename: str) -> str:
@@ -451,10 +452,10 @@ class DuplicateDetector:
             # First check for exact file matches (same hash)
             cursor.execute("""
                 SELECT DISTINCT cm.id, cm.title, cm."fileName", cm."filePath", 
-                       apc."extractedText", cm."courseId"
+                       apc.extracted_text, cm."course_id"
                 FROM course_material cm
-                LEFT JOIN ai_processed_content apc ON cm.id = apc."courseMaterialId"
-                WHERE (%s IS NULL OR cm."courseId" = %s)
+                LEFT JOIN ai_processed_content apc ON cm.id = apc.course_material_id
+                WHERE (%s IS NULL OR cm."course_id" = %s)
                 AND cm."filePath" IS NOT NULL
             """, (course_id, course_id))
             
@@ -1114,13 +1115,22 @@ async def get_ai_stack():
     global ai_stack
     if ai_stack is None:
         try:
+            logger.info("🔄 Initializing AI stack...")
             ai_stack = MIVAAIStack()
-            if not await ai_stack.test_connection():
-                raise AIProcessingError("AI services unavailable")
-            logger.info("AI stack initialized successfully")
+            logger.info("🔗 Testing AI stack connection...")
+            connection_test = await ai_stack.test_connection()
+            logger.info(f"🔗 AI stack connection test result: {connection_test}")
+            if not connection_test:
+                logger.error("❌ AI stack connection test failed")
+                raise AIProcessingError("AI services unavailable - connection test failed")
+            logger.info("✅ AI stack initialized and connected successfully")
         except Exception as e:
-            logger.error(f"AI stack initialization failed: {e}")
+            logger.error(f"❌ AI stack initialization failed: {e}")
+            logger.error(f"❌ Exception type: {type(e).__name__}")
+            logger.error(f"❌ Exception details: {str(e)}")
             raise AIProcessingError(f"AI services unavailable: {str(e)}")
+    else:
+        logger.info("✅ Using existing AI stack instance")
     return ai_stack
 
 def validate_file(file: UploadFile) -> tuple[str, str]:
@@ -2161,7 +2171,7 @@ async def process_content_legacy(
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO course_material (title, "courseId", "weekNumber", "materialType", "contentUrl", "uploadedById", "createdAt")
+                INSERT INTO course_material (title, "course_id", "weekNumber", "materialType", "contentUrl", "uploadedById", "createdAt")
                 VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
             """, (
                 request_data.title,
@@ -2251,22 +2261,223 @@ async def process_content_legacy(
         logger.error(f"❌ Unexpected error in process_content: {str(e)}")
         raise ContentProcessingError(f"Unexpected error during processing: {str(e)}")
 
+async def process_content(file_path: str, material_id: str, processing_job_id: str) -> dict:
+    """
+    Core content processing function that handles file analysis and AI processing.
+    
+    Args:
+        file_path: Path to the file to process
+        material_id: ID of the course material
+        processing_job_id: ID of the processing job
+        
+    Returns:
+        dict: Processing results including extracted text, summary, and concepts
+    """
+    ai_processed_id = None
+    
+    try:
+        logger.info(f"🚀 Starting process_content for material {material_id}")
+        logger.info(f"📁 File path: {file_path}")
+        logger.info(f"🆔 Processing job ID: {processing_job_id}")
+        
+        # Get AI stack instance
+        logger.info("🔄 Getting AI stack instance...")
+        ai_stack = await get_ai_stack()
+        logger.info("✅ AI stack instance obtained")
+        
+        # Extract text from file
+        logger.info(f"📄 Extracting text from file: {file_path}")
+        logger.info(f"📁 File exists check: {os.path.exists(file_path)}")
+        if os.path.exists(file_path):
+            logger.info(f"📊 File size: {os.path.getsize(file_path)} bytes")
+        
+        extracted_text = await extract_text_from_file(file_path)
+        
+        if not extracted_text.strip():
+            logger.error("❌ No text could be extracted from the file")
+            raise ContentProcessingError("No text could be extracted from the file")
+        
+        logger.info(f"✅ Text extraction completed ({len(extracted_text)} characters)")
+        logger.info(f"📝 First 200 chars: {extracted_text[:200]}...")
+        
+        # Generate AI analysis (summary and key concepts)
+        logger.info("🧠 Generating AI analysis...")
+        try:
+            analysis_result = await ai_stack.analyze_content(extracted_text[:4000], "educational")
+            logger.info(f"🧠 Analysis result: {analysis_result}")
+        except Exception as e:
+            logger.error(f"❌ AI analysis failed: {e}")
+            raise AIProcessingError(f"AI analysis failed: {str(e)}")
+        
+        # Extract summary and concepts from analysis
+        ai_summary = analysis_result.get('response', '') if analysis_result.get('success') else ''
+        logger.info(f"📋 AI summary length: {len(ai_summary)} characters")
+        
+        # Parse key concepts from the analysis response
+        logger.info("🔍 Extracting key concepts from analysis...")
+        concepts_prompt = f"""Extract key concepts from this educational content as a simple comma-separated list:
+
+{extracted_text[:2000]}
+
+Return only the key concepts as a comma-separated list, nothing else."""
+        
+        try:
+            concepts_result = await ai_stack.generate_llm_response(concepts_prompt)
+            logger.info(f"🔍 Concepts result: {concepts_result}")
+            key_concepts = concepts_result.get('response', '').split(',') if concepts_result.get('success') else []
+            key_concepts = [concept.strip() for concept in key_concepts if concept.strip()]
+            logger.info(f"🏷️ Extracted {len(key_concepts)} key concepts: {key_concepts}")
+        except Exception as e:
+            logger.error(f"❌ Key concepts extraction failed: {e}")
+            key_concepts = []
+        
+        # Generate embeddings
+        logger.info("🔗 Generating embeddings...")
+        try:
+            embeddings_response = await ai_stack.generate_embeddings(extracted_text[:8000])
+            logger.info(f"🔗 Embeddings response type: {type(embeddings_response)}")
+            logger.info(f"🔗 Embeddings response keys: {embeddings_response.keys() if isinstance(embeddings_response, dict) else 'Not a dict'}")
+        except Exception as e:
+            logger.error(f"❌ Embeddings generation failed: {e}")
+            embeddings_response = {'success': False, 'error': str(e)}
+        
+        # Process embeddings response
+        if isinstance(embeddings_response, dict) and 'embedding' in embeddings_response:
+            embeddings_array = embeddings_response['embedding']
+        elif isinstance(embeddings_response, list):
+            embeddings_array = embeddings_response
+        else:
+            logger.warning(f"⚠️ Unexpected embeddings format: {type(embeddings_response)}")
+            embeddings_array = []
+        
+        # Save processed content to database
+        logger.info("💾 Saving processed content to database...")
+        try:
+            conn = get_db_connection()
+            logger.info("✅ Database connection established")
+            cursor = conn.cursor()
+            logger.info("✅ Database cursor created")
+        except Exception as e:
+            logger.error(f"❌ Database connection failed: {e}")
+            raise DatabaseError(f"Database connection failed: {str(e)}")
+        
+        try:
+            # Save processed content
+            logger.info("💾 Inserting AI processed content...")
+            cursor.execute("""
+                INSERT INTO ai_processed_content 
+                (course_material_id, extracted_text, ai_summary, key_concepts, created_at)
+                VALUES (%s, %s, %s, %s, %s) RETURNING id
+            """, (
+                material_id,
+                extracted_text,
+                ai_summary,
+                json.dumps(key_concepts),
+                datetime.now()
+            ))
+            
+            result = cursor.fetchone()
+            ai_processed_id = result['id'] if isinstance(result, dict) else result[0]
+            logger.info(f"✅ AI processed content saved with ID: {ai_processed_id}")
+            
+            # Save embeddings if they exist
+            if embeddings_array and len(embeddings_array) == 768:
+                logger.info("💾 Inserting content embeddings...")
+                # Convert embeddings to vector format for pgvector
+                vector_str = '[' + ','.join(map(str, embeddings_array)) + ']'
+                
+                cursor.execute("""
+                    INSERT INTO content_embedding 
+                    (course_material_id, ai_processed_id, chunk_text, chunk_index, chunk_type, embedding, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    material_id, 
+                    ai_processed_id, 
+                    extracted_text[:1000], 
+                    1, 
+                    'content', 
+                    vector_str, 
+                    datetime.now()
+                ))
+                logger.info(f"✅ Embeddings saved as vector ({len(embeddings_array)} dimensions)")
+            else:
+                logger.warning(f"⚠️ Skipping embeddings: invalid format or dimensions ({len(embeddings_array) if embeddings_array else 0})")
+            
+            conn.commit()
+            logger.info(f"✅ Content processing completed successfully (AI processed ID: {ai_processed_id})")
+            logger.info(f"📊 Final stats: Text={len(extracted_text)} chars, Summary={len(ai_summary)} chars, Concepts={len(key_concepts)}")
+            
+            return {
+                "extracted_text": extracted_text[:500] + "..." if len(extracted_text) > 500 else extracted_text,
+                "ai_summary": ai_summary,
+                "key_concepts": key_concepts,
+                "embeddings_count": len(embeddings_array) if embeddings_array else 0,
+                "ai_processed_id": ai_processed_id,
+                "status": "completed"
+            }
+            
+        except Exception as db_error:
+            conn.rollback()
+            raise DatabaseError(f"Database save failed: {str(db_error)}")
+        finally:
+            cursor.close()
+            conn.close()
+        
+    except Exception as e:
+        logger.error(f"❌ Content processing failed: {str(e)}")
+        logger.error(f"❌ Exception type: {type(e).__name__}")
+        logger.error(f"❌ Exception details: {str(e)}")
+        import traceback
+        logger.error(f"❌ Stack trace: {traceback.format_exc()}")
+        raise AIProcessingError(f"Processing failed: {str(e)}")
+
 @app.post("/process-material")
 @limiter.limit("5/minute")
-async def process_existing_material(
+async def process_s3_material(
     request: Request,
     material_id: str = Form(...),
-    file_path: str = Form(...),
+    s3_key: str = Form(...),
+    s3_bucket: str = Form(...),
+    file_type: str = Form(...),
     processing_job_id: str = Form(...)
 ):
-    """Process existing course material that was already uploaded and saved by Next.js frontend."""
+    """Process course material from S3 storage with AI analysis and embedding generation."""
+    temp_file_path = None
+    
     try:
-        logger.info(f"🔄 Processing existing material: {material_id}")
+        logger.info(f"🔄 Processing S3 material: {material_id} from s3://{s3_bucket}/{s3_key}")
         
-        # Validate that the file exists
-        file_path_obj = Path(file_path)
-        if not file_path_obj.exists():
-            raise FileValidationError(f"File not found at path: {file_path}")
+        # Verify S3 service is available
+        if not s3_service.health_check():
+            raise HTTPException(
+                status_code=503,
+                detail="S3 service unavailable"
+            )
+        
+        # Check if file exists in S3
+        if not s3_service.file_exists(s3_key):
+            raise FileNotFoundError(f"File not found in S3: s3://{s3_bucket}/{s3_key}")
+        
+        # Update processing job status to "processing"
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE ai_processing_job
+                SET status = 'processing', started_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (processing_job_id,))
+            conn.commit()
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            logger.warning(f"Failed to update job status to processing: {e}")
+        
+        # Download file from S3 to temporary location
+        logger.info(f"📥 Downloading file from S3: {s3_key}")
+        temp_file_path, original_filename = s3_service.download_file_to_temp(s3_key)
+        
+        logger.info(f"✅ File downloaded successfully: {temp_file_path}")
         
         # Verify material exists in database
         try:
@@ -2304,49 +2515,86 @@ async def process_existing_material(
             logger.error(f"❌ Database verification failed: {str(e)}")
             raise DatabaseError(f"Failed to verify material: {str(e)}")
         
-        # Add job to processing queue instead of direct processing
+        # Process the downloaded file directly (simplified approach)
         try:
-            # Determine priority based on material type (can be enhanced later)
+            # Determine priority based on material type
             priority = JobPriority.NORMAL
             if material_type in ['exam', 'assignment']:
                 priority = JobPriority.HIGH
             elif material_type == 'syllabus':
                 priority = JobPriority.URGENT
             
-            # Create processing job
-            job = ProcessingJob(
-                job_id=processing_job_id,
-                material_id=material_id,
-                file_path=file_path,
-                priority=priority,
-                created_at=datetime.now()
+            # Process the file using the temporary path
+            logger.info(f"🧠 Starting AI processing for {material_title}")
+            
+            # Process content using existing process_content function
+            processing_result = await process_content(
+                temp_file_path,
+                material_id,
+                processing_job_id
             )
             
-            # Add to queue
-            success = await processing_queue.add_job(job)
-            if not success:
-                raise AIProcessingError("Processing queue is full, please try again later")
+            # Update job status to completed
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE ai_processing_job
+                    SET status = 'completed', completed_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (processing_job_id,))
+                conn.commit()
+                cursor.close()
+                conn.close()
+                logger.info(f"✅ Processing job {processing_job_id} marked as completed")
+            except Exception as e:
+                logger.warning(f"Failed to update job status to completed: {e}")
             
-            logger.info(f"🚀 Material {material_id} queued for processing with {priority.name} priority")
+            logger.info(f"🎉 Successfully processed S3 material {material_id}")
+            
+            # Return successful processing result
+            return {
+                "status": "completed",
+                "message": "Material processed successfully",
+                "material_id": material_id,
+                "processing_job_id": processing_job_id,
+                "material_title": material_title,
+                "processing_result": processing_result
+            }
+            
         except Exception as e:
-            logger.error(f"❌ Failed to queue processing job: {str(e)}")
-            raise AIProcessingError(f"Failed to queue AI processing: {str(e)}")
-        
-        return {
-            "message": "Material queued for processing successfully",
-            "material_id": material_id,
-            "processing_job_id": processing_job_id,
-            "status": "queued",
-            "priority": priority.name,
-            "material_title": material_title
-        }
+            logger.error(f"❌ Failed to process S3 material: {str(e)}")
+            
+            # Update job status to failed
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE ai_processing_job
+                    SET status = 'failed', completed_at = CURRENT_TIMESTAMP, error_message = %s
+                    WHERE id = %s
+                """, (str(e), processing_job_id))
+                conn.commit()
+                cursor.close()
+                conn.close()
+            except Exception as db_e:
+                logger.warning(f"Failed to update job status to failed: {db_e}")
+            
+            raise AIProcessingError(f"Failed to process S3 material: {str(e)}")
         
     except (FileValidationError, ContentProcessingError, DatabaseError, AIProcessingError) as e:
-        # These are our custom exceptions, re-raise them
         raise e
     except Exception as e:
-        logger.error(f"❌ Unexpected error in process_existing_material: {str(e)}")
-        raise ContentProcessingError(f"Unexpected error during processing: {str(e)}")
+        logger.error(f"❌ Unexpected error in process_s3_material: {str(e)}")
+        raise ContentProcessingError(f"Unexpected error during S3 processing: {str(e)}")
+    finally:
+        # Always cleanup temporary file
+        if temp_file_path and os.path.exists(temp_file_path):
+            try:
+                s3_service.cleanup_temp_file(temp_file_path)
+                logger.info(f"🧹 Cleaned up temporary file: {temp_file_path}")
+            except Exception as cleanup_e:
+                logger.warning(f"Failed to cleanup temp file: {cleanup_e}")
 
 @app.get("/processing-status/{processing_id}")
 @limiter.limit("30/minute")
@@ -2358,10 +2606,10 @@ async def get_processing_status(request: Request, processing_id: str):
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT aj.status, aj."startedAt", aj."completedAt", aj."errorMessage",
+            SELECT aj.status, aj.started_at, aj.completed_at, aj.error_message,
                    cm.title, cm.id as material_id
             FROM ai_processing_job aj
-            JOIN course_material cm ON aj."courseMaterialId" = cm.id
+            JOIN course_material cm ON aj.course_material_id = cm.id
             WHERE aj.id = %s
         """, (processing_id,))
         
@@ -2452,13 +2700,13 @@ async def search_content(request: Request, search_request: SearchRequest):
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT cm.id, cm.title::TEXT, cm."materialType", cm."weekNumber",
-                       apc."aiSummary", apc."keyConcepts",
+                       apc.ai_summary, apc.key_concepts,
                        (ce.embedding <=> %s::vector) as similarity_score
                 FROM course_material cm
-                JOIN ai_processed_content apc ON cm.id = apc."courseMaterialId"
-                JOIN content_embedding ce ON apc.id = ce."aiProcessedId"
-                JOIN course c ON cm."courseId" = c.id
-                WHERE (%s IS NULL OR c."courseCode" = %s)
+                JOIN ai_processed_content apc ON cm.id = apc.course_material_id
+                JOIN content_embedding ce ON apc.id = ce.ai_processed_id
+                JOIN course c ON cm.course_id = c.id
+                WHERE (%s IS NULL OR c.course_code = %s)
                 ORDER BY ce.embedding <=> %s::vector
                 LIMIT %s
             """, (
@@ -2533,11 +2781,11 @@ async def get_course_materials(request: Request, course_code: str):
         cursor = conn.cursor()
         cursor.execute("""
             SELECT cm.id, cm.title, cm."materialType", cm."weekNumber", 
-                   cm."createdAt", apc."aiSummary", apc."keyConcepts"
+                   cm."createdAt", apc.ai_summary, apc.key_concepts
             FROM course_material cm
-            LEFT JOIN ai_processed_content apc ON cm.id = apc."courseMaterialId"
-            WHERE cm."courseId" = (
-                SELECT id FROM course WHERE "courseCode" = %s LIMIT 1
+            LEFT JOIN ai_processed_content apc ON cm.id = apc.course_material_id
+            WHERE cm.course_id = (
+                SELECT id FROM course WHERE course_code = %s LIMIT 1
             )
             ORDER BY cm."weekNumber", cm."createdAt"
         """, (course_code,))
@@ -3095,6 +3343,22 @@ async def handle_processing_failure(conn, job_id: str, material_id: str,
         if conn and not conn.closed:
             conn.close()
 
+def clean_extracted_text(text: str) -> str:
+    """Clean extracted text to remove problematic characters for database storage."""
+    if not text:
+        return text
+    
+    # Remove null characters that cause PostgreSQL issues
+    cleaned = text.replace('\x00', '')
+    
+    # Remove other problematic control characters but keep useful ones like newlines and tabs
+    import re
+    # Keep: \n (newline), \r (carriage return), \t (tab)
+    # Remove: all other control characters (0x00-0x1F except \n, \r, \t)
+    cleaned = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', cleaned)
+    
+    return cleaned
+
 async def extract_text_from_file(file_path: str) -> str:
     """Extract text from various file formats using enhanced processors."""
     try:
@@ -3111,44 +3375,50 @@ async def extract_text_from_file(file_path: str) -> str:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
                 logger.info(f"✅ Text file processed: {len(content)} characters")
-                return content
+                return clean_extracted_text(content)
         
         # PDF files - enhanced processor with metadata
         elif file_extension == '.pdf':
             if not PDF_AVAILABLE:
                 raise ContentProcessingError("PDF processing not available (PyPDF2 not installed)")
-            return await enhanced_pdf_processor.process_file(str(file_path))
+            content = await enhanced_pdf_processor.process_file(str(file_path))
+            return clean_extracted_text(content)
         
         # DOCX files - enhanced processor with styles and tables
         elif file_extension == '.docx':
             if not DOCX_AVAILABLE:
                 raise ContentProcessingError("DOCX processing not available (python-docx not installed)")
-            return await enhanced_docx_processor.process_file(str(file_path))
+            content = await enhanced_docx_processor.process_file(str(file_path))
+            return clean_extracted_text(content)
         
         # PPTX files - enhanced processor with slide analysis
         elif file_extension == '.pptx':
             if not PPTX_AVAILABLE:
                 raise ContentProcessingError("PPTX processing not available (python-pptx not installed)")
-            return await enhanced_pptx_processor.process_file(str(file_path))
+            content = await enhanced_pptx_processor.process_file(str(file_path))
+            return clean_extracted_text(content)
         
         # Audio/Video files - AI transcription
         elif file_extension in ['.mp3', '.wav', '.m4a', '.flac', '.mp4', '.avi', '.mov', '.mkv', '.webm']:
             if not WHISPER_AVAILABLE:
                 raise ContentProcessingError("Audio/video processing not available (whisper not installed)")
-            return await enhanced_audio_video_processor.process_file(str(file_path))
+            content = await enhanced_audio_video_processor.process_file(str(file_path))
+            return clean_extracted_text(content)
         
         # Other document formats that might contain text
         elif file_extension in ['.rtf', '.odt']:
             logger.warning(f"⚠️ Limited support for {file_extension} - attempting text extraction")
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
-                    return f.read()
+                    content = f.read()
+                    return clean_extracted_text(content)
             except UnicodeDecodeError:
                 # Try with different encodings
                 for encoding in ['latin1', 'cp1252', 'iso-8859-1']:
                     try:
                         with open(file_path, 'r', encoding=encoding) as f:
-                            return f.read()
+                            content = f.read()
+                            return clean_extracted_text(content)
                     except UnicodeDecodeError:
                         continue
                 raise FileValidationError(f"Could not decode {file_extension} file with any supported encoding")
@@ -3160,7 +3430,7 @@ async def extract_text_from_file(file_path: str) -> str:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
                     logger.warning(f"⚠️ Processed {file_extension} as plain text")
-                    return content
+                    return clean_extracted_text(content)
             except UnicodeDecodeError:
                 raise FileValidationError(
                     f"Unsupported file format: {file_extension}. "
@@ -3177,9 +3447,8 @@ async def extract_text_from_file(file_path: str) -> str:
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "enhanced_content_processor_api:app",
+        app,
         host="0.0.0.0",
-        port=8082,  # Different port to test alongside current service
-        reload=True,
+        port=8082,
         log_level="info"
     )

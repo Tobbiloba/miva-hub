@@ -22,7 +22,7 @@ const updateCourseWeekSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication and admin permissions
@@ -34,7 +34,8 @@ export async function PATCH(
       );
     }
 
-    const weekId = params.id;
+    const { id } = await params;
+    const weekId = id;
     const data = await request.json();
     
     // Validate request data
@@ -116,7 +117,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication and admin permissions
@@ -128,7 +129,8 @@ export async function DELETE(
       );
     }
 
-    const weekId = params.id;
+    const { id } = await params;
+    const weekId = id;
 
     // Check if the course week exists
     const existingWeek = await academicRepository.getCourseWeekById(weekId);
@@ -168,7 +170,7 @@ export async function DELETE(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication and admin permissions
@@ -180,7 +182,8 @@ export async function GET(
       );
     }
 
-    const weekId = params.id;
+    const { id } = await params;
+    const weekId = id;
 
     // Get the course week
     const courseWeek = await academicRepository.getCourseWeekById(weekId);

@@ -175,6 +175,13 @@ export const pgAcademicRepository = {
       .orderBy(asc(CourseMaterialSchema.weekNumber), asc(CourseMaterialSchema.createdAt));
   },
 
+  getAllCourseMaterials: async (): Promise<CourseMaterialEntity[]> => {
+    return db
+      .select()
+      .from(CourseMaterialSchema)
+      .orderBy(desc(CourseMaterialSchema.createdAt));
+  },
+
   getCourseMaterialsByType: async (
     courseId: string,
     materialType: "syllabus" | "lecture" | "assignment" | "resource" | "reading" | "exam"
