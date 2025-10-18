@@ -86,9 +86,9 @@ export function PDFViewer({ url, title }: PDFViewerProps) {
   const pdfUrl = resolvedUrl ? `${resolvedUrl}#page=${currentPage}&zoom=${zoom}&rotate=${rotation}` : '';
 
   return (
-    <div className={`h-full flex flex-col bg-gray-100 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}>
+    <div className={`h-full flex flex-col bg-card ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}>
       {/* PDF Controls */}
-      <div className="bg-white border-b p-3 flex items-center justify-between shadow-sm">
+      <div className="bg-card border-b p-2 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           {/* Page Navigation */}
           <div className="flex items-center space-x-2">
@@ -186,7 +186,7 @@ export function PDFViewer({ url, title }: PDFViewerProps) {
       </div>
       
       {/* PDF Embed */}
-      <div className="flex-1 overflow-hidden bg-gray-200">
+      <div className="flex-1 overflow-hidden bg-card">
         <iframe
           ref={iframeRef}
           src={pdfUrl}
@@ -200,7 +200,7 @@ export function PDFViewer({ url, title }: PDFViewerProps) {
       </div>
 
       {/* Loading overlay */}
-      <div className={`absolute inset-0 bg-white flex items-center justify-center ${isLoadingUrl ? '' : 'hidden'}`} id="pdf-loading">
+      <div className={`absolute inset-0 bg-card flex items-center justify-center ${isLoadingUrl ? '' : 'hidden'}`} id="pdf-loading">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
           <p className="text-sm text-gray-600">Loading PDF...</p>

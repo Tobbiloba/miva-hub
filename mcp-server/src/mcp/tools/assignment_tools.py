@@ -3,6 +3,7 @@
 import json
 import sys
 import os
+from typing import Optional
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from core.database import academic_repo
 
@@ -13,7 +14,7 @@ def register_assignment_tools(mcp):
     @mcp.tool()
     async def get_upcoming_assignments(
         student_id: str,
-        course_code: str | None = None,
+        course_code: Optional[str] = None,
         days_ahead: int = 30
     ) -> str:
         """Get upcoming assignments for a student.

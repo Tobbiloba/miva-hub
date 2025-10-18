@@ -8,7 +8,7 @@
 CREATE TABLE IF NOT EXISTS study_sessions (
     id SERIAL PRIMARY KEY,
     student_id INTEGER, -- Will reference students when authentication is fully integrated
-    course_id INTEGER REFERENCES courses(id),
+    course_id UUID REFERENCES course(id),
     session_start TIMESTAMP DEFAULT NOW(),
     session_end TIMESTAMP,
     total_questions INTEGER DEFAULT 0,
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 -- Store AI-generated study content for reuse and caching
 CREATE TABLE IF NOT EXISTS generated_study_materials (
     id SERIAL PRIMARY KEY,
-    course_id INTEGER REFERENCES courses(id),
+    course_id UUID REFERENCES course(id),
     material_type TEXT CHECK (material_type IN ('summary', 'flashcards', 'quiz', 'study_guide', 'concept_map')) NOT NULL,
     title VARCHAR(200) NOT NULL,
     content JSONB NOT NULL, -- Structured content based on type
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS generated_study_materials (
 CREATE TABLE IF NOT EXISTS learning_analytics (
     id SERIAL PRIMARY KEY,
     student_id INTEGER, -- Will reference students when authentication is integrated
-    course_id INTEGER REFERENCES courses(id),
+    course_id UUID REFERENCES course(id),
     topic VARCHAR(100), -- Extracted topic from conversations
     questions_asked INTEGER DEFAULT 0,
     concepts_covered JSONB DEFAULT '[]', -- Array of concepts discussed
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS learning_analytics (
 CREATE TABLE IF NOT EXISTS source_citations (
     id SERIAL PRIMARY KEY,
     message_id INTEGER REFERENCES chat_messages(id) ON DELETE CASCADE,
-    course_material_id INTEGER REFERENCES course_materials(id),
+    course_material_id UUID REFERENCES course_material(id),
     ai_processed_id UUID REFERENCES ai_processed_content(id), -- UUID to match existing schema
     content_chunk TEXT, -- Specific text chunk referenced
     relevance_score FLOAT CHECK (relevance_score >= 0 AND relevance_score <= 1),

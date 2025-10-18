@@ -451,12 +451,12 @@ class DuplicateDetector:
             
             # First check for exact file matches (same hash)
             cursor.execute("""
-                SELECT DISTINCT cm.id, cm.title, cm."fileName", cm."filePath", 
+                SELECT DISTINCT cm.id, cm.title, cm.file_name, cm.file_path, 
                        apc.extracted_text, cm."course_id"
                 FROM course_material cm
                 LEFT JOIN ai_processed_content apc ON cm.id = apc.course_material_id
                 WHERE (%s IS NULL OR cm."course_id" = %s)
-                AND cm."filePath" IS NOT NULL
+                AND cm.file_path IS NOT NULL
             """, (course_id, course_id))
             
             existing_materials = cursor.fetchall()
@@ -2171,7 +2171,7 @@ async def process_content_legacy(
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO course_material (title, "course_id", "weekNumber", "materialType", "contentUrl", "uploadedById", "createdAt")
+                INSERT INTO course_material (title, course_id, week_number, material_type, content_url, uploaded_by_id, created_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
             """, (
                 request_data.title,
@@ -2223,7 +2223,7 @@ async def process_content_legacy(
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO ai_processing_job ("courseMaterialId", "jobType", status, "createdAt")
+                INSERT INTO ai_processing_job (course_material_id, job_type, status, created_at)
                 VALUES (%s, %s, 'pending', %s) RETURNING id
             """, (material_id, job_type, datetime.now()))
             
@@ -2699,7 +2699,7 @@ async def search_content(request: Request, search_request: SearchRequest):
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT cm.id, cm.title::TEXT, cm."materialType", cm."weekNumber",
+                SELECT cm.id, cm.title::TEXT, cm.material_type, cm.week_number,
                        apc.ai_summary, apc.key_concepts,
                        (ce.embedding <=> %s::vector) as similarity_score
                 FROM course_material cm
@@ -2780,14 +2780,14 @@ async def get_course_materials(request: Request, course_code: str):
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT cm.id, cm.title, cm."materialType", cm."weekNumber", 
-                   cm."createdAt", apc.ai_summary, apc.key_concepts
+            SELECT cm.id, cm.title, cm.material_type, cm.week_number, 
+                   cm.created_at, apc.ai_summary, apc.key_concepts
             FROM course_material cm
             LEFT JOIN ai_processed_content apc ON cm.id = apc.course_material_id
             WHERE cm.course_id = (
                 SELECT id FROM course WHERE course_code = %s LIMIT 1
             )
-            ORDER BY cm."weekNumber", cm."createdAt"
+            ORDER BY cm.week_number, cm.created_at
         """, (course_code,))
         
         results = cursor.fetchall()
@@ -2842,10 +2842,10 @@ async def retry_failed_processing(request: Request, job_id: str):
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT aj.status, aj."errorMessage", aj.metadata, 
-                   cm.id as material_id, cm."filePath"
+            SELECT aj.status, aj.error_message, aj.metadata, 
+                   cm.id as material_id, cm.file_path
             FROM ai_processing_job aj
-            JOIN course_material cm ON aj."courseMaterialId" = cm.id
+            JOIN course_material cm ON aj.course_material_id = cm.id
             WHERE aj.id = %s
         """, (job_id,))
         
@@ -2905,9 +2905,9 @@ async def retry_failed_processing(request: Request, job_id: str):
             cursor.execute("""
                 UPDATE ai_processing_job 
                 SET status = 'pending', 
-                    "startedAt" = NULL, 
-                    "completedAt" = NULL,
-                    "errorMessage" = NULL,
+                    started_at = NULL, 
+                    completed_at = NULL,
+                    error_message = NULL,
                     metadata = COALESCE(metadata, '{}'::jsonb) || %s::jsonb
                 WHERE id = %s
             """, (
@@ -2959,12 +2959,12 @@ async def cleanup_failed_job_data(material_id: str):
         # Remove any partial AI processed content
         cursor.execute("""
             DELETE FROM content_embedding 
-            WHERE "courseMaterialId" = %s
+            WHERE course_material_id = %s
         """, (material_id,))
         
         cursor.execute("""
             DELETE FROM ai_processed_content 
-            WHERE "courseMaterialId" = %s
+            WHERE course_material_id = %s
         """, (material_id,))
         
         conn.commit()
@@ -3065,7 +3065,7 @@ async def start_background_processing(material_id: str, job_id: str, file_path: 
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE ai_processing_job 
-            SET status = 'processing', "startedAt" = %s 
+            SET status = 'processing', started_at = %s 
             WHERE id = %s
         """, (datetime.now(), job_id))
         conn.commit()
@@ -3176,7 +3176,7 @@ async def start_background_processing(material_id: str, job_id: str, file_path: 
             # Save processed content
             cursor.execute("""
                 INSERT INTO ai_processed_content 
-                ("courseMaterialId", "extractedText", "aiSummary", "keyConcepts", "createdAt")
+                (course_material_id, extracted_text, ai_summary, key_concepts, created_at)
                 VALUES (%s, %s, %s, %s, %s) RETURNING id
             """, (
                 material_id,
@@ -3192,14 +3192,14 @@ async def start_background_processing(material_id: str, job_id: str, file_path: 
             # Save embeddings only if they exist
             if embeddings_array:
                 cursor.execute("""
-                    INSERT INTO content_embedding ("courseMaterialId", "aiProcessedId", "chunkText", "chunkIndex", "chunkType", embedding, "createdAt")
+                    INSERT INTO content_embedding (course_material_id, ai_processed_id, chunk_text, chunk_index, chunk_type, embedding, created_at)
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """, (material_id, ai_processed_id, extracted_text[:1000], 1, 'content', str(embeddings_array), datetime.now()))
             
             # Mark job as completed
             cursor.execute("""
                 UPDATE ai_processing_job 
-                SET status = 'completed', "completedAt" = %s 
+                SET status = 'completed', completed_at = %s 
                 WHERE id = %s
             """, (datetime.now(), job_id))
             
@@ -3281,7 +3281,7 @@ async def handle_processing_failure(conn, job_id: str, material_id: str,
             try:
                 # Remove partial content embeddings
                 cursor.execute("""
-                    DELETE FROM content_embedding WHERE "aiProcessedId" = %s
+                    DELETE FROM content_embedding WHERE ai_processed_id = %s
                 """, (ai_processed_id,))
                 
                 # Remove partial processed content
@@ -3297,8 +3297,8 @@ async def handle_processing_failure(conn, job_id: str, material_id: str,
         cursor.execute("""
             UPDATE ai_processing_job 
             SET status = 'failed', 
-                "errorMessage" = %s, 
-                "completedAt" = %s,
+                error_message = %s, 
+                completed_at = %s,
                 metadata = COALESCE(metadata, '{}'::jsonb) || %s::jsonb
             WHERE id = %s
         """, (
@@ -3332,7 +3332,7 @@ async def handle_processing_failure(conn, job_id: str, material_id: str,
             cursor = conn.cursor()
             cursor.execute("""
                 UPDATE ai_processing_job 
-                SET status = 'failed', "errorMessage" = %s, "completedAt" = %s 
+                SET status = 'failed', error_message = %s, completed_at = %s 
                 WHERE id = %s
             """, (f"Processing failed: {error_msg}. Recovery also failed: {str(recovery_error)}", datetime.now(), job_id))
             conn.commit()

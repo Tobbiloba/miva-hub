@@ -75,13 +75,13 @@ export function MaterialCard({
   const getBadgeColor = () => {
     switch (material.material_type) {
       case 'lecture':
-        return 'bg-blue-100 text-blue-800';
+        return 'border text-muted-foreground';
       case 'assignment':
-        return 'bg-orange-100 text-orange-800';
+        return 'border text-muted-foreground';
       case 'quiz':
-        return 'bg-purple-100 text-purple-800';
+        return 'border text-muted-foreground';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'border text-muted-foreground';
     }
   };
 
@@ -94,7 +94,7 @@ export function MaterialCard({
             {getIcon()}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-lg mb-1 overflow-hidden" style={{
+            <h3 className="font-medium text-sm mb-1 overflow-hidden" style={{
               display: '-webkit-box',
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
@@ -135,7 +135,7 @@ export function MaterialCard({
             onClick={() => onView(material)}
             size="sm"
             variant="outline"
-            className="hover:bg-blue-50 hover:border-blue-300"
+            className="hover:bg-secondary"
           >
             <Eye className="w-4 h-4 mr-1" />
             View
@@ -144,7 +144,7 @@ export function MaterialCard({
             onClick={() => onDownload(material)}
             size="sm"
             variant="outline"
-            className="hover:bg-gray-50"
+            className="hover:bg-secondary"
           >
             <Download className="w-4 h-4 mr-1" />
             Download
@@ -166,7 +166,7 @@ export function MaterialCard({
           </button>
           
           {isExpanded && (
-            <div className="mt-2 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-200">
+            <div className="mt-2 p-3 bg-card rounded-lg border-l-4 border-border">
               <p className="text-sm text-gray-700 leading-relaxed">
                 {material.ai_summary}
               </p>
@@ -178,12 +178,12 @@ export function MaterialCard({
       {/* Key concepts as tags */}
       {material.key_concepts && material.key_concepts.length > 0 && (
         <div className="mt-3">
-          <p className="text-sm font-medium mb-2">🔑 Key Concepts:</p>
+          <p className="text-xs font-medium mb-2">🔑 Key Concepts:</p>
           <div className="flex flex-wrap gap-1">
             {material.key_concepts.slice(0, 8).map((concept, index) => (
               <span 
                 key={index}
-                className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs cursor-pointer hover:bg-green-200 transition-colors"
+                className="border text-foreground px-2 py-1 rounded-full text-xs cursor-pointer hover:bg-secondary transition-colors"
                 title={`Click to learn more about ${concept}`}
               >
                 {concept}
@@ -199,14 +199,14 @@ export function MaterialCard({
       )}
 
       {/* Quick Actions */}
-      <div className="mt-4 pt-3 border-t border-gray-100">
+      <div className="mt-4 pt-3 border-t">
         <div className="flex flex-wrap gap-2">
           {onGenerateStudyGuide && (
             <Button
               onClick={onGenerateStudyGuide}
               size="sm"
               variant="ghost"
-              className="text-xs hover:bg-green-50 hover:text-green-700"
+              className="text-xs hover:bg-secondary"
             >
               📚 Study Guide
             </Button>
@@ -216,7 +216,7 @@ export function MaterialCard({
               onClick={onCreateFlashcards}
               size="sm"
               variant="ghost"
-              className="text-xs hover:bg-purple-50 hover:text-purple-700"
+              className="text-xs hover:bg-secondary"
             >
               🃏 Flashcards
             </Button>
@@ -226,7 +226,7 @@ export function MaterialCard({
               onClick={onAskQuestion}
               size="sm"
               variant="ghost"
-              className="text-xs hover:bg-blue-50 hover:text-blue-700"
+              className="text-xs hover:bg-secondary"
             >
               💬 Ask Question
             </Button>

@@ -53,7 +53,7 @@ const PurePreviewMessage = ({
   }
   if (!message.parts.length) return null;
   return (
-    <div className="w-full mx-auto max-w-4xl px-6 group/message">
+    <div className="w-full mx-auto max-w-5xl px-6 group/message">
       <div
         className={cn(
           "flex gap-4 w-full group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl",

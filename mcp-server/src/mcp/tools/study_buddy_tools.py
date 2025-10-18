@@ -4,7 +4,11 @@ import json
 import sys
 import os
 import httpx
+import logging
 from typing import Optional, Dict, Any, List
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -16,7 +20,7 @@ def register_study_buddy_tools(mcp):
     @mcp.tool()
     async def ask_study_question(
         question: str,
-        course_id: str | None = None,
+        course_id: Optional[int] = None,
         difficulty_level: str = "medium"
     ) -> str:
         """Ask an intelligent study question and get answers using course materials with citations and follow-up suggestions.
@@ -32,24 +36,48 @@ def register_study_buddy_tools(mcp):
         Returns:
             Formatted study answer with sources and follow-up suggestions
         """
+        logger.info(f"🔍 [ask_study_question] Called with:")
+        logger.info(f"   - Question: '{question[:100]}{'...' if len(question) > 100 else ''}'")
+        logger.info(f"   - Course ID: {course_id}")
+        logger.info(f"   - Difficulty: {difficulty_level}")
+        logger.info(f"   - Target API: {STUDY_BUDDY_API_BASE}")
+        
         try:
             # First start a session if we have a course_id
             session_data = None
             if course_id:
-                async with httpx.AsyncClient() as client:
-                    session_response = await client.post(
-                        f"{STUDY_BUDDY_API_BASE}/chat/session/start",
-                        json={
+                logger.info(f"📝 Starting study session for course {course_id}...")
+                try:
+                    async with httpx.AsyncClient() as client:
+                        session_url = f"{STUDY_BUDDY_API_BASE}/chat/session/start"
+                        session_payload = {
                             "course_id": course_id,
                             "learning_goals": ["answer student questions"],
                             "difficulty_preference": difficulty_level
-                        },
-                        timeout=30.0
-                    )
-                    if session_response.status_code == 200:
-                        session_data = session_response.json()
+                        }
+                        logger.info(f"   - POST {session_url}")
+                        logger.info(f"   - Payload: {json.dumps(session_payload, indent=2)}")
+                        
+                        session_response = await client.post(
+                            session_url,
+                            json=session_payload,
+                            timeout=30.0
+                        )
+                        
+                        logger.info(f"   - Response status: {session_response.status_code}")
+                        logger.info(f"   - Response body: {session_response.text[:500]}")
+                        
+                        if session_response.status_code == 200:
+                            session_data = session_response.json()
+                            logger.info(f"   ✅ Session created: {session_data.get('session_id')}")
+                        else:
+                            logger.warning(f"   ⚠️ Session creation failed, continuing without session")
+                except Exception as session_error:
+                    logger.error(f"   ❌ Session creation error: {type(session_error).__name__}: {str(session_error)}")
+                    logger.warning(f"   Continuing without session...")
             
             # Ask the question
+            logger.info(f"💬 Sending question to Study Buddy API...")
             async with httpx.AsyncClient() as client:
                 payload = {
                     "question": question,
@@ -60,19 +88,34 @@ def register_study_buddy_tools(mcp):
                 if session_data:
                     payload["session_id"] = session_data["session_id"]
                 
+                ask_url = f"{STUDY_BUDDY_API_BASE}/chat/ask"
+                logger.info(f"   - POST {ask_url}")
+                logger.info(f"   - Payload: {json.dumps(payload, indent=2)}")
+                logger.info(f"   - Timeout: 60.0s")
+                
                 response = await client.post(
-                    f"{STUDY_BUDDY_API_BASE}/chat/ask",
+                    ask_url,
                     json=payload,
                     timeout=60.0
                 )
                 
+                logger.info(f"   - Response status: {response.status_code}")
+                logger.info(f"   - Response headers: {dict(response.headers)}")
+                logger.info(f"   - Response body: {response.text[:1000]}")
+                
                 if response.status_code != 200:
-                    return f"❌ Error asking question: {response.status_code} {response.text}"
+                    error_msg = f"❌ Error asking question: {response.status_code} {response.text}"
+                    logger.error(f"   {error_msg}")
+                    return error_msg
                 
                 result = response.json()
+                logger.info(f"   ✅ Received response with {len(result.get('sources', []))} sources")
+                logger.info(f"   - Confidence: {result.get('confidence_score', 0):.2f}")
+                logger.info(f"   - Response time: {result.get('response_time_ms', 0)}ms")
                 
                 # Format the response nicely
                 answer_text = f"## 📚 Study Buddy Answer\n\n{result['answer']}\n\n"
+                logger.info(f"   Formatting answer with {len(answer_text)} characters...")
                 
                 # Add confidence score
                 if result.get('confidence_score'):
@@ -99,13 +142,25 @@ def register_study_buddy_tools(mcp):
                 # Add session info if available
                 if session_data:
                     answer_text += f"\n---\n*Study session: {session_data['course_name']} (Session ID: {session_data['session_id']})*"
-                    
+                
+                logger.info(f"✅ Successfully processed question, returning formatted answer")
                 return answer_text
             
-        except httpx.TimeoutException:
-            return "⏱️ Request timed out. The Study Buddy API might be processing a complex question. Please try again."
+        except httpx.TimeoutException as timeout_error:
+            error_msg = "⏱️ Request timed out. The Study Buddy API might be processing a complex question. Please try again."
+            logger.error(f"❌ Timeout error: {str(timeout_error)}")
+            logger.error(f"   {error_msg}")
+            return error_msg
+        except httpx.ConnectError as connect_error:
+            error_msg = f"🔌 Cannot connect to Study Buddy API at {STUDY_BUDDY_API_BASE}. Is the service running?"
+            logger.error(f"❌ Connection error: {type(connect_error).__name__}: {str(connect_error)}")
+            logger.error(f"   {error_msg}")
+            return error_msg
         except Exception as e:
-            return f"❌ Error asking study question: {str(e)}"
+            error_msg = f"❌ Error asking study question: {type(e).__name__}: {str(e)}"
+            logger.error(error_msg)
+            logger.exception("Full traceback:")
+            return error_msg
     
     @mcp.tool()
     async def generate_study_guide(
@@ -120,7 +175,7 @@ def register_study_buddy_tools(mcp):
         definitions, examples, and review questions based on course materials.
         
         Args:
-            course_id: Course ID to generate study guide for
+            course_id: Course ID (UUID string) to generate study guide for
             topics: Comma-separated topics to focus on (e.g., "algorithms, data structures"). Leave empty for all topics.
             difficulty_level: Complexity level - beginner, medium, or advanced
             weeks: Comma-separated week numbers to include (e.g., "1,3,5"). Leave empty for all weeks.

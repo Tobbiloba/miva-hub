@@ -269,6 +269,7 @@ class AcademicRepository:
                     return None, None
                 
                 course_info = {
+                    "id": result["id"],
                     "course_code": result["course_code"],
                     "course_name": result["title"],
                     "description": result["description"],
@@ -336,7 +337,7 @@ class AcademicRepository:
             print(f"Error checking enrollment: {e}")
             return False
 
-    async def get_student_enrollments(self, student_id: str) -> Dict[str, Any]:
+    async def get_student_enrollments(self, student_id: str, semester: Optional[str] = None) -> Dict[str, Any]:
         """Get all courses a student is enrolled in - real database implementation."""
         conn = self.get_connection()
         if not conn:
@@ -346,8 +347,10 @@ class AcademicRepository:
             # Run database operations in thread to avoid blocking event loop
             def run_query():
                 cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT c.course_code, c.title, c.credits, se.enrollment_date, 
+                
+                # Build query with optional semester filter
+                query = """
+                    SELECT c.id as course_id, c.course_code, c.title, c.credits, se.enrollment_date, 
                            se.status, u2.name as instructor_name
                     FROM "user" u1
                     JOIN student_enrollment se ON u1.id = se.student_id
@@ -356,8 +359,17 @@ class AcademicRepository:
                     LEFT JOIN faculty f ON ci.faculty_id = f.id
                     LEFT JOIN "user" u2 ON f.user_id = u2.id
                     WHERE u1.student_id = %s AND se.status = 'enrolled'
-                    ORDER BY c.course_code
-                """, (student_id,))
+                """
+                params = [student_id]
+                
+                # Add semester filter if provided
+                if semester:
+                    query += " AND se.semester = %s"
+                    params.append(semester)
+                
+                query += " ORDER BY c.course_code"
+                
+                cursor.execute(query, params)
                 
                 results = cursor.fetchall()
                 cursor.close()
@@ -371,6 +383,7 @@ class AcademicRepository:
             
             for row in results:
                 enrollment = {
+                    "course_id": row["course_id"],
                     "course_code": row["course_code"],
                     "course_name": row["title"],
                     "credits": row["credits"],
@@ -752,6 +765,129 @@ class AcademicRepository:
             print(f"Error getting academic schedule: {e}")
             return {"error": f"Failed to retrieve academic schedule: {str(e)}"}
 
+    async def search_course_materials(
+        self,
+        query: str,
+        course_ids: List[str],
+        limit: int = 10,
+        material_type: Optional[str] = None,
+        week_number: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """Search across course materials using full-text search."""
+        conn = self.get_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+        
+        try:
+            cursor = conn.cursor()
+            
+            # Build full-text search query
+            search_query = """
+                SELECT cm.id, cm.title, cm.material_type, cm.week_number,
+                       cm.description, cm.content_url as file_url, cm.created_at as upload_date,
+                       c.course_code, c.title as course_name,
+                       apc.ai_summary,
+                       ts_rank(
+                           to_tsvector('english', cm.title || ' ' || COALESCE(cm.description, '') || ' ' || COALESCE(apc.ai_summary, '')),
+                           plainto_tsquery('english', %s)
+                       ) AS relevance_score
+                FROM course_material cm
+                JOIN course c ON cm.course_id = c.id
+                LEFT JOIN ai_processed_content apc ON cm.id = apc.course_material_id
+                WHERE cm.course_id::text = ANY(%s::text[])
+                AND to_tsvector('english', cm.title || ' ' || COALESCE(cm.description, '') || ' ' || COALESCE(apc.ai_summary, ''))
+                    @@ plainto_tsquery('english', %s)
+            """
+            
+            params = [query, course_ids, query]
+            
+            if material_type:
+                search_query += " AND cm.material_type = %s"
+                params.append(material_type)
+            
+            if week_number:
+                search_query += " AND cm.week_number = %s"
+                params.append(week_number)
+            
+            search_query += " ORDER BY relevance_score DESC LIMIT %s"
+            params.append(limit)
+            
+            cursor.execute(search_query, params)
+            results = cursor.fetchall()
+            
+            materials = []
+            for row in results:
+                material = dict(row)
+                # Convert datetime to string for JSON serialization
+                if 'upload_date' in material and material['upload_date']:
+                    material['upload_date'] = material['upload_date'].isoformat()
+                # Extract excerpt from summary
+                if material.get('ai_summary'):
+                    summary = material['ai_summary']
+                    if query.lower() in summary.lower():
+                        idx = summary.lower().index(query.lower())
+                        start = max(0, idx - 50)
+                        end = min(len(summary), idx + 150)
+                        material['excerpt'] = '...' + summary[start:end] + '...'
+                materials.append(material)
+            
+            cursor.close()
+            conn.close()
+            
+            return {
+                "total_results": len(materials),
+                "materials": materials
+            }
+            
+        except Exception as e:
+            print(f"Error searching course materials: {e}")
+            conn.close()
+            return {"error": f"Search failed: {str(e)}"}
+    
+    async def get_material_by_id(self, material_id: str) -> Dict[str, Any]:
+        """Get a single material by ID with full details."""
+        conn = self.get_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+        
+        try:
+            cursor = conn.cursor()
+            
+            query = """
+                SELECT cm.id, cm.title, cm.material_type, cm.week_number,
+                       cm.description, cm.content_url, cm.created_at,
+                       c.course_code, c.title as course_name,
+                       apc.ai_summary, apc.key_concepts
+                FROM course_material cm
+                JOIN course c ON cm.course_id = c.id
+                LEFT JOIN ai_processed_content apc ON cm.id = apc.course_material_id
+                WHERE cm.id = %s
+            """
+            
+            cursor.execute(query, [material_id])
+            result = cursor.fetchone()
+            
+            cursor.close()
+            conn.close()
+            
+            if not result:
+                return {"error": "Material not found"}
+            
+            material = dict(result)
+            # Map content_url to file_url for API consistency
+            if 'content_url' in material:
+                material['file_url'] = material['content_url']
+            # Map created_at to upload_date for API consistency  
+            if 'created_at' in material:
+                material['upload_date'] = material['created_at']
+            
+            return material
+            
+        except Exception as e:
+            print(f"Error getting material by ID: {e}")
+            conn.close()
+            return {"error": f"Failed to retrieve material: {str(e)}"}
+    
     async def close(self):
         """Close database connections."""
         if self._connection:

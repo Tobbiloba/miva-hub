@@ -80,7 +80,7 @@ export function ChatDrawer({ messages, open, onOpenChange }: ChatDrawerProps) {
 
   return (
     <Drawer direction="right" open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="min-w-[480px] max-w-4xl w-[40vw] bg-card border-l">
+      <DrawerContent className="min-w-[480px] max-w-5xl w-[40vw] bg-card border-l">
         <DrawerHeader className="border-b">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">

@@ -70,7 +70,7 @@ ai_stack = None
 # Pydantic Models
 class ChatQuestion(BaseModel):
     question: str = Field(..., min_length=1, max_length=1000)
-    course_id: Optional[int] = Field(None, description="Optional course context")
+    course_id: Optional[str] = Field(None, description="Optional course context (UUID)")
     session_id: Optional[int] = Field(None, description="Continue existing session")
     difficulty_preference: str = Field("medium", pattern="^(beginner|medium|advanced)$")
     
@@ -82,7 +82,7 @@ class ChatQuestion(BaseModel):
         return v.strip()
 
 class StudySessionStart(BaseModel):
-    course_id: Optional[int] = Field(None, description="Course to focus on")
+    course_id: Optional[str] = Field(None, description="Course to focus on (UUID)")
     learning_goals: List[str] = Field(default_factory=list, max_length=5)
     difficulty_preference: str = Field("medium", pattern="^(beginner|medium|advanced)$")
 
@@ -102,19 +102,19 @@ class StudySessionResponse(BaseModel):
 
 # Study Tools Models
 class StudyGuideRequest(BaseModel):
-    course_id: int = Field(..., description="Course ID to generate study guide for")
+    course_id: str = Field(..., description="Course ID (UUID) to generate study guide for")
     topics: List[str] = Field(default_factory=list, max_length=10, description="Specific topics to focus on")
     difficulty_level: str = Field("medium", pattern="^(beginner|medium|advanced)$")
     weeks: List[int] = Field(default_factory=list, max_length=20, description="Specific weeks to include")
 
 class FlashcardsRequest(BaseModel):
-    course_id: int = Field(..., description="Course ID to generate flashcards for")
+    course_id: str = Field(..., description="Course ID (UUID) to generate flashcards for")
     topic: str = Field(..., min_length=1, max_length=100, description="Specific topic for flashcards")
     count: int = Field(10, ge=5, le=50, description="Number of flashcards to generate")
     difficulty_level: str = Field("medium", pattern="^(beginner|medium|advanced)$")
 
 class QuizRequest(BaseModel):
-    course_id: int = Field(..., description="Course ID to generate quiz for")
+    course_id: str = Field(..., description="Course ID (UUID) to generate quiz for")
     topics: List[str] = Field(default_factory=list, max_length=5, description="Topics to quiz on")
     question_count: int = Field(10, ge=5, le=25, description="Number of questions")
     question_types: List[str] = Field(default_factory=lambda: ["multiple_choice"], 
@@ -149,6 +149,42 @@ class QuizResponse(BaseModel):
     estimated_time: str
     sources_used: List[Dict[str, Any]]
     created_at: str
+
+# Exam Models
+class ExamGenerateRequest(BaseModel):
+    course_id: str = Field(..., description="Course ID to generate exam for")
+    exam_type: str = Field("midterm", pattern="^(midterm|final|chapter_test)$")
+    weeks_covered: Optional[str] = Field(None, description="Comma-separated week numbers (e.g., '1,2,3')")
+    question_count: int = Field(50, ge=10, le=100)
+    difficulty_mix: Dict[str, float] = Field(default_factory=lambda: {"easy": 0.3, "medium": 0.5, "hard": 0.2})
+    question_types: Dict[str, float] = Field(default_factory=lambda: {"multiple_choice": 0.7, "short_answer": 0.3})
+
+class ExamSubmitRequest(BaseModel):
+    exam_id: str = Field(..., description="Exam ID")
+    student_id: str = Field(..., description="Student ID")
+    answers: Dict[int, str] = Field(..., description="Question number to answer mapping")
+    time_taken_minutes: int = Field(..., ge=1)
+
+class ExamGenerateResponse(BaseModel):
+    exam_id: str
+    course_name: str
+    exam_type: str
+    questions: List[Dict[str, Any]]
+    questions_with_answers: List[Dict[str, Any]]
+    total_questions: int
+    grading_rubric: Dict[str, Any]
+    created_at: str
+
+class ExamSubmitResponse(BaseModel):
+    exam_id: str
+    student_id: str
+    score_percentage: float
+    correct_answers: int
+    total_questions: int
+    grade: str
+    per_question_results: List[Dict[str, Any]]
+    weak_areas: List[str]
+    recommendations: List[str]
 
 # Custom Exceptions
 class StudyBuddyError(Exception):
@@ -214,20 +250,20 @@ class StudyBuddyEngine:
                 SELECT 
                     cm.id as material_id,
                     cm.title,
-                    cm."materialType",
-                    cm."weekNumber",
-                    cm."publicUrl",
+                    cm.material_type,
+                    cm.week_number,
+                    cm.public_url,
                     apc.id as ai_processed_id,
-                    apc."aiSummary",
-                    apc."keyConcepts",
-                    ce."chunkText",
-                    ce."chunkIndex",
+                    apc.ai_summary,
+                    apc.key_concepts,
+                    ce.chunk_text,
+                    ce.chunk_index,
                     (ce.embedding <=> %s::vector) as similarity_score
                 FROM course_material cm
-                JOIN ai_processed_content apc ON cm.id = apc."courseMaterialId"
-                JOIN content_embedding ce ON apc.id = ce."aiProcessedId"
-                WHERE (%s IS NULL OR cm."course_id" = %s)
-                  AND ce."chunkText" IS NOT NULL
+                JOIN ai_processed_content apc ON cm.id = apc.course_material_id
+                JOIN content_embedding ce ON apc.id = ce.ai_processed_id
+                WHERE (%s IS NULL OR cm.course_id = %s)
+                  AND ce.chunk_text IS NOT NULL
                 ORDER BY ce.embedding <=> %s::vector
                 LIMIT %s
             """
@@ -247,13 +283,13 @@ class StudyBuddyEngine:
                     "material_id": row['material_id'],
                     "ai_processed_id": str(row['ai_processed_id']),
                     "title": row['title'],
-                    "material_type": row['materialType'],
-                    "week_number": row['weekNumber'],
-                    "public_url": row['publicUrl'],
-                    "ai_summary": row['aiSummary'],
-                    "key_concepts": row['keyConcepts'],
-                    "relevant_chunk": row['chunkText'],
-                    "chunk_index": row['chunkIndex'],
+                    "material_type": row['material_type'],
+                    "week_number": row['week_number'],
+                    "public_url": row['public_url'],
+                    "ai_summary": row['ai_summary'],
+                    "key_concepts": row['key_concepts'],
+                    "relevant_chunk": row['chunk_text'],
+                    "chunk_index": row['chunk_index'],
                     "similarity_score": float(row['similarity_score'])
                 }
                 relevant_content.append(content_item)
@@ -479,10 +515,10 @@ async def start_study_session(request: StudySessionStart):
         # Get course name if course_id provided
         course_name = "General Study Session"
         if request.course_id:
-            cursor.execute("SELECT course_name FROM courses WHERE id = %s", (request.course_id,))
+            cursor.execute("SELECT title FROM course WHERE id = %s", (request.course_id,))
             course_result = cursor.fetchone()
             if course_result:
-                course_name = course_result['course_name']
+                course_name = course_result['title']
         
         # Create study session
         session_context = {
@@ -679,9 +715,9 @@ async def get_session_history(session_id: int, limit: int = 50):
         
         # Get session info
         cursor.execute("""
-            SELECT ss.*, c.course_name
+            SELECT ss.*, c.title AS course_name
             FROM study_sessions ss
-            LEFT JOIN courses c ON ss.course_id = c.id
+            LEFT JOIN course c ON ss.course_id = c.id
             WHERE ss.id = %s
         """, (session_id,))
         
@@ -790,11 +826,11 @@ async def generate_study_guide(request: StudyGuideRequest, background_tasks: Bac
         # Get course name
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT course_name FROM courses WHERE id = %s", (request.course_id,))
+        cursor.execute("SELECT title FROM course WHERE id = %s", (request.course_id,))
         course_result = cursor.fetchone()
         if not course_result:
             raise HTTPException(status_code=404, detail="Course not found")
-        course_name = course_result['course_name']
+        course_name = course_result['title']
         
         # Find relevant content for the topics
         relevant_content = []
@@ -923,11 +959,11 @@ async def create_flashcards(request: FlashcardsRequest, background_tasks: Backgr
         # Get course name
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT course_name FROM courses WHERE id = %s", (request.course_id,))
+        cursor.execute("SELECT title FROM course WHERE id = %s", (request.course_id,))
         course_result = cursor.fetchone()
         if not course_result:
             raise HTTPException(status_code=404, detail="Course not found")
-        course_name = course_result['course_name']
+        course_name = course_result['title']
         
         # Find relevant content for the topic
         relevant_content = await study_engine.find_relevant_content(
@@ -1066,11 +1102,11 @@ async def generate_quiz(request: QuizRequest, background_tasks: BackgroundTasks)
         # Get course name
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT course_name FROM courses WHERE id = %s", (request.course_id,))
+        cursor.execute("SELECT title FROM course WHERE id = %s", (request.course_id,))
         course_result = cursor.fetchone()
         if not course_result:
             raise HTTPException(status_code=404, detail="Course not found")
-        course_name = course_result['course_name']
+        course_name = course_result['title']
         
         # Find relevant content
         relevant_content = []
@@ -1267,6 +1303,350 @@ async def content_not_found_handler(request: Request, exc: ContentNotFoundError)
             "timestamp": datetime.now().isoformat()
         }
     )
+
+@app.post("/exam/generate", response_model=ExamGenerateResponse)
+async def generate_exam(request: ExamGenerateRequest, background_tasks: BackgroundTasks):
+    """Generate comprehensive exam for a course"""
+    try:
+        logger.info(f"📝 Generating {request.exam_type} exam with {request.question_count} questions for course {request.course_id}")
+        start_time = time.time()
+        
+        # Get course name
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Convert course_id string to UUID if needed
+        try:
+            import uuid as uuid_lib
+            course_uuid = uuid_lib.UUID(request.course_id) if isinstance(request.course_id, str) else request.course_id
+        except (ValueError, AttributeError) as e:
+            raise HTTPException(status_code=400, detail=f"Invalid course_id format: {request.course_id}")
+        
+        cursor.execute("SELECT title FROM course WHERE id = %s", (str(course_uuid),))
+        course_result = cursor.fetchone()
+        if not course_result:
+            raise HTTPException(status_code=404, detail=f"Course not found with id: {request.course_id}")
+        course_name = course_result['title']
+        
+        # Get course materials based on weeks covered
+        weeks_list = []
+        if request.weeks_covered:
+            weeks_list = [int(w.strip()) for w in request.weeks_covered.split(',') if w.strip().isdigit()]
+        
+        # Find relevant content
+        relevant_content = []
+        if weeks_list:
+            for week in weeks_list:
+                cursor.execute("""
+                    SELECT cm.id, cm.title, cm.material_type, cm.week_number,
+                           apc.ai_summary, apc.key_concepts, cm.content_url as public_url
+                    FROM course_material cm
+                    LEFT JOIN ai_processed_content apc ON cm.id = apc.course_material_id
+                    WHERE cm.course_id = %s AND cm.week_number = %s AND cm.is_public = true
+                    ORDER BY cm.created_at
+                    LIMIT 5
+                """, (request.course_id, week))
+                relevant_content.extend(cursor.fetchall())
+        else:
+            # Get all course materials
+            cursor.execute("""
+                SELECT cm.id, cm.title, cm.material_type, cm.week_number,
+                       apc.ai_summary, apc.key_concepts, cm.content_url as public_url
+                FROM course_material cm
+                LEFT JOIN ai_processed_content apc ON cm.id = apc.course_material_id
+                WHERE cm.course_id = %s AND cm.is_public = true
+                ORDER BY cm.week_number, cm.created_at
+                LIMIT 20
+            """, (request.course_id,))
+            relevant_content.extend(cursor.fetchall())
+        
+        if not relevant_content:
+            raise HTTPException(status_code=404, detail="No course content found for exam generation")
+        
+        # Generate exam using AI
+        ai_stack = await get_ai_stack()
+        
+        # Build context
+        context_parts = []
+        for content in relevant_content[:15]:  # Top 15 most relevant
+            context_parts.append(f"""
+Material: {content['title']} (Week {content.get('week_number', 'N/A')})
+Type: {content['material_type']}
+Summary: {content.get('ai_summary', 'No summary')[:500]}
+Key Concepts: {', '.join(content.get('key_concepts', [])[:10]) if content.get('key_concepts') else 'N/A'}
+""")
+        
+        context_text = "\n".join(context_parts)
+        
+        # Calculate question distribution
+        total_questions = request.question_count
+        question_distribution = {}
+        for qtype, ratio in request.question_types.items():
+            question_distribution[qtype] = int(total_questions * ratio)
+        
+        # Adjust for rounding
+        total_distributed = sum(question_distribution.values())
+        if total_distributed < total_questions:
+            question_distribution[list(question_distribution.keys())[0]] += (total_questions - total_distributed)
+        
+        prompt = f"""Create a comprehensive {request.exam_type} exam for {course_name} with {total_questions} questions.
+
+Exam Type: {request.exam_type.upper()}
+Difficulty Mix: {', '.join([f'{k}: {int(v*100)}%' for k, v in request.difficulty_mix.items()])}
+Question Types: {', '.join([f'{k}: {count} questions' for k, count in question_distribution.items()])}
+
+Course Materials:
+{context_text}
+
+Requirements:
+- Create EXACTLY {total_questions} questions total
+- Question type distribution: {question_distribution}
+- Difficulty distribution: {request.difficulty_mix}
+- Questions should comprehensively test understanding of course materials
+- Include correct answers and explanations
+- For multiple choice: provide 4 options (A, B, C, D)
+- For short answer: provide sample correct answer
+- Questions should range from recall to application and analysis
+
+Format each question like this:
+QUESTION 1:
+Type: multiple_choice
+Difficulty: medium
+Question: [Question text]
+A) [Option A]
+B) [Option B]
+C) [Option C]
+D) [Option D]
+Correct Answer: B
+Explanation: [Brief explanation of why B is correct]
+Topic: [Related topic from materials]
+
+Or for short answer:
+QUESTION 2:
+Type: short_answer
+Difficulty: hard
+Question: [Question text]
+Sample Answer: [Expected answer]
+Explanation: [Brief explanation]
+Topic: [Related topic from materials]
+
+Generate all {total_questions} questions now."""
+
+        ai_response = await ai_stack.generate_llm_response(prompt)
+        if not ai_response.get('success'):
+            raise HTTPException(status_code=503, detail="Failed to generate exam")
+        
+        # Parse questions from response
+        questions_text = ai_response.get('content', '')
+        questions = []
+        questions_with_answers = []
+        
+        # Simple parsing (you may want to improve this)
+        question_blocks = questions_text.split('QUESTION ')[1:]
+        
+        for i, block in enumerate(question_blocks[:total_questions], 1):
+            lines = block.strip().split('\n')
+            question_data = {
+                'question_number': i,
+                'type': 'multiple_choice',
+                'difficulty': 'medium',
+                'question': '',
+                'options': {},
+                'topic': ''
+            }
+            
+            current_section = None
+            for line in lines:
+                line = line.strip()
+                if line.startswith('Type:'):
+                    question_data['type'] = line.split(':', 1)[1].strip()
+                elif line.startswith('Difficulty:'):
+                    question_data['difficulty'] = line.split(':', 1)[1].strip()
+                elif line.startswith('Question:'):
+                    question_data['question'] = line.split(':', 1)[1].strip()
+                elif line.startswith(('A)', 'B)', 'C)', 'D)')):
+                    option_letter = line[0]
+                    option_text = line.split(')', 1)[1].strip()
+                    question_data['options'][option_letter] = option_text
+                elif line.startswith('Correct Answer:'):
+                    question_data['correct_answer'] = line.split(':', 1)[1].strip()
+                elif line.startswith('Sample Answer:'):
+                    question_data['sample_answer'] = line.split(':', 1)[1].strip()
+                elif line.startswith('Explanation:'):
+                    question_data['explanation'] = line.split(':', 1)[1].strip()
+                elif line.startswith('Topic:'):
+                    question_data['topic'] = line.split(':', 1)[1].strip()
+            
+            # Create version without answers
+            question_without_answer = question_data.copy()
+            question_without_answer.pop('correct_answer', None)
+            question_without_answer.pop('sample_answer', None)
+            question_without_answer.pop('explanation', None)
+            
+            questions.append(question_without_answer)
+            questions_with_answers.append(question_data)
+        
+        # Generate exam ID
+        exam_id = str(uuid.uuid4())
+        
+        # Create grading rubric
+        total_points = 100
+        points_per_question = total_points / len(questions_with_answers) if questions_with_answers else 0
+        grading_rubric = {
+            "total_points": total_points,
+            "total_questions": len(questions_with_answers),
+            "points_per_question": round(points_per_question, 2),
+            "grading_scale": {
+                "A": {"min": 90, "max": 100},
+                "B": {"min": 80, "max": 89},
+                "C": {"min": 70, "max": 79},
+                "D": {"min": 60, "max": 69},
+                "F": {"min": 0, "max": 59}
+            }
+        }
+        
+        # Store exam in database
+        cursor.execute("""
+            INSERT INTO generated_exams (id, course_id, exam_type, questions, created_at)
+            VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+            ON CONFLICT (id) DO NOTHING
+        """, (exam_id, request.course_id, request.exam_type, Json(questions_with_answers)))
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        
+        processing_time = int((time.time() - start_time) * 1000)
+        logger.info(f"✅ Exam generated in {processing_time}ms")
+        
+        return ExamGenerateResponse(
+            exam_id=exam_id,
+            course_name=course_name,
+            exam_type=request.exam_type,
+            questions=questions,
+            questions_with_answers=questions_with_answers,
+            total_questions=len(questions),
+            grading_rubric=grading_rubric,
+            created_at=datetime.now().isoformat()
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error generating exam: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate exam: {str(e)}")
+
+
+@app.post("/exam/submit", response_model=ExamSubmitResponse)
+async def submit_exam(request: ExamSubmitRequest):
+    """Submit and grade exam answers"""
+    try:
+        logger.info(f"📝 Grading exam {request.exam_id} for student {request.student_id}")
+        
+        # Retrieve exam from database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT questions, exam_type FROM generated_exams WHERE id = %s
+        """, (request.exam_id,))
+        exam_result = cursor.fetchone()
+        
+        if not exam_result:
+            raise HTTPException(status_code=404, detail="Exam not found")
+        
+        questions_with_answers = exam_result['questions']
+        exam_type = exam_result['exam_type']
+        
+        # Grade the exam
+        correct_answers = 0
+        per_question_results = []
+        weak_topics = []
+        
+        for question in questions_with_answers:
+            q_num = question['question_number']
+            student_answer = request.answers.get(q_num, '')
+            correct_answer = question.get('correct_answer', question.get('sample_answer', ''))
+            
+            is_correct = False
+            if question['type'] == 'multiple_choice':
+                is_correct = student_answer.strip().upper() == correct_answer.strip().upper()
+            else:
+                # For short answer, do basic similarity check
+                is_correct = student_answer.strip().lower() in correct_answer.lower() or \
+                             correct_answer.lower() in student_answer.strip().lower()
+            
+            if is_correct:
+                correct_answers += 1
+            else:
+                weak_topics.append(question.get('topic', 'Unknown topic'))
+            
+            per_question_results.append({
+                'question_number': q_num,
+                'student_answer': student_answer,
+                'correct_answer': correct_answer,
+                'is_correct': is_correct,
+                'explanation': question.get('explanation', '')
+            })
+        
+        # Calculate score
+        total_questions = len(questions_with_answers)
+        score_percentage = (correct_answers / total_questions * 100) if total_questions > 0 else 0
+        
+        # Assign grade
+        if score_percentage >= 90:
+            grade = 'A'
+        elif score_percentage >= 80:
+            grade = 'B'
+        elif score_percentage >= 70:
+            grade = 'C'
+        elif score_percentage >= 60:
+            grade = 'D'
+        else:
+            grade = 'F'
+        
+        # Generate recommendations
+        recommendations = []
+        if score_percentage < 70:
+            recommendations.append(f"Review course materials on: {', '.join(set(weak_topics[:5]))}")
+            recommendations.append("Consider scheduling study sessions with classmates")
+            recommendations.append("Reach out to instructor during office hours")
+        elif score_percentage < 85:
+            recommendations.append(f"Focus on improving understanding of: {', '.join(set(weak_topics[:3]))}")
+            recommendations.append("Practice more problems on weak areas")
+        else:
+            recommendations.append("Great job! Keep up the good work")
+            recommendations.append("Consider helping peers who may be struggling")
+        
+        # Store submission
+        cursor.execute("""
+            INSERT INTO exam_submissions (exam_id, student_id, answers, score_percentage, grade, submitted_at)
+            VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+        """, (request.exam_id, request.student_id, Json(request.answers), score_percentage, grade))
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        
+        logger.info(f"✅ Exam graded: {score_percentage:.1f}% ({grade})")
+        
+        return ExamSubmitResponse(
+            exam_id=request.exam_id,
+            student_id=request.student_id,
+            score_percentage=round(score_percentage, 2),
+            correct_answers=correct_answers,
+            total_questions=total_questions,
+            grade=grade,
+            per_question_results=per_question_results,
+            weak_areas=list(set(weak_topics)),
+            recommendations=recommendations
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error submitting exam: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to submit exam: {str(e)}")
+
 
 @app.exception_handler(AIProcessingError)
 async def ai_processing_exception_handler(request: Request, exc: AIProcessingError):

@@ -41,7 +41,7 @@ export function MaterialViewer({
       case 'wav':
       case 'm4a':
         return (
-          <div className="h-full flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
+          <div className="h-full flex items-center justify-center bg-card">
             <div className="text-center max-w-md">
               <div className="text-6xl mb-4">🎵</div>
               <h3 className="text-xl font-semibold mb-4">{material.title}</h3>
@@ -60,7 +60,7 @@ export function MaterialViewer({
         );
       case 'docx':
         return (
-          <div className="h-full flex items-center justify-center bg-gray-50">
+          <div className="h-full flex items-center justify-center bg-card">
             <div className="text-center max-w-md">
               <div className="text-6xl mb-4">📄</div>
               <h3 className="text-xl font-semibold mb-4">{material.title}</h3>
@@ -79,7 +79,7 @@ export function MaterialViewer({
         );
       case 'pptx':
         return (
-          <div className="h-full flex items-center justify-center bg-orange-50">
+          <div className="h-full flex items-center justify-center bg-card">
             <div className="text-center max-w-md">
               <div className="text-6xl mb-4">📊</div>
               <h3 className="text-xl font-semibold mb-4">{material.title}</h3>
@@ -98,7 +98,7 @@ export function MaterialViewer({
         );
       default:
         return (
-          <div className="h-full flex items-center justify-center bg-gray-50">
+          <div className="h-full flex items-center justify-center bg-card">
             <div className="text-center max-w-md">
               <div className="text-6xl mb-4">📁</div>
               <h3 className="text-xl font-semibold mb-4">{material.title}</h3>
@@ -155,12 +155,12 @@ export function MaterialViewer({
         </div>
         
         {/* Footer with AI Summary and Actions */}
-        <div className="border-t bg-gray-50 p-4 rounded-b-lg max-h-48 overflow-y-auto">
+        <div className="border-t bg-card p-4 rounded-b-lg max-h-48 overflow-y-auto">
           {/* AI Summary */}
           {material.ai_summary && (
             <div className="mb-4">
               <h4 className="font-medium text-sm text-gray-700 mb-2">📋 AI Summary:</h4>
-              <p className="text-sm text-gray-600 leading-relaxed bg-white p-3 rounded border">
+              <p className="text-sm text-gray-600 leading-relaxed bg-card p-3 rounded border">
                 {material.ai_summary}
               </p>
             </div>
@@ -174,7 +174,7 @@ export function MaterialViewer({
                 {material.key_concepts.slice(0, 12).map((concept: string, index: number) => (
                   <span 
                     key={index}
-                    className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs"
+                    className="border text-muted-foreground px-2 py-1 rounded-full text-xs"
                   >
                     {concept}
                   </span>
@@ -194,7 +194,7 @@ export function MaterialViewer({
               onClick={() => window.open(`/api/files/stream?url=${encodeURIComponent(material.file_url)}`, '_blank')}
               size="sm"
               variant="outline"
-              className="hover:bg-gray-100"
+              className="hover:bg-secondary"
             >
               <Download className="w-4 h-4 mr-1" />
               Download
@@ -205,7 +205,7 @@ export function MaterialViewer({
                 onClick={onGenerateStudyGuide}
                 size="sm"
                 variant="outline"
-                className="hover:bg-green-50 hover:text-green-700 hover:border-green-300"
+                className="hover:bg-secondary"
               >
                 <BookOpen className="w-4 h-4 mr-1" />
                 Study Guide
@@ -217,7 +217,7 @@ export function MaterialViewer({
                 onClick={onCreateFlashcards}
                 size="sm"
                 variant="outline"
-                className="hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300"
+                className="hover:bg-secondary"
               >
                 <Target className="w-4 h-4 mr-1" />
                 Flashcards
@@ -229,7 +229,7 @@ export function MaterialViewer({
                 onClick={onAskQuestion}
                 size="sm"
                 variant="outline"
-                className="hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+                className="hover:bg-secondary"
               >
                 <MessageCircle className="w-4 h-4 mr-1" />
                 Ask Question

@@ -80,7 +80,7 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
     // Safety checks
     if (!materials || !Array.isArray(materials)) {
       return (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="bg-card border rounded-lg p-4">
           <div className="flex items-center">
             <div className="text-yellow-600 mr-2">⚠️</div>
             <div>
@@ -95,13 +95,13 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
     return (
       <div className="space-y-6">
         {/* Header Section */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
+        <div className="bg-card p-6 rounded-lg border">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
+              <h3 className="text-sm font-semibold mb-2">
                 📚 {course_code} Course Materials
               </h3>
-              <p className="text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Found <span className="font-semibold text-blue-600">{total_count || materials.length}</span> materials
                 {materials.length > 0 && materials[0]?.week_number && (
                   <span> for Week {materials[0].week_number}</span>
@@ -110,10 +110,10 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
             </div>
             <div className="text-right">
               <div className="flex space-x-2">
-                <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                <div className="border text-muted-foreground px-3 py-1 rounded-full text-sm font-medium">
                   {materials.filter((m: any) => m?.file_url?.includes('.pdf')).length} PDFs
                 </div>
-                <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                <div className="border text-muted-foreground px-3 py-1 rounded-full text-sm font-medium">
                   {materials.filter((m: any) => m?.file_url?.includes('.mp4')).length} Videos
                 </div>
               </div>
@@ -138,14 +138,14 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
         </div>
         
         {/* Quick Actions Panel */}
-        <div className="bg-gray-50 p-4 rounded-lg border">
-          <h4 className="font-semibold mb-3 text-gray-900">📋 Quick Actions for {course_code}:</h4>
+        <div className="bg-card p-4 rounded-lg border">
+          <h4 className="text-sm font-medium mb-3">📋 Quick Actions for {course_code}:</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <Button
               onClick={() => handleQuickAction('generate_study_guide', course_code)}
               variant="outline"
               size="sm"
-              className="justify-start hover:bg-green-50 hover:border-green-300"
+              className="justify-start hover:bg-secondary"
             >
               <BookOpen className="w-4 h-4 mr-2" />
               Study Guide
@@ -154,7 +154,7 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
               onClick={() => handleQuickAction('create_flashcards', course_code)}
               variant="outline"
               size="sm"
-              className="justify-start hover:bg-purple-50 hover:border-purple-300"
+              className="justify-start hover:bg-secondary"
             >
               <Target className="w-4 h-4 mr-2" />
               Flashcards
@@ -163,7 +163,7 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
               onClick={() => handleQuickAction('get_assignments', course_code)}
               variant="outline"
               size="sm"
-              className="justify-start hover:bg-orange-50 hover:border-orange-300"
+              className="justify-start hover:bg-secondary"
             >
               <FileText className="w-4 h-4 mr-2" />
               Assignments
@@ -172,7 +172,7 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
               onClick={() => handleQuickAction('get_schedule', course_code)}
               variant="outline"
               size="sm"
-              className="justify-start hover:bg-blue-50 hover:border-blue-300"
+              className="justify-start hover:bg-secondary"
             >
               <Calendar className="w-4 h-4 mr-2" />
               Schedule
@@ -189,7 +189,7 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
     // Safety checks
     if (!enrollments || !Array.isArray(enrollments)) {
       return (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="bg-card border rounded-lg p-4">
           <div className="flex items-center">
             <div className="text-yellow-600 mr-2">⚠️</div>
             <div>
@@ -205,33 +205,33 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
       <div className="space-y-6">
         {/* Summary Cards */}
         <div className="grid md:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-lg">
+          <div className="bg-card border p-6 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm">Total Courses</p>
-                <p className="text-3xl font-bold">{total_courses || enrollments.length}</p>
+                <p className="text-muted-foreground text-sm">Total Courses</p>
+                <p className="text-lg font-semibold">{total_courses || enrollments.length}</p>
               </div>
-              <GraduationCap className="w-8 h-8 text-blue-200" />
+              <GraduationCap className="w-8 h-8 text-primary" />
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-lg">
+          <div className="bg-card border p-6 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm">Total Credits</p>
-                <p className="text-3xl font-bold">{total_credits || 0}</p>
+                <p className="text-muted-foreground text-sm">Total Credits</p>
+                <p className="text-lg font-semibold">{total_credits || 0}</p>
               </div>
-              <TrendingUp className="w-8 h-8 text-green-200" />
+              <TrendingUp className="w-8 h-8 text-primary" />
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-lg">
+          <div className="bg-card border p-6 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm">Student ID</p>
+                <p className="text-muted-foreground text-sm">Student ID</p>
                 <p className="text-lg font-bold">{student_id || 'N/A'}</p>
               </div>
-              <Users className="w-8 h-8 text-purple-200" />
+              <Users className="w-8 h-8 text-primary" />
             </div>
           </div>
         </div>
@@ -243,12 +243,12 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <h4 className="font-bold text-lg text-gray-900">{course.course_code}</h4>
-                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                    <h4 className="font-medium text-sm">{course.course_code}</h4>
+                    <span className="border text-muted-foreground px-2 py-1 rounded-full text-xs font-medium">
                       {course.credits} credits
                     </span>
                   </div>
-                  <p className="text-gray-700 font-medium mb-3">{course.course_name}</p>
+                  <p className="text-sm mb-3">{course.course_name}</p>
                 </div>
               </div>
               
@@ -276,7 +276,7 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
                   onClick={() => onToolCall?.('get_course_materials', { course_code: course.course_code })}
                   size="sm"
                   variant="outline"
-                  className="text-xs hover:bg-blue-50"
+                  className="text-xs hover:bg-secondary"
                 >
                   📖 Materials
                 </Button>
@@ -284,7 +284,7 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
                   onClick={() => onToolCall?.('get_upcoming_assignments', { course_code: course.course_code })}
                   size="sm"
                   variant="outline"
-                  className="text-xs hover:bg-green-50"
+                  className="text-xs hover:bg-secondary"
                 >
                   📝 Assignments
                 </Button>
@@ -292,7 +292,7 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
                   onClick={() => onToolCall?.('get_course_schedule', { course_code: course.course_code })}
                   size="sm"
                   variant="outline"
-                  className="text-xs hover:bg-purple-50"
+                  className="text-xs hover:bg-secondary"
                 >
                   📅 Schedule
                 </Button>
@@ -311,17 +311,17 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
       return (
         <div className="text-center py-8">
           <div className="text-6xl mb-4">🎉</div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No Upcoming Assignments!</h3>
-          <p className="text-gray-600">You&apos;re all caught up. Great work!</p>
+          <h3 className="text-sm font-medium mb-2">No Upcoming Assignments!</h3>
+          <p className="text-sm text-muted-foreground">You&apos;re all caught up. Great work!</p>
         </div>
       );
     }
 
     const getUrgencyColor = (urgency: string) => {
       switch (urgency) {
-        case 'urgent': return 'bg-red-100 text-red-800 border-red-200';
-        case 'soon': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-        default: return 'bg-green-100 text-green-800 border-green-200';
+        case 'urgent': return 'border border-red-200 text-red-800';
+        case 'soon': return 'border border-yellow-200 text-yellow-800';
+        default: return 'border border-green-200 text-green-800';
       }
     };
 
@@ -336,11 +336,11 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
     return (
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-orange-50 to-red-50 p-6 rounded-lg border border-orange-200">
-          <h3 className="text-xl font-bold text-gray-900 mb-2">
+        <div className="bg-card p-6 rounded-lg border">
+          <h3 className="text-sm font-semibold mb-2">
             📝 Upcoming Assignments
           </h3>
-          <p className="text-gray-600">
+          <p className="text-sm text-muted-foreground">
             You have <span className="font-semibold text-orange-600">{total_count}</span> assignments due soon
           </p>
         </div>
@@ -352,7 +352,7 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h4 className="font-semibold text-lg text-gray-900">{assignment.title}</h4>
+                    <h4 className="font-medium text-sm">{assignment.title}</h4>
                     <span className={cn(
                       "px-3 py-1 rounded-full text-xs font-medium border",
                       getUrgencyColor(assignment.urgency)
@@ -360,7 +360,7 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
                       {getUrgencyIcon(assignment.urgency)} {assignment.urgency}
                     </span>
                   </div>
-                  <p className="text-gray-600 mb-2">{assignment.course_name} ({assignment.course_code})</p>
+                  <p className="text-sm text-muted-foreground mb-2">{assignment.course_name} ({assignment.course_code})</p>
                   {assignment.description && (
                     <p className="text-sm text-gray-600 mb-3 overflow-hidden" style={{
                       display: '-webkit-box',
@@ -406,16 +406,16 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
     
     return (
       <div className="space-y-6">
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border border-green-200">
-          <h3 className="text-xl font-bold text-gray-900 mb-2">
+        <div className="bg-card p-6 rounded-lg border">
+          <h3 className="text-sm font-semibold mb-2">
             📚 Study Guide Generated
           </h3>
-          <p className="text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Comprehensive study material based on your course content
           </p>
         </div>
 
-        <div className="prose prose-sm max-w-none bg-white p-6 rounded-lg border">
+        <div className="prose prose-sm max-w-none bg-card p-6 rounded-lg border">
           {sections.map((section, index) => {
             const lines = section.split('\n');
             const title = lines[0];
@@ -423,7 +423,7 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
             
             return (
               <div key={index} className="mb-6">
-                <h4 className="text-lg font-semibold text-gray-900 mb-3">{title}</h4>
+                <h4 className="text-sm font-medium mb-3">{title}</h4>
                 <div className="prose prose-sm text-gray-700" dangerouslySetInnerHTML={{ 
                   __html: content.replace(/\n/g, '<br/>') 
                 }} />
@@ -448,7 +448,7 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
     default:
       // Fallback for JSON display
       return (
-        <div className="bg-gray-50 p-4 rounded-lg border">
+        <div className="bg-card p-4 rounded-lg border">
           <details className="cursor-pointer">
             <summary className="font-medium text-gray-700 mb-2">Raw Response Data</summary>
             <pre className="text-xs text-gray-600 overflow-x-auto">
