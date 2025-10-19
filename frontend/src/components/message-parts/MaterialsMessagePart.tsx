@@ -37,7 +37,7 @@ export function MaterialsMessagePart({ materials, toolCallId }: MaterialsMessage
   }
   
   return (
-    <div className="w-full mx-auto max-w-3xl px-6">
+    <div className="w-full mx-auto max-w-5xl px-6">
       <div
         className={cn(
           "min-w-0 w-full p-4 rounded-lg bg-card px-4 border text-xs transition-colors fade-300",

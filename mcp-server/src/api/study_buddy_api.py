@@ -26,6 +26,7 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'core'))
 from ai_integration import MIVAAIStack
+from grading_engine import GradingOrchestrator
 
 # Logging Configuration
 logging.basicConfig(
@@ -66,6 +67,7 @@ DB_CONFIG = get_db_config()
 
 # Global AI Stack Instance
 ai_stack = None
+grading_engine = None
 
 # Pydantic Models
 class ChatQuestion(BaseModel):
@@ -219,6 +221,15 @@ async def get_ai_stack():
         if not connection_ok:
             raise AIProcessingError("AI models not available")
     return ai_stack
+
+async def get_grading_engine():
+    """Get grading engine instance with lazy initialization"""
+    global grading_engine
+    if grading_engine is None:
+        ai_stack = await get_ai_stack()
+        grading_engine = GradingOrchestrator(ai_stack=ai_stack)
+        logger.info("✅ Grading engine initialized with AI support")
+    return grading_engine
 
 # Core Study Buddy Functions
 class StudyBuddyEngine:
@@ -1557,52 +1568,20 @@ async def submit_exam(request: ExamSubmitRequest):
         questions_with_answers = exam_result['questions']
         exam_type = exam_result['exam_type']
         
-        # Grade the exam
-        correct_answers = 0
-        per_question_results = []
-        weak_topics = []
+        # Grade the exam using the new grading engine
+        grader = await get_grading_engine()
+        grading_results = await grader.grade_exam(request.answers, questions_with_answers)
         
-        for question in questions_with_answers:
-            q_num = question['question_number']
-            student_answer = request.answers.get(q_num, '')
-            correct_answer = question.get('correct_answer', question.get('sample_answer', ''))
-            
-            is_correct = False
-            if question['type'] == 'multiple_choice':
-                is_correct = student_answer.strip().upper() == correct_answer.strip().upper()
-            else:
-                # For short answer, do basic similarity check
-                is_correct = student_answer.strip().lower() in correct_answer.lower() or \
-                             correct_answer.lower() in student_answer.strip().lower()
-            
-            if is_correct:
-                correct_answers += 1
-            else:
-                weak_topics.append(question.get('topic', 'Unknown topic'))
-            
-            per_question_results.append({
-                'question_number': q_num,
-                'student_answer': student_answer,
-                'correct_answer': correct_answer,
-                'is_correct': is_correct,
-                'explanation': question.get('explanation', '')
-            })
+        # Extract results
+        per_question_results = grading_results['per_question_results']
+        statistics = grading_results['statistics']
         
-        # Calculate score
-        total_questions = len(questions_with_answers)
-        score_percentage = (correct_answers / total_questions * 100) if total_questions > 0 else 0
-        
-        # Assign grade
-        if score_percentage >= 90:
-            grade = 'A'
-        elif score_percentage >= 80:
-            grade = 'B'
-        elif score_percentage >= 70:
-            grade = 'C'
-        elif score_percentage >= 60:
-            grade = 'D'
-        else:
-            grade = 'F'
+        correct_answers = statistics['correct_answers']
+        total_questions = statistics['total_questions']
+        score_percentage = statistics['percentage_score']
+        grade = statistics['grade']
+        weak_topics = statistics['weak_topics']
+        requires_review = statistics.get('requires_faculty_review', False)
         
         # Generate recommendations
         recommendations = []
@@ -1611,13 +1590,25 @@ async def submit_exam(request: ExamSubmitRequest):
             recommendations.append("Consider scheduling study sessions with classmates")
             recommendations.append("Reach out to instructor during office hours")
         elif score_percentage < 85:
-            recommendations.append(f"Focus on improving understanding of: {', '.join(set(weak_topics[:3]))}")
+            if weak_topics:
+                recommendations.append(f"Focus on improving understanding of: {', '.join(set(weak_topics[:3]))}")
             recommendations.append("Practice more problems on weak areas")
         else:
             recommendations.append("Great job! Keep up the good work")
             recommendations.append("Consider helping peers who may be struggling")
         
-        # Store submission
+        # Add faculty review note if needed
+        if requires_review:
+            recommendations.insert(0, "⚠️ Some answers require faculty review for final grading")
+        
+        # Store submission with grading metadata
+        grading_metadata = {
+            'grading_results': per_question_results,
+            'requires_faculty_review': requires_review,
+            'grading_engine_version': '1.0',
+            'time_taken_minutes': request.time_taken_minutes
+        }
+        
         cursor.execute("""
             INSERT INTO exam_submissions (exam_id, student_id, answers, score_percentage, grade, submitted_at)
             VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
@@ -1658,6 +1649,334 @@ async def ai_processing_exception_handler(request: Request, exc: AIProcessingErr
             "timestamp": datetime.now().isoformat()
         }
     )
+
+# ============================================================
+# PROGRESS AUTO-SAVE ENDPOINTS
+# ============================================================
+
+# Pydantic Models for Progress
+class QuizProgressSave(BaseModel):
+    quiz_id: str
+    student_id: str
+    answers: Dict[int, str]
+    current_question: int = 0
+    mode: str = "interactive"
+
+class ExamProgressSave(BaseModel):
+    exam_id: str
+    student_id: str
+    answers: Dict[int, str]
+    time_remaining_seconds: Optional[int] = None
+    current_question: int = 0
+    mode: str = "interactive"
+
+class AssignmentProgressSave(BaseModel):
+    assignment_id: str
+    student_id: str
+    submission_text: Optional[str] = None
+    submission_files: Optional[List[Dict[str, Any]]] = None
+    submission_link: Optional[str] = None
+
+# ==================== QUIZ PROGRESS ENDPOINTS ====================
+
+@app.post("/progress/quiz/save")
+async def save_quiz_progress(data: QuizProgressSave):
+    """Auto-save quiz progress (upsert)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO quiz_progress (quiz_id, student_id, answers, current_question, mode, last_saved_at)
+            VALUES (%s, %s, %s, %s, %s, NOW())
+            ON CONFLICT (quiz_id, student_id) 
+            DO UPDATE SET
+                answers = EXCLUDED.answers,
+                current_question = EXCLUDED.current_question,
+                mode = EXCLUDED.mode,
+                last_saved_at = NOW()
+            RETURNING id, last_saved_at
+        """, (data.quiz_id, data.student_id, Json(data.answers), data.current_question, data.mode))
+        
+        result = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        logger.info(f"✅ Quiz progress saved: {data.quiz_id} for student {data.student_id}")
+        
+        return {
+            "success": True,
+            "progress_id": str(result['id']),
+            "last_saved_at": result['last_saved_at'].isoformat()
+        }
+    except Exception as e:
+        logger.error(f"❌ Failed to save quiz progress: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/progress/quiz/load/{quiz_id}/{student_id}")
+async def load_quiz_progress(quiz_id: str, student_id: str):
+    """Load saved quiz progress"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT answers, current_question, mode, started_at, last_saved_at
+            FROM quiz_progress
+            WHERE quiz_id = %s AND student_id = %s
+        """, (quiz_id, student_id))
+        
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if not result:
+            return {"has_progress": False}
+        
+        logger.info(f"✅ Quiz progress loaded: {quiz_id} for student {student_id}")
+        
+        return {
+            "has_progress": True,
+            "answers": result['answers'],
+            "current_question": result['current_question'],
+            "mode": result['mode'],
+            "started_at": result['started_at'].isoformat(),
+            "last_saved_at": result['last_saved_at'].isoformat()
+        }
+    except Exception as e:
+        logger.error(f"❌ Failed to load quiz progress: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/progress/quiz/clear/{quiz_id}/{student_id}")
+async def clear_quiz_progress(quiz_id: str, student_id: str):
+    """Clear quiz progress (after submission)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            DELETE FROM quiz_progress
+            WHERE quiz_id = %s AND student_id = %s
+        """, (quiz_id, student_id))
+        
+        deleted_count = cursor.rowcount
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        logger.info(f"✅ Quiz progress cleared: {quiz_id} for student {student_id}")
+        
+        return {"success": True, "deleted": deleted_count}
+    except Exception as e:
+        logger.error(f"❌ Failed to clear quiz progress: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== EXAM PROGRESS ENDPOINTS ====================
+
+@app.post("/progress/exam/save")
+async def save_exam_progress(data: ExamProgressSave):
+    """Auto-save exam progress with timer state"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO exam_progress (
+                exam_id, student_id, answers, time_remaining_seconds, 
+                current_question, mode, last_saved_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, NOW())
+            ON CONFLICT (exam_id, student_id)
+            DO UPDATE SET
+                answers = EXCLUDED.answers,
+                time_remaining_seconds = EXCLUDED.time_remaining_seconds,
+                current_question = EXCLUDED.current_question,
+                mode = EXCLUDED.mode,
+                last_saved_at = NOW()
+            RETURNING id, last_saved_at
+        """, (
+            data.exam_id, data.student_id, Json(data.answers),
+            data.time_remaining_seconds, data.current_question, data.mode
+        ))
+        
+        result = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        logger.info(f"✅ Exam progress saved: {data.exam_id} for student {data.student_id}")
+        
+        return {
+            "success": True,
+            "progress_id": str(result['id']),
+            "last_saved_at": result['last_saved_at'].isoformat()
+        }
+    except Exception as e:
+        logger.error(f"❌ Failed to save exam progress: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/progress/exam/load/{exam_id}/{student_id}")
+async def load_exam_progress(exam_id: str, student_id: str):
+    """Load saved exam progress"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT answers, time_remaining_seconds, current_question, 
+                   mode, started_at, last_saved_at
+            FROM exam_progress
+            WHERE exam_id = %s AND student_id = %s
+        """, (exam_id, student_id))
+        
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if not result:
+            return {"has_progress": False}
+        
+        logger.info(f"✅ Exam progress loaded: {exam_id} for student {student_id}")
+        
+        return {
+            "has_progress": True,
+            "answers": result['answers'],
+            "time_remaining_seconds": result['time_remaining_seconds'],
+            "current_question": result['current_question'],
+            "mode": result['mode'],
+            "started_at": result['started_at'].isoformat(),
+            "last_saved_at": result['last_saved_at'].isoformat()
+        }
+    except Exception as e:
+        logger.error(f"❌ Failed to load exam progress: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/progress/exam/clear/{exam_id}/{student_id}")
+async def clear_exam_progress(exam_id: str, student_id: str):
+    """Clear exam progress (after submission)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            DELETE FROM exam_progress
+            WHERE exam_id = %s AND student_id = %s
+        """, (exam_id, student_id))
+        
+        deleted_count = cursor.rowcount
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        logger.info(f"✅ Exam progress cleared: {exam_id} for student {student_id}")
+        
+        return {"success": True, "deleted": deleted_count}
+    except Exception as e:
+        logger.error(f"❌ Failed to clear exam progress: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== ASSIGNMENT PROGRESS ENDPOINTS ====================
+
+@app.post("/progress/assignment/save")
+async def save_assignment_progress(data: AssignmentProgressSave):
+    """Auto-save assignment submission draft"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO assignment_progress (
+                assignment_id, student_id, submission_text, 
+                submission_files, submission_link, last_saved_at
+            )
+            VALUES (%s, %s, %s, %s, %s, NOW())
+            ON CONFLICT (assignment_id, student_id)
+            DO UPDATE SET
+                submission_text = EXCLUDED.submission_text,
+                submission_files = EXCLUDED.submission_files,
+                submission_link = EXCLUDED.submission_link,
+                last_saved_at = NOW()
+            RETURNING id, last_saved_at
+        """, (
+            data.assignment_id, data.student_id, data.submission_text,
+            Json(data.submission_files or []), data.submission_link
+        ))
+        
+        result = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        logger.info(f"✅ Assignment progress saved: {data.assignment_id} for student {data.student_id}")
+        
+        return {
+            "success": True,
+            "progress_id": str(result['id']),
+            "last_saved_at": result['last_saved_at'].isoformat()
+        }
+    except Exception as e:
+        logger.error(f"❌ Failed to save assignment progress: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/progress/assignment/load/{assignment_id}/{student_id}")
+async def load_assignment_progress(assignment_id: str, student_id: str):
+    """Load saved assignment draft"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT submission_text, submission_files, submission_link, 
+                   started_at, last_saved_at
+            FROM assignment_progress
+            WHERE assignment_id = %s AND student_id = %s
+        """, (assignment_id, student_id))
+        
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if not result:
+            return {"has_progress": False}
+        
+        logger.info(f"✅ Assignment progress loaded: {assignment_id} for student {student_id}")
+        
+        return {
+            "has_progress": True,
+            "submission_text": result['submission_text'],
+            "submission_files": result['submission_files'] or [],
+            "submission_link": result['submission_link'],
+            "started_at": result['started_at'].isoformat(),
+            "last_saved_at": result['last_saved_at'].isoformat()
+        }
+    except Exception as e:
+        logger.error(f"❌ Failed to load assignment progress: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/progress/assignment/clear/{assignment_id}/{student_id}")
+async def clear_assignment_progress(assignment_id: str, student_id: str):
+    """Clear assignment draft (after submission)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            DELETE FROM assignment_progress
+            WHERE assignment_id = %s AND student_id = %s
+        """, (assignment_id, student_id))
+        
+        deleted_count = cursor.rowcount
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        logger.info(f"✅ Assignment progress cleared: {assignment_id} for student {student_id}")
+        
+        return {"success": True, "deleted": deleted_count}
+    except Exception as e:
+        logger.error(f"❌ Failed to clear assignment progress: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Development Server
 if __name__ == "__main__":

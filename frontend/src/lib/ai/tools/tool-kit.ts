@@ -2,6 +2,14 @@ import { createPieChartTool } from "./visualization/create-pie-chart";
 import { createBarChartTool } from "./visualization/create-bar-chart";
 import { createLineChartTool } from "./visualization/create-line-chart";
 import { createTableTool } from "./visualization/create-table";
+import { createFlashcardsTool } from "./visualization/create-flashcards";
+import { createQuizTool } from "./visualization/create-quiz";
+import { createExamTool } from "./visualization/create-exam";
+import { createAssignmentTool } from "./visualization/create-assignment";
+import { createCourseMaterialTool } from "./visualization/create-course-material";
+import { createScheduleTool } from "./visualization/create-schedule";
+import { createCourseListTool } from "./visualization/create-course-list";
+import { createAssignmentListTool } from "./visualization/create-assignment-list";
 import { exaSearchTool, exaContentsTool } from "./web/web-search";
 import { AppDefaultToolkit, DefaultToolName } from ".";
 import { Tool } from "ai";
@@ -39,6 +47,14 @@ export const APP_DEFAULT_TOOL_KIT: Record<
     [DefaultToolName.CreateBarChart]: createBarChartTool,
     [DefaultToolName.CreateLineChart]: createLineChartTool,
     [DefaultToolName.CreateTable]: createTableTool,
+    [DefaultToolName.CreateFlashcards]: createFlashcardsTool,
+    [DefaultToolName.CreateQuiz]: createQuizTool,
+    [DefaultToolName.CreateExam]: createExamTool,
+    [DefaultToolName.CreateAssignment]: createAssignmentTool,
+    [DefaultToolName.CreateCourseMaterial]: createCourseMaterialTool,
+    [DefaultToolName.CreateSchedule]: createScheduleTool,
+    [DefaultToolName.CreateCourseList]: createCourseListTool,
+    [DefaultToolName.CreateAssignmentList]: createAssignmentListTool,
   },
   [AppDefaultToolkit.WebSearch]: {
     [DefaultToolName.WebSearch]: exaSearchTool,

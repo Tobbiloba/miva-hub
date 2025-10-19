@@ -673,6 +673,70 @@ const InteractiveTable = dynamic(
   },
 );
 
+const Flashcards = dynamic(
+  () => import("./tool-invocation/flashcards").then((mod) => mod.Flashcards),
+  {
+    ssr: false,
+    loading,
+  },
+);
+
+const Quiz = dynamic(
+  () => import("./tool-invocation/quiz").then((mod) => mod.Quiz),
+  {
+    ssr: false,
+    loading,
+  },
+);
+
+const Exam = dynamic(
+  () => import("./tool-invocation/exam").then((mod) => mod.Exam),
+  {
+    ssr: false,
+    loading,
+  },
+);
+
+const Assignment = dynamic(
+  () => import("./tool-invocation/assignment").then((mod) => mod.Assignment),
+  {
+    ssr: false,
+    loading,
+  },
+);
+
+const CourseMaterial = dynamic(
+  () => import("./tool-invocation/course-material").then((mod) => mod.CourseMaterial),
+  {
+    ssr: false,
+    loading,
+  },
+);
+
+const Schedule = dynamic(
+  () => import("./tool-invocation/schedule").then((mod) => mod.Schedule),
+  {
+    ssr: false,
+    loading,
+  },
+);
+
+const CourseList = dynamic(
+  () => import("./tool-invocation/course-list").then((mod) => mod.CourseList),
+  {
+    ssr: false,
+    loading,
+  },
+);
+
+const AssignmentList = dynamic(
+  () => import("./tool-invocation/assignment-list").then((mod) => mod.AssignmentList),
+  {
+    ssr: false,
+    loading,
+  },
+);
+
 const WebSearchToolInvocation = dynamic(
   () =>
     import("./tool-invocation/web-search").then(
@@ -886,6 +950,62 @@ export const ToolMessagePart = memo(
           case DefaultToolName.CreateTable:
             return (
               <InteractiveTable
+                key={`${toolCallId}-${toolName}`}
+                {...(input as any)}
+              />
+            );
+          case DefaultToolName.CreateFlashcards:
+            return (
+              <Flashcards
+                key={`${toolCallId}-${toolName}`}
+                {...(input as any)}
+              />
+            );
+          case DefaultToolName.CreateQuiz:
+            return (
+              <Quiz
+                key={`${toolCallId}-${toolName}`}
+                {...(input as any)}
+              />
+            );
+          case DefaultToolName.CreateExam:
+            return (
+              <Exam
+                key={`${toolCallId}-${toolName}`}
+                {...(input as any)}
+              />
+            );
+          case DefaultToolName.CreateAssignment:
+            return (
+              <Assignment
+                key={`${toolCallId}-${toolName}`}
+                {...(input as any)}
+              />
+            );
+          case DefaultToolName.CreateCourseMaterial:
+            return (
+              <CourseMaterial
+                key={`${toolCallId}-${toolName}`}
+                {...(input as any)}
+              />
+            );
+          case DefaultToolName.CreateSchedule:
+            return (
+              <Schedule
+                key={`${toolCallId}-${toolName}`}
+                {...(input as any)}
+              />
+            );
+          case DefaultToolName.CreateCourseList:
+            return (
+              <CourseList
+                key={`${toolCallId}-${toolName}`}
+                {...(input as any)}
+              />
+            );
+          case DefaultToolName.CreateAssignmentList:
+            return (
+              <AssignmentList
                 key={`${toolCallId}-${toolName}`}
                 {...(input as any)}
               />
