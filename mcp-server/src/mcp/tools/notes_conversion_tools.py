@@ -8,6 +8,9 @@ import httpx
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from core.database import academic_repo
 
+# Import usage tracking
+from core.usage_tracker import usage_tracker, create_usage_error_response
+
 STUDY_BUDDY_API_BASE = "http://localhost:8083"
 
 
@@ -21,6 +24,14 @@ def register_notes_conversion_tools(mcp):
         card_count: int = 20,
         focus_areas: str = "all"
     ) -> str:
+        # Check usage limit before processing
+        if student_id:
+            allowed, usage_info = await usage_tracker.check_and_enforce_usage(
+                student_id, "flashcard_sets_per_week", "weekly"
+            )
+            if not allowed:
+                return create_usage_error_response(usage_info, "convert_notes_to_flashcards")
+        
         try:
             course_info = await academic_repo.get_course_info(course_code.upper())
             if course_info.get('error'):
@@ -62,6 +73,12 @@ def register_notes_conversion_tools(mcp):
                 'export_formats': result.get('export_formats', ["json", "csv", "anki", "quizlet"]),
                 'created_at': result['created_at']
             }
+            
+            # Record usage after successful execution
+            if student_id:
+                await usage_tracker.record_usage_after_success(
+                    student_id, "flashcard_sets_per_week", "weekly"
+                )
             
             return json.dumps(flashcards_output, indent=2)
             

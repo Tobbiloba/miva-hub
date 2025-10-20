@@ -12,6 +12,9 @@ logger = logging.getLogger(__name__)
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+# Import usage tracking
+from core.usage_tracker import usage_tracker, create_usage_error_response
+
 STUDY_BUDDY_API_BASE = "http://localhost:8083"
 
 def register_study_buddy_tools(mcp):
@@ -21,7 +24,8 @@ def register_study_buddy_tools(mcp):
     async def ask_study_question(
         question: str,
         course_id: Optional[int] = None,
-        difficulty_level: str = "medium"
+        difficulty_level: str = "medium",
+        student_id: Optional[str] = None
     ) -> str:
         """Ask an intelligent study question and get answers using course materials with citations and follow-up suggestions.
         
@@ -32,10 +36,18 @@ def register_study_buddy_tools(mcp):
             question: The study question to ask (e.g., 'What are loops in programming?')
             course_id: Course ID to focus the question on (1=CS, 2=Math, etc.). Optional.
             difficulty_level: Adjust answer complexity - beginner, medium, or advanced
+            student_id: Student ID for usage tracking
             
         Returns:
             Formatted study answer with sources and follow-up suggestions
         """
+        # Check usage limit before processing
+        if student_id:
+            allowed, usage_info = await usage_tracker.check_and_enforce_usage(
+                student_id, "ai_messages_per_day", "daily"
+            )
+            if not allowed:
+                return create_usage_error_response(usage_info, "ask_study_question")
         logger.info(f"🔍 [ask_study_question] Called with:")
         logger.info(f"   - Question: '{question[:100]}{'...' if len(question) > 100 else ''}'")
         logger.info(f"   - Course ID: {course_id}")
@@ -144,6 +156,13 @@ def register_study_buddy_tools(mcp):
                     answer_text += f"\n---\n*Study session: {session_data['course_name']} (Session ID: {session_data['session_id']})*"
                 
                 logger.info(f"✅ Successfully processed question, returning formatted answer")
+                
+                # Record usage after successful execution
+                if student_id:
+                    await usage_tracker.record_usage_after_success(
+                        student_id, "ai_messages_per_day", "daily"
+                    )
+                
                 return answer_text
             
         except httpx.TimeoutException as timeout_error:
@@ -167,7 +186,8 @@ def register_study_buddy_tools(mcp):
         course_id: str,
         topics: str = "",
         difficulty_level: str = "medium",
-        weeks: str = ""
+        weeks: str = "",
+        student_id: Optional[str] = None
     ) -> str:
         """Generate comprehensive study guide for course topics.
         
@@ -179,10 +199,18 @@ def register_study_buddy_tools(mcp):
             topics: Comma-separated topics to focus on (e.g., "algorithms, data structures"). Leave empty for all topics.
             difficulty_level: Complexity level - beginner, medium, or advanced
             weeks: Comma-separated week numbers to include (e.g., "1,3,5"). Leave empty for all weeks.
+            student_id: Student ID for usage tracking
             
         Returns:
             Formatted study guide with sections and source materials
         """
+        # Check usage limit before processing
+        if student_id:
+            allowed, usage_info = await usage_tracker.check_and_enforce_usage(
+                student_id, "study_guides_per_week", "weekly"
+            )
+            if not allowed:
+                return create_usage_error_response(usage_info, "generate_study_guide")
         try:
             # Parse topics and weeks
             topics_list = [t.strip() for t in topics.split(",") if t.strip()] if topics else []
@@ -234,6 +262,12 @@ def register_study_buddy_tools(mcp):
                 
                 guide_text += f"\n---\n*Generated: {result['created_at']} • Guide ID: {result['guide_id']}*"
                 
+                # Record usage after successful execution
+                if student_id:
+                    await usage_tracker.record_usage_after_success(
+                        student_id, "study_guides_per_week", "weekly"
+                    )
+                
                 return guide_text
             
         except httpx.TimeoutException:
@@ -246,7 +280,8 @@ def register_study_buddy_tools(mcp):
         course_id: str,
         topic: str,
         count: int = 10,
-        difficulty_level: str = "medium"
+        difficulty_level: str = "medium",
+        student_id: Optional[str] = None
     ) -> str:
         """Create flashcards for specific course topic.
         
@@ -258,10 +293,18 @@ def register_study_buddy_tools(mcp):
             course_id: Course ID to generate flashcards for  
             count: Number of flashcards to generate (5-50, default: 10)
             difficulty_level: Complexity level - beginner, medium, or advanced
+            student_id: Student ID for usage tracking
             
         Returns:
             Formatted flashcards with front/back pairs and source materials
         """
+        # Check usage limit before processing
+        if student_id:
+            allowed, usage_info = await usage_tracker.check_and_enforce_usage(
+                student_id, "flashcard_sets_per_week", "weekly"
+            )
+            if not allowed:
+                return create_usage_error_response(usage_info, "create_flashcards")
         try:
             # Validate count
             count = max(5, min(50, count))
@@ -309,6 +352,12 @@ def register_study_buddy_tools(mcp):
                 
                 cards_text += f"\n---\n*Generated: {result['created_at']} • Flashcards ID: {result['flashcards_id']}*"
                 
+                # Record usage after successful execution
+                if student_id:
+                    await usage_tracker.record_usage_after_success(
+                        student_id, "flashcard_sets_per_week", "weekly"
+                    )
+                
                 return cards_text
             
         except httpx.TimeoutException:
@@ -322,7 +371,8 @@ def register_study_buddy_tools(mcp):
         topics: str = "",
         question_count: int = 10,
         question_types: str = "multiple_choice",
-        difficulty_level: str = "medium"
+        difficulty_level: str = "medium",
+        student_id: Optional[str] = None
     ) -> str:
         """Generate practice quiz for course topics.
         
@@ -335,10 +385,18 @@ def register_study_buddy_tools(mcp):
             question_count: Number of questions to generate (5-25, default: 10)
             question_types: Comma-separated question types: multiple_choice, short_answer, essay (default: multiple_choice)
             difficulty_level: Complexity level - beginner, medium, or advanced
+            student_id: Student ID for usage tracking
             
         Returns:
             Formatted quiz with questions, answers, and source materials
         """
+        # Check usage limit before processing
+        if student_id:
+            allowed, usage_info = await usage_tracker.check_and_enforce_usage(
+                student_id, "quizzes_per_week", "weekly"
+            )
+            if not allowed:
+                return create_usage_error_response(usage_info, "generate_quiz")
         try:
             # Validate and parse inputs
             question_count = max(5, min(25, question_count))
@@ -400,6 +458,12 @@ def register_study_buddy_tools(mcp):
                         quiz_text += "\n"
                 
                 quiz_text += f"\n---\n*Generated: {result['created_at']} • Quiz ID: {result['quiz_id']}*"
+                
+                # Record usage after successful execution
+                if student_id:
+                    await usage_tracker.record_usage_after_success(
+                        student_id, "quizzes_per_week", "weekly"
+                    )
                 
                 return quiz_text
             

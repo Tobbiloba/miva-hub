@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # MCP Server
+  mcp-server:
+    build:
+      context: ./mcp-server
+      dockerfile: Dockerfile.mcp-server
+    ports:
+      - "8080:8080"
+    environment:
+      - POSTGRES_URL=${POSTGRES_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - STUDY_BUDDY_API_BASE=http://study-buddy-api:8083
+      - CONTENT_PROCESSOR_API_BASE=http://content-processor-api:8082
+    depends_on:
+      - study-buddy-api
+      - content-processor-api
+    restart: unless-stopped
+    networks:
+      - miva-network
+
+  # Study Buddy API
+  study-buddy-api:
+    build:
+      context: ./mcp-server
+      dockerfile: Dockerfile.study-buddy
+    ports:
+      - "8083:8083"
+    environment:
+      - POSTGRES_URL=${POSTGRES_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    restart: unless-stopped
+    networks:
+      - miva-network
+
+  # Content Processor API
+  content-processor-api:
+    build:
+      context: ./mcp-server
+      dockerfile: Dockerfile.content-processor
+    ports:
+      - "8082:8082"
+    environment:
+      - POSTGRES_URL=${POSTGRES_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    restart: unless-stopped
+    networks:
+      - miva-network
+
+  # Frontend (Next.js)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - POSTGRES_URL=${POSTGRES_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXT_PUBLIC_MCP_SERVER_URL=http://mcp-server:8080
+    depends_on:
+      - mcp-server
+    restart: unless-stopped
+    networks:
+      - miva-network
+
+networks:
+  miva-network:
+    driver: bridge
+

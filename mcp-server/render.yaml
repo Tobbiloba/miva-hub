@@ -1,0 +1,56 @@
+# Render Blueprint for MIVA MCP Services
+# Deploy all 3 Python services at once
+
+services:
+  # MCP Server
+  - type: web
+    name: miva-mcp-server
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python src/mcp/server_clean.py --transport sse --host 0.0.0.0 --port 8080
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: POSTGRES_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: STUDY_BUDDY_API_BASE
+        fromService:
+          type: web
+          name: miva-study-buddy-api
+          property: host
+      - key: CONTENT_PROCESSOR_API_BASE
+        fromService:
+          type: web
+          name: miva-content-processor-api
+          property: host
+
+  # Study Buddy API
+  - type: web
+    name: miva-study-buddy-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python src/api/study_buddy_api.py
+    envVars:
+      - key: PORT
+        value: 8083
+      - key: POSTGRES_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+
+  # Content Processor API
+  - type: web
+    name: miva-content-processor-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python src/api/enhanced_content_processor_api.py
+    envVars:
+      - key: PORT
+        value: 8082
+      - key: POSTGRES_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+

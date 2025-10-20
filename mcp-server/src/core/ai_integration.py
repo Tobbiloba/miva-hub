@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
 MIVA AI Integration Module
-Working with your existing M1 Pro models
+Supports both Groq (cloud) and Ollama (local)
 """
 
 import time
 import asyncio
 import requests
 import json
+import os
 from typing import List, Dict, Any, Optional
 import numpy as np
 
@@ -15,65 +16,119 @@ class MIVAAIStack:
     """AI stack integration for MIVA University content processing"""
     
     def __init__(self):
-        self.ollama_base_url = "http://localhost:11434"
-        self.llm_model = "llama3.2:3b"
-        self.embedding_model = "nomic-embed-text"
-        self.reasoning_model = "qwen3:4b-thinking-2507-q4_K_M"
+        # Check for Groq API key (production)
+        self.groq_api_key = os.getenv('GROQ_API_KEY')
+        self.use_groq = bool(self.groq_api_key)
+        
+        if self.use_groq:
+            # Groq configuration (cloud)
+            from groq import Groq
+            self.groq_client = Groq(api_key=self.groq_api_key)
+            self.llm_model = "llama-3.1-70b-versatile"  # Fast, smart
+            self.embedding_model = "groq-embeddings"
+            print("🌩️  Using Groq AI (cloud) for LLM")
+        else:
+            # Ollama configuration (local fallback)
+            self.ollama_base_url = "http://localhost:11434"
+            self.llm_model = "llama3.2:3b"
+            self.embedding_model = "nomic-embed-text"
+            self.reasoning_model = "qwen3:4b-thinking-2507-q4_K_M"
+            print("🖥️  Using Ollama (local) for LLM")
         
     async def test_connection(self) -> bool:
-        """Test if Ollama is running and models are available"""
-        try:
-            response = requests.get(f"{self.ollama_base_url}/api/tags", timeout=5)
-            if response.status_code == 200:
-                models = response.json()
-                available_models = [model['name'] for model in models.get('models', [])]
-                print("🟢 Ollama is running")
-                print(f"📋 Available models: {available_models}")
+        """Test if AI service is available"""
+        if self.use_groq:
+            # Groq is always available if API key is set
+            try:
+                # Quick test with Groq
+                response = self.groq_client.chat.completions.create(
+                    messages=[{"role": "user", "content": "test"}],
+                    model=self.llm_model,
+                    max_tokens=5
+                )
+                print("🟢 Groq AI is connected")
                 return True
-            else:
-                print("🔴 Ollama is not responding")
+            except Exception as e:
+                print(f"🔴 Groq connection failed: {e}")
                 return False
-        except Exception as e:
-            print(f"🔴 Connection failed: {e}")
-            return False
+        else:
+            # Test Ollama
+            try:
+                response = requests.get(f"{self.ollama_base_url}/api/tags", timeout=5)
+                if response.status_code == 200:
+                    models = response.json()
+                    available_models = [model['name'] for model in models.get('models', [])]
+                    print("🟢 Ollama is running")
+                    print(f"📋 Available models: {available_models}")
+                    return True
+                else:
+                    print("🔴 Ollama is not responding")
+                    return False
+            except Exception as e:
+                print(f"🔴 Connection failed: {e}")
+                return False
 
     async def generate_llm_response(self, prompt: str, model: str = None) -> Dict[str, Any]:
-        """Generate LLM response using Ollama API"""
+        """Generate LLM response using Groq or Ollama"""
         if model is None:
             model = self.llm_model
             
         try:
             start_time = time.time()
             
-            payload = {
-                "model": model,
-                "prompt": prompt,
-                "stream": False
-            }
-            
-            response = requests.post(
-                f"{self.ollama_base_url}/api/generate",
-                json=payload,
-                timeout=30
-            )
-            
-            response_time = time.time() - start_time
-            
-            if response.status_code == 200:
-                result = response.json()
+            if self.use_groq:
+                # Use Groq API
+                response = self.groq_client.chat.completions.create(
+                    messages=[
+                        {"role": "system", "content": "You are a helpful educational AI assistant."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    model=model,
+                    temperature=0.7,
+                    max_tokens=2000
+                )
+                
+                response_time = time.time() - start_time
+                response_text = response.choices[0].message.content
+                
                 return {
                     "success": True,
-                    "response": result.get("response", ""),
+                    "response": response_text,
                     "model": model,
                     "response_time": response_time,
-                    "tokens": len(result.get("response", "").split())
+                    "tokens": len(response_text.split())
                 }
             else:
-                return {
-                    "success": False,
-                    "error": f"HTTP {response.status_code}: {response.text}",
-                    "response_time": response_time
+                # Use Ollama API
+                payload = {
+                    "model": model,
+                    "prompt": prompt,
+                    "stream": False
                 }
+                
+                response = requests.post(
+                    f"{self.ollama_base_url}/api/generate",
+                    json=payload,
+                    timeout=30
+                )
+                
+                response_time = time.time() - start_time
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    return {
+                        "success": True,
+                        "response": result.get("response", ""),
+                        "model": model,
+                        "response_time": response_time,
+                        "tokens": len(result.get("response", "").split())
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "error": f"HTTP {response.status_code}: {response.text}",
+                        "response_time": response_time
+                    }
                 
         except Exception as e:
             return {
@@ -83,39 +138,59 @@ class MIVAAIStack:
             }
 
     async def generate_embeddings(self, text: str) -> Dict[str, Any]:
-        """Generate embeddings using nomic-embed-text"""
+        """Generate embeddings using OpenAI (cheap) or Ollama"""
         try:
             start_time = time.time()
             
-            payload = {
-                "model": self.embedding_model,
-                "prompt": text
-            }
-            
-            response = requests.post(
-                f"{self.ollama_base_url}/api/embeddings",
-                json=payload,
-                timeout=15
-            )
-            
-            response_time = time.time() - start_time
-            
-            if response.status_code == 200:
-                result = response.json()
-                embedding = result.get("embedding", [])
+            # For embeddings, use OpenAI if available (very cheap)
+            openai_key = os.getenv('OPENAI_API_KEY')
+            if openai_key:
+                from openai import OpenAI
+                client = OpenAI(api_key=openai_key)
+                response = client.embeddings.create(
+                    input=text,
+                    model="text-embedding-3-small"  # $0.00002/1K tokens - very cheap!
+                )
+                response_time = time.time() - start_time
+                embedding = response.data[0].embedding
                 return {
                     "success": True,
                     "embedding": embedding,
                     "dimensions": len(embedding),
                     "response_time": response_time,
-                    "model": self.embedding_model
+                    "model": "text-embedding-3-small"
                 }
             else:
-                return {
-                    "success": False,
-                    "error": f"HTTP {response.status_code}: {response.text}",
-                    "response_time": response_time
+                # Fall back to Ollama
+                payload = {
+                    "model": self.embedding_model,
+                    "prompt": text
                 }
+                
+                response = requests.post(
+                    f"{self.ollama_base_url}/api/embeddings",
+                    json=payload,
+                    timeout=15
+                )
+                
+                response_time = time.time() - start_time
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    embedding = result.get("embedding", [])
+                    return {
+                        "success": True,
+                        "embedding": embedding,
+                        "dimensions": len(embedding),
+                        "response_time": response_time,
+                        "model": self.embedding_model
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "error": f"HTTP {response.status_code}: {response.text}",
+                        "response_time": response_time
+                    }
                 
         except Exception as e:
             return {

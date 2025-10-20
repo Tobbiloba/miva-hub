@@ -9,6 +9,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from core.database import academic_repo
 from tools.exam_config import get_exam_template, get_exam_instructions, generate_grading_rubric
 
+# Import usage tracking
+from core.usage_tracker import usage_tracker, create_usage_error_response
+
 STUDY_BUDDY_API_BASE = "http://localhost:8083"
 
 
@@ -21,6 +24,14 @@ def register_exam_tools(mcp):
         weeks_covered: Optional[str] = None,
         include_answer_key: bool = False
     ) -> str:
+        # Check usage limit before processing
+        if student_id:
+            allowed, usage_info = await usage_tracker.check_and_enforce_usage(
+                student_id, "exams_per_month", "monthly"
+            )
+            if not allowed:
+                return create_usage_error_response(usage_info, "generate_exam_simulator")
+        
         try:
             enrollments = await academic_repo.get_student_enrollments(student_id=student_id)
             if enrollments.get('error'):
@@ -78,6 +89,12 @@ def register_exam_tools(mcp):
                     if 'explanation' in q:
                         del q['explanation']
             
+            # Record usage after successful execution
+            if student_id:
+                await usage_tracker.record_usage_after_success(
+                    student_id, "exams_per_month", "monthly"
+                )
+            
             return json.dumps(exam_output, indent=2)
             
         except httpx.TimeoutException:
@@ -93,6 +110,14 @@ def register_exam_tools(mcp):
         answers: str,
         time_taken_minutes: int
     ) -> str:
+        # Check usage limit before processing (also counts towards exam usage)
+        if student_id:
+            allowed, usage_info = await usage_tracker.check_and_enforce_usage(
+                student_id, "exams_per_month", "monthly"
+            )
+            if not allowed:
+                return create_usage_error_response(usage_info, "submit_exam_answers")
+        
         try:
             async with httpx.AsyncClient() as client:
                 payload = {
@@ -125,6 +150,12 @@ def register_exam_tools(mcp):
                 'weak_areas': result.get('weak_areas', []),
                 'recommendations': result.get('recommendations', [])
             }
+            
+            # Record usage after successful submission
+            if student_id:
+                await usage_tracker.record_usage_after_success(
+                    student_id, "exams_per_month", "monthly"
+                )
             
             return json.dumps(performance, indent=2)
             

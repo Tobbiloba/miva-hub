@@ -1,0 +1,23 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source code
+COPY src/ ./src/
+COPY .env* ./
+
+# Expose Content Processor API port
+EXPOSE 8082
+
+# Run the Content Processor API
+CMD ["python", "src/api/enhanced_content_processor_api.py"]
+
