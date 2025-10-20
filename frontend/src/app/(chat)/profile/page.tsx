@@ -6,13 +6,15 @@ import {
   User,
   Settings,
   BookOpen,
-  Activity
+  Activity,
+  CreditCard
 } from "lucide-react";
 import { getSession } from "@/lib/auth/server";
 import { getUserRole, getStudentId } from "@/lib/auth/user-utils";
 import { redirect } from "next/navigation";
 import { ProfileClient } from "@/components/profile/profile-client";
 import { ProfileOverview } from "@/components/profile/profile-overview";
+import { BillingTab } from "@/components/profile/billing-tab";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { UserSchema } from "@/lib/db/pg/schema.pg";
@@ -363,7 +365,7 @@ function ProfilePageContent({ profileData, userRole }: ProfilePageContentProps) 
       {/* Content */}
       <div className="container mx-auto px-4 py-6 md:px-6 md:py-8">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid grid-cols-4 w-full max-w-2xl bg-muted/30 border border-border/40">
+          <TabsList className="grid grid-cols-5 w-full max-w-2xl bg-muted/30 border border-border/40">
             <TabsTrigger value="overview" className="data-[state=active]:bg-background text-xs sm:text-sm flex-col sm:flex-row">
               <Activity className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Overview</span>
@@ -383,6 +385,11 @@ function ProfilePageContent({ profileData, userRole }: ProfilePageContentProps) 
               <Settings className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Settings</span>
               <span className="sm:hidden">Prefs</span>
+            </TabsTrigger>
+            <TabsTrigger value="billing" className="data-[state=active]:bg-background text-xs sm:text-sm flex-col sm:flex-row">
+              <CreditCard className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Billing</span>
+              <span className="sm:hidden">Pay</span>
             </TabsTrigger>
           </TabsList>
 
@@ -524,6 +531,11 @@ function ProfilePageContent({ profileData, userRole }: ProfilePageContentProps) 
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Billing Tab */}
+          <TabsContent value="billing" className="space-y-6">
+            <BillingTab />
           </TabsContent>
         </Tabs>
       </div>

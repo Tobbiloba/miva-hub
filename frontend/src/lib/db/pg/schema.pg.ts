@@ -109,6 +109,11 @@ export const UserSchema = pgTable("user", {
   enrollmentStatus: text("enrollment_status").default("active"), // active, inactive, graduated, suspended, transferred
   graduationDate: timestamp("graduation_date"),
   
+  // Subscription fields
+  paystackCustomerCode: text("paystack_customer_code"),
+  subscriptionStatus: text("subscription_status").default("none"),
+  currentPlan: text("current_plan").default("FREE"),
+  
   createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -970,6 +975,254 @@ export const ReportInstanceSchema = pgTable(
   ],
 );
 
+// ================================================
+// SUBSCRIPTION SYSTEM SCHEMAS
+// Phase 0: Payment & Subscription Foundation
+// ================================================
+
+export const SubscriptionPlanSchema = pgTable("subscription_plan", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  name: text("name").notNull().unique(),
+  displayName: text("display_name").notNull(),
+  description: text("description"),
+  priceNgn: integer("price_ngn").notNull(),
+  priceUsd: integer("price_usd"),
+  interval: text("interval").notNull().default("monthly"),
+  features: json("features").notNull().default([]).$type<string[]>(),
+  limits: json("limits").notNull().default({}).$type<Record<string, number>>(),
+  paystackPlanCode: text("paystack_plan_code").unique(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const UserSubscriptionSchema = pgTable("user_subscription", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => UserSchema.id, { onDelete: "cascade" }),
+  planId: uuid("plan_id")
+    .notNull()
+    .references(() => SubscriptionPlanSchema.id),
+  
+  paystackSubscriptionCode: text("paystack_subscription_code").unique(),
+  paystackCustomerCode: text("paystack_customer_code"),
+  paystackEmailToken: text("paystack_email_token"),
+  paystackAuthorizationCode: text("paystack_authorization_code"),
+  
+  status: text("status").notNull().default("active"),
+  currentPeriodStart: timestamp("current_period_start").notNull(),
+  currentPeriodEnd: timestamp("current_period_end").notNull(),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+  cancelledAt: timestamp("cancelled_at"),
+  
+  nextPaymentDate: timestamp("next_payment_date"),
+  lastPaymentDate: timestamp("last_payment_date"),
+  amountPaidNgn: integer("amount_paid_ngn"),
+  
+  trialStart: timestamp("trial_start"),
+  trialEnd: timestamp("trial_end"),
+  metadata: json("metadata").default({}).$type<Record<string, any>>(),
+  
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const UsageTrackingSchema = pgTable("usage_tracking", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => UserSchema.id, { onDelete: "cascade" }),
+  subscriptionId: uuid("subscription_id")
+    .references(() => UserSubscriptionSchema.id, { onDelete: "set null" }),
+  
+  usageType: text("usage_type").notNull(),
+  periodType: text("period_type").notNull(),
+  periodStart: date("period_start").notNull(),
+  periodEnd: date("period_end").notNull(),
+  
+  currentCount: integer("current_count").default(0),
+  limitCount: integer("limit_count"),
+  
+  lastResetAt: timestamp("last_reset_at").default(sql`CURRENT_TIMESTAMP`),
+  metadata: json("metadata").default({}).$type<Record<string, any>>(),
+  
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const PaymentTransactionSchema = pgTable("payment_transaction", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => UserSchema.id, { onDelete: "cascade" }),
+  subscriptionId: uuid("subscription_id")
+    .references(() => UserSubscriptionSchema.id, { onDelete: "set null" }),
+  
+  paystackReference: text("paystack_reference").notNull().unique(),
+  paystackTransactionId: text("paystack_transaction_id"),
+  paystackAccessCode: text("paystack_access_code"),
+  
+  amountNgn: integer("amount_ngn").notNull(),
+  currency: text("currency").default("NGN"),
+  status: text("status").notNull(),
+  paymentMethod: text("payment_method"),
+  
+  customerEmail: text("customer_email"),
+  customerName: text("customer_name"),
+  
+  description: text("description"),
+  metadata: json("metadata").default({}).$type<Record<string, any>>(),
+  paidAt: timestamp("paid_at"),
+  
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const WebhookEventSchema = pgTable("webhook_event", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  eventType: text("event_type").notNull(),
+  paystackEventId: text("paystack_event_id").unique(),
+  
+  payload: json("payload").notNull().$type<Record<string, any>>(),
+  signature: text("signature"),
+  
+  processed: boolean("processed").default(false),
+  processedAt: timestamp("processed_at"),
+  errorMessage: text("error_message"),
+  retryCount: integer("retry_count").default(0),
+  
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const SubscriptionChangeLogSchema = pgTable("subscription_change_log", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => UserSchema.id, { onDelete: "cascade" }),
+  subscriptionId: uuid("subscription_id")
+    .references(() => UserSubscriptionSchema.id, { onDelete: "set null" }),
+  
+  changeType: text("change_type").notNull(),
+  fromPlanId: uuid("from_plan_id")
+    .references(() => SubscriptionPlanSchema.id),
+  toPlanId: uuid("to_plan_id")
+    .references(() => SubscriptionPlanSchema.id),
+  
+  reason: text("reason"),
+  metadata: json("metadata").default({}).$type<Record<string, any>>(),
+  
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// ================================================
+// PERFORMANCE TRACKING SCHEMAS
+// Phase 1: Student Performance Analytics
+// ================================================
+
+export const PerformanceHistorySchema = pgTable(
+  "performance_history",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    weekNumber: integer("week_number").notNull(),
+    averageGrade: decimal("average_grade", { precision: 5, scale: 2 }),
+    assignmentsCompleted: integer("assignments_completed").default(0),
+    assignmentsTotal: integer("assignments_total").default(0),
+    studyTimeMinutes: integer("study_time_minutes").default(0),
+    recordedAt: timestamp("recorded_at").default(sql`CURRENT_TIMESTAMP`),
+    semester: text("semester").notNull(),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    unique().on(table.studentId, table.courseId, table.weekNumber, table.semester),
+    index("perf_history_student_idx").on(table.studentId, table.recordedAt),
+    index("perf_history_course_idx").on(table.courseId, table.semester),
+    index("perf_history_week_idx").on(table.weekNumber),
+  ]
+);
+
+export const ConceptMasterySchema = pgTable(
+  "concept_mastery",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    conceptName: text("concept_name").notNull(),
+    masteryLevel: decimal("mastery_level", { precision: 3, scale: 2 }).default("0.0"),
+    correctAttempts: integer("correct_attempts").default(0),
+    totalAttempts: integer("total_attempts").default(0),
+    lastPracticedAt: timestamp("last_practiced_at"),
+    firstLearnedAt: timestamp("first_learned_at").default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    unique().on(table.studentId, table.courseId, table.conceptName),
+    index("concept_mastery_student_idx").on(table.studentId, table.courseId),
+    index("concept_mastery_level_idx").on(table.masteryLevel),
+  ]
+);
+
+export const StudentStudySessionsSchema = pgTable(
+  "student_study_sessions",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .references(() => CourseSchema.id, { onDelete: "set null" }),
+    sessionType: varchar("session_type", {
+      enum: ["chat", "quiz", "exam", "assignment", "study_guide", "flashcards", "reading"],
+    }).notNull(),
+    durationMinutes: integer("duration_minutes").notNull(),
+    activityData: json("activity_data").$type<Record<string, any>>(),
+    startedAt: timestamp("started_at").notNull(),
+    endedAt: timestamp("ended_at").notNull(),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("student_study_sessions_student_idx").on(table.studentId, table.startedAt),
+    index("student_study_sessions_course_idx").on(table.courseId, table.startedAt),
+    index("student_study_sessions_type_idx").on(table.sessionType),
+  ]
+);
+
+export const GradePredictionsSchema = pgTable(
+  "grade_predictions",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    predictedFinalGrade: decimal("predicted_final_grade", { precision: 5, scale: 2 }),
+    confidenceLevel: decimal("confidence_level", { precision: 3, scale: 2 }),
+    predictionFactors: json("prediction_factors").$type<Record<string, any>>(),
+    algorithmVersion: text("algorithm_version").default("1.0"),
+    predictedAt: timestamp("predicted_at").default(sql`CURRENT_TIMESTAMP`),
+    semester: text("semester").notNull(),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("grade_predictions_student_idx").on(table.studentId, table.semester, table.predictedAt),
+    index("grade_predictions_course_idx").on(table.courseId, table.semester),
+  ]
+);
+
 export type McpServerEntity = typeof McpServerSchema.$inferSelect;
 export type ChatThreadEntity = typeof ChatThreadSchema.$inferSelect;
 export type ChatMessageEntity = typeof ChatMessageSchema.$inferSelect;
@@ -1011,3 +1264,17 @@ export type SystemSettingsEntity = typeof SystemSettingsSchema.$inferSelect;
 export type CalendarEventEntity = typeof CalendarEventSchema.$inferSelect;
 export type ReportConfigEntity = typeof ReportConfigSchema.$inferSelect;
 export type ReportInstanceEntity = typeof ReportInstanceSchema.$inferSelect;
+
+// Subscription System entity types
+export type SubscriptionPlanEntity = typeof SubscriptionPlanSchema.$inferSelect;
+export type UserSubscriptionEntity = typeof UserSubscriptionSchema.$inferSelect;
+export type UsageTrackingEntity = typeof UsageTrackingSchema.$inferSelect;
+export type PaymentTransactionEntity = typeof PaymentTransactionSchema.$inferSelect;
+export type WebhookEventEntity = typeof WebhookEventSchema.$inferSelect;
+export type SubscriptionChangeLogEntity = typeof SubscriptionChangeLogSchema.$inferSelect;
+
+// Performance Tracking entity types
+export type PerformanceHistoryEntity = typeof PerformanceHistorySchema.$inferSelect;
+export type ConceptMasteryEntity = typeof ConceptMasterySchema.$inferSelect;
+export type StudentStudySessionsEntity = typeof StudentStudySessionsSchema.$inferSelect;
+export type GradePredictionsEntity = typeof GradePredictionsSchema.$inferSelect;

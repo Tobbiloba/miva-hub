@@ -439,7 +439,15 @@ export class MCPClientsManager {
       'get_course_syllabus',
       'get_academic_schedule',
       'get_upcoming_assignments',
-      'get_course_schedule'
+      'get_course_schedule',
+      // Usage-limited tools that need student_id for tracking
+      'ask_study_question',
+      'generate_study_guide',
+      'create_flashcards',
+      'generate_quiz',
+      'generate_exam_simulator',
+      'submit_exam_answers',
+      'convert_notes_to_flashcards'
     ];
     return studentIdTools.includes(toolName);
   }

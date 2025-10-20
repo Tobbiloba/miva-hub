@@ -19,7 +19,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import {
   BookOpen,
-  Calendar,
   GraduationCap,
   Home,
   FileText,
@@ -42,11 +41,8 @@ const studentRoutes = [
   },
   {
     title: "My Courses",
+    href: "/student/courses",
     icon: BookOpen,
-    children: [
-      { title: "Current Courses", href: "/student/courses", icon: BookOpen },
-      { title: "Course Registration", href: "/student/registration", icon: FileText },
-    ],
   },
   {
     title: "Assignments",
@@ -59,18 +55,13 @@ const studentRoutes = [
     icon: Award,
   },
   {
-    title: "Calendar",
-    href: "/student/calendar",
-    icon: Calendar,
-  },
-  {
     title: "Study Buddy",
     href: "/student/study",
     icon: Brain,
   },
   {
-    title: "Academic Progress",
-    href: "/student/progress",
+    title: "Performance Dashboard",
+    href: "/student/dashboard",
     icon: BarChart3,
   },
   {

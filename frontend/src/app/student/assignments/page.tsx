@@ -15,22 +15,22 @@ import {
 } from "lucide-react";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { getSession } from "@/lib/auth/server";
-import { getStudentInfo } from "@/lib/auth/student";
 import { percentageToLetterGrade, percentageToGradePoints } from "@/lib/utils/grade-calculator";
 import Link from "next/link";
 
 export default async function StudentAssignmentsPage() {
   const session = await getSession();
-  const studentInfo = getStudentInfo(session);
   
-  if (!studentInfo) {
-    return <div>Error: Invalid student session</div>;
+  if (!session?.user) {
+    return <div>Error: Not logged in</div>;
   }
+
+  const userId = session.user.id;
 
   // Fetch assignments and grades
   const [upcomingAssignments, gradesSummary] = await Promise.all([
-    pgAcademicRepository.getStudentUpcomingAssignments(studentInfo.id, 20),
-    pgAcademicRepository.getStudentGradesSummary(studentInfo.id)
+    pgAcademicRepository.getStudentUpcomingAssignments(userId, 20),
+    pgAcademicRepository.getStudentGradesSummary(userId)
   ]);
 
   // Categorize assignments
@@ -70,11 +70,9 @@ export default async function StudentAssignmentsPage() {
             <Filter className="mr-2 h-4 w-4" />
             Filter
           </Button>
-          <Button variant="outline" asChild>
-            <Link href="/student/calendar">
-              <Calendar className="mr-2 h-4 w-4" />
-              Calendar View
-            </Link>
+          <Button variant="outline" disabled title="Coming soon">
+            <Calendar className="mr-2 h-4 w-4" />
+            Calendar View
           </Button>
         </div>
       </div>

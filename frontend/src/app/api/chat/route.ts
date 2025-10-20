@@ -32,7 +32,6 @@ import {
   extractInProgressToolPart,
   filterMcpServerCustomizations,
   loadMcpTools,
-  loadWorkFlowTools,
   loadAppDefaultTools,
   convertToSavePart,
 } from "./shared.chat";
@@ -175,15 +174,7 @@ export async function POST(request: Request) {
           })
           .orElse({});
 
-        const WORKFLOW_TOOLS = await safe()
-          .map(errorIf(() => !isToolCallAllowed && "Not allowed"))
-          .map(() =>
-            loadWorkFlowTools({
-              mentions,
-              dataStream,
-            }),
-          )
-          .orElse({});
+        const WORKFLOW_TOOLS = {};
 
         let APP_DEFAULT_TOOLS = {};
         if (isToolCallAllowed) {

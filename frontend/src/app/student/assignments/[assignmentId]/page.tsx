@@ -14,7 +14,6 @@ import {
   Award,
 } from "lucide-react";
 import { getSession } from "@/lib/auth/server";
-import { getStudentInfo } from "@/lib/auth/student";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -26,14 +25,15 @@ interface PageProps {
 
 export default async function AssignmentSubmissionPage({ params }: PageProps) {
   const session = await getSession();
-  const studentInfo = getStudentInfo(session);
   
-  if (!studentInfo) {
-    return <div>Error: Invalid student session</div>;
+  if (!session?.user) {
+    return <div>Error: Not logged in</div>;
   }
 
+  const userId = session.user.id;
+
   // Get assignment details and check if student has access
-  const upcomingAssignments = await pgAcademicRepository.getStudentUpcomingAssignments(studentInfo.id, 100);
+  const upcomingAssignments = await pgAcademicRepository.getStudentUpcomingAssignments(userId, 100);
   const assignmentData = upcomingAssignments.find(({ assignment }) => assignment.id === params.assignmentId);
 
   if (!assignmentData) {
@@ -272,7 +272,7 @@ export default async function AssignmentSubmissionPage({ params }: PageProps) {
             <SubmitForm 
               assignment={assignment}
               isOverdue={isOverdue}
-              studentId={studentInfo.id}
+              studentId={userId}
             />
           )}
           

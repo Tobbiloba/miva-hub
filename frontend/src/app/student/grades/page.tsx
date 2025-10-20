@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { getSession } from "@/lib/auth/server";
-import { getStudentInfo } from "@/lib/auth/student";
 import { 
   calculateSemesterGPA, 
   percentageToLetterGrade, 
@@ -25,16 +24,17 @@ import Link from "next/link";
 
 export default async function StudentGradesPage() {
   const session = await getSession();
-  const studentInfo = getStudentInfo(session);
   
-  if (!studentInfo) {
-    return <div>Error: Invalid student session</div>;
+  if (!session?.user) {
+    return <div>Error: Not logged in</div>;
   }
+
+  const userId = session.user.id;
 
   // Fetch grades and course data
   const [gradesSummary, courses] = await Promise.all([
-    pgAcademicRepository.getStudentGradesSummary(studentInfo.id),
-    pgAcademicRepository.getStudentCourses(studentInfo.id)
+    pgAcademicRepository.getStudentGradesSummary(userId),
+    pgAcademicRepository.getStudentCourses(userId)
   ]);
 
   // Transform data for grade calculator

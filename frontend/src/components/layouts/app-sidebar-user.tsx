@@ -25,6 +25,7 @@ import {
   Sun,
   MoonStar,
   ChevronRight,
+  User,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { appStore } from "@/app/store";
@@ -38,13 +39,15 @@ import { useCallback } from "react";
 import { GithubIcon } from "ui/github-icon";
 import { DiscordIcon } from "ui/discord-icon";
 import { useThemeStyle } from "@/hooks/use-theme-style";
-import { Session, User } from "better-auth";
+import { Session, User as UserType } from "better-auth";
+import { useRouter } from "next/navigation";
 
 export function AppSidebarUser({
   session,
-}: { session?: { session: Session; user: User } }) {
+}: { session?: { session: Session; user: UserType } }) {
   const appStoreMutate = appStore((state) => state.mutate);
   const t = useTranslations("Layout");
+  const router = useRouter();
 
   const user = session?.user;
 
@@ -116,6 +119,13 @@ export function AppSidebarUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
 
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => router.push("/profile")}
+            >
+              <User className="size-4 text-foreground" />
+              <span>Profile</span>
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer"
               onClick={() => appStoreMutate({ openChatPreferences: true })}

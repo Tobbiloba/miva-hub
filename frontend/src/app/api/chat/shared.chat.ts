@@ -28,16 +28,6 @@ import { MANUAL_REJECT_RESPONSE_PROMPT } from "lib/ai/prompts";
 
 import { ObjectJsonSchema7 } from "app-types/util";
 import { safe } from "ts-safe";
-import { workflowRepository } from "lib/db/repository";
-
-import {
-  VercelAIWorkflowTool,
-  VercelAIWorkflowToolStreaming,
-  VercelAIWorkflowToolStreamingResultTag,
-  VercelAIWorkflowToolTag,
-} from "app-types/workflow";
-import { createWorkflowExecutor } from "lib/ai/workflow/executor/workflow-executor";
-import { NodeKind } from "lib/ai/workflow/workflow.interface";
 import { mcpClientsManager } from "lib/ai/mcp/mcp-manager";
 import { APP_DEFAULT_TOOL_KIT, loadAppDefaultToolKitWithAcademic } from "lib/ai/tools/tool-kit";
 import { AppDefaultToolkit } from "lib/ai/tools";
@@ -114,7 +104,7 @@ export function mergeSystemPrompt(
 
 export function manualToolExecuteByLastMessage(
   part: ToolUIPart,
-  tools: Record<string, VercelAIMcpTool | VercelAIWorkflowTool | Tool>,
+  tools: Record<string, VercelAIMcpTool | Tool>,
   abortSignal?: AbortSignal,
   userContext?: any,
 ) {
@@ -131,13 +121,7 @@ export function manualToolExecuteByLastMessage(
   })
     .map(({ confirm }) => {
       if (!confirm) return MANUAL_REJECT_RESPONSE_PROMPT;
-      if (VercelAIWorkflowToolTag.isMaybe(tool)) {
-        return tool.execute!(input, {
-          toolCallId: part.toolCallId,
-          abortSignal: abortSignal ?? new AbortController().signal,
-          messages: [],
-        });
-      } else if (VercelAIMcpToolTag.isMaybe(tool)) {
+      if (VercelAIMcpToolTag.isMaybe(tool)) {
         return mcpClientsManager.toolCall(
           tool._mcpServerId,
           tool._originToolName,
@@ -221,179 +205,6 @@ export function filterMcpServerCustomizations(
   );
 }
 
-export const workflowToVercelAITool = ({
-  id,
-  description,
-  schema,
-  dataStream,
-  name,
-}: {
-  id: string;
-  name: string;
-  description?: string;
-  schema: ObjectJsonSchema7;
-  dataStream: UIMessageStreamWriter;
-}): VercelAIWorkflowTool => {
-  const toolName = name
-    .replace(/[^a-zA-Z0-9\s]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .toUpperCase();
-
-  const tool = createTool({
-    description: `${name} ${description?.trim().slice(0, 50)}`,
-    inputSchema: jsonSchema(schema),
-    execute(query, { toolCallId, abortSignal }) {
-      const history: VercelAIWorkflowToolStreaming[] = [];
-      const toolResult = VercelAIWorkflowToolStreamingResultTag.create({
-        toolCallId,
-        workflowName: name,
-
-        startedAt: Date.now(),
-        endedAt: Date.now(),
-        history,
-        result: undefined,
-        status: "running",
-      });
-      return safe(id)
-        .map((id) =>
-          workflowRepository.selectStructureById(id, {
-            ignoreNote: true,
-          }),
-        )
-        .map((workflow) => {
-          if (!workflow) throw new Error("Not Found Workflow");
-          const executor = createWorkflowExecutor({
-            nodes: workflow.nodes,
-            edges: workflow.edges,
-          });
-          toolResult.workflowIcon = workflow.icon;
-
-          abortSignal?.addEventListener("abort", () => executor.exit());
-          executor.subscribe((e) => {
-            if (
-              e.eventType == "WORKFLOW_START" ||
-              e.eventType == "WORKFLOW_END"
-            )
-              return;
-            if (e.node.name == "SKIP") return;
-            if (e.eventType == "NODE_START") {
-              const node = workflow.nodes.find(
-                (node) => node.id == e.node.name,
-              )!;
-              if (!node) return;
-              history.push({
-                id: e.nodeExecutionId,
-                name: node.name,
-                status: "running",
-                startedAt: e.startedAt,
-                kind: node.kind as NodeKind,
-              });
-            } else if (e.eventType == "NODE_END") {
-              const result = history.find((r) => r.id == e.nodeExecutionId);
-              if (result) {
-                if (e.isOk) {
-                  result.status = "success";
-                  result.result = {
-                    input: e.node.output.getInput(e.node.name),
-                    output: e.node.output.getOutput({
-                      nodeId: e.node.name,
-                      path: [],
-                    }),
-                  };
-                } else {
-                  result.status = "fail";
-                  result.error = {
-                    name: e.error?.name || "ERROR",
-                    message: errorToString(e.error),
-                  };
-                }
-                result.endedAt = e.endedAt;
-              }
-            }
-
-            dataStream.write({
-              type: "tool-output-available",
-              toolCallId,
-              output: toolResult,
-            });
-          });
-          return executor.run(
-            {
-              query: query ?? ({} as any),
-            },
-            {
-              disableHistory: true,
-            },
-          );
-        })
-        .map((result) => {
-          toolResult.endedAt = Date.now();
-          toolResult.status = result.isOk ? "success" : "fail";
-          toolResult.error = result.error
-            ? {
-                name: result.error.name || "ERROR",
-                message: errorToString(result.error) || "Unknown Error",
-              }
-            : undefined;
-          const outputNodeResults = history
-            .filter((h) => h.kind == NodeKind.Output)
-            .map((v) => v.result?.output)
-            .filter(Boolean);
-          toolResult.history = history.map((h) => ({
-            ...h,
-            result: undefined, // save tokens.
-          }));
-          toolResult.result =
-            outputNodeResults.length == 1
-              ? outputNodeResults[0]
-              : outputNodeResults;
-          return toolResult;
-        })
-        .ifFail((err) => {
-          return {
-            error: {
-              name: err?.name || "ERROR",
-              message: errorToString(err),
-              history,
-            },
-          };
-        })
-        .unwrap();
-    },
-  }) as VercelAIWorkflowTool;
-
-  tool._workflowId = id;
-  tool._originToolName = name;
-  tool._toolName = toolName;
-
-  return VercelAIWorkflowToolTag.create(tool);
-};
-
-export const workflowToVercelAITools = (
-  workflows: {
-    id: string;
-    name: string;
-    description?: string;
-    schema: ObjectJsonSchema7;
-  }[],
-  dataStream: UIMessageStreamWriter,
-) => {
-  return workflows
-    .map((v) =>
-      workflowToVercelAITool({
-        ...v,
-        dataStream,
-      }),
-    )
-    .reduce(
-      (prev, cur) => {
-        prev[cur._toolName] = cur;
-        return prev;
-      },
-      {} as Record<string, VercelAIWorkflowTool>,
-    );
-};
 
 export const loadMcpTools = (opt?: {
   mentions?: ChatMention[];
@@ -428,21 +239,6 @@ export const loadMcpTools = (opt?: {
     })
     .orElse({} as Record<string, VercelAIMcpTool>);
 
-export const loadWorkFlowTools = (opt: {
-  mentions?: ChatMention[];
-  dataStream: UIMessageStreamWriter;
-}) =>
-  safe(() =>
-    opt?.mentions?.length
-      ? workflowRepository.selectToolByIds(
-          opt?.mentions
-            ?.filter((m) => m.type == "workflow")
-            .map((v) => v.workflowId),
-        )
-      : [],
-  )
-    .map((tools) => workflowToVercelAITools(tools, opt.dataStream))
-    .orElse({} as Record<string, VercelAIWorkflowTool>);
 
 export const loadAppDefaultTools = async (opt?: {
   mentions?: ChatMention[];
@@ -493,22 +289,6 @@ export const convertToSavePart = <T extends UIMessagePart<any, any>>(
     exclude(part as any, ["providerMetadata", "callProviderMetadata"]) as T,
   )
     .map((v) => {
-      if (isToolUIPart(v) && v.state.startsWith("output")) {
-        if (VercelAIWorkflowToolStreamingResultTag.isMaybe(v.output)) {
-          return {
-            ...v,
-            output: {
-              ...v.output,
-              history: v.output.history.map((h: any) => {
-                return {
-                  ...h,
-                  result: undefined,
-                };
-              }),
-            },
-          };
-        }
-      }
       return v;
     })
     .unwrap();

@@ -10,7 +10,6 @@ import { colorize } from "consola/utils";
 import { AgentGenerateSchema } from "app-types/agent";
 import { z } from "zod";
 import { loadAppDefaultTools } from "../../chat/shared.chat";
-import { workflowRepository } from "lib/db/repository";
 import { safe } from "ts-safe";
 import { objectFlow } from "lib/utils";
 import { mcpClientsManager } from "lib/ai/mcp/mcp-manager";
@@ -54,13 +53,6 @@ export async function POST(request: Request) {
       })
       .unwrap();
 
-    await safe(workflowRepository.selectExecuteAbility(session.user.id))
-      .ifOk((tools) => {
-        tools.forEach((tool) => {
-          toolNames.add(tool.name);
-        });
-      })
-      .unwrap();
 
     const dynamicAgentSchema = AgentGenerateSchema.extend({
       tools: z

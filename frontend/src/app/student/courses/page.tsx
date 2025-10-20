@@ -12,19 +12,19 @@ import {
 } from "lucide-react";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { getSession } from "@/lib/auth/server";
-import { getStudentInfo } from "@/lib/auth/student";
 import Link from "next/link";
 
 export default async function StudentCoursesPage() {
   const session = await getSession();
-  const studentInfo = getStudentInfo(session);
   
-  if (!studentInfo) {
-    return <div>Error: Invalid student session</div>;
+  if (!session?.user) {
+    return <div>Error: Not logged in</div>;
   }
 
+  const userId = session.user.id;
+
   // Fetch student courses
-  const courses = await pgAcademicRepository.getStudentCourses(studentInfo.id);
+  const courses = await pgAcademicRepository.getStudentCourses(userId);
 
   // Calculate total credits
   const totalCredits = courses.reduce((sum, { course }) => sum + (course.credits || 0), 0);
@@ -40,17 +40,13 @@ export default async function StudentCoursesPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link href="/student/registration">
-              <BookOpen className="mr-2 h-4 w-4" />
-              Course Registration
-            </Link>
+          <Button variant="outline" disabled title="Coming soon">
+            <BookOpen className="mr-2 h-4 w-4" />
+            Course Registration
           </Button>
-          <Button asChild>
-            <Link href="/student/calendar">
-              <Calendar className="mr-2 h-4 w-4" />
-              View Schedule
-            </Link>
+          <Button disabled title="Coming soon">
+            <Calendar className="mr-2 h-4 w-4" />
+            View Schedule
           </Button>
         </div>
       </div>
@@ -64,7 +60,7 @@ export default async function StudentCoursesPage() {
               course={course}
               department={department}
               enrollment={enrollment}
-              studentId={studentInfo.id}
+              studentId={userId}
             />
           ))}
         </div>
@@ -186,23 +182,21 @@ async function CourseCard({
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
           <Button 
-            asChild 
             size="sm" 
             className="flex-1"
+            disabled
+            title="Coming soon"
           >
-            <Link href={`/student/courses/${course.id}`}>
-              View Course
-              <ArrowRight className="ml-1 h-3 w-3" />
-            </Link>
+            View Course
+            <ArrowRight className="ml-1 h-3 w-3" />
           </Button>
           <Button 
-            asChild 
             variant="outline" 
             size="sm"
+            disabled
+            title="Coming soon"
           >
-            <Link href={`/student/courses/${course.id}/materials`}>
-              <FileText className="h-3 w-3" />
-            </Link>
+            <FileText className="h-3 w-3" />
           </Button>
         </div>
       </CardContent>
@@ -220,17 +214,13 @@ function EmptyCoursesState() {
           You haven&apos;t enrolled in any courses yet. Browse available courses and register for the current semester.
         </p>
         <div className="flex gap-2 justify-center">
-          <Button asChild>
-            <Link href="/student/registration">
-              <BookOpen className="mr-2 h-4 w-4" />
-              Browse Courses
-            </Link>
+          <Button disabled title="Coming soon">
+            <BookOpen className="mr-2 h-4 w-4" />
+            Browse Courses
           </Button>
-          <Button variant="outline" asChild>
-            <Link href="/student/calendar">
-              <Calendar className="mr-2 h-4 w-4" />
-              Academic Calendar
-            </Link>
+          <Button variant="outline" disabled title="Coming soon">
+            <Calendar className="mr-2 h-4 w-4" />
+            Academic Calendar
           </Button>
         </div>
       </CardContent>

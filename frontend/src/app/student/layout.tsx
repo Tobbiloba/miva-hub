@@ -18,24 +18,24 @@ export default async function StudentLayout({
   }
 
   // Check if user is an active student
-  if (!isActiveStudent(session)) {
-    // If user has a session but is not a student, redirect to main app
-    if (session?.user) {
-      redirect("/");
-    }
-    // No session, redirect to sign-in
-    redirect("/sign-in");
-  }
+  // if (!isActiveStudent(session)) {
+  //   // If user has a session but is not a student, redirect to main app
+  //   if (session?.user) {
+  //     redirect("/");
+  //   }
+  //   // No session, redirect to sign-in
+  //   redirect("/sign-in");
+  // }
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen bg-background w-screen">
         <StudentSidebar session={session} />
-        <main className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
-            <div className="container mx-auto p-6 max-w-7xl">
+        <main className="flex-1 w-full flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-6">
+            {/* <div className="container mx-auto p-6"> */}
               {children}
-            </div>
+            {/* </div> */}
           </div>
         </main>
       </div>

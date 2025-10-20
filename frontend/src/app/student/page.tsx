@@ -16,16 +16,19 @@ import {
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { StudentStatsCard } from "@/components/student/student-stats-card";
 import { getSession } from "@/lib/auth/server";
-import { getStudentInfo } from "@/lib/auth/student";
+import { getStudentId } from "@/lib/auth/user-utils";
 import Link from "next/link";
 
 export default async function StudentDashboard() {
   const session = await getSession();
-  const studentInfo = getStudentInfo(session);
   
-  if (!studentInfo) {
-    return <div>Error: Invalid student session</div>;
+  if (!session?.user) {
+    return <div>Error: Not logged in</div>;
   }
+
+  const user = session.user;
+  const userId = user.id;
+  const studentId = getStudentId(user);
 
   // Fetch student data
   const [
@@ -35,11 +38,11 @@ export default async function StudentDashboard() {
     recentAnnouncements,
     gradesSummary
   ] = await Promise.all([
-    pgAcademicRepository.getStudentEnrollmentStats(studentInfo.id),
-    pgAcademicRepository.getStudentCourses(studentInfo.id),
-    pgAcademicRepository.getStudentUpcomingAssignments(studentInfo.id, 5),
-    pgAcademicRepository.getStudentRecentAnnouncements(studentInfo.id, 5),
-    pgAcademicRepository.getStudentGradesSummary(studentInfo.id)
+    pgAcademicRepository.getStudentEnrollmentStats(userId),
+    pgAcademicRepository.getStudentCourses(userId),
+    pgAcademicRepository.getStudentUpcomingAssignments(userId, 5),
+    pgAcademicRepository.getStudentRecentAnnouncements(userId, 5),
+    pgAcademicRepository.getStudentGradesSummary(userId)
   ]);
 
   // Calculate some stats
@@ -53,15 +56,15 @@ export default async function StudentDashboard() {
       {/* Welcome Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Welcome back, {studentInfo.name?.split(' ')[0]}!</h1>
+          <h1 className="text-3xl font-bold">Welcome back, {user.name?.split(' ')[0]}!</h1>
           <p className="text-muted-foreground mt-1">
             Here&apos;s your academic overview for today
           </p>
         </div>
         <div className="text-right">
           <p className="text-sm text-muted-foreground">Student ID</p>
-          <p className="font-mono text-sm">{studentInfo.studentId}</p>
-          <p className="text-xs text-muted-foreground">{studentInfo.academicYear}</p>
+          <p className="font-mono text-sm">{studentId || 'N/A'}</p>
+          <p className="text-xs text-muted-foreground">{(user as any).academicYear || 'N/A'}</p>
         </div>
       </div>
 
@@ -134,8 +137,8 @@ export default async function StudentDashboard() {
             ) : (
               <div className="text-center py-6">
                 <p className="text-muted-foreground text-sm">No courses enrolled</p>
-                <Button asChild size="sm" className="mt-2">
-                  <Link href="/student/registration">Register for Courses</Link>
+                <Button size="sm" className="mt-2" disabled title="Coming soon">
+                  Register for Courses
                 </Button>
               </div>
             )}
