@@ -24,7 +24,7 @@ class MIVAAIStack:
             # Groq configuration (cloud)
             from groq import Groq
             self.groq_client = Groq(api_key=self.groq_api_key)
-            self.llm_model = "llama-3.1-70b-versatile"  # Fast, smart
+            self.llm_model = "llama-3.3-70b-versatile"  # Current fast model (Oct 2024+)
             self.embedding_model = "groq-embeddings"
             print("🌩️  Using Groq AI (cloud) for LLM")
         else:
