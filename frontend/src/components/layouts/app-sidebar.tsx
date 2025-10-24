@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
+import Image from "next/image";
 
 import { AppSidebarMenus } from "./app-sidebar-menus";
 import { AppSidebarAgents } from "./app-sidebar-agents";
@@ -63,7 +64,7 @@ export function AppSidebar({
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center gap-0.5">
-            <SidebarMenuButton asChild className="hover:bg-transparent">
+            <SidebarMenuButton asChild className="hover:bg-transparent px-2">
               <Link
                 href={`/`}
                 onClick={(e) => {
@@ -72,7 +73,14 @@ export function AppSidebar({
                   router.refresh();
                 }}
               >
-                <h4 className="font-bold">better-chatbot</h4>
+                <Image
+                  src="/logo.png"
+                  alt="MIVA Hub"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 object-contain"
+                  priority
+                />
                 <div
                   className="ml-auto block sm:hidden"
                   onClick={(e) => {

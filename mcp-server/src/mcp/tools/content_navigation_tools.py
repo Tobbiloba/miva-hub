@@ -6,6 +6,7 @@ import os
 from typing import Optional
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from core.database import academic_repo
+from core.usage_tracker import usage_tracker, create_usage_error_response
 
 
 def register_content_navigation_tools(mcp):
@@ -14,22 +15,32 @@ def register_content_navigation_tools(mcp):
     @mcp.tool()
     async def summarize_material(
         material_id: str,
+        student_id: Optional[str] = None,
         summary_length: str = "medium",
         focus_topics: str = ""
     ) -> str:
         """Get a condensed summary of a specific course material.
-        
+
         Summarizes lecture notes, readings, or videos into key points. Perfect for
         quick review or understanding main concepts without reading everything.
-        
+
         Args:
             material_id: ID of the material to summarize
+            student_id: Student ID for usage tracking
             summary_length: Length of summary - "brief" (3-5 bullets), "medium" (1-2 paragraphs), "detailed" (full breakdown)
             focus_topics: Optional comma-separated topics to focus on (e.g., "loops, functions")
-            
+
         Returns:
             Formatted summary with key points, main concepts, and examples
         """
+        # Check usage limit before processing
+        if student_id:
+            allowed, usage_info = await usage_tracker.check_and_enforce_usage(
+                student_id, "material_searches_per_day", "daily"
+            )
+            if not allowed:
+                return create_usage_error_response(usage_info, "summarize_material")
+
         try:
             # Fetch material
             material = await academic_repo.get_material_by_id(material_id)
@@ -93,8 +104,14 @@ def register_content_navigation_tools(mcp):
             # Add metadata
             summary_result['file_url'] = material.get('file_url', '')
             summary_result['public_url'] = material.get('public_url', '')
-            
+
+            # Record usage after successful execution
+            if student_id:
+                await usage_tracker.record_usage_after_success(
+                    student_id, "material_searches_per_day", "daily"
+                )
+
             return json.dumps(summary_result, indent=2)
-            
+
         except Exception as e:
             return json.dumps({"error": f"Failed to summarize material: {str(e)}"})

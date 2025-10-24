@@ -1,5 +1,5 @@
 services:
-  better-chatbot:
+  miva-hub:
     build:
       context: ..
       dockerfile: ./docker/Dockerfile
@@ -13,7 +13,7 @@ services:
       - 8.8.8.8 # Google's public DNS server
       - 8.8.4.4 # Google's public DNS server
     networks:
-      - better-chatbot-networks
+      - miva-hub-networks
     depends_on:
       - postgres
     restart: unless-stopped
@@ -21,11 +21,11 @@ services:
   postgres:
     image: postgres:17
     environment:
-      - POSTGRES_USER=better_chatbot
-      - POSTGRES_PASSWORD=better_chatbot
-      - POSTGRES_DB=better_chatbot
+      - POSTGRES_USER=miva_hub
+      - POSTGRES_PASSWORD=miva_hub
+      - POSTGRES_DB=miva_hub
     networks:
-      - better-chatbot-networks
+      - miva-hub-networks
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -34,5 +34,5 @@ volumes:
   postgres_data:
 
 networks:
-  better-chatbot-networks:
+  miva-hub-networks:
     driver: bridge

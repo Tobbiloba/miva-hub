@@ -48,6 +48,9 @@ export interface AppState {
   chatSidebar: {
     visible: boolean;
   };
+  toolsInfoDrawer: {
+    isOpen: boolean;
+  };
 }
 
 export interface AppDispatch {
@@ -91,6 +94,9 @@ const initialState: AppState = {
   chatSidebar: {
     visible: false,
   },
+  toolsInfoDrawer: {
+    isOpen: false,
+  },
 };
 
 export const appStore = create<AppState & AppDispatch>()(
@@ -119,6 +125,11 @@ export const appStore = create<AppState & AppDispatch>()(
         voiceChat: {
           ...initialState.voiceChat,
           ...state.voiceChat,
+          isOpen: false,
+        },
+        toolsInfoDrawer: {
+          ...initialState.toolsInfoDrawer,
+          ...state.toolsInfoDrawer,
           isOpen: false,
         },
       }),

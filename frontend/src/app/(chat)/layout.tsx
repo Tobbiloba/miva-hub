@@ -7,6 +7,8 @@ import { auth } from "auth/server";
 import { COOKIE_KEY_SIDEBAR_STATE } from "lib/const";
 import { AppPopupProvider } from "@/components/layouts/app-popup-provider";
 import { SWRConfigProvider } from "./swr-config";
+import { SubscriptionGuard } from "@/components/layouts/subscription-guard";
+import { ToolsInfoDrawerProvider } from "@/components/layouts/tools-info-drawer-provider";
 
 export const experimental_ppr = true;
 
@@ -22,15 +24,19 @@ export default async function ChatLayout({
   const isCollapsed =
     cookieStore.get(COOKIE_KEY_SIDEBAR_STATE)?.value !== "true";
   return (
-    <SidebarProvider defaultOpen={!isCollapsed}>
-      <SWRConfigProvider>
-        <AppPopupProvider />
-        <AppSidebar session={session || undefined} />
-        <main className="relative bg-background  w-full flex flex-col h-screen">
-          <AppHeader />
-          <div className="flex-1 overflow-y-auto">{children}</div>
-        </main>
-      </SWRConfigProvider>
-    </SidebarProvider>
+    <SubscriptionGuard>
+      <SidebarProvider defaultOpen={!isCollapsed}>
+        <SWRConfigProvider>
+          <ToolsInfoDrawerProvider>
+            <AppPopupProvider />
+            <AppSidebar session={session || undefined} />
+            <main className="relative bg-background  w-full flex flex-col h-screen">
+              <AppHeader />
+              <div className="flex-1 overflow-y-auto">{children}</div>
+            </main>
+          </ToolsInfoDrawerProvider>
+        </SWRConfigProvider>
+      </SidebarProvider>
+    </SubscriptionGuard>
   );
 }

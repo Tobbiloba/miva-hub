@@ -3,6 +3,7 @@ import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-re
 import { PricingCards } from "@/components/pricing/pricing-cards";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2, Zap } from "lucide-react";
+import { PaymentRequiredBanner } from "@/components/payment-required-banner";
 
 export const metadata = {
   title: "Pricing - MIVA University",
@@ -12,7 +13,13 @@ export const metadata = {
 export default async function PricingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; plan?: string; success?: string; error?: string }>;
+  searchParams: Promise<{
+    from?: string;
+    plan?: string;
+    success?: string;
+    error?: string;
+    required?: string;
+  }>;
 }) {
   const params = await searchParams;
   
@@ -71,6 +78,12 @@ export default async function PricingPage({
               </p>
             </CardContent>
           </Card>
+        )}
+
+        {(params.required === "true" || params.error === "true") && (
+          <div className="max-w-2xl mx-auto mb-8">
+            <PaymentRequiredBanner showError={params.error === "true"} />
+          </div>
         )}
 
         <PricingCards

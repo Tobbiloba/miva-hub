@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to add MIVA Academic MCP Server to the Better Chatbot database
+Script to add MIVA Academic MCP Server to the Miva Hub database
 """
 
 import sys
@@ -10,13 +10,13 @@ from psycopg2.extras import RealDictCursor
 import json
 import uuid
 
-# Database Configuration (Better Chatbot database)
+# Database Configuration (Miva Hub database)
 DB_CONFIG = {
     'host': 'localhost',
     'port': 5432,
-    'database': 'better_chatbot',
-    'user': 'better_chatbot',
-    'password': 'better_chatbot',
+    'database': 'miva_hub',
+    'user': 'miva_hub',
+    'password': 'miva_hub',
     'cursor_factory': RealDictCursor
 }
 
@@ -105,11 +105,11 @@ def add_mcp_server():
         return None
 
 if __name__ == "__main__":
-    print("🔄 Adding MIVA Academic MCP Server to Better Chatbot database...")
+    print("🔄 Adding MIVA Academic MCP Server to Miva Hub database...")
     server_id = add_mcp_server()
-    
+
     if server_id:
-        print(f"\n✅ Success! The MIVA Academic MCP Server is now available in the Better Chatbot interface.")
+        print(f"\n✅ Success! The MIVA Academic MCP Server is now available in the Miva Hub interface.")
         print(f"🚀 You can now use Study Buddy tools in your conversations!")
     else:
         print(f"\n❌ Failed to add MCP server. Please check the database connection and try again.")

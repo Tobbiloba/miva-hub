@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateSchoolEmail, prepareUserRegistrationData } from "lib/utils/email-validation";
 import { auth } from "lib/auth/server";
+import { sendEmail } from "@/lib/email/smtp-service";
 
 export async function POST(request: NextRequest) {
   try {
@@ -112,6 +113,30 @@ export async function POST(request: NextRequest) {
         console.error("Error creating student enrollments:", enrollmentError);
         // Don't fail the registration if enrollment creation fails
         // The user account was created successfully
+      }
+
+      // Send welcome email
+      try {
+        const fs = await import("fs");
+        const path = await import("path");
+        const welcomeTemplate = fs.readFileSync(
+          path.join(process.cwd(), "src/lib/email/templates/welcome-email.html"),
+          "utf-8"
+        );
+
+        const welcomeHtml = welcomeTemplate
+          .replace("{{userName}}", signUpResponse.user.name || "User")
+          .replace(/{{appUrl}}/g, process.env.NEXT_PUBLIC_APP_URL || "https://miva-hub.com");
+
+        await sendEmail({
+          to: signUpResponse.user.email,
+          subject: "Welcome to MIVA Hub! 🎓",
+          html: welcomeHtml,
+        });
+        console.log(`Welcome email sent to ${signUpResponse.user.email}`);
+      } catch (emailError) {
+        console.error("Error sending welcome email:", emailError);
+        // Don't fail registration if email fails
       }
     }
 

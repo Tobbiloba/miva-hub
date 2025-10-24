@@ -13,10 +13,11 @@ import {
   VerificationSchema,
 } from "lib/db/pg/schema.pg";
 import { getAuthConfig } from "./config";
-import { 
-  validateSchoolEmail, 
+import {
+  validateSchoolEmail,
   prepareUserRegistrationData
 } from "lib/utils/email-validation";
+import { sendEmail } from "@/lib/email/smtp-service";
 
 import logger from "logger";
 import { redirect } from "next/navigation";
@@ -57,7 +58,7 @@ export const auth = betterAuth({
           email: user.email,
           name: user.name,
         });
-        
+
         // Update the user record with academic fields
         await pgDb
           .update(UserSchema)
@@ -68,7 +69,7 @@ export const auth = betterAuth({
             enrollmentStatus: userData.enrollmentStatus,
           })
           .where(eq(UserSchema.id, user.id));
-          
+
         logger.info(`User ${user.id} registered with academic fields:`, {
           role: userData.role,
           academicYear: userData.academicYear,
@@ -77,6 +78,29 @@ export const auth = betterAuth({
       } catch (error) {
         logger.error("Failed to set academic fields for user:", error);
         // Don't throw here as the user is already created
+      }
+    },
+    sendVerificationEmail: async ({ email, url }) => {
+      try {
+        const verificationUrl = `${process.env.NEXT_PUBLIC_BASE_URL}${url}`;
+        await sendEmail({
+          to: email,
+          subject: "Verify your MIVA University email",
+          html: `
+            <h2>Welcome to MIVA University Study Hub!</h2>
+            <p>Please verify your email address to complete your registration.</p>
+            <p><a href="${verificationUrl}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
+            <p>Or copy and paste this link in your browser:</p>
+            <p>${verificationUrl}</p>
+            <p>This link will expire in 24 hours.</p>
+            <p>If you didn't create this account, please ignore this email.</p>
+          `,
+          text: `Verify your email: ${verificationUrl}`,
+        });
+        logger.info(`Verification email sent to ${email}`);
+      } catch (error) {
+        logger.error(`Failed to send verification email to ${email}:`, error);
+        throw error;
       }
     },
   },

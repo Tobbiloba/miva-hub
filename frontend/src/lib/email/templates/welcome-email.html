@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f9fafb;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 32px 20px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 700;
+    }
+    .content {
+      padding: 32px 20px;
+    }
+    .content p {
+      margin: 16px 0;
+      color: #555;
+    }
+    .button {
+      display: inline-block;
+      background-color: #667eea;
+      color: white;
+      padding: 12px 32px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 600;
+      margin-top: 20px;
+    }
+    .features {
+      background-color: #f3f4f6;
+      padding: 20px;
+      border-radius: 6px;
+      margin-top: 24px;
+    }
+    .feature-item {
+      margin: 12px 0;
+      padding-left: 24px;
+      position: relative;
+    }
+    .feature-item:before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #667eea;
+      font-weight: bold;
+    }
+    .footer {
+      background-color: #f9fafb;
+      padding: 20px;
+      text-align: center;
+      font-size: 12px;
+      color: #999;
+      border-top: 1px solid #e5e7eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎓 Welcome to MIVA Hub</h1>
+    </div>
+
+    <div class="content">
+      <p>Hello {{userName}},</p>
+
+      <p>Thank you for signing up for MIVA Hub! We're excited to have you as part of our learning community.</p>
+
+      <p>MIVA Hub is your intelligent academic assistant powered by AI. Whether you're a student looking to excel, a faculty member managing courses, or an administrator overseeing academic operations, MIVA Hub has you covered.</p>
+
+      <div class="features">
+        <div class="feature-item">AI-powered chat for instant academic support</div>
+        <div class="feature-item">Course materials and assignment management</div>
+        <div class="feature-item">Schedule and grade tracking</div>
+        <div class="feature-item">Code execution and data visualization tools</div>
+        <div class="feature-item">Web search and research assistance</div>
+        <div class="feature-item">Voice chat for hands-free interaction</div>
+      </div>
+
+      <p>To get started, choose a subscription plan that fits your needs:</p>
+
+      <ul>
+        <li><strong>PRO (₦2,500/month):</strong> 30 AI messages per day, access to GPT-3.5</li>
+        <li><strong>MAX (₦5,500/month):</strong> Unlimited messages, access to GPT-4 and Claude</li>
+      </ul>
+
+      <p>
+        <a href="{{appUrl}}/pricing" class="button">Choose Your Plan</a>
+      </p>
+
+      <p>If you have any questions, feel free to reach out to our support team.</p>
+
+      <p>Happy learning!<br>
+      <strong>The MIVA Hub Team</strong></p>
+    </div>
+
+    <div class="footer">
+      <p>© 2024 MIVA University. All rights reserved.</p>
+      <p>You received this email because you created an account on MIVA Hub.</p>
+    </div>
+  </div>
+</body>
+</html>

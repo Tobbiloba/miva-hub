@@ -95,8 +95,14 @@ export default function SignIn({
                 />
               </div>
               <div className="grid gap-2">
-                <div className="flex items-center">
+                <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
+                  <Link
+                    href="/reset-password"
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
                 </div>
                 <Input
                   id="password"
@@ -138,7 +144,7 @@ export default function SignIn({
                 </div>
               )}
               <div className="flex flex-col gap-2 w-full">
-                {socialAuthenticationProviders.includes("google") && (
+                {/* {socialAuthenticationProviders.includes("google") && (
                   <Button
                     variant="outline"
                     onClick={() => handleSocialSignIn("google")}
@@ -147,7 +153,7 @@ export default function SignIn({
                     <GoogleIcon className="size-4 fill-foreground" />
                     Google
                   </Button>
-                )}
+                )} */}
                 {socialAuthenticationProviders.includes("github") && (
                   <Button
                     variant="outline"

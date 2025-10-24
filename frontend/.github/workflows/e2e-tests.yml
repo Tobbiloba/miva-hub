@@ -13,7 +13,7 @@ jobs:
 
     env:
       # Database
-      POSTGRES_URL: postgresql://testuser:testpass@localhost:5432/better_chatbot_test
+      POSTGRES_URL: postgresql://testuser:testpass@localhost:5432/miva_hub_test
 
       # Authentication
       BETTER_AUTH_SECRET: test-secret-key-for-ci-only-not-for-production-use
@@ -37,7 +37,7 @@ jobs:
         env:
           POSTGRES_USER: testuser
           POSTGRES_PASSWORD: testpass
-          POSTGRES_DB: better_chatbot_test
+          POSTGRES_DB: miva_hub_test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s

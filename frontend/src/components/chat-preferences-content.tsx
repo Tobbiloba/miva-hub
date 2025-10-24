@@ -132,7 +132,7 @@ export function UserInstructionsContent() {
             <Skeleton className="h-9" />
           ) : (
             <Input
-              placeholder="better-chatbot"
+              placeholder="miva-hub"
               value={preferences.botName}
               onChange={(e) => {
                 setPreferences({

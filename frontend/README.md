@@ -9,7 +9,7 @@
 
 🚀 **[Live Demo](https://better-chatbot-demo.vercel.app/)** | See the experience in action in the [preview](#preview) below!
 
-**Better Chatbot** - A better open-source AI chatbot for individuals and teams, inspired by ChatGPT, Claude, Grok, and Gemini.
+**Miva Hub** - An open-source AI chatbot hub for individuals and teams, inspired by ChatGPT, Claude, Grok, and Gemini.
 
 • **Multi-AI Support** - Integrates all major LLMs: OpenAI, Anthropic, Google, xAI, Ollama, and more  
 • **Powerful Tools** - MCP protocol, web search, JS/Python code execution, data visualization  
@@ -28,7 +28,7 @@ Built with Vercel AI SDK and Next.js, combining the best features of leading AI 
 # 1. Clone the repository
 
 git clone https://github.com/cgoinglove/better-chatbot.git
-cd better-chatbot
+cd better-chatbot-main/frontend
 
 # 2. (Optional) Install pnpm if you don't have it
 
@@ -351,7 +351,7 @@ NOT_ALLOW_ADD_MCP_SERVERS=
 
 ## 📘 Guides
 
-Step-by-step setup guides for running and configuring better-chatbot.
+Step-by-step setup guides for running and configuring miva-hub.
 
 #### [🔌 MCP Server Setup & Tool Testing](./docs/tips-guides/mcp-server-setup-and-tool-testing.md)
 
@@ -390,7 +390,7 @@ Step-by-step setup guides for running and configuring better-chatbot.
 
 ## 🗺️ Roadmap
 
-Planned features coming soon to better-chatbot:
+Planned features coming soon to miva-hub:
 
 - [ ] **File Attach & Image Generation**
 - [ ] **Collaborative Document Editing** (like OpenAI Canvas: user & assistant co-editing)

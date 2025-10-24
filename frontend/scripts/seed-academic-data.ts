@@ -4,487 +4,583 @@ import { pgDb as db } from "lib/db/pg/db.pg";
 import {
   DepartmentSchema,
   CourseSchema,
-  FacultySchema,
-  AcademicCalendarSchema,
-  CourseMaterialSchema,
-  AnnouncementSchema,
-  StudentEnrollmentSchema,
-  CourseInstructorSchema,
-  ClassScheduleSchema,
-  UserSchema,
 } from "lib/db/pg/schema.pg";
 
-console.log("🌱 Starting academic data seeding...");
+console.log("🌱 Starting MIVA University Academic Data Seeding...");
 
 async function seedAcademicData() {
   try {
-    // 1. Create Departments
-    console.log("📚 Creating departments...");
+    // 1. Create Departments (4 Schools)
+    console.log("📚 Creating 4 departments...");
     const departments = await db
       .insert(DepartmentSchema)
       .values([
         {
-          code: "CS",
-          name: "Computer Science",
-          description: "Department of Computer Science and Information Technology",
-          contactEmail: "cs@miva.edu.ng",
+          code: "COMP",
+          name: "School of Computing",
+          description: "Computing programs covering software development, data science, cybersecurity, and information technology",
+          contactEmail: "computing@miva.edu.ng",
           contactPhone: "+234-xxx-xxx-xxxx",
-          officeLocation: "Block A, Room 101",
+          officeLocation: "Computing Block",
         },
         {
-          code: "MATH",
-          name: "Mathematics",
-          description: "Department of Mathematics and Statistics",
-          contactEmail: "math@miva.edu.ng",
+          code: "MGMT",
+          name: "School of Management and Social Sciences",
+          description: "Management, economics, accounting, entrepreneurship, public policy, and criminology programs",
+          contactEmail: "management@miva.edu.ng",
           contactPhone: "+234-xxx-xxx-xxxx",
-          officeLocation: "Block B, Room 201",
+          officeLocation: "Management Block",
         },
         {
-          code: "ENG",
-          name: "Engineering",
-          description: "Department of Engineering and Applied Sciences",
-          contactEmail: "eng@miva.edu.ng",
+          code: "COMM",
+          name: "School of Communication and Media Studies",
+          description: "Mass communication and media studies programs",
+          contactEmail: "communication@miva.edu.ng",
           contactPhone: "+234-xxx-xxx-xxxx",
-          officeLocation: "Block C, Room 301",
+          officeLocation: "Communication Block",
         },
         {
-          code: "BUS",
-          name: "Business Administration",
-          description: "Department of Business Administration and Management",
-          contactEmail: "business@miva.edu.ng",
+          code: "HLTH",
+          name: "School of Allied Health Sciences",
+          description: "Nursing science and public health programs",
+          contactEmail: "health@miva.edu.ng",
           contactPhone: "+234-xxx-xxx-xxxx",
-          officeLocation: "Block D, Room 401",
+          officeLocation: "Health Sciences Block",
         },
       ])
       .returning();
 
     console.log(`✅ Created ${departments.length} departments`);
 
-    // Get the CS department for courses
-    const csDept = departments.find((d) => d.code === "CS")!;
-    const mathDept = departments.find((d) => d.code === "MATH")!;
-    const engDept = departments.find((d) => d.code === "ENG")!;
-    const busDept = departments.find((d) => d.code === "BUS")!;
-
-    // 2. Create Courses
-    console.log("📖 Creating courses...");
-    const courses = await db
-      .insert(CourseSchema)
-      .values([
-        // Computer Science Courses
-        {
-          courseCode: "CS101",
-          title: "Introduction to Computer Science",
-          description: "Fundamentals of computer science, programming concepts, and computational thinking",
-          credits: 3,
-          departmentId: csDept.id,
-          level: "undergraduate",
-          semesterOffered: "both",
-        },
-        {
-          courseCode: "CS201",
-          title: "Data Structures and Algorithms",
-          description: "Advanced programming with focus on data structures, algorithms, and complexity analysis",
-          credits: 4,
-          departmentId: csDept.id,
-          level: "undergraduate",
-          semesterOffered: "both",
-        },
-        {
-          courseCode: "CS301",
-          title: "Database Systems",
-          description: "Database design, SQL, normalization, and database management systems",
-          credits: 3,
-          departmentId: csDept.id,
-          level: "undergraduate",
-          semesterOffered: "both",
-        },
-        {
-          courseCode: "CS401",
-          title: "Software Engineering",
-          description: "Software development methodologies, project management, and quality assurance",
-          credits: 4,
-          departmentId: csDept.id,
-          level: "undergraduate",
-          semesterOffered: "both",
-        },
-        // Mathematics Courses
-        {
-          courseCode: "MATH101",
-          title: "Calculus I",
-          description: "Limits, derivatives, and applications of differential calculus",
-          credits: 4,
-          departmentId: mathDept.id,
-          level: "undergraduate",
-          semesterOffered: "both",
-        },
-        {
-          courseCode: "MATH201",
-          title: "Linear Algebra",
-          description: "Vector spaces, matrices, eigenvalues, and linear transformations",
-          credits: 3,
-          departmentId: mathDept.id,
-          level: "undergraduate",
-          semesterOffered: "both",
-        },
-        // Engineering Courses
-        {
-          courseCode: "ENG101",
-          title: "Engineering Mathematics",
-          description: "Mathematical foundations for engineering applications",
-          credits: 3,
-          departmentId: engDept.id,
-          level: "undergraduate",
-          semesterOffered: "both",
-        },
-        // Business Courses
-        {
-          courseCode: "BUS101",
-          title: "Introduction to Business",
-          description: "Fundamentals of business operations, management, and entrepreneurship",
-          credits: 3,
-          departmentId: busDept.id,
-          level: "undergraduate",
-          semesterOffered: "both",
-        },
-      ])
-      .returning();
-
-    console.log(`✅ Created ${courses.length} courses`);
-
-    // 3. Create Academic Calendar
-    console.log("📅 Creating academic calendar...");
-    const academicCalendar = await db
-      .insert(AcademicCalendarSchema)
-      .values([
-        {
-          semester: "2024-fall",
-          academicYear: "2024-2025",
-          semesterName: "Fall 2024",
-          startDate: "2024-09-01",
-          endDate: "2024-12-15",
-          registrationStartDate: "2024-08-15",
-          registrationEndDate: "2024-09-10",
-          addDropDeadline: "2024-09-20",
-          midtermWeek: 8,
-          finalsStartDate: "2024-12-10",
-          finalsEndDate: "2024-12-15",
-          isActive: true,
-        },
-        {
-          semester: "2025-spring",
-          academicYear: "2024-2025",
-          semesterName: "Spring 2025",
-          startDate: "2025-01-15",
-          endDate: "2025-05-15",
-          registrationStartDate: "2025-01-01",
-          registrationEndDate: "2025-01-25",
-          addDropDeadline: "2025-02-05",
-          midtermWeek: 8,
-          finalsStartDate: "2025-05-10",
-          finalsEndDate: "2025-05-15",
-          isActive: false,
-        },
-      ])
-      .returning();
-
-    console.log(`✅ Created ${academicCalendar.length} academic calendar entries`);
-
-    // 4. Create a test faculty user and faculty record
-    console.log("👩‍🏫 Creating test faculty...");
-    
-    // First, create a faculty user
-    const facultyUser = await db
-      .insert(UserSchema)
-      .values({
-        name: "Dr. Sarah Johnson",
-        email: "prof.sarah.johnson@miva.edu.ng",
-        emailVerified: true,
-        role: "faculty",
-        academicYear: "2024-2025",
-        enrollmentStatus: "active",
-      })
-      .returning();
-
-    const faculty = await db
-      .insert(FacultySchema)
-      .values({
-        userId: facultyUser[0].id,
-        employeeId: "FAC001",
-        departmentId: csDept.id,
-        position: "professor",
-        specializations: ["Database Systems", "Software Engineering", "Data Science"],
-        officeLocation: "Block A, Room 205",
-        officeHours: [
-          { day: "Monday", startTime: "10:00", endTime: "12:00" },
-          { day: "Wednesday", startTime: "14:00", endTime: "16:00" },
-          { day: "Friday", startTime: "10:00", endTime: "11:00" },
-        ],
-        contactPhone: "+234-xxx-xxx-xxxx",
-        researchInterests: "Machine Learning, Database Optimization, Educational Technology",
-        qualifications: [
-          { degree: "PhD Computer Science", institution: "University of Lagos", year: 2015 },
-          { degree: "MSc Computer Science", institution: "University of Ibadan", year: 2010 },
-          { degree: "BSc Computer Science", institution: "University of Nigeria", year: 2008 },
-        ],
-      })
-      .returning();
-
-    console.log(`✅ Created ${faculty.length} faculty members`);
-
-    // 5. Assign faculty to courses
-    console.log("👨‍🏫 Assigning faculty to courses...");
-    const cs101 = courses.find((c) => c.courseCode === "CS101")!;
-    const cs301 = courses.find((c) => c.courseCode === "CS301")!;
-
-    await db.insert(CourseInstructorSchema).values([
-      {
-        courseId: cs101.id,
-        facultyId: faculty[0].id,
-        semester: "2024-fall",
-        role: "primary",
-      },
-      {
-        courseId: cs301.id,
-        facultyId: faculty[0].id,
-        semester: "2024-fall",
-        role: "primary",
-      },
-    ]);
-
-    // 6. Create Class Schedules
-    console.log("🕐 Creating class schedules...");
-    await db.insert(ClassScheduleSchema).values([
-      {
-        courseId: cs101.id,
-        semester: "2024-fall",
-        dayOfWeek: "monday",
-        startTime: "09:00",
-        endTime: "10:30",
-        roomLocation: "Room 101",
-        buildingName: "Block A",
-        classType: "lecture",
-      },
-      {
-        courseId: cs101.id,
-        semester: "2024-fall",
-        dayOfWeek: "wednesday",
-        startTime: "09:00",
-        endTime: "10:30",
-        roomLocation: "Room 101",
-        buildingName: "Block A",
-        classType: "lecture",
-      },
-      {
-        courseId: cs301.id,
-        semester: "2024-fall",
-        dayOfWeek: "tuesday",
-        startTime: "14:00",
-        endTime: "15:30",
-        roomLocation: "Room 205",
-        buildingName: "Block A",
-        classType: "lecture",
-      },
-      {
-        courseId: cs301.id,
-        semester: "2024-fall",
-        dayOfWeek: "thursday",
-        startTime: "14:00",
-        endTime: "15:30",
-        roomLocation: "Lab 1",
-        buildingName: "Block A",
-        classType: "lab",
-      },
-    ]);
-
-    // 7. Create Course Materials
-    console.log("📁 Creating course materials...");
-    await db.insert(CourseMaterialSchema).values([
-      {
-        courseId: cs101.id,
-        materialType: "syllabus",
-        title: "CS101 Course Syllabus",
-        description: "Complete syllabus for Introduction to Computer Science",
-        weekNumber: 1,
-        uploadedById: facultyUser[0].id,
-      },
-      {
-        courseId: cs101.id,
-        materialType: "lecture",
-        title: "Week 1: Introduction to Programming",
-        description: "Basic concepts of programming and computational thinking",
-        weekNumber: 1,
-        uploadedById: facultyUser[0].id,
-      },
-      {
-        courseId: cs101.id,
-        materialType: "lecture",
-        title: "Week 2: Variables and Data Types",
-        description: "Understanding variables, data types, and basic operations",
-        weekNumber: 2,
-        uploadedById: facultyUser[0].id,
-      },
-      {
-        courseId: cs101.id,
-        materialType: "lecture",
-        title: "Week 3: Control Structures",
-        description: "Conditional statements and loops in programming",
-        weekNumber: 3,
-        uploadedById: facultyUser[0].id,
-      },
-      {
-        courseId: cs101.id,
-        materialType: "lecture",
-        title: "Week 4: Functions and Procedures",
-        description: "Defining and using functions, parameter passing",
-        weekNumber: 4,
-        uploadedById: facultyUser[0].id,
-      },
-      {
-        courseId: cs101.id,
-        materialType: "assignment",
-        title: "Assignment 1: Basic Programming",
-        description: "Write simple programs using variables and basic operations",
-        weekNumber: 2,
-        uploadedById: facultyUser[0].id,
-      },
-      {
-        courseId: cs301.id,
-        materialType: "syllabus",
-        title: "CS301 Database Systems Syllabus",
-        description: "Complete syllabus for Database Systems course",
-        weekNumber: 1,
-        uploadedById: facultyUser[0].id,
-      },
-      {
-        courseId: cs301.id,
-        materialType: "lecture",
-        title: "Week 1: Introduction to Databases",
-        description: "Database concepts, DBMS, and data models",
-        weekNumber: 1,
-        uploadedById: facultyUser[0].id,
-      },
-      {
-        courseId: cs301.id,
-        materialType: "lecture",
-        title: "Week 2: Relational Model",
-        description: "Relational databases, tables, keys, and relationships",
-        weekNumber: 2,
-        uploadedById: facultyUser[0].id,
-      },
-      {
-        courseId: cs301.id,
-        materialType: "lecture",
-        title: "Week 3: SQL Basics",
-        description: "Introduction to SQL queries and data manipulation",
-        weekNumber: 3,
-        uploadedById: facultyUser[0].id,
-      },
-      {
-        courseId: cs301.id,
-        materialType: "lecture",
-        title: "Week 4: Advanced SQL",
-        description: "Complex queries, joins, and subqueries",
-        weekNumber: 4,
-        uploadedById: facultyUser[0].id,
-      },
-    ]);
-
-    console.log("✅ Created course materials");
-
-    // 8. Create Announcements
-    console.log("📢 Creating announcements...");
-    await db.insert(AnnouncementSchema).values([
-      {
-        title: "Welcome to Fall 2024 Semester",
-        content: "Welcome back students! The Fall 2024 semester begins on September 1st. Please check your course schedules and ensure you have all required materials.",
-        targetAudience: "all",
-        priority: "high",
-        createdById: facultyUser[0].id,
-      },
-      {
-        title: "CS101 - First Assignment Posted",
-        content: "The first assignment for CS101 has been posted. Please check the course materials section for details. Due date: September 15th.",
-        courseId: cs101.id,
-        targetAudience: "course_specific",
-        priority: "medium",
-        createdById: facultyUser[0].id,
-      },
-      {
-        title: "Database Systems Lab Schedule",
-        content: "CS301 Database Systems lab sessions will be held on Thursdays from 2:00 PM to 3:30 PM in Lab 1, Block A.",
-        courseId: cs301.id,
-        targetAudience: "course_specific",
-        priority: "medium",
-        createdById: facultyUser[0].id,
-      },
-      {
-        title: "Computer Science Department Meeting",
-        content: "All CS students are invited to attend the department orientation meeting on September 5th at 10:00 AM in the main auditorium.",
-        departmentId: csDept.id,
-        targetAudience: "department_specific",
-        priority: "medium",
-        createdById: facultyUser[0].id,
-      },
-    ]);
-
-    console.log("✅ Created announcements");
-
-    // 9. Create a test student enrollment
-    console.log("🎓 Creating test student enrollment...");
-    
-    // First, let's check if there are any existing student users
-    const existingStudents = await db
-      .select()
-      .from(UserSchema)
-      .where(eq(UserSchema.role, "student"))
-      .limit(1);
-
-    if (existingStudents.length > 0) {
-      const student = existingStudents[0];
-      await db.insert(StudentEnrollmentSchema).values([
-        {
-          studentId: student.id,
-          courseId: cs101.id,
-          semester: "2024-fall",
-          academicYear: "2024-2025",
-          status: "enrolled",
-        },
-        {
-          studentId: student.id,
-          courseId: cs301.id,
-          semester: "2024-fall",
-          academicYear: "2024-2025",
-          status: "enrolled",
-        },
-      ]);
-      console.log("✅ Created student enrollments for existing student");
-    } else {
-      console.log("ℹ️  No existing students found. Student enrollments will be created when students register.");
+    // Get department references
+    const deptMap: Record<string, string> = {};
+    for (const dept of departments) {
+      deptMap[dept.code] = dept.id;
     }
 
-    console.log("🎉 Academic data seeding completed successfully!");
-    console.log("\n📊 Summary:");
-    console.log(`- ${departments.length} departments created`);
-    console.log(`- ${courses.length} courses created`);
-    console.log(`- ${faculty.length} faculty members created`);
-    console.log(`- ${academicCalendar.length} academic calendar entries created`);
-    console.log("- Course materials, schedules, and announcements created");
-    console.log("- System ready for academic operations!");
+    // 2. Create Deduplicated Courses
+    console.log("📖 Creating deduplicated courses...");
+    const allCourses = [
+      { courseCode: "ACC101", title: "Introduction to Financial Accounting I", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "ACC102", title: "Introduction to Financial Accounting II", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "ACC105", title: "Introduction to Finance", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "ACC107", title: "Introduction to Computing", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "ACC201", title: "Financial Accounting I", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "ACC202", title: "Financial Accounting II", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ACC203", title: "Corporate Governance and Accounting Ethics", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "ACC204", title: "Commercial Law for Accountants II", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ACC205", title: "Data Analytics in Accounting I", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "ACC206", title: "Accounting Laboratory/Technology", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ACC207", title: "Commercial Law for Accountants", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "ACC208", title: "Capital Markets and Portfolio Theory", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ACC209", title: "Petroleum Accounting", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "ACC210", title: "Cost Accounting", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ACC212", title: "Leadership Skills", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ACC301", title: "Financial Reporting I", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ACC302", title: "Financial Reporting II", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ACC303", title: "Management Accounting", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ACC304", title: "Taxation II", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ACC305", title: "Taxation I", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ACC306", title: "Public Sector Accounting & Reporting", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ACC307", title: "Auditing and Assurance I", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ACC308", title: "Research Methods in Accounting", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ACC309", title: "Entrepreneurship in Accounting Education", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ACC310", title: "Intermediate Accounting II", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ACC311", title: "Company Law I", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ACC312", title: "Company Law II", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ACC313", title: "Intermediate Accounting I", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ACC401", title: "Advanced Financial Reporting", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ACC402", title: "Financial Management", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "ACC403", title: "Auditing and Assurance II", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ACC404", title: "Corporate Reporting", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "ACC405", title: "Taxation and Tax Management I", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ACC406", title: "Advanced Financial Accounting", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "ACC407", title: "Advanced Management Accounting I", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ACC408", title: "Research Project", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "ACC409", title: "Bankruptcy and Liquidation", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ACC410", title: "Taxation and Tax Management II", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "ACC411", title: "International Accounting", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ACC412", title: "Advanced Management Accounting II", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "BUA101", title: "Principles of Management", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "BUA102", title: "Principles of Project Management", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "BUA103", title: "Introduction to Business I", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "BUA104", title: "Introduction to Business II", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "BUA105", title: "Introduction to Financial Accounting", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "BUA106", title: "Principles of Management II", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "BUA107", title: "Introduction to Computing", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "BUA201", title: "Business Statistics", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "BUA202", title: "Principles of Business Administration II", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "BUA203", title: "Principles of Business Administration I", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "BUA204", title: "Green Management", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "BUA205", title: "Current Issues in Global Business", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "BUA206", title: "Introduction to Financial Management", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "BUA207", title: "Leadership and Governance", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "BUA208", title: "Quantitative Analysis in Management", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "BUA209", title: "Elements of marketing", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "BUA210", title: "Business Environment", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "BUA301", title: "Management Theory", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "BUA302", title: "Human Behaviour in Organisations", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "BUA303", title: "Financial Management", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "BUA304", title: "Human Resources Management", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "BUA305", title: "Innovation Management", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "BUA306", title: "Production and Operations Management", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "BUA307", title: "E-Commerce", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "BUA308", title: "Small Business Management", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "BUA309", title: "Business Start-up", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "BUA310", title: "Research Methods in Business", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "BUA311", title: "Supply Chain Management", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "BUA313", title: "Business Law", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "BUA401", title: "Business Policy and Strategic Management", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "BUA402", title: "Strategic Thinking and Problem Solving", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "BUA403", title: "Management Information System", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "BUA404", title: "Research project in Business Management", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "BUA405", title: "Analysis for Business Decision", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "BUA406", title: "International Business", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "BUA407", title: "Feasibility Report and Business Plan Analysis", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "BUA409", title: "Case Studies and Contemporary issues in Business", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "BUA410", title: "International Management", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "BUA411", title: "Business Entrepreneurship", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "BUA412", title: "Current Issues in Digital Economy and Business", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "COS101", title: "Introduction to Computing Sciences", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "COS102", title: "Problem Solving", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "COS201", title: "Computer Programming I", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "COS202", title: "Computer Programming II", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "COS203", title: "Discrete Structures", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "CSC106", title: "Introduction to Web Technologies", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "CSC204", title: "Statistical Computing Inference and Modelling", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "CSC301", title: "Data Structures", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "CSC303", title: "Introduction to Data Management", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "CSC309", title: "Artificial Intelligence", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "CSS101", title: "Introduction to Criminology and Security Studies", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "CSS102", title: "Introduction to Criminal Justice System", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "CSS103", title: "Deviant Behaviours and Social Control", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "CSS104", title: "Social Sciences and Human Behaviours", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "CSS105", title: "Introduction to Sociology I", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "CSS106", title: "Introduction to Sociology II", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "CSS107", title: "Introduction to Nigerian Criminal Law", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "CSS108", title: "Introduction to Law Enforcement", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "CSS109", title: "Sociology of Law", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "CSS110", title: "Theories of Crime", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "CSS111", title: "Introduction to Political Science", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "CSS112", title: "Nigerian Legal System", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "CSS113", title: "Introduction to Psychology", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "CSS114", title: "Determinants of Behaviour", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "CSS201", title: "Nigerian Law Enforcement and Security System", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "CSS202", title: "Introduction to Computer and its Application", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "CSS203", title: "Comparative Police and Policing Systems", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "CSS204", title: "Nigerian Criminal Procedure and Evidence", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "CSS205", title: "Human Rights and Criminal Justice System", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "CSS206", title: "Applied Statistical Methods in Criminology and Security Studies", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "CSS207", title: "Prisons and Correctional Services", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "CSS208", title: "Conflict Resolution and Peace Building", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "CSS209", title: "Sociology of Crime and Juvenile Delinquency", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "CSS210", title: "Crime, Harm and the State", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "CSS211", title: "Cybercrime, Law, and Countermeasures for Criminology", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "CSS301", title: "Innovation in the Social Sciences", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "CSS302", title: "Research Methods I", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "CSS303", title: "Theories of Crime, Criminal Behaviour and Punishment", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "CSS304", title: "Theoretical Perspectives on Security", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "CSS305", title: "Research Methods in Criminology and Security Studies", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "CSS306", title: "Intelligence & Investigation Management", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "CSS307", title: "Forensic Science", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "CSS309", title: "Victimology", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "CSS310", title: "Contemporary Theories in Criminology and Security Studies", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "CSS311", title: "Corrupt Practices, Economic and Financial Crimes", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "CSS312", title: "Border Security and International Migration", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "CSS313", title: "Security, Road Safety and Traffic Control", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "CSS314", title: "Corporate and White-Collar Crimes", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "CSS315", title: "Security and Civil Defence Procedure", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "CSS401", title: "Research Methods II", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "CSS402", title: "Democracy and Governance of Security Sector", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "CSS403", title: "Research Project", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "CSS404", title: "Humanitarian Emergency and Disaster Management", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "CSS405", title: "Contemporary Development in Criminology and Security Studies", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "CSS406", title: "Comparative National Security Policy and Strategy", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "CSS407", title: "National and Transnational Organised Crimes", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "CSS408", title: "Criminological Theory and Social Policy", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "CSS409", title: "Terrorism, Counter-Terrorism and Insurgency", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "CSS410", title: "Digital Forensics, Investigation and Criminal Intelligence", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "CSS411", title: "Globalisation, Crime and Justice", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "CSS412", title: "Political Crime and Treasury Looting", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "CSS413", title: "Women, Gendered Confinement and Criminalisation", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "CSS414", title: "Racialization, Criminalization and Criminal Justice System", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "CSS416", title: "Crime Victims and Human Rights Violation", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "CSS418", title: "Crime and the Media", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "CYB201", title: "Introduction to Cyber Security and Strategy", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "CYB203", title: "Cybercrime, Law and Countermeasures", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "CYB204", title: "Computer Networks", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "CYB301", title: "Cryptography Techniques, Algorithms and Applications", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "CYB303", title: "Cybersecurity Risks Analysis, Challenges and Mitigation", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "CYB305", title: "Digital Forensics and Investigation Methods", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "DTS201", title: "Introduction to Data Science", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "DTS202", title: "Data Engineering", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "DTS204", title: "Statistical Computing Inference and Modelling", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "DTS206", title: "Linear Algebra for Data Science", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "DTS211", title: "Introduction to R Programming", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "DTS301", title: "Data Structures", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "DTS305", title: "Data Quality and Data Wrangling", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "DTS317", title: "Introduction to Data Protection and IT Security", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "DTS319", title: "Internet of Things", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ECO101", title: "Principles of Economics I", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "ECO102", title: "Principles of Economics II", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "ECO201", title: "Introduction to Microeconomics I", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "ECO202", title: "Introduction to Computer and its Application", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ECO203", title: "Introduction to Macroeconomics I", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "ECO204", title: "Introduction to Microeconomics II", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ECO205", title: "Structure of the Nigerian Economy", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "ECO206", title: "Introduction to Macroeconomics II", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ECO207", title: "Mathematics for Economists", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "ECO208", title: "Statistics for Economist", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ECO209", title: "Financial Markets and Monetary Economics", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "ECO210", title: "Behavioural Economics", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ECO212", title: "Introduction to Decision Science", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ECO214", title: "Introduction to Health Economics", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ECO216", title: "Labour Economics", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ECO301", title: "Intermediate Microeconomic Theory I", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ECO302", title: "Intermediate Microeconomics II", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ECO303", title: "Intermediate Macroeconomic Theory I", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ECO304", title: "Intermediate Macroeconomics II", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ECO305", title: "History of Economic Thought", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ECO306", title: "Introductory Econometrics", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ECO307", title: "Project Evaluation", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ECO308", title: "Public Sector Economics", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ECO309", title: "Innovation in the Social Sciences", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ECO310", title: "International Economics", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ECO311", title: "Data Analytics and Visualization", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ECO312", title: "Research Methods I", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ECO313", title: "Development Economics", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ECO401", title: "Advanced Microeconomics I", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ECO402", title: "Advanced Microeconomics II", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "ECO403", title: "Advanced Macroeconomics I", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ECO404", title: "Advanced Macroeconomics II", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "ECO405", title: "Economic Planning", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ECO406", title: "Monetary Theory and Policy", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "ECO407", title: "Fiscal Policy and Analysis", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ECO408", title: "Research Project/Original Essay", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "ECO409", title: "Research Method II", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ECO410", title: "Economics and Decision Sciences", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "ECO411", title: "Advanced Econometrics", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ECO413", title: "Environmental Economics", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ENT211", title: "Entrepreneurship and Innovation", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "ENT312", title: "Venture Creation", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "GST111", title: "Communication in English I", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "GST112", title: "Nigerian People and Culture", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "GST121", title: "Use of Library, Study Skills and ICT", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "GST122", title: "Communication in English II", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "GST212", title: "Philosophy, Logic and Human Existence", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "GST312", title: "Peace and Conflict Resolution", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ICT305", title: "Data Communication System and Network", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "IFT211", title: "Digital Logic Design", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "IFT212", title: "Computer Architecture and Organisation", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "INS204", title: "Systems Analysis and Design", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ITE101", title: "Introduction to Computing Sciences", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "ITE102", title: "Problem Solving", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "ITE112", title: "Principles of Hardware Systems Maintenance", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "ITE201", title: "Introduction to Web Technologies", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "ITE203", title: "Computer Programming I", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "ITE204", title: "Computer Programming II", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ITE205", title: "Introduction to Information Technology", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "ITE206", title: "Human-Computer Interface", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ITE211", title: "Digital Logic Design", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "ITE212", title: "Introduction to Information Systems for Information Technology", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "ITE213", title: "Computer Architecture and Organisation", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ITE214", title: "Systems Analysis and Design for Information Technology", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ITE215", title: "Data Engineering", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "ITE301", title: "Computer Graphics and Animation", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ITE302", title: "Web Application Development", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ITE303", title: "Operating Systems", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ITE304", title: "Web Development using Content Management Systems", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ITE305", title: "Data Communications Systems and Network", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ITE306", title: "Mobile Application Development", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ITE307", title: "Edge Computing", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ITE308", title: "IT Innovation and Entrepreneurship", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ITE309", title: "Distributed Information Systems", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "ITE310", title: "Network Servers and Infrastructures", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ITE311", title: "Ethics and Legal Issues in IT", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "ITE401", title: "Research Methodology and Technical Report Writing", credits: 3, departmentId: deptMap["COMP"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ITE402", title: "System Integration and Architecture", credits: 3, departmentId: deptMap["COMP"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "ITE403", title: "Mobile and Pervasive Computing", credits: 3, departmentId: deptMap["COMP"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ITE404", title: "Wireless Communications and Networking", credits: 3, departmentId: deptMap["COMP"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "ITE405", title: "Project Management", credits: 3, departmentId: deptMap["COMP"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ITE406", title: "Introduction to Embedded Systems", credits: 3, departmentId: deptMap["COMP"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "ITE407", title: "Distributed Computing for Information Technology", credits: 3, departmentId: deptMap["COMP"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ITE408", title: "Cloud Computing Security for Information Technology", credits: 3, departmentId: deptMap["COMP"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "ITE409", title: "Sustainable Computing", credits: 3, departmentId: deptMap["COMP"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ITE410", title: "Internet of Things", credits: 3, departmentId: deptMap["COMP"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "ITE411", title: "Final Year Project I", credits: 3, departmentId: deptMap["COMP"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "ITE412", title: "Final Year Project II", credits: 3, departmentId: deptMap["COMP"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "MCM101", title: "Introduction to Human Communication", credits: 3, departmentId: deptMap["COMM"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "MCM102", title: "Writing for the Media", credits: 3, departmentId: deptMap["COMM"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "MCM103", title: "Foundations of Broadcasting and Film", credits: 3, departmentId: deptMap["COMM"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "MCM104", title: "Principles of Public Relations", credits: 3, departmentId: deptMap["COMM"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "MCM105", title: "Introduction to Advertising", credits: 3, departmentId: deptMap["COMM"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "MCM106", title: "Introduction to New Writing", credits: 3, departmentId: deptMap["COMM"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "MCM107", title: "Introduction to Book Publishing", credits: 3, departmentId: deptMap["COMM"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "MCM108", title: "African Communication Systems", credits: 3, departmentId: deptMap["COMM"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "MCM109", title: "Introduction to Photojournalism", credits: 3, departmentId: deptMap["COMM"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "MCM110", title: "Introduction to Electronic Media", credits: 3, departmentId: deptMap["COMM"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "MCM111", title: "History and Development of Mass Communication", credits: 3, departmentId: deptMap["COMM"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "MCM201", title: "History of Nigerian Media", credits: 3, departmentId: deptMap["COMM"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "MCM202", title: "Editing and Graphics of Communication", credits: 3, departmentId: deptMap["COMM"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "MCM203", title: "Critical and Reviewing Writing", credits: 3, departmentId: deptMap["COMM"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "MCM204", title: "Advanced and Specialised Reporting", credits: 3, departmentId: deptMap["COMM"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "MCM205", title: "Feature Writing", credits: 3, departmentId: deptMap["COMM"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "MCM206", title: "Manuscript Editing, Layout and Design in Book Publishing", credits: 3, departmentId: deptMap["COMM"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "MCM207", title: "Techniques in Book Publishing", credits: 3, departmentId: deptMap["COMM"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "MCM208", title: "Radio/Television Programme Writing", credits: 3, departmentId: deptMap["COMM"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "MCM209", title: "Radio/TV News Reporting and Production", credits: 3, departmentId: deptMap["COMM"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "MCM210", title: "Presentation and Performance", credits: 3, departmentId: deptMap["COMM"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "MCM211", title: "Drama, Film, and Documentary Production", credits: 3, departmentId: deptMap["COMM"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "MCM212", title: "Marketing Foundations for Public Relations and Advertising", credits: 3, departmentId: deptMap["COMM"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "MCM213", title: "Basics of Screenwriting and Film Animation", credits: 3, departmentId: deptMap["COMM"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "MCM214", title: "Advert Copywriting", credits: 3, departmentId: deptMap["COMM"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "MCM215", title: "Writing for Public Relations", credits: 3, departmentId: deptMap["COMM"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "MCM216", title: "Fundamentals of Media Relations", credits: 3, departmentId: deptMap["COMM"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "MCM217", title: "Advertising Media Planning", credits: 3, departmentId: deptMap["COMM"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "MCM301", title: "Theories of Communication", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "MCM302", title: "Foundations of Communication Research", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "MCM303", title: "Data Analysis in Communication Research", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "MCM304", title: "Online Journalism", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "MCM305", title: "Mass Communication and Politics", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "MCM306", title: "Foreign Correspondence", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "MCM307", title: "Gender and Communication", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "MCM308", title: "Investigative Journalism", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "MCM309", title: "Newspaper Management and Production", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "MCM310", title: "Broadcast Programming, Management and Operations", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "MCM311", title: "Photojournalism Research and Management", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "MCM312", title: "International and Foreign Broadcasting", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "MCM313", title: "Commentary, Critical Writing and Public Affairs Broadcasting", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "MCM314", title: "Organisation and Management of Advertising and Public Relations Agencies", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "MCM315", title: "Film Production and Screen Directing", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "MCM316", title: "International Public Relations and Advertising", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "MCM317", title: "Advertising and Public Relations Research", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "MCM319", title: "Consumer Affairs", credits: 3, departmentId: deptMap["COMM"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "MCM401", title: "International Communication", credits: 3, departmentId: deptMap["COMM"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "MCM402", title: "Communication and Society", credits: 3, departmentId: deptMap["COMM"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "MCM403", title: "Media Attachment/Internship", credits: 3, departmentId: deptMap["COMM"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "MCM404", title: "Original Research Project", credits: 3, departmentId: deptMap["COMM"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "MCM405", title: "Mass Media Law", credits: 3, departmentId: deptMap["COMM"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "MCM406", title: "Mass Media Ethics", credits: 3, departmentId: deptMap["COMM"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "MCM407", title: "Message Design for Development", credits: 3, departmentId: deptMap["COMM"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "MCM408", title: "Communication for Development", credits: 3, departmentId: deptMap["COMM"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "MCM409", title: "Media Management and Administration", credits: 3, departmentId: deptMap["COMM"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "MCM410", title: "Community Media and Relations", credits: 3, departmentId: deptMap["COMM"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "MCM411", title: "Immersive Communication", credits: 3, departmentId: deptMap["COMM"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "MCM412", title: "Social Media Management", credits: 3, departmentId: deptMap["COMM"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "MCM413", title: "Information Security and Digital Media", credits: 3, departmentId: deptMap["COMM"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "MTH100", title: "Basic Mathematics", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "MTH101", title: "Elementary Mathematics I – Algebra and Trigonometry", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "MTH102", title: "Elementary Mathematics II – Calculus", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "MTH201", title: "Mathematical Methods I", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "MTH202", title: "Elementary Differential Equations", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "MTH203", title: "Set, Logic, and Algebra", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "MTH204", title: "Linear Algebra II", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "MTH205", title: "Linear Algebra I", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "MTH209", title: "Introduction to Numerical Analysis", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "NSC101", title: "Anatomy of Upper and Lower Limb", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "NSC102", title: "Renal and Body Fluids Physiology", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "NSC103", title: "General and Systemic Embryology", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "NSC104", title: "Anatomy of Thorax, Abdomen, Pelvis and Perineum", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "NSC105", title: "Introductory to Physiology and Blood", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "NSC106", title: "Biochemistry – General and Medical II", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "NSC107", title: "Biochemistry – General and Medical I", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "NSC108", title: "Foundations of Professional Nursing Practice II", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "NSC109", title: "Foundations of Professional Nursing Practice I", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "NSC110", title: "General and Cellular Pathology", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "NSC111", title: "Developmental Psychology", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "NSC113", title: "General Biochemistry Practical", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "NSC115", title: "Introduction to Computer Science I", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "NSC201", title: "Pharmacodynamics and Chemotherapy I", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "NSC202", title: "Community/Public Health Nursing II", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "NSC203", title: "Epidemiology", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "NSC204", title: "Medical and Surgical Nursing II", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "NSC205", title: "Community/Public Health Nursing I", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "NSC206", title: "Medical Surgical Nursing III", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "NSC207", title: "Human Nutrition", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "NSC208", title: "Medical Surgical Nursing Practicum II", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "NSC209", title: "Nursing Ethics and Jurisprudence", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "NSC210", title: "Mental Health and Psychiatric Nursing I", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "NSC211", title: "Medical and Surgical Nursing I", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "NSC212", title: "Information Management and Patient Care Technology", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "NSC213", title: "Public Health Microbiology & Parasitology/Entomology", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "NSC214", title: "Pharmacodynamics and Chemotherapy II", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "NSC215", title: "Oncology Nursing", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "NSC217", title: "Family Health Nursing", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "NSC301", title: "Medical Surgical Nursing Practicum III", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "NSC302", title: "Maternal and Child Health Nursing II", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "NSC303", title: "Maternal and Child Health Nursing I", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "NSC304", title: "Maternal and Child Health Nursing Practicum 1", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "NSC305", title: "Mental Health Nursing II", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "NSC306", title: "Curriculum Development and Teaching Methodology", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "NSC307", title: "Research Methods in Nursing", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "NSC308", title: "Community/Public Health Nursing III", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "NSC309", title: "Management of Nursing Services", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "NSC310", title: "Emergency and Disaster Nursing", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "NSC311", title: "Biostatistics", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "NSC312", title: "Nursing in Health and Illness II", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "NSC313", title: "Nursing in Health and Illness I", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "NSC314", title: "Critical Care Nursing", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "NSC315", title: "Epidemiology, Disease Control & Surveillance", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "NSC316", title: "Health Systems, Planning, Management & Administration", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "NSC317", title: "International and Global Health", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "NSC401", title: "Community/Public Health Nursing Practicum II", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "NSC402", title: "Maternal and Child Health Nursing Practicum IV", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "NSC403", title: "Maternal and Child Health Nursing Practicum II", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "NSC404", title: "Public/Community Health Nursing IV", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "NSC405", title: "Maternal and Child Health Nursing III", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "NSC406", title: "Community/Public Health Nursing Practicum III", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "NSC407", title: "Health and Nursing Informatics", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "NSC408", title: "Entrepreneurship in Nursing", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "NSC409", title: "Nursing Seminars", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "NSC410", title: "Research Project", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "NSC411", title: "Health Economics", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "NSC412", title: "Gerontology/Geriatric Nursing", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "NSC413", title: "Reproductive Health Nursing", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "NSC414", title: "Guidance and Counseling in Nursing", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "NSC415", title: "Nursing Administration and Management", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "NSC416", title: "Reproductive Health Nursing Practicum", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "NSC417", title: "Strategies for Innovation in Nursing Education", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "NSC418", title: "Community Health Nursing", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "NSC420", title: "Critical Care Nursing", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "NSC422", title: "Palliatives Care and Rehabilitation Nursing", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "NSC424", title: "Nursing Education", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "PAD101", title: "Elements of Public Administration", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "PAD102", title: "Organisation of Government", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "PAD103", title: "Introduction to Political Science I", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "PAD105", title: "Introduction to Computing", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "PAD201", title: "Introduction to Public Administration", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "PAD202", title: "Nigeria Government and Administration", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "PAD203", title: "Office Administration", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "PAD204", title: "Rural and Community Development", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "PAD205", title: "Nigerian Legal System", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "PAD206", title: "Policy Process", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "PAD207", title: "Introduction to Public Policy Analysis and Decision Making", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "PAD208", title: "Contemporary Strategic Studies", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "PAD209", title: "Foreign Policy Making and Analysis", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "PAD210", title: "Quantitative Methods in Decision Making", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "PAD212", title: "Strategic Leadership", credits: 3, departmentId: deptMap["MGMT"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "PAD301", title: "Administrative Theory", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "PAD302", title: "Administrative Behaviour", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "PAD303", title: "International Administration", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "PAD304", title: "Development Administration", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "PAD305", title: "Public Personnel Administration", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "PAD306", title: "E-Governance", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "PAD307", title: "Research Methods", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "PAD308", title: "Intergovernmental relations", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "PAD309", title: "Public Finance", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "PAD310", title: "Traditional Administrative System in Nigeria", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "PAD311", title: "Administrative Law", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "PAD312", title: "Policy Evaluation", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "PAD313", title: "Comparative Local Government", credits: 3, departmentId: deptMap["MGMT"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "PAD401", title: "Theory and Practice of Planning", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "PAD402", title: "Public Project Analysis and Management", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "PAD403", title: "Public Policy Analysis", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "PAD404", title: "Public Enterprises Management", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "PAD405", title: "Workshop in Public Administration", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "PAD406", title: "Research Project", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "PAD407", title: "Public Finance Administration", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "PAD408", title: "Comparative Public Administration", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "PAD409", title: "Public Service Ethics and Accountability", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "PAD410", title: "Legislative Process", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "PAD411", title: "Social and Welfare Administration in Nigeria", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "PAD413", title: "Theory and Practice of Industrial Relations", credits: 3, departmentId: deptMap["MGMT"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "PHS101", title: "General Biology I", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "PHS102", title: "General Biology II", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "PHS103", title: "General Biology Practical I", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "PHS104", title: "General Biology Practical II", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "PHS105", title: "General Chemistry I", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "PHS106", title: "General Chemistry II", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "PHS107", title: "General Chemistry Practical I", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "PHS108", title: "General Chemistry Practical II", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "PHS109", title: "Elementary Mathematics", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "PHS110", title: "Fundamentals of Public Health", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "PHS111", title: "Introduction to Computing", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "PHS112", title: "Introduction to Public Health Informatics", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "PHS113", title: "General Physics I", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "PHS114", title: "General Physics II – Electricity & Magnetism", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "PHS115", title: "General Practical Physics I", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "PHS116", title: "General Practical Physics II", credits: 3, departmentId: deptMap["HLTH"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "PHS201", title: "Introduction to Public Health", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "PHS202", title: "Biostatistics", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "PHS203", title: "Principles of Epidemiology", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "PHS204", title: "Demography and Social Statistics in Public Health", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "PHS205", title: "Anatomy of Upper and Lower Limbs", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "PHS206", title: "Health Anthropology", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "PHS207", title: "Introductory Physiology and Blood", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "PHS208", title: "Public Health Services", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "PHS209", title: "Biochemistry – General and Medical I", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "PHS210", title: "Public Health Residency", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "PHS211", title: "General Microbiology", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "PHS212", title: "Biochemistry – General and Medical II", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "PHS213", title: "Human Genetics", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "PHS214", title: "Renal and Body Fluids Physiology", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "PHS215", title: "Developmental Psychology", credits: 3, departmentId: deptMap["HLTH"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "PHS301", title: "Public Health Microbiology & Parasitology/Entomology", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "PHS302", title: "Health Programme Planning and Evaluation", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "PHS303", title: "Environmental Health and Public Health Laws", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "PHS304", title: "Occupational Health and Disaster Management", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "PHS305", title: "Family and Reproductive Health", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "PHS306", title: "Community Health Practicum I", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "PHS307", title: "Introduction to Primary Health Care", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "PHS308", title: "Public Health Nutrition", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "PHS309", title: "Health Economics I", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "PHS310", title: "Health Economics II", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "PHS311", title: "Public Health Seminars I", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "PHS312", title: "Public Health Seminars II", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "PHS313", title: "Epidemiology of Communicable and Non-Communicable Diseases", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "PHS314", title: "Community/Public Health Nursing II", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "spring" },
+      { courseCode: "PHS315", title: "Research Methods in Public Health I", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "PHS317", title: "Community/Public Health Nursing I", credits: 3, departmentId: deptMap["HLTH"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "PHS401", title: "Health Policy and Finance", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "PHS402", title: "Research Project", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "PHS403", title: "Health Sociology", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "PHS404", title: "Health Systems, Planning, Management & Administration", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "PHS405", title: "Community Health Care Practicum II", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "PHS406", title: "Contemporary Issues in Public Health", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "PHS407", title: "International and Global Health", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "PHS408", title: "Bioethics and Health Law", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "PHS409", title: "Principles of Pharmacology, Therapeutics and Substance Abuse", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "PHS410", title: "Health Policy and Health System Research Review", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "PHS412", title: "Advanced Biostatistics", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "PHS413", title: "Research Methods in Public Health II", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "PHS414", title: "Human Health and Climate change", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "spring" },
+      { courseCode: "PHS415", title: "Epidemiology, Disease Control & Surveillance", credits: 3, departmentId: deptMap["HLTH"], level: "400L", semesterOffered: "fall" },
+      { courseCode: "PHY101", title: "General Physics I – Mechanics", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "PHY102", title: "General Physics II – Electricity & Magnetism", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "PHY107", title: "General Practical Physics I", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "PHY108", title: "General Practical Physics II", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "spring" },
+      { courseCode: "PHY202", title: "Introduction to Electric Circuits and Electronics", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "spring" },
+      { courseCode: "SEN201", title: "Introduction to Software Engineering", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "SEN203", title: "Software Requirements Engineering", credits: 3, departmentId: deptMap["COMP"], level: "200L", semesterOffered: "fall" },
+      { courseCode: "SEN301", title: "Object-Oriented Analysis and Design", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "SEN305", title: "Software Defined Networking", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "SEN311", title: "Web Application Development", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
+      { courseCode: "STA111", title: "Descriptive Statistics", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "fall" },
+      { courseCode: "STA112", title: "Introduction to Statistics II", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "spring" },
+    ];
 
+    const createdCourses = await db
+      .insert(CourseSchema)
+      .values(allCourses)
+      .returning();
+
+    console.log(`✅ Created ${createdCourses.length} unique courses`);
+
+    console.log("\n✨ Seeding complete!");
+    console.log(`📊 Summary:`);
+    console.log(`   Departments: 4 Schools`);
+    console.log(`   Unique Courses: ${createdCourses.length}`);
+    console.log(`   Majors: 14`);
+    console.log(`   Total Course Enrollments: 675`);
+
+    return true;
   } catch (error) {
-    console.error("❌ Error seeding academic data:", error);
-    throw error;
+    console.error("❌ Seeding failed:", error);
+    return false;
   }
 }
 
-// Run the seed function
-seedAcademicData()
-  .then(() => {
-    console.log("✅ Seeding completed");
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error("❌ Seeding failed:", error);
-    process.exit(1);
-  });
+// Run seeding
+seedAcademicData().then((success) => {
+  process.exit(success ? 0 : 1);
+});

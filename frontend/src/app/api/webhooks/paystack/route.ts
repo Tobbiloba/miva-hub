@@ -4,6 +4,7 @@ import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-re
 import { pgDb as db } from "@/lib/db/pg/db.pg";
 import { UserSchema, UserSubscriptionSchema } from "@/lib/db/pg/schema.pg";
 import { eq } from "drizzle-orm";
+import { sendEmail } from "@/lib/email/smtp-service";
 
 export async function POST(req: NextRequest) {
   try {
@@ -146,6 +147,68 @@ async function handleSubscriptionNotRenew(data: any) {
   }
 }
 
+async function sendPaymentReceiptEmail(
+  userEmail: string,
+  userName: string,
+  planName: string,
+  amount: number,
+  transactionId: string,
+  billingPeriod: string
+) {
+  try {
+    const fs = await import("fs");
+    const path = await import("path");
+    const receiptTemplate = fs.readFileSync(
+      path.join(process.cwd(), "src/lib/email/templates/payment-receipt.html"),
+      "utf-8"
+    );
+
+    const amountNgn = `₦${amount.toLocaleString()}`;
+    const features =
+      planName === "MAX"
+        ? [
+            "Unlimited AI messages daily",
+            "Access to GPT-4 and Claude",
+            "Priority support",
+          ]
+        : [
+            "30 AI messages per day",
+            "Access to GPT-3.5",
+            "Full feature access",
+          ];
+
+    const receiptHtml = receiptTemplate
+      .replace("{{userName}}", userName)
+      .replace("{{planName}}", planName)
+      .replace(/{{amount}}/g, amountNgn)
+      .replace("{{billingPeriod}}", billingPeriod)
+      .replace("{{transactionId}}", transactionId)
+      .replace(
+        "{{paymentDate}}",
+        new Date().toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      )
+      .replace("{{feature1}}", features[0])
+      .replace("{{feature2}}", features[1])
+      .replace("{{feature3}}", features[2])
+      .replace(/{{appUrl}}/g, process.env.NEXT_PUBLIC_APP_URL || "https://miva-hub.com");
+
+    await sendEmail({
+      to: userEmail,
+      subject: `Payment Confirmation: ${planName} Plan - ${transactionId}`,
+      html: receiptHtml,
+    });
+
+    console.log(`Payment receipt sent to ${userEmail}`);
+  } catch (error) {
+    console.error("Error sending payment receipt:", error);
+    // Don't fail webhook if email fails
+  }
+}
+
 async function handleChargeSuccess(data: any) {
   console.log("Charge successful:", data.reference);
   
@@ -162,6 +225,13 @@ async function handleChargeSuccess(data: any) {
       .limit(1);
 
     if (subscription) {
+      // Get user info for email
+      const [user] = await db
+        .select()
+        .from(UserSchema)
+        .where(eq(UserSchema.id, subscription.userId))
+        .limit(1);
+
       const currentPeriodEnd = new Date(subscription.currentPeriodEnd);
       const nextMonth = new Date(currentPeriodEnd);
       nextMonth.setMonth(nextMonth.getMonth() + 1);
@@ -186,6 +256,18 @@ async function handleChargeSuccess(data: any) {
         description: "Monthly subscription renewal",
         paidAt: new Date(),
       });
+
+      // Send payment receipt email
+      if (user) {
+        await sendPaymentReceiptEmail(
+          user.email,
+          user.name || "User",
+          subscription.planName || "PRO",
+          data.amount / 100, // Convert from kobo to naira
+          data.reference,
+          "Monthly"
+        );
+      }
 
       console.log(`Subscription renewed for user ${subscription.userId}`);
     }

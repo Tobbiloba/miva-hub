@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu, 
@@ -59,13 +60,16 @@ export function FacultyHeader({ facultyInfo, facultyRecord }: FacultyHeaderProps
     <header className="fixed top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center px-6">
         {/* Logo and Branding */}
-        <div className="flex items-center space-x-4 mr-8">
-          <Link href="/faculty" className="flex items-center space-x-2">
-            <GraduationCap className="h-6 w-6 text-primary" />
-            <div className="flex flex-col">
-              <span className="text-lg font-bold">MIVA Faculty</span>
-              <span className="text-xs text-muted-foreground">Portal</span>
-            </div>
+        <div className="flex items-center space-x-3 mr-8">
+          <Link href="/faculty" className="flex items-center">
+            <Image
+              src="/logo.png"
+              alt="MIVA Faculty"
+              width={32}
+              height={32}
+              className="h-8 w-8 object-contain"
+              priority
+            />
           </Link>
           <Badge variant="secondary" className="text-xs">
             {facultyRecord ? formatPosition(facultyRecord.position) : 'Faculty'}

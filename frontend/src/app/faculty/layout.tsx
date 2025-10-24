@@ -4,6 +4,7 @@ import { getFacultyInfo } from "@/lib/auth/faculty";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { FacultySidebar } from "@/components/faculty/faculty-sidebar";
 import { FacultyHeader } from "@/components/faculty/faculty-header";
+import { SubscriptionGuard } from "@/components/layouts/subscription-guard";
 
 export default async function FacultyLayout({
   children,
@@ -36,24 +37,26 @@ export default async function FacultyLayout({
   const activeFacultyRecord = facultyRecord!
 
   return (
-    <div className="min-h-screen bg-background">
-      <FacultyHeader 
-        facultyInfo={facultyInfo} 
-        facultyRecord={activeFacultyRecord} 
-      />
-      
-      <div className="flex">
-        <FacultySidebar 
+    <SubscriptionGuard>
+      <div className="min-h-screen bg-background">
+        <FacultyHeader
           facultyInfo={facultyInfo}
           facultyRecord={activeFacultyRecord}
         />
-        
-        <main className="flex-1 p-6 ml-64">
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
-        </main>
+
+        <div className="flex">
+          <FacultySidebar
+            facultyInfo={facultyInfo}
+            facultyRecord={activeFacultyRecord}
+          />
+
+          <main className="flex-1 p-6 ml-64">
+            <div className="max-w-7xl mx-auto">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </SubscriptionGuard>
   );
 }

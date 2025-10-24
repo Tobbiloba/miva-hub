@@ -20,7 +20,7 @@ class DatabaseConfig:
             # Fallback to individual components if POSTGRES_URL not available
             self.host = os.getenv('DB_HOST', 'localhost')
             self.port = int(os.getenv('DB_PORT', '5432'))
-            self.database = os.getenv('DB_NAME', 'better_chatbot')  # Changed from miva_academic
+            self.database = os.getenv('DB_NAME', 'miva_hub')  # Changed from miva_academic
             self.user = os.getenv('DB_USER', 'postgres')
             self.password = os.getenv('DB_PASSWORD', '')
         else:

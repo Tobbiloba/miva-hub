@@ -53,7 +53,16 @@ export default function SignUpPage() {
 
   // Fetch departments and courses data
   const { data: departments } = useSWR('/api/departments/public', fetcher);
-  const { data: coursesData } = useSWR('/api/courses/available', fetcher);
+
+  // Build the courses URL with departmentId if major is selected
+  const coursesUrl = formData.major && departments
+    ? (() => {
+        const selectedDept = departments.find((dept: any) => dept.value === formData.major);
+        return selectedDept ? `/api/courses/available?departmentId=${selectedDept.id}` : '/api/courses/available';
+      })()
+    : '/api/courses/available';
+
+  const { data: coursesData } = useSWR(coursesUrl, fetcher);
 
   const steps = [
     "Basic Information",
@@ -163,7 +172,7 @@ export default function SignUpPage() {
       }
 
       toast.success("Registration completed successfully!");
-      router.push("/");
+      router.push("/pricing");
     }).unwrap();
   };
 

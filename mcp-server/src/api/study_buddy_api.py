@@ -57,7 +57,7 @@ def get_db_config():
         return {
             'host': os.getenv('DB_HOST', 'localhost'),
             'port': int(os.getenv('DB_PORT', '5432')),
-            'database': os.getenv('DB_NAME', 'better_chatbot'),  # Changed from miva_academic
+            'database': os.getenv('DB_NAME', 'miva_hub'),  # Changed from miva_academic
             'user': os.getenv('DB_USER', 'postgres'),
             'password': os.getenv('DB_PASSWORD', ''),
             'cursor_factory': RealDictCursor

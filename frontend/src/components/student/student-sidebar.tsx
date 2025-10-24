@@ -15,6 +15,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import {
@@ -107,7 +108,7 @@ export function StudentSidebar({
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center gap-0.5">
-            <SidebarMenuButton asChild className="hover:bg-transparent">
+            <SidebarMenuButton asChild className="hover:bg-transparent px-2">
               <Link
                 href="/student"
                 onClick={(e) => {
@@ -116,8 +117,14 @@ export function StudentSidebar({
                   setOpenMobile(false);
                 }}
               >
-                <GraduationCap className="size-5" />
-                <h4 className="font-bold">MIVA Student</h4>
+                <Image
+                  src="/logo.png"
+                  alt="MIVA Student"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 object-contain"
+                  priority
+                />
                 <div
                   className="ml-auto block sm:hidden"
                   onClick={(e) => {

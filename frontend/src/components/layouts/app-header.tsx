@@ -8,6 +8,7 @@ import {
   ChevronDown,
   MessageCircleDashed,
   PanelLeft,
+  Info,
 } from "lucide-react";
 import { Button } from "ui/button";
 import { Separator } from "ui/separator";
@@ -66,6 +67,28 @@ export function AppHeader() {
       <div className="flex-1" />
 
       <div className="flex items-center gap-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size={"icon"}
+              variant={"ghost"}
+              className="bg-secondary/40"
+              onClick={() => {
+                appStoreMutate((state) => ({
+                  toolsInfoDrawer: {
+                    isOpen: true,
+                  },
+                }));
+              }}
+            >
+              <Info className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent align="end" side="bottom">
+            <div className="text-xs">View Available Tools & Demos</div>
+          </TooltipContent>
+        </Tooltip>
+
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

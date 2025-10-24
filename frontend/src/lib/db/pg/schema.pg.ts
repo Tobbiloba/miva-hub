@@ -340,6 +340,27 @@ export const DepartmentSchema = pgTable("department", {
   updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Program/Major table
+export const ProgramSchema = pgTable(
+  "program",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    code: text("code").notNull(), // e.g., "CS", "CYB", "BUA", "ECO"
+    name: text("name").notNull(), // e.g., "Computer Science", "Cybersecurity"
+    description: text("description"),
+    departmentId: uuid("department_id")
+      .notNull()
+      .references(() => DepartmentSchema.id),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("program_department_idx").on(table.departmentId),
+    index("program_code_idx").on(table.code),
+  ],
+);
+
 // Courses table
 export const CourseSchema = pgTable(
   "course",

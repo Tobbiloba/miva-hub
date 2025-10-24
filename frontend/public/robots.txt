@@ -1,0 +1,22 @@
+# Allow search engines to crawl public pages
+User-agent: *
+Allow: /
+Allow: /sign-in
+Allow: /sign-up
+Allow: /pricing
+
+# Disallow crawling of protected routes and admin pages
+Disallow: /admin
+Disallow: /student
+Disallow: /faculty
+Disallow: /chat
+Disallow: /profile
+Disallow: /api
+Disallow: /unauthorized
+
+# Disallow crawling of Next.js internals
+Disallow: /_next/
+Disallow: /api/auth
+
+# Sitemap location
+Sitemap: https://miva-hub.com/sitemap.xml

@@ -6,6 +6,7 @@ import os
 import httpx
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from core.database import academic_repo
+from core.usage_tracker import usage_tracker, create_usage_error_response
 
 STUDY_BUDDY_API_BASE = "http://localhost:8083"
 
@@ -22,23 +23,31 @@ def register_deep_learning_tools(mcp):
         include_examples: bool = True
     ) -> str:
         """Get a deep, multi-layered explanation of a concept from course materials.
-        
+
         Provides comprehensive understanding through multiple explanation styles:
         - Simple: ELI5 (Explain Like I'm 5) explanation
         - Technical: Formal, precise definition with terminology
         - Visual: Description of diagrams, visual representations
         - Analogy: Real-world comparisons and metaphors
-        
+
         Args:
             concept: The concept to explain (e.g., "recursion", "photosynthesis", "supply and demand")
             course_code: Course code (e.g., "CSC301", "BIO101")
             student_id: Student ID for enrollment verification
             explanation_style: Preferred style - "simple", "technical", "visual", "analogy", "all" (default: simple)
             include_examples: Include examples from course materials (default: True)
-            
+
         Returns:
             Multi-perspective explanation with examples and related concepts
         """
+        # Check usage limit before processing
+        if student_id:
+            allowed, usage_info = await usage_tracker.check_and_enforce_usage(
+                student_id, "ai_messages_per_day", "daily"
+            )
+            if not allowed:
+                return create_usage_error_response(usage_info, "explain_concept_deeply")
+
         try:
             # Verify enrollment
             enrollments = await academic_repo.get_student_enrollments(student_id=student_id)
@@ -127,8 +136,14 @@ def register_deep_learning_tools(mcp):
                     for s in result['sources'][:3]
                 ]
             
+            # Record usage after successful execution
+            if student_id:
+                await usage_tracker.record_usage_after_success(
+                    student_id, "ai_messages_per_day", "daily"
+                )
+
             return json.dumps(explanation, indent=2)
-            
+
         except httpx.TimeoutException:
             return json.dumps({"error": "Request timed out. Please try again."})
         except Exception as e:

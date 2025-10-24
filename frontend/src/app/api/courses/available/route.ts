@@ -1,10 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Get active courses
-    const courses = await pgAcademicRepository.getActiveCourses();
+    // Get departmentId from query params (optional)
+    const departmentId = request.nextUrl.searchParams.get("departmentId");
+
+    // Get active courses - filtered by department if provided
+    const courses = departmentId
+      ? await pgAcademicRepository.getCoursesByDepartment(departmentId)
+      : await pgAcademicRepository.getActiveCourses();
     
     // Get current semester info
     const currentSemester = await pgAcademicRepository.getActiveAcademicCalendar();

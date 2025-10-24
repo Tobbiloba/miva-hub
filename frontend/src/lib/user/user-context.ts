@@ -1,6 +1,6 @@
 /**
- * User Context Service for Better Chatbot
- * Maps Better Chatbot users to academic student IDs and provides session-based context
+ * User Context Service for Miva Hub
+ * Maps Miva Hub users to academic student IDs and provides session-based context
  */
 
 import { safe } from "ts-safe";
@@ -24,7 +24,7 @@ class UserContextService {
   private cacheTTL = 5 * 60 * 1000; // 5 minutes cache TTL
 
   /**
-   * Get academic context for a Better Chatbot user
+   * Get academic context for a Miva Hub user
    * Maps user email to academic student ID
    */
   async getUserAcademicContext(userEmail: string): Promise<UserAcademicContext | null> {
@@ -61,24 +61,24 @@ class UserContextService {
   }
 
   /**
-   * Query the Better Chatbot database to find student by email
-   * Maps Better Chatbot users to academic context
+   * Query the Miva Hub database to find student by email
+   * Maps Miva Hub users to academic context
    */
   private async queryAcademicDatabase(email: string): Promise<UserAcademicContext | null> {
     // Import PostgreSQL client dynamically to avoid loading issues
     const { Pool } = await import('pg');
-    
-    // Query the Better Chatbot database (not miva_academic)
+
+    // Query the Miva Hub database (not miva_academic)
     const pool = new Pool({
       host: 'localhost',
       port: 5432,
-      database: 'better_chatbot',
+      database: 'miva_hub',
       user: 'postgres',
       password: '',
     });
 
     try {
-      // Query Better Chatbot user table for academic info
+      // Query Miva Hub user table for academic info
       const query = `
         SELECT 
           u.email,
