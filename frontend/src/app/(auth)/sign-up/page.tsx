@@ -54,11 +54,39 @@ export default function SignUpPage() {
   // Fetch departments and courses data
   const { data: departments } = useSWR('/api/departments/public', fetcher);
 
-  // Build the courses URL with departmentId if major is selected
+  // Build the courses URL with all filters (departmentId, level, semester)
   const coursesUrl = formData.major && departments
     ? (() => {
         const selectedDept = departments.find((dept: any) => dept.value === formData.major);
-        return selectedDept ? `/api/courses/available?departmentId=${selectedDept.id}` : '/api/courses/available';
+        if (!selectedDept) return '/api/courses/available';
+        
+        const params = new URLSearchParams({
+          departmentId: selectedDept.id
+        });
+        
+        // Add level filter if year is selected
+        if (formData.year) {
+          const levelMap: Record<string, string> = {
+            '100': '100L',
+            '200': '200L', 
+            '300': '300L',
+            '400': '400L',
+            'graduate': 'graduate',
+            'doctoral': 'doctoral'
+          };
+          params.append('level', levelMap[formData.year] || formData.year);
+        }
+        
+        // Add semester filter if semester is selected
+        if (formData.semester) {
+          const semesterMap: Record<string, string> = {
+            'first': 'fall',
+            'second': 'spring'
+          };
+          params.append('semester', semesterMap[formData.semester] || formData.semester);
+        }
+        
+        return `/api/courses/available?${params.toString()}`;
       })()
     : '/api/courses/available';
 
