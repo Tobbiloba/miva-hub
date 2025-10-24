@@ -5,6 +5,7 @@ import {
   type MCPClientsManager,
 } from "./create-mcp-clients-manager";
 import { FILE_BASED_MCP_CONFIG } from "lib/const";
+import { MCP_CONFIG } from "lib/config/mcp-config";
 declare global {
   // eslint-disable-next-line no-var
   var __mcpClientsManager__: MCPClientsManager;
@@ -29,9 +30,9 @@ async function ensureDefaultMCPServer() {
     const { mcpRepository } = await import("lib/db/repository");
     const { generateUUID } = await import("lib/utils");
     
-    const serverName = "miva-academic";
+    const serverName = MCP_CONFIG.DEFAULT_SERVER_NAME;
     const serverConfig = {
-      url: "http://localhost:8080/sse",
+      url: MCP_CONFIG.SERVER_URL,
     };
 
     // Clean up old server name if it exists
