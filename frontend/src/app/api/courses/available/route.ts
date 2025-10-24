@@ -3,13 +3,15 @@ import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-reposito
 
 export async function GET(request: NextRequest) {
   try {
-    // Get departmentId from query params (optional)
+    // Get query parameters
     const departmentId = request.nextUrl.searchParams.get("departmentId");
+    const level = request.nextUrl.searchParams.get("level");
+    const semester = request.nextUrl.searchParams.get("semester");
 
-    // Get active courses - filtered by department if provided
+    // Get active courses - filtered by department, level, and semester if provided
     const courses = departmentId
-      ? await pgAcademicRepository.getCoursesByDepartment(departmentId)
-      : await pgAcademicRepository.getActiveCourses();
+      ? await pgAcademicRepository.getCoursesByDepartment(departmentId, { level, semester })
+      : await pgAcademicRepository.getActiveCourses({ level, semester });
     
     // Get current semester info
     const currentSemester = await pgAcademicRepository.getActiveAcademicCalendar();

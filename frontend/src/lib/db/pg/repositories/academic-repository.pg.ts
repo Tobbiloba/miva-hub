@@ -85,14 +85,24 @@ export const pgAcademicRepository = {
   },
 
   // Course operations
-  getCoursesByDepartment: async (departmentId: string): Promise<CourseEntity[]> => {
+  getCoursesByDepartment: async (departmentId: string, filters?: { level?: string; semester?: string }): Promise<CourseEntity[]> => {
+    const conditions = [
+      eq(CourseSchema.departmentId, departmentId),
+      eq(CourseSchema.isActive, true)
+    ];
+
+    if (filters?.level) {
+      conditions.push(eq(CourseSchema.level, filters.level));
+    }
+
+    if (filters?.semester) {
+      conditions.push(eq(CourseSchema.semesterOffered, filters.semester));
+    }
+
     return db
       .select()
       .from(CourseSchema)
-      .where(and(
-        eq(CourseSchema.departmentId, departmentId),
-        eq(CourseSchema.isActive, true)
-      ))
+      .where(and(...conditions))
       .orderBy(asc(CourseSchema.courseCode));
   },
 
@@ -104,11 +114,21 @@ export const pgAcademicRepository = {
     return result ?? null;
   },
 
-  getActiveCourses: async (): Promise<CourseEntity[]> => {
+  getActiveCourses: async (filters?: { level?: string; semester?: string }): Promise<CourseEntity[]> => {
+    const conditions = [eq(CourseSchema.isActive, true)];
+
+    if (filters?.level) {
+      conditions.push(eq(CourseSchema.level, filters.level));
+    }
+
+    if (filters?.semester) {
+      conditions.push(eq(CourseSchema.semesterOffered, filters.semester));
+    }
+
     return db
       .select()
       .from(CourseSchema)
-      .where(eq(CourseSchema.isActive, true))
+      .where(and(...conditions))
       .orderBy(asc(CourseSchema.courseCode));
   },
 
