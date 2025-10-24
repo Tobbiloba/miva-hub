@@ -10,12 +10,13 @@ async function seedSubscriptionPlans() {
     // Define the subscription plans with realistic limits based on usage tracking
     const plansData = [
       {
-        name: "PRO",
-        displayName: "PRO Plan",
-        description: "Perfect for regular students",
+        name: "STUDENT",
+        displayName: "Student Plan",
+        description: "Perfect for students - Full access to all courses with AI tutoring",
         priceNgn: 250000, // ₦2,500 (stored in kobo)
         priceUsd: 160,
         interval: "monthly",
+        paystackPlanCode: "PLN_student_monthly",
         features: [
           "30 AI study questions per day (ask_study_question, explain_concept_deeply, compare_concepts, get_learning_path)",
           "10 course material searches per day",
@@ -43,12 +44,13 @@ async function seedSubscriptionPlans() {
         },
       },
       {
-        name: "MAX",
-        displayName: "MAX Plan",
-        description: "Unlimited access with advanced features",
-        priceNgn: 550000, // ₦5,500 (stored in kobo)
-        priceUsd: 350,
+        name: "PREMIUM",
+        displayName: "Premium Plan",
+        description: "Advanced features with unlimited access",
+        priceNgn: 500000, // ₦5,000 (stored in kobo)
+        priceUsd: 320,
         interval: "monthly",
+        paystackPlanCode: "PLN_premium_monthly",
         features: [
           "Unlimited AI study questions per day",
           "Unlimited course material searches per day",
@@ -83,6 +85,49 @@ async function seedSubscriptionPlans() {
           exams_per_month: 4,
         },
       },
+      {
+        name: "FACULTY",
+        displayName: "Faculty Plan",
+        description: "For educators - Course creation and student management tools",
+        priceNgn: 750000, // ₦7,500 (stored in kobo)
+        priceUsd: 480,
+        interval: "monthly",
+        paystackPlanCode: "PLN_faculty_monthly",
+        features: [
+          "Unlimited course creation and management",
+          "Student enrollment and progress tracking",
+          "Assignment creation and grading tools",
+          "Analytics dashboard with detailed insights",
+          "Unlimited AI tutoring for students",
+          "Course material upload and organization",
+          "Student communication tools",
+          "Grade book and reporting",
+          "Custom quiz and exam creation",
+          "Student performance analytics",
+          "Priority support (2-hour response)",
+          "Bulk student management tools",
+          "Course scheduling and calendar",
+          "Resource library management",
+          "Student feedback collection",
+          "Export reports (PDF, Excel, CSV)",
+          "Integration with learning management systems",
+          "Mobile app for faculty",
+          "Cancel anytime (no lock-in)",
+        ],
+        limits: {
+          // Faculty-specific limits
+          courses_per_month: -1,
+          students_per_course: -1,
+          assignments_per_course: -1,
+          ai_messages_per_day: -1,
+          material_searches_per_day: -1,
+          quizzes_per_week: -1,
+          flashcard_sets_per_week: -1,
+          practice_problems_per_week: -1,
+          study_guides_per_week: -1,
+          exams_per_month: -1,
+        },
+      },
     ];
 
     // Check if plans already exist
@@ -107,6 +152,7 @@ async function seedSubscriptionPlans() {
               priceUsd: planData.priceUsd,
               features: planData.features,
               limits: planData.limits,
+              paystackPlanCode: planData.paystackPlanCode,
               isActive: true,
             })
             .where(eq(SubscriptionPlanSchema.id, existingPlan.id));
@@ -124,6 +170,7 @@ async function seedSubscriptionPlans() {
               interval: planData.interval,
               features: planData.features,
               limits: planData.limits,
+              paystackPlanCode: planData.paystackPlanCode,
               isActive: true,
             });
 
@@ -144,6 +191,7 @@ async function seedSubscriptionPlans() {
             interval: plan.interval,
             features: plan.features,
             limits: plan.limits,
+            paystackPlanCode: plan.paystackPlanCode,
             isActive: true,
           }))
         )

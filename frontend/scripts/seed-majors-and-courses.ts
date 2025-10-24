@@ -129,6 +129,20 @@ async function seedMajorsAndCourses() {
       { courseCode: "GST312", title: "Peace and Conflict Resolution", level: "300L", semester: "spring", major: "CS" },
       { courseCode: "ENT312", title: "Venture Creation", level: "300L", semester: "spring", major: "CS" },
 
+      // Computer Science 400L courses
+      { courseCode: "CSC401", title: "Research Methodology and Technical Report Writing", level: "400L", semester: "fall", major: "CS" },
+      { courseCode: "CSC402", title: "Algorithms and Complexity Analysis", level: "400L", semester: "fall", major: "CS" },
+      { courseCode: "CSC403", title: "Project Management", level: "400L", semester: "fall", major: "CS" },
+      { courseCode: "CSC404", title: "Distributed Computing", level: "400L", semester: "fall", major: "CS" },
+      { courseCode: "CSC405", title: "Organization of Programming Languages", level: "400L", semester: "fall", major: "CS" },
+      { courseCode: "CSC406", title: "Final Year Project I", level: "400L", semester: "fall", major: "CS" },
+      { courseCode: "CSC407", title: "Ethical and Legal Issues in Computer Science", level: "400L", semester: "spring", major: "CS" },
+      { courseCode: "CSC408", title: "Machine Learning", level: "400L", semester: "spring", major: "CS" },
+      { courseCode: "CSC409", title: "Human Computer Interaction", level: "400L", semester: "spring", major: "CS" },
+      { courseCode: "CSC410", title: "Final Year Project II", level: "400L", semester: "spring", major: "CS" },
+      { courseCode: "CSC411", title: "Compiler Construction", level: "400L", semester: "spring", major: "CS" },
+      { courseCode: "CSC412", title: "Cloud Computing Security", level: "400L", semester: "spring", major: "CS" },
+
       // Cybersecurity courses
       { courseCode: "CYB203", title: "Cybercrime, Law and Countermeasures", level: "200L", semester: "fall", major: "CYB" },
       { courseCode: "CYB204", title: "Computer Networks", level: "200L", semester: "spring", major: "CYB" },
