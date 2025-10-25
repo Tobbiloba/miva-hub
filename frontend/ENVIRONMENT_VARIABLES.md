@@ -12,8 +12,8 @@ This document lists all the environment variables used in the MIVA Hub frontend 
 - `NEXT_PUBLIC_PROGRESS_API_URL` - Progress API for saving/loading student progress (default: `http://localhost:8083`)
 - `NEXT_PUBLIC_CONTENT_PROCESSOR_URL` - Content Processor API for file processing (default: `http://localhost:8082`)
 - `CONTENT_PROCESSOR_URL` - Server-side content processor URL (default: `http://localhost:8082`)
-- `MCP_SERVER_URL` - MCP Server URL for Model Context Protocol (default: `http://localhost:3001/sse`)
-- `NEXT_PUBLIC_MCP_SERVER_URL` - Public MCP Server URL (default: `http://localhost:3001/sse`)
+- `MCP_SERVER_URL` - MCP Server URL for Model Context Protocol (default: `http://localhost:8080/sse`)
+- `NEXT_PUBLIC_MCP_SERVER_URL` - Public MCP Server URL (default: `http://localhost:8080/sse`)
 
 ### Payment Configuration
 - `PAYSTACK_SECRET_KEY` - Paystack secret key (required)
@@ -85,8 +85,8 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3000
 NEXT_PUBLIC_PROGRESS_API_URL=http://localhost:8083
 NEXT_PUBLIC_CONTENT_PROCESSOR_URL=http://localhost:8082
 CONTENT_PROCESSOR_URL=http://localhost:8082
-MCP_SERVER_URL=http://localhost:3001/sse
-NEXT_PUBLIC_MCP_SERVER_URL=http://localhost:3001/sse
+MCP_SERVER_URL=http://localhost:8080/sse
+NEXT_PUBLIC_MCP_SERVER_URL=http://localhost:8080/sse
 PAYSTACK_API_URL=https://api.paystack.co
 OLLAMA_BASE_URL=http://localhost:11434/api
 ```
@@ -109,3 +109,4 @@ PAYSTACK_API_URL=https://api.paystack.co
 - Server-side only variables (without `NEXT_PUBLIC_` prefix) are not exposed to the client
 - Default values are provided for development, but production should use appropriate production URLs
 - Some variables like `PAYSTACK_SECRET_KEY` and `BETTER_AUTH_SECRET` are required and have no defaults
+- **MCP Server Note**: The MCP server runs on port 8080 by default. Make sure to set `NEXT_PUBLIC_MCP_SERVER_URL` in production to point to your hosted MCP server

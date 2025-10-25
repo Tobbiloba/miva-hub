@@ -11,8 +11,8 @@ export const getMCPServerURL = (): string => {
     return process.env.MCP_SERVER_URL;
   }
 
-  // Default to localhost for development
-  return process.env.NEXT_PUBLIC_MCP_SERVER_URL || "http://localhost:3001/sse";
+  // Default to localhost for development (MCP server runs on port 8080)
+  return process.env.NEXT_PUBLIC_MCP_SERVER_URL || "http://localhost:8080/sse";
 };
 
 export const MCP_CONFIG = {
@@ -24,11 +24,12 @@ export const MCP_CONFIG = {
  * Environment-specific MCP server URLs:
  * 
  * Local Development:
- *   MCP_SERVER_URL=http://localhost:3001/sse
+ *   NEXT_PUBLIC_MCP_SERVER_URL=http://localhost:8080/sse
+ *   (or set MCP_SERVER_URL for server-side usage)
  * 
- * Production (Railway):
- *   MCP_SERVER_URL=https://miva-hub-production-3979.up.railway.app/sse
+ * Production:
+ *   NEXT_PUBLIC_MCP_SERVER_URL=https://your-mcp-server-domain.com/sse
  * 
- * Production (Vercel):
- *   MCP_SERVER_URL=https://your-production-domain.com/sse
+ * Example:
+ *   NEXT_PUBLIC_MCP_SERVER_URL=https://miva-hub-mcp-production.up.railway.app/sse
  */
