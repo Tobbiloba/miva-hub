@@ -24,7 +24,7 @@ export function useAutoSave({
   localStorageOnly = false
 }: AutoSaveOptions) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>({ status: 'idle' });
-  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const dataRef = useRef(data);
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export function useAutoSave({
     if (!studentId) return false;
 
     try {
-      const response = await fetch(`http://localhost:8083/progress/save`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -137,7 +137,7 @@ export function useLoadProgress(key: string, studentId?: string) {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 500);
 
-          const response = await fetch(`http://localhost:8083/progress/load?key=${key}&student_id=${studentId}`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/load?key=${key}&student_id=${studentId}`, {
             signal: controller.signal
           });
 
@@ -180,7 +180,7 @@ export async function clearProgress(key: string, studentId?: string) {
   
   if (studentId) {
     try {
-      await fetch(`http://localhost:8083/progress/clear?key=${key}&student_id=${studentId}`, {
+      await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/clear?key=${key}&student_id=${studentId}`, {
         method: 'DELETE'
       });
     } catch (error) {

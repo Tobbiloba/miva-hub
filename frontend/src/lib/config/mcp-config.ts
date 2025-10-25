@@ -12,7 +12,7 @@ export const getMCPServerURL = (): string => {
   }
 
   // Default to localhost for development
-  return "http://localhost:3001/sse";
+  return process.env.NEXT_PUBLIC_MCP_SERVER_URL || "http://localhost:3001/sse";
 };
 
 export const MCP_CONFIG = {

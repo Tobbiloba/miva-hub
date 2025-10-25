@@ -22,7 +22,7 @@ export function useExamProgress({
   debounceMs = 1000
 }: UseExamProgressOptions) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>({ status: 'idle' });
-  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const dataRef = useRef(data);
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export function useExamProgress({
     if (!examId || !studentId) return false;
 
     try {
-      const response = await fetch('http://localhost:8083/progress/exam/save', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/exam/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -140,7 +140,7 @@ export function useLoadExamProgress(examId?: string, studentId?: string) {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 500);
 
-          const response = await fetch(`http://localhost:8083/progress/exam/load/${examId}/${studentId}`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/exam/load/${examId}/${studentId}`, {
             signal: controller.signal
           });
 
@@ -199,7 +199,7 @@ export async function clearExamProgress(examId?: string, studentId?: string) {
   
   if (examId && studentId) {
     try {
-      await fetch(`http://localhost:8083/progress/exam/clear/${examId}/${studentId}`, {
+      await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/exam/clear/${examId}/${studentId}`, {
         method: 'DELETE'
       });
     } catch (error) {

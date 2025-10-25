@@ -21,7 +21,7 @@ export function useQuizProgress({
   debounceMs = 1000
 }: UseQuizProgressOptions) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>({ status: 'idle' });
-  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const dataRef = useRef(data);
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export function useQuizProgress({
     if (!quizId || !studentId) return false;
 
     try {
-      const response = await fetch('http://localhost:8083/progress/quiz/save', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/quiz/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -138,7 +138,7 @@ export function useLoadQuizProgress(quizId?: string, studentId?: string) {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 500);
 
-          const response = await fetch(`http://localhost:8083/progress/quiz/load/${quizId}/${studentId}`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/quiz/load/${quizId}/${studentId}`, {
             signal: controller.signal
           });
 
@@ -195,7 +195,7 @@ export async function clearQuizProgress(quizId?: string, studentId?: string) {
   
   if (quizId && studentId) {
     try {
-      await fetch(`http://localhost:8083/progress/quiz/clear/${quizId}/${studentId}`, {
+      await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/quiz/clear/${quizId}/${studentId}`, {
         method: 'DELETE'
       });
     } catch (error) {

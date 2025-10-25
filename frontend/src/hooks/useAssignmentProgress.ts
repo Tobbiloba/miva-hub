@@ -26,7 +26,7 @@ export function useAssignmentProgress({
   debounceMs = 2000
 }: UseAssignmentProgressOptions) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>({ status: 'idle' });
-  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const dataRef = useRef(data);
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export function useAssignmentProgress({
     if (!assignmentId || !studentId) return false;
 
     try {
-      const response = await fetch('http://localhost:8083/progress/assignment/save', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/assignment/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -146,7 +146,7 @@ export function useLoadAssignmentProgress(assignmentId?: string, studentId?: str
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 500);
 
-          const response = await fetch(`http://localhost:8083/progress/assignment/load/${assignmentId}/${studentId}`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/assignment/load/${assignmentId}/${studentId}`, {
             signal: controller.signal
           });
 
@@ -203,7 +203,7 @@ export async function clearAssignmentProgress(assignmentId?: string, studentId?:
   
   if (assignmentId && studentId) {
     try {
-      await fetch(`http://localhost:8083/progress/assignment/clear/${assignmentId}/${studentId}`, {
+      await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/assignment/clear/${assignmentId}/${studentId}`, {
         method: 'DELETE'
       });
     } catch (error) {

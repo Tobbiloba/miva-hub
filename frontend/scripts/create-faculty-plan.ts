@@ -1,7 +1,7 @@
 import "load-env";
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
-const PAYSTACK_API_URL = "https://api.paystack.co";
+const PAYSTACK_API_URL = process.env.PAYSTACK_API_URL || "https://api.paystack.co";
 
 async function createFacultyPlan() {
   try {
