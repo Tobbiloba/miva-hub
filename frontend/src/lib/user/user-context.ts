@@ -68,14 +68,19 @@ class UserContextService {
     // Import PostgreSQL client dynamically to avoid loading issues
     const { Pool } = await import('pg');
 
+    // Use environment variable or fallback to localhost
+    const postgresUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+    
     // Query the Miva Hub database (not miva_academic)
-    const pool = new Pool({
-      host: 'localhost',
-      port: 5432,
-      database: 'miva_hub',
-      user: 'postgres',
-      password: '',
-    });
+    const pool = postgresUrl 
+      ? new Pool({ connectionString: postgresUrl })
+      : new Pool({
+          host: 'localhost',
+          port: 5432,
+          database: 'miva_hub',
+          user: 'postgres',
+          password: '',
+        });
 
     try {
       // Query Miva Hub user table for academic info
