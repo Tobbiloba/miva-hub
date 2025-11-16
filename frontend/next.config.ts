@@ -59,6 +59,18 @@ export default () => {
     
     // Additional configuration for server-only modules
     serverExternalPackages: ['pg', 'pg-native', 'pg-connection-string', 'pgpass'],
+    
+    // Image configuration
+    images: {
+      remotePatterns: [
+        {
+          protocol: 'https',
+          hostname: 'cdn.dribbble.com',
+          port: '',
+          pathname: '/**',
+        },
+      ],
+    },
   };
   const withNextIntl = createNextIntlPlugin();
   return withNextIntl(nextConfig);

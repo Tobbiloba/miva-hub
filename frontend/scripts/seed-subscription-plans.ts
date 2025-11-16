@@ -16,7 +16,7 @@ async function seedSubscriptionPlans() {
         priceNgn: 250000, // ₦2,500 (stored in kobo)
         priceUsd: 160,
         interval: "monthly",
-        paystackPlanCode: "PLN_student_monthly",
+        paystackPlanCode: "PLN_kubo8x0bfhabxad",
         features: [
           "30 AI study questions per day (ask_study_question, explain_concept_deeply, compare_concepts, get_learning_path)",
           "10 course material searches per day",
@@ -50,7 +50,7 @@ async function seedSubscriptionPlans() {
         priceNgn: 500000, // ₦5,000 (stored in kobo)
         priceUsd: 320,
         interval: "monthly",
-        paystackPlanCode: "PLN_premium_monthly",
+        paystackPlanCode: "PLN_x4ueudn4frsvu87",
         features: [
           "Unlimited AI study questions per day",
           "Unlimited course material searches per day",

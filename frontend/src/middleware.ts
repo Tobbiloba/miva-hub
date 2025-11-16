@@ -39,6 +39,7 @@ export async function middleware(request: NextRequest) {
     !pathname.startsWith("/sign-in") &&
     !pathname.startsWith("/sign-up") &&
     !pathname.startsWith("/pricing") &&
+    !pathname.startsWith("/landing") &&
     !pathname.startsWith("/unauthorized") &&
     !pathname.startsWith("/privacy") &&
     !pathname.startsWith("/terms") &&
@@ -52,6 +53,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api/auth|api/departments|api/courses|api/content|sign-in|sign-up|reset-password|unauthorized|privacy|terms).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api/auth|api/departments|api/courses|api/content|sign-in|sign-up|reset-password|landing|unauthorized|privacy|terms).*)",
   ],
 };
