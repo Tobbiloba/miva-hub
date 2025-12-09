@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth/server";
 import { isActiveStudent } from "@/lib/auth/student";
 import { redirect } from "next/navigation";
 import { SidebarProvider } from "ui/sidebar";
-import { SubscriptionGuard } from "@/components/layouts/subscription-guard";
+// import { SubscriptionGuard } from "@/components/layouts/subscription-guard";
 
 export default async function StudentLayout({
   children,
@@ -29,7 +29,7 @@ export default async function StudentLayout({
   // }
 
   return (
-    <SubscriptionGuard>
+    // <SubscriptionGuard>
       <SidebarProvider>
         <div className="flex h-screen bg-background w-screen">
           <StudentSidebar session={session} />
@@ -42,6 +42,6 @@ export default async function StudentLayout({
           </main>
         </div>
       </SidebarProvider>
-    </SubscriptionGuard>
+    // </SubscriptionGuard>
   );
 }

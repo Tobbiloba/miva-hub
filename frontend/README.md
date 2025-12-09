@@ -9,17 +9,18 @@
 
 🚀 **[Live Demo](https://better-chatbot-demo.vercel.app/)** | See the experience in action in the [preview](#preview) below!
 
-**Miva Hub** - An open-source AI chatbot hub for individuals and teams, inspired by ChatGPT, Claude, Grok, and Gemini.
+**Askly** - A complete digital university platform that automates student enrollment, course management, assignment grading, and faculty administration. Features an AI assistant that helps students with coursework, answers academic questions, and provides personalized learning support.
 
-• **Multi-AI Support** - Integrates all major LLMs: OpenAI, Anthropic, Google, xAI, Ollama, and more  
-• **Powerful Tools** - MCP protocol, web search, JS/Python code execution, data visualization  
-• **Automation** - Custom agents, visual workflows, artifact generation  
-• **Collaboration** - Share agents, workflows, and MCP configurations with your team  
-• **Voice Assistant** - Realtime voice chat with full MCP tool integration  
-• **Intuitive UX** - Instantly invoke any feature with `@mention`  
-• **Quick Start** - Deploy free with Vercel Deploy button  
+• **Student Enrollment** - Automated registration and course enrollment system  
+• **Course Management** - Comprehensive course catalog, materials, and scheduling  
+• **Assignment Grading** - AI-powered automated grading with faculty oversight  
+• **Faculty Administration** - Complete faculty management and course administration tools  
+• **AI Study Assistant** - Intelligent AI assistant for coursework help and academic questions  
+• **Personalized Learning** - Adaptive learning support tailored to each student's needs  
+• **Academic Analytics** - Track student progress, grades, and performance metrics  
+• **Modern Stack** - Built with Next.js 15, TypeScript, PostgreSQL, Drizzle ORM, Better Auth, and AI SDK  
 
-Built with Vercel AI SDK and Next.js, combining the best features of leading AI services into one platform.
+Built with Next.js 15, TypeScript, PostgreSQL, Drizzle ORM, Better Auth, Python MCP Server, Radix UI, Tailwind CSS, AI SDK (Anthropic/OpenAI), Recharts, Sonner, Zod, and Zustand.
 
 
 ### Quick Start 🚀

@@ -7,7 +7,7 @@ import { auth } from "auth/server";
 import { COOKIE_KEY_SIDEBAR_STATE } from "lib/const";
 import { AppPopupProvider } from "@/components/layouts/app-popup-provider";
 import { SWRConfigProvider } from "./swr-config";
-import { SubscriptionGuard } from "@/components/layouts/subscription-guard";
+// import { SubscriptionGuard } from "@/components/layouts/subscription-guard";
 import { ToolsInfoDrawerProvider } from "@/components/layouts/tools-info-drawer-provider";
 
 export const experimental_ppr = true;
@@ -24,7 +24,7 @@ export default async function ChatLayout({
   const isCollapsed =
     cookieStore.get(COOKIE_KEY_SIDEBAR_STATE)?.value !== "true";
   return (
-    <SubscriptionGuard>
+    // <SubscriptionGuard>
       <SidebarProvider defaultOpen={!isCollapsed}>
         <SWRConfigProvider>
           <ToolsInfoDrawerProvider>
@@ -37,6 +37,6 @@ export default async function ChatLayout({
           </ToolsInfoDrawerProvider>
         </SWRConfigProvider>
       </SidebarProvider>
-    </SubscriptionGuard>
+    // </SubscriptionGuard>
   );
 }

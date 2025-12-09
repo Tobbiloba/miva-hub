@@ -1,19 +1,18 @@
-# Miva Hub - Project Overview
+# Askly - Project Overview
 
 ## What is This?
 
-**Miva Hub** is an open-source AI chatbot platform built with Next.js and Vercel AI SDK. It's an intelligent chatbot hub that combines features from ChatGPT, Claude, Grok, and Gemini into one unified platform.
+**Askly** is a complete digital university platform that automates student enrollment, course management, assignment grading, and faculty administration. Features an AI assistant that helps students with coursework, answers academic questions, and provides personalized learning support.
 
 ### Key Features:
-- 🤖 **Multi-AI Support** - Works with OpenAI, Anthropic, Google, xAI, Ollama, and more
-- 🛠️ **MCP Protocol Support** - Integrates Model Context Protocol servers for extended functionality
-- 🎙️ **Voice Assistant** - Realtime voice chat with full tool integration
-- 👥 **Collaboration** - Share agents, workflows, and configurations with teams
-- 📊 **Data Visualization** - Create charts, tables, and interactive visualizations
-- 🔍 **Web Search** - Semantic web search powered by Exa AI
-- 💻 **Code Execution** - Run JavaScript and Python code directly in chats
-- 🎯 **Custom Agents & Workflows** - Create specialized AI assistants and automated workflows
-- 📱 **Landing Page** - Marketing landing page for the platform
+- 🎓 **Student Enrollment** - Automated student registration and course enrollment system
+- 📚 **Course Management** - Comprehensive course catalog, materials, and scheduling
+- ✅ **Assignment Grading** - AI-powered automated grading with faculty oversight
+- 👨‍🏫 **Faculty Administration** - Complete faculty management and course administration tools
+- 🤖 **AI Study Assistant** - Intelligent AI assistant that helps with coursework and academic questions
+- 📖 **Personalized Learning** - Adaptive learning support tailored to each student's needs
+- 📊 **Academic Analytics** - Track student progress, grades, and performance metrics
+- 🔔 **Notifications** - Real-time updates for assignments, grades, and announcements
 
 ---
 
@@ -30,13 +29,39 @@
 - `mini-javascript-execution` - Execute JavaScript code
 - `python-execution` - Execute Python code
 
-#### **Data Visualization Tools**
-- `createTable` - Create interactive data tables with sorting, filtering, and export
-- `createBarChart` - Generate bar charts
-- `createLineChart` - Generate line charts
-- `createPieChart` - Generate pie charts
+#### **📊 Advanced Data Visualization Tools**
 
-#### **Academic Tools** (MIVA-specific)
+Askly features a powerful suite of visualization tools powered by **Recharts** that transform raw data into beautiful, interactive visualizations:
+
+- **`createTable`** - Create sophisticated interactive data tables with:
+  - Multi-column sorting and real-time filtering
+  - Global search with automatic highlighting
+  - Export to CSV/Excel formats
+  - Column visibility controls
+  - Pagination for large datasets
+  - Smart data type formatting (strings, numbers, dates, booleans)
+
+- **`createBarChart`** - Generate professional bar charts for:
+  - Comparing values across categories
+  - Time-series comparisons
+  - Multi-series data visualization
+  - Customizable colors and styling
+
+- **`createLineChart`** - Create elegant line charts to visualize:
+  - Trends over time
+  - Continuous data patterns
+  - Multi-metric comparisons
+  - Performance tracking
+
+- **`createPieChart`** - Build interactive pie charts for:
+  - Proportional data distribution
+  - Percentage breakdowns
+  - Category comparisons
+  - Visual data storytelling
+
+All visualizations are fully interactive, responsive, and can be embedded directly in AI conversations, making data analysis seamless and intuitive.
+
+#### **Academic Tools** (Askly-specific)
 - `get-course-materials` - Get course materials for enrolled students
 - `get-upcoming-assignments` - Track upcoming assignments
 - `find-faculty` - Search faculty directory
@@ -54,27 +79,36 @@
 
 ---
 
-### 🔌 MCP Server Tools (Model Context Protocol)
+### 🔌 Model Context Protocol (MCP) Integration
 
-MCP servers extend the platform's capabilities.`You can add custom MCP servers or use recommended ones:
+Askly leverages the **Model Context Protocol (MCP)** to create an extensible, powerful ecosystem that seamlessly connects AI capabilities with real-world tools and data. MCP enables our platform to dynamically extend functionality through modular server integrations, making Askly infinitely customizable and powerful.
+
+#### **Why MCP Matters**
+- 🚀 **Extensible Architecture** - Add new capabilities without modifying core code
+- 🔗 **Seamless Integration** - Connect with external services and APIs effortlessly
+- 🎯 **Context-Aware** - AI assistants understand and utilize tools intelligently
+- 🔧 **Developer-Friendly** - Build custom MCP servers for specialized needs
+- ⚡ **Real-Time Execution** - Tools execute in real-time during AI conversations
 
 #### **Recommended MCP Servers:**
-1. **GitHub** - GitHub repository management
-2. **Notion** - Notion workspace integration
-3. **Linear** - Project management with Linear
-4. **Playwright** - Browser automation
-5. **Neon** - Database operations
-6. **Stripe** - Payment processing
-7. **PayPal** - Payment processing
-8. **Canva** - Design tool integration
-9. **Atlassian** - Atlassian suite integration
-10. **Asana** - Task management
+Askly supports a wide range of MCP servers that extend platform capabilities:
+
+1. **GitHub** - Repository management, issue tracking, and code collaboration
+2. **Notion** - Workspace integration for notes, databases, and documentation
+3. **Linear** - Project management and issue tracking
+4. **Playwright** - Browser automation and web scraping
+5. **Neon** - Serverless PostgreSQL database operations
+6. **Stripe** - Payment processing and subscription management
+7. **PayPal** - Alternative payment gateway integration
+8. **Canva** - Design tool integration for visual content creation
+9. **Atlassian** - Jira, Confluence, and full Atlassian suite integration
+10. **Asana** - Task and project management workflows
 
 ---
 
-### 🎓 MIVA Academic MCP Server (Custom)
+### 🎓 Askly Academic MCP Server (Custom-Built)
 
-A specialized MCP server for MIVA University with **13 learning-focused tools**:
+Our **custom-built Python MCP server** is the heart of Askly's academic intelligence, providing **13 specialized learning-focused tools** that seamlessly integrate with our AI assistant. This powerful server connects directly to our PostgreSQL database, enabling real-time academic operations and intelligent learning support.
 
 #### **Course Management**
 - `get_course_materials` - Fetch course materials (lectures, readings, assignments, quizzes, videos)
@@ -109,7 +143,15 @@ A specialized MCP server for MIVA University with **13 learning-focused tools**:
 
 ## Technology Stack
 
-x
+- **Frontend**: Next.js 15, TypeScript, Radix UI, Tailwind CSS
+- **Backend**: Next.js 15 API Routes, Python MCP Server
+- **Database**: PostgreSQL, Drizzle ORM
+- **Authentication**: Better Auth
+- **AI Integration**: AI SDK (Anthropic/OpenAI)
+- **State Management**: Zustand
+- **Data Visualization**: Recharts
+- **Notifications**: Sonner
+- **Validation**: Zod
 
 ---
 
@@ -124,7 +166,7 @@ better-chatbot-main/
 │   │   ├── lib/          # Utilities and AI tools
 │   │   └── hooks/        # React hooks
 │   └── public/           # Static assets
-├── mcp-server/           # MIVA Academic MCP server (Python)
+├── mcp-server/           # Askly Academic MCP server (Python)
 │   └── src/
 │       ├── mcp/         # MCP server implementation
 │       ├── core/        # Core functionality
@@ -139,8 +181,14 @@ better-chatbot-main/
 ### 1. **Multi-AI Provider Support**
 Switch between different LLM providers seamlessly. Supports all major providers with unified interface.
 
-### 2. **MCP Protocol Integration**
-Add custom MCP servers to extend functionality. Tools from MCP servers become available via `@toolname` mentions.
+### 2. **MCP Protocol Integration** 🚀
+Askly's MCP integration is a game-changer for extensibility. The platform supports:
+- **Custom MCP Servers** - Build specialized servers for unique use cases
+- **Seamless Tool Access** - Invoke any MCP tool via `@toolname` mentions in conversations
+- **Real-Time Execution** - Tools execute instantly during AI interactions
+- **Context Preservation** - AI maintains full context across tool executions
+- **Academic MCP Server** - Our custom Python server with 13 specialized academic tools
+- **Third-Party Integrations** - Connect with GitHub, Notion, Linear, and 7+ other services
 
 ### 3. **Custom Agents**
 Create specialized AI agents with custom instructions and tool access. Invoke with `@agent_name`.
@@ -148,22 +196,34 @@ Create specialized AI agents with custom instructions and tool access. Invoke wi
 ### 4. **Visual Workflows**
 Build visual workflows by connecting AI reasoning nodes and tool execution nodes. Publish as reusable tools.
 
-### 5. **Voice Assistant**
+### 5. **Advanced Visualization Engine** 📊
+Askly's visualization capabilities are powered by **Recharts**, one of the most powerful React charting libraries. Our visualization tools enable:
+- **Interactive Data Tables** - Full-featured tables with sorting, filtering, search, and export
+- **Dynamic Chart Generation** - Bar, line, and pie charts generated on-the-fly from conversation data
+- **Real-Time Updates** - Visualizations update instantly as data changes
+- **Embedded in Conversations** - Charts and tables appear directly in AI chat responses
+- **Export Capabilities** - Download visualizations as CSV, Excel, or images
+- **Responsive Design** - All visualizations adapt to any screen size
+- **Academic Visualizations** - Specialized charts for grades, schedules, course lists, and more
+
+### 6. **Voice Assistant**
 Realtime voice chat powered by OpenAI's Realtime API with full tool integration.
 
-### 6. **Tool Choice Modes**
+### 7. **Tool Choice Modes**
 - **Auto**: LLM automatically uses tools when needed
 - **Manual**: LLM asks permission before using tools
 - **None**: Disable all tool usage
 
-### 7. **Academic Features** (MIVA-specific)
-Specialized tools for students including:
-- Course material access
-- Assignment tracking
-- Study planning
-- Exam preparation
-- Faculty directory
-- Academic scheduling
+### 8. **University Platform Features**
+Complete digital university ecosystem including:
+- Automated student enrollment and registration
+- Course catalog and material management
+- Assignment creation, submission, and AI-powered grading
+- Faculty administration and course management
+- AI-powered study assistant for coursework help
+- Personalized learning recommendations
+- Academic calendar and scheduling
+- Grade tracking and analytics
 
 ---
 
@@ -203,12 +263,12 @@ Visit `http://localhost:3000` to get started.
 
 ## Use Cases
 
-1. **General AI Assistant** - Chat with multiple LLMs in one place
-2. **Academic Learning Platform** - MIVA students can access course materials and study tools
-3. **Developer Tool** - Code execution, GitHub integration, workflow automation
-4. **Research Assistant** - Web search, content extraction, data visualization
-5. **Business Automation** - Custom agents and workflows for business processes
-6. **Voice Assistant** - Hands-free AI interaction
+1. **Student Portal** - Complete student experience with enrollment, courses, assignments, and AI study support
+2. **Faculty Dashboard** - Course management, assignment creation, grading, and student administration
+3. **Academic Administration** - Automated enrollment, course scheduling, and academic record management
+4. **AI-Powered Learning** - Personalized study assistance, coursework help, and academic question answering
+5. **Assignment Management** - Create, submit, and grade assignments with AI-assisted evaluation
+6. **Academic Analytics** - Track student performance, course completion, and learning outcomes
 
 ---
 
@@ -221,5 +281,5 @@ Visit `http://localhost:3000` to get started.
 
 ---
 
-This platform brings together the best features of modern AI assistants into one powerful, extensible platform. 🚀
+Askly transforms traditional university operations into a modern, automated, AI-powered digital platform that enhances both student learning and faculty efficiency. 🚀
 
