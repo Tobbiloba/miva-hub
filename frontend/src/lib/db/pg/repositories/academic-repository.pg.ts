@@ -613,6 +613,117 @@ export const pgAcademicRepository = {
     }
   },
 
+  getStudentOverdueAssignments: async (studentId: string) => {
+    try {
+      const overdueAssignments = await db
+        .select({
+          assignment: AssignmentSchema,
+          course: CourseSchema,
+          submission: AssignmentSubmissionSchema,
+        })
+        .from(AssignmentSchema)
+        .innerJoin(CourseSchema, eq(AssignmentSchema.courseId, CourseSchema.id))
+        .innerJoin(
+          StudentEnrollmentSchema,
+          and(
+            eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
+            eq(StudentEnrollmentSchema.studentId, studentId),
+            eq(StudentEnrollmentSchema.status, "enrolled")
+          )
+        )
+        .leftJoin(
+          AssignmentSubmissionSchema,
+          and(
+            eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
+            eq(AssignmentSubmissionSchema.studentId, studentId)
+          )
+        )
+        .where(and(
+          eq(AssignmentSchema.isPublished, true),
+          sql`${AssignmentSchema.dueDate} <= CURRENT_TIMESTAMP`,
+          sql`${AssignmentSubmissionSchema.id} IS NULL`
+        ))
+        .orderBy(desc(AssignmentSchema.dueDate));
+
+      return overdueAssignments;
+    } catch (error) {
+      console.error('Error fetching overdue assignments:', error);
+      return [];
+    }
+  },
+
+  getStudentSubmittedAssignments: async (studentId: string) => {
+    try {
+      const submittedAssignments = await db
+        .select({
+          assignment: AssignmentSchema,
+          course: CourseSchema,
+          submission: AssignmentSubmissionSchema,
+        })
+        .from(AssignmentSchema)
+        .innerJoin(CourseSchema, eq(AssignmentSchema.courseId, CourseSchema.id))
+        .innerJoin(
+          StudentEnrollmentSchema,
+          and(
+            eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
+            eq(StudentEnrollmentSchema.studentId, studentId),
+            eq(StudentEnrollmentSchema.status, "enrolled")
+          )
+        )
+        .innerJoin(
+          AssignmentSubmissionSchema,
+          and(
+            eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
+            eq(AssignmentSubmissionSchema.studentId, studentId)
+          )
+        )
+        .where(eq(AssignmentSchema.isPublished, true))
+        .orderBy(desc(AssignmentSubmissionSchema.submittedAt));
+
+      return submittedAssignments;
+    } catch (error) {
+      console.error('Error fetching submitted assignments:', error);
+      return [];
+    }
+  },
+
+  getStudentAssignmentById: async (studentId: string, assignmentId: string) => {
+    try {
+      const [result] = await db
+        .select({
+          assignment: AssignmentSchema,
+          course: CourseSchema,
+          submission: AssignmentSubmissionSchema,
+        })
+        .from(AssignmentSchema)
+        .innerJoin(CourseSchema, eq(AssignmentSchema.courseId, CourseSchema.id))
+        .innerJoin(
+          StudentEnrollmentSchema,
+          and(
+            eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
+            eq(StudentEnrollmentSchema.studentId, studentId),
+            eq(StudentEnrollmentSchema.status, "enrolled")
+          )
+        )
+        .leftJoin(
+          AssignmentSubmissionSchema,
+          and(
+            eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
+            eq(AssignmentSubmissionSchema.studentId, studentId)
+          )
+        )
+        .where(and(
+          eq(AssignmentSchema.id, assignmentId),
+          eq(AssignmentSchema.isPublished, true)
+        ));
+
+      return result ?? null;
+    } catch (error) {
+      console.error('Error fetching assignment by id:', error);
+      return null;
+    }
+  },
+
   getStudentGradesSummary: async (studentId: string, semester?: string) => {
     try {
       const conditions = [
@@ -659,19 +770,18 @@ export const pgAcademicRepository = {
         })
         .from(AnnouncementSchema)
         .leftJoin(CourseSchema, eq(AnnouncementSchema.courseId, CourseSchema.id))
-        .leftJoin(
-          StudentEnrollmentSchema,
-          and(
-            eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
-            eq(StudentEnrollmentSchema.studentId, studentId),
-            eq(StudentEnrollmentSchema.status, "enrolled")
-          )
-        )
         .where(and(
           eq(AnnouncementSchema.isActive, true),
-          sql`(${AnnouncementSchema.targetAudience} = 'all' OR 
-               ${AnnouncementSchema.targetAudience} = 'students' OR 
-               ${AnnouncementSchema.courseId} IS NOT NULL)`
+          sql`(${AnnouncementSchema.expiresAt} IS NULL OR ${AnnouncementSchema.expiresAt} > CURRENT_TIMESTAMP)`,
+          sql`(
+            ${AnnouncementSchema.targetAudience} = 'all' OR
+            ${AnnouncementSchema.targetAudience} = 'students' OR
+            (${AnnouncementSchema.targetAudience} = 'course_specific' AND
+             ${AnnouncementSchema.courseId} IN (
+               SELECT course_id FROM student_enrollment
+               WHERE student_id = ${studentId} AND status = 'enrolled'
+             ))
+          )`
         ))
         .orderBy(desc(AnnouncementSchema.createdAt))
         .limit(limit);

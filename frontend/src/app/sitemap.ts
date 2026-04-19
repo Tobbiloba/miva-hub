@@ -71,12 +71,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
     {
-      url: `${BASE_URL}/student/study`,
-      lastModified: new Date(),
-      changeFrequency: 'daily' as const,
-      priority: 0.6,
-    },
-    {
       url: `${BASE_URL}/faculty`,
       lastModified: new Date(),
       changeFrequency: 'daily' as const,

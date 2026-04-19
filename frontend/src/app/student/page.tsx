@@ -5,7 +5,6 @@ import {
   BookOpen, 
   FileText, 
   Award, 
-  Brain,
   Clock,
   TrendingUp,
   Users,
@@ -263,12 +262,6 @@ export default async function StudentDashboard() {
               <Link href="/student/grades">
                 <Award className="mr-2 h-4 w-4" />
                 View Grades
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="justify-start">
-              <Link href="/student/study">
-                <Brain className="mr-2 h-4 w-4" />
-                Study Buddy
               </Link>
             </Button>
           </div>

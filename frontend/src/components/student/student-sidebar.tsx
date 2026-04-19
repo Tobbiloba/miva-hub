@@ -24,7 +24,6 @@ import {
   Home,
   FileText,
   BarChart3,
-  Brain,
   Award,
   PanelLeft,
   User,
@@ -54,11 +53,6 @@ const studentRoutes = [
     title: "Grades",
     href: "/student/grades", 
     icon: Award,
-  },
-  {
-    title: "Study Buddy",
-    href: "/student/study",
-    icon: Brain,
   },
   {
     title: "Performance Dashboard",

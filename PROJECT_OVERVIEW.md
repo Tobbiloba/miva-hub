@@ -10,9 +10,7 @@
 - ✅ **Assignment Grading** - AI-powered automated grading with faculty oversight
 - 👨‍🏫 **Faculty Administration** - Complete faculty management and course administration tools
 - 🤖 **AI Study Assistant** - Intelligent AI assistant that helps with coursework and academic questions
-- 📖 **Personalized Learning** - Adaptive learning support tailored to each student's needs
 - 📊 **Academic Analytics** - Track student progress, grades, and performance metrics
-- 🔔 **Notifications** - Real-time updates for assignments, grades, and announcements
 
 ---
 
@@ -221,7 +219,6 @@ Complete digital university ecosystem including:
 - Assignment creation, submission, and AI-powered grading
 - Faculty administration and course management
 - AI-powered study assistant for coursework help
-- Personalized learning recommendations
 - Academic calendar and scheduling
 - Grade tracking and analytics
 

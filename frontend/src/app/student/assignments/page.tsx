@@ -27,32 +27,25 @@ export default async function StudentAssignmentsPage() {
 
   const userId = session.user.id;
 
-  // Fetch assignments and grades
-  const [upcomingAssignments, gradesSummary] = await Promise.all([
-    pgAcademicRepository.getStudentUpcomingAssignments(userId, 20),
-    pgAcademicRepository.getStudentGradesSummary(userId)
+  // Fetch each assignment category with dedicated queries
+  const [upcoming, overdue, submitted, gradesSummary] = await Promise.all([
+    pgAcademicRepository.getStudentUpcomingAssignments(userId, 50),
+    pgAcademicRepository.getStudentOverdueAssignments(userId),
+    pgAcademicRepository.getStudentSubmittedAssignments(userId),
+    pgAcademicRepository.getStudentGradesSummary(userId),
   ]);
 
-  // Categorize assignments
-  const now = new Date();
-  const categorizedAssignments = {
-    upcoming: upcomingAssignments.filter(({ assignment, submission }) => 
-      new Date(assignment.dueDate) > now && !submission
-    ),
-    overdue: upcomingAssignments.filter(({ assignment, submission }) => 
-      new Date(assignment.dueDate) <= now && !submission
-    ),
-    submitted: upcomingAssignments.filter(({ submission }) => submission),
-    graded: gradesSummary.filter(({ submission }) => submission.grade !== null)
-  };
+  const graded = gradesSummary.filter(({ submission }) => submission.grade !== null);
+
+  const categorizedAssignments = { upcoming, overdue, submitted, graded };
 
   const stats = {
-    total: upcomingAssignments.length + gradesSummary.length,
-    completed: categorizedAssignments.submitted.length + categorizedAssignments.graded.length,
-    overdue: categorizedAssignments.overdue.length,
-    avgGrade: categorizedAssignments.graded.length > 0 
-      ? categorizedAssignments.graded.reduce((sum, { submission }) => sum + Number(submission.grade), 0) / categorizedAssignments.graded.length
-      : 0
+    total: upcoming.length + overdue.length + submitted.length,
+    completed: submitted.length,
+    overdue: overdue.length,
+    avgGrade: graded.length > 0
+      ? graded.reduce((sum, { submission }) => sum + Number(submission.grade), 0) / graded.length
+      : 0,
   };
 
   return (

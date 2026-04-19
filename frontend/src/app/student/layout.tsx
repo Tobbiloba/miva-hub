@@ -19,14 +19,14 @@ export default async function StudentLayout({
   }
 
   // Check if user is an active student
-  // if (!isActiveStudent(session)) {
-  //   // If user has a session but is not a student, redirect to main app
-  //   if (session?.user) {
-  //     redirect("/");
-  //   }
-  //   // No session, redirect to sign-in
-  //   redirect("/sign-in");
-  // }
+  if (!isActiveStudent(session)) {
+    // If user has a session but is not a student, redirect to main app
+    if (session?.user) {
+      redirect("/");
+    }
+    // No session, redirect to sign-in
+    redirect("/sign-in");
+  }
 
   return (
     // <SubscriptionGuard>

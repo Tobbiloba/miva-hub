@@ -32,9 +32,8 @@ export default async function AssignmentSubmissionPage({ params }: PageProps) {
 
   const userId = session.user.id;
 
-  // Get assignment details and check if student has access
-  const upcomingAssignments = await pgAcademicRepository.getStudentUpcomingAssignments(userId, 100);
-  const assignmentData = upcomingAssignments.find(({ assignment }) => assignment.id === params.assignmentId);
+  // Get assignment details and verify student is enrolled in its course
+  const assignmentData = await pgAcademicRepository.getStudentAssignmentById(userId, params.assignmentId);
 
   if (!assignmentData) {
     return notFound();

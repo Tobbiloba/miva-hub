@@ -1,10 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
+import {
   Award,
   ArrowLeft,
   Download,
@@ -12,8 +10,6 @@ import {
   Clock,
   User,
   CheckCircle,
-  Save,
-  Send,
   Eye,
   ExternalLink,
 } from "lucide-react";
@@ -22,6 +18,7 @@ import { getFacultyInfo } from "@/lib/auth/faculty";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import GradingForm from "./grading-form";
 import {
   Select,
   SelectContent,
@@ -317,11 +314,17 @@ export default async function AssignmentGradingPage({ params, searchParams }: Pa
           </Card>
 
           {/* Grading Form */}
-          <GradingForm 
-            submission={submission}
-            assignment={assignment}
+          <GradingForm
+            submissionId={submission.id}
             maxPoints={Number(assignment.totalPoints)}
             studentName={student.name}
+            initialGrade={submission.grade ? Number(submission.grade) : ""}
+            initialFeedback={submission.feedback || ""}
+            nextSubmissionUrl={
+              nextSubmission
+                ? `/faculty/assignments/${assignmentId}/grade?submissionId=${nextSubmission.submission.id}`
+                : undefined
+            }
           />
 
           {/* Grading History */}
@@ -355,74 +358,3 @@ export default async function AssignmentGradingPage({ params, searchParams }: Pa
   );
 }
 
-function GradingForm({ 
-  submission, 
-  assignment, 
-  maxPoints, 
-  studentName 
-}: { 
-  submission: any; 
-  assignment: any; 
-  maxPoints: number; 
-  studentName: string; 
-}) {
-  const currentGrade = submission.grade ? Number(submission.grade) : '';
-  const currentFeedback = submission.feedback || '';
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Award className="h-5 w-5" />
-          Grade Submission
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form className="space-y-4">
-          <div>
-            <Label htmlFor="grade">Grade (out of {maxPoints})</Label>
-            <Input
-              id="grade"
-              type="number"
-              min="0"
-              max={maxPoints}
-              step="0.1"
-              defaultValue={currentGrade}
-              placeholder={`0 - ${maxPoints}`}
-              className="mt-1"
-            />
-            <p className="text-sm text-muted-foreground mt-1">
-              Enter a grade between 0 and {maxPoints}
-            </p>
-          </div>
-          
-          <div>
-            <Label htmlFor="feedback">Feedback</Label>
-            <Textarea
-              id="feedback"
-              defaultValue={currentFeedback}
-              placeholder={`Provide feedback for ${studentName}...`}
-              className="mt-1"
-              rows={4}
-            />
-          </div>
-          
-          <div className="flex gap-2">
-            <Button type="submit" className="flex-1">
-              <Save className="mr-2 h-4 w-4" />
-              Save Grade
-            </Button>
-            <Button type="button" variant="outline">
-              <Send className="mr-2 h-4 w-4" />
-              Save & Next
-            </Button>
-          </div>
-          
-          <div className="text-xs text-muted-foreground">
-            Grade will be saved and student will be notified
-          </div>
-        </form>
-      </CardContent>
-    </Card>
-  );
-}
