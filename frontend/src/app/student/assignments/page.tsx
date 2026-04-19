@@ -2,14 +2,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  FileText, 
-  Clock, 
+import {
+  FileText,
+  Clock,
   AlertCircle,
   CheckCircle,
-  Calendar,
-  Filter,
-  Download,
   Upload,
   Award
 } from "lucide-react";
@@ -51,23 +48,11 @@ export default async function StudentAssignmentsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Assignments</h1>
-          <p className="text-muted-foreground mt-1">
-            Track your assignments and submissions across all courses
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
-          <Button variant="outline" disabled title="Coming soon">
-            <Calendar className="mr-2 h-4 w-4" />
-            Calendar View
-          </Button>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold">Assignments</h1>
+        <p className="text-muted-foreground mt-1">
+          Track your assignments and submissions across all courses
+        </p>
       </div>
 
       {/* Stats Cards */}
@@ -274,12 +259,6 @@ function AssignmentsList({
                         View Details
                       </Link>
                     </Button>
-                    {assignment.filePath && (
-                      <Button variant="outline" size="sm">
-                        <Download className="mr-2 h-3 w-3" />
-                        Download
-                      </Button>
-                    )}
                   </div>
                 </div>
               </div>
@@ -371,16 +350,12 @@ function GradedAssignmentsList({
                   </div>
                   
                   <div className="flex items-center gap-2 mt-3">
-                    <Button variant="outline" size="sm">
-                      <FileText className="mr-2 h-3 w-3" />
-                      View Submission
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/student/assignments/${assignment.id}`}>
+                        <FileText className="mr-2 h-3 w-3" />
+                        View Details
+                      </Link>
                     </Button>
-                    {assignment.filePath && (
-                      <Button variant="outline" size="sm">
-                        <Download className="mr-2 h-3 w-3" />
-                        Download Assignment
-                      </Button>
-                    )}
                   </div>
                 </div>
               </div>

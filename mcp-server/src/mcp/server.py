@@ -109,42 +109,22 @@ async def get_course_info(course_code: str) -> str:
 @mcp.tool()
 async def list_enrolled_courses(student_id: str, semester: str | None = None) -> str:
     """List courses a student is enrolled in.
-    
+
     Returns all courses for a student, optionally filtered by semester.
     Includes enrollment status and academic level information.
-    
+
     Args:
         student_id: Student ID
         semester: Optional semester filter (e.g., "Fall 2024", "Spring 2025")
-        
+
     Returns:
         Formatted JSON string with enrolled courses
     """
     try:
-        # TODO: Implement in academic_repo
-        result = {
-            "student_id": student_id,
-            "semester": semester or "Current",
-            "courses": [
-                {
-                    "course_code": "CS101",
-                    "course_name": "Introduction to Computer Science",
-                    "instructor": "Dr. Sarah Johnson",
-                    "credits": 3,
-                    "level": "100",
-                    "semester": "Fall 2024"
-                },
-                {
-                    "course_code": "MATH201",
-                    "course_name": "Calculus II",
-                    "instructor": "Dr. Michael Brown",
-                    "credits": 4,
-                    "level": "200", 
-                    "semester": "Fall 2024"
-                }
-            ],
-            "total_credits": 7
-        }
+        result = await academic_repo.get_student_enrollments(
+            student_id=student_id,
+            semester=semester
+        )
         return json.dumps(result, indent=2)
     except Exception as e:
         return json.dumps({"error": f"Failed to fetch enrolled courses: {str(e)}"})

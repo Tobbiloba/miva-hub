@@ -1119,21 +1119,55 @@ async def generate_quiz(request: QuizRequest, background_tasks: BackgroundTasks)
             raise HTTPException(status_code=404, detail="Course not found")
         course_name = course_result['title']
         
-        # Find relevant content
+        # Find relevant content — try vector search first, fall back to direct DB query
         relevant_content = []
-        if request.topics:
-            for topic in request.topics[:3]:  # Limit topics
+        try:
+            if request.topics:
+                for topic in request.topics[:3]:  # Limit topics
+                    content = await study_engine.find_relevant_content(
+                        topic, request.course_id, limit=3
+                    )
+                    relevant_content.extend(content)
+            else:
+                # General course quiz
                 content = await study_engine.find_relevant_content(
-                    topic, request.course_id, limit=3
+                    f"course content {course_name}", request.course_id, limit=8
                 )
                 relevant_content.extend(content)
-        else:
-            # General course quiz
-            content = await study_engine.find_relevant_content(
-                f"course content {course_name}", request.course_id, limit=8
-            )
-            relevant_content.extend(content)
-        
+        except Exception as search_err:
+            logger.warning(f"Vector search failed ({search_err}), falling back to direct content query")
+
+        # Fallback: pull ai_summary + key_concepts directly when vector search yields nothing
+        if not relevant_content:
+            def fetch_processed_content():
+                fb_conn = get_db_connection()
+                fb_cursor = fb_conn.cursor()
+                fb_cursor.execute("""
+                    SELECT cm.title, cm.material_type, cm.week_number,
+                           apc.ai_summary, apc.key_concepts
+                    FROM course_material cm
+                    JOIN ai_processed_content apc ON cm.id = apc.course_material_id
+                    WHERE cm.course_id = %s AND cm.is_public = true
+                    ORDER BY cm.week_number NULLS LAST, cm.created_at
+                    LIMIT 8
+                """, (request.course_id,))
+                rows = fb_cursor.fetchall()
+                fb_cursor.close()
+                fb_conn.close()
+                return rows
+
+            fallback_rows = await asyncio.to_thread(fetch_processed_content)
+            for row in fallback_rows:
+                relevant_content.append({
+                    "title": row["title"],
+                    "material_type": row["material_type"],
+                    "week_number": row["week_number"],
+                    "ai_summary": row["ai_summary"] or "",
+                    "key_concepts": row["key_concepts"] or [],
+                    "relevant_chunk": row["ai_summary"] or "",
+                    "similarity_score": 0.0,
+                })
+
         if not relevant_content:
             raise HTTPException(status_code=404, detail="No course content found for quiz generation")
         
@@ -1272,7 +1306,7 @@ Explanation: [Brief explanation]"""
         conn.close()
         
         processing_time = int((time.time() - start_time) * 1000)
-        estimated_time = f"{request.question_count * 2-3} minutes"
+        estimated_time = f"{request.question_count * 2} minutes"
         
         logger.info(f"✅ Generated quiz with {len(questions)} questions in {processing_time}ms")
         

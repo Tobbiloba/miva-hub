@@ -42,7 +42,6 @@ import {
   BookOpen,
   Search,
   Filter,
-  Download,
   Plus,
   Edit,
   Trash2,
@@ -254,10 +253,6 @@ export default function CoursesManagePage() {
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Export Courses
-          </Button>
           <Link href="/admin/courses/create">
             <Button>
               <Plus className="mr-2 h-4 w-4" />

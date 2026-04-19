@@ -1,7 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -11,31 +10,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Users,
-  Search,
-  Filter,
-  Download,
   Plus,
-  Edit,
   GraduationCap,
   Mail,
   Calendar,
   BookOpen,
   MapPin,
-  Clock,
   UserCheck,
   Building
 } from "lucide-react";
 import { getSession } from "@/lib/auth/server";
 import { requireAdmin } from "@/lib/auth/admin";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { UserSchema, FacultySchema, CourseSchema, DepartmentSchema } from "@/lib/db/pg/schema.pg";
 import { eq, and, sql } from "drizzle-orm";
@@ -49,26 +34,20 @@ export default async function FacultyManagementPage() {
   }
 
   // Fetch faculty and their data
-  const [facultyData, departments] = await Promise.all([
-    // Get all faculty with their profile information
-    pgDb
-      .select({
-        user: UserSchema,
-        faculty: FacultySchema,
-        department: DepartmentSchema,
-        courseCount: sql<number>`count(${CourseSchema.id})`.as('courseCount'),
-      })
-      .from(UserSchema)
-      .leftJoin(FacultySchema, eq(UserSchema.id, FacultySchema.userId))
-      .leftJoin(DepartmentSchema, eq(FacultySchema.departmentId, DepartmentSchema.id))
-      .leftJoin(CourseSchema, eq(FacultySchema.id, CourseSchema.instructorId))
-      .where(eq(UserSchema.role, 'faculty'))
-      .groupBy(UserSchema.id, FacultySchema.id, DepartmentSchema.id)
-      .orderBy(UserSchema.createdAt),
-    
-    // Get departments for filtering
-    pgAcademicRepository.getDepartments()
-  ]);
+  const facultyData = await pgDb
+    .select({
+      user: UserSchema,
+      faculty: FacultySchema,
+      department: DepartmentSchema,
+      courseCount: sql<number>`count(${CourseSchema.id})`.as('courseCount'),
+    })
+    .from(UserSchema)
+    .leftJoin(FacultySchema, eq(UserSchema.id, FacultySchema.userId))
+    .leftJoin(DepartmentSchema, eq(FacultySchema.departmentId, DepartmentSchema.id))
+    .leftJoin(CourseSchema, eq(FacultySchema.id, CourseSchema.instructorId))
+    .where(eq(UserSchema.role, 'faculty'))
+    .groupBy(UserSchema.id, FacultySchema.id, DepartmentSchema.id)
+    .orderBy(UserSchema.createdAt);
 
   // Get detailed faculty information
   const facultyWithDetails = facultyData.map(({ user, faculty, department, courseCount }) => ({
@@ -116,11 +95,10 @@ export default async function FacultyManagementPage() {
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Export Faculty
-          </Button>
-          <Button className="flex items-center gap-2">
+          {/* TODO (Sprint 2): wire up Add Faculty form.
+               The POST /api/admin/faculty response includes `data.tempPassword`
+               which must be shown in a copy-able modal/toast before the dialog closes. */}
+          <Button className="flex items-center gap-2" disabled title="Coming in Sprint 2">
             <Plus className="h-4 w-4" />
             Add Faculty
           </Button>
@@ -178,47 +156,6 @@ export default async function FacultyManagementPage() {
         </Card>
       </div>
 
-      {/* Search and Filter */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search faculty by name, email, or position..." className="pl-10" />
-              </div>
-            </div>
-            <Select>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Department" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Departments</SelectItem>
-                {departments.map((dept) => (
-                  <SelectItem key={dept.id} value={dept.id}>
-                    {dept.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Faculty</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm">
-              <Filter className="mr-2 h-4 w-4" />
-              More Filters
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Faculty Table */}
       <Card>
         <CardHeader>
@@ -240,7 +177,6 @@ export default async function FacultyManagementPage() {
                     <TableHead>Courses</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Joined</TableHead>
-                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -316,16 +252,6 @@ export default async function FacultyManagementPage() {
                         </div>
                       </TableCell>
                       
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <BookOpen className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -338,10 +264,6 @@ export default async function FacultyManagementPage() {
               <p className="text-muted-foreground mb-4">
                 No faculty members have been registered yet.
               </p>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add First Faculty Member
-              </Button>
             </div>
           )}
         </CardContent>

@@ -79,8 +79,10 @@ async function DashboardContent() {
   const userId = user.id;
   const studentId = getStudentId(user);
 
-  const currentSemester = "2024-fall";
-  const data = await getDashboardData(userId, currentSemester);
+  // TODO (Sprint 4): derive currentSemester from user.current_session once that column exists.
+  // Passing "" is intentionally falsy — the performance repo's semester guards are `if (semester)`,
+  // so an empty string skips the filter and returns cross-semester data.
+  const data = await getDashboardData(userId, "");
 
   const avgGrade =
     data.performanceHistory.length > 0
@@ -113,7 +115,7 @@ async function DashboardContent() {
     studentId: userId,
     courseName: data.enrollments?.[0]?.course?.title || "All Courses",
     courseCode: data.enrollments?.[0]?.course?.courseCode || "ALL",
-    semester: currentSemester,
+    semester: "All Terms",
     generatedAt: new Date(),
     weeklyPerformance: weeklyPerformanceData,
     conceptMastery: data.conceptMastery.map((c) => ({

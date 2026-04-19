@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/server";
 import { isAdminEmail } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { AnnouncementSchema, UserSchema, CourseSchema, DepartmentSchema } from "@/lib/db/pg/schema.pg";
-import { eq, and, sql, desc, ilike, or, isNull } from "drizzle-orm";
+import { AnnouncementSchema, UserSchema, CourseSchema, DepartmentSchema, FacultySchema, StudentEnrollmentSchema } from "@/lib/db/pg/schema.pg";
+import { eq, and, sql, desc, ilike, or, isNull, inArray } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   try {
@@ -81,6 +81,32 @@ export async function GET(request: NextRequest) {
 
     const announcements = await query;
 
+    // Compute real audience counts for totalTargeted
+    const [totalUsersResult, studentCountResult, activeFacultyResult] = await Promise.all([
+      pgDb.select({ count: sql<number>`count(*)::int` }).from(UserSchema),
+      pgDb.select({ count: sql<number>`count(*)::int` }).from(UserSchema).where(eq(UserSchema.role, 'student')),
+      pgDb.select({ count: sql<number>`count(*)::int` }).from(FacultySchema).where(eq(FacultySchema.isActive, true)),
+    ]);
+    const totalUsers: number = totalUsersResult[0]?.count ?? 0;
+    const studentCount: number = studentCountResult[0]?.count ?? 0;
+    const activeFacultyCount: number = activeFacultyResult[0]?.count ?? 0;
+
+    // For course_specific announcements, batch-fetch enrollment counts in one query
+    const courseSpecificIds = announcements
+      .filter(({ announcement: a }) => a.targetAudience === 'course_specific' && a.courseId)
+      .map(({ announcement: a }) => a.courseId!);
+    const courseEnrollmentCounts = new Map<string, number>();
+    if (courseSpecificIds.length > 0) {
+      const rows = await pgDb
+        .select({ courseId: StudentEnrollmentSchema.courseId, count: sql<number>`count(*)::int` })
+        .from(StudentEnrollmentSchema)
+        .where(inArray(StudentEnrollmentSchema.courseId, courseSpecificIds))
+        .groupBy(StudentEnrollmentSchema.courseId);
+      for (const row of rows) {
+        courseEnrollmentCounts.set(row.courseId, row.count);
+      }
+    }
+
     // Transform data to match frontend interface
     const transformedAnnouncements = announcements.map(({ announcement, author, course, department }) => ({
       id: announcement.id,
@@ -93,10 +119,18 @@ export async function GET(request: NextRequest) {
       status: announcement.isActive ? 'published' : 'draft',
       publishedAt: announcement.isActive ? announcement.createdAt.toISOString() : null,
       scheduledFor: null, // Would need additional scheduling logic
-      readCount: Math.floor(Math.random() * 500), // Placeholder - would track actual reads
-      totalTargeted: announcement.targetAudience === 'all' ? 650 : 
-                     announcement.targetAudience === 'students' ? 450 :
-                     announcement.targetAudience === 'faculty' ? 45 : 100,
+      // readCount removed: no read-tracking table exists yet (Sprint 3)
+      totalTargeted: (() => {
+        switch (announcement.targetAudience) {
+          case 'all':              return totalUsers;
+          case 'students':         return studentCount;
+          case 'faculty':          return activeFacultyCount;
+          case 'course_specific':  return announcement.courseId
+            ? (courseEnrollmentCounts.get(announcement.courseId) ?? null)
+            : null;
+          default:                 return null; // department_specific — Sprint 1
+        }
+      })(),
       isPinned: announcement.priority === 'high' || announcement.priority === 'urgent',
       expiresAt: announcement.expiresAt?.toISOString() || null,
       courses: course ? [course.courseCode] : [],

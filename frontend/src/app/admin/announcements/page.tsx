@@ -31,7 +31,6 @@ import {
   Megaphone,
   Search,
   Filter,
-  Download,
   Plus,
   Edit,
   Trash2,
@@ -65,8 +64,7 @@ interface Announcement {
   status: string;
   publishedAt: string | null;
   scheduledFor: string | null;
-  readCount: number;
-  totalTargeted: number;
+  totalTargeted: number | null;
   isPinned: boolean;
   expiresAt: string | null;
   courses: string[];
@@ -202,11 +200,6 @@ export default function AnnouncementsManagePage() {
     });
   };
 
-  const getReadPercentage = (readCount: number, totalTargeted: number) => {
-    if (totalTargeted === 0) return 0;
-    return Math.round((readCount / totalTargeted) * 100);
-  };
-
   // Calculate statistics
   const totalAnnouncements = announcements.length;
   const publishedCount = announcements.filter(a => a.status === 'published').length;
@@ -227,18 +220,12 @@ export default function AnnouncementsManagePage() {
           </p>
         </div>
         
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Export List
-          </Button>
-          <Button asChild>
-            <a href="/admin/announcements/create">
-              <Plus className="mr-2 h-4 w-4" />
-              Create Announcement
-            </a>
-          </Button>
-        </div>
+        <Button asChild>
+          <a href="/admin/announcements/create">
+            <Plus className="mr-2 h-4 w-4" />
+            Create Announcement
+          </a>
+        </Button>
       </div>
 
       {/* Statistics Cards */}
@@ -413,8 +400,7 @@ export default function AnnouncementsManagePage() {
                   {announcements.map((announcement) => {
                   const StatusIcon = getStatusIcon(announcement.status);
                   const AudienceIcon = getAudienceIcon(announcement.audience);
-                  const readPercentage = getReadPercentage(announcement.readCount, announcement.totalTargeted);
-                  
+
                   return (
                     <TableRow key={announcement.id}>
                       <TableCell>
@@ -484,24 +470,13 @@ export default function AnnouncementsManagePage() {
                       </TableCell>
                       
                       <TableCell>
-                        <div className="space-y-1">
-                          {announcement.status === 'published' ? (
-                            <>
-                              <div className="flex items-center gap-2">
-                                <Eye className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm font-medium">
-                                  {announcement.readCount}/{announcement.totalTargeted}
-                                </span>
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {readPercentage}% read rate
-                              </div>
-                            </>
-                          ) : (
-                            <div className="text-sm text-muted-foreground">
-                              Targeted: {announcement.totalTargeted} users
-                            </div>
-                          )}
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            {announcement.totalTargeted != null
+                              ? `${announcement.totalTargeted} targeted`
+                              : '—'}
+                          </span>
                         </div>
                       </TableCell>
                       

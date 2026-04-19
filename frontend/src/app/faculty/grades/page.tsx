@@ -13,7 +13,6 @@ import {
   AlertCircle,
   FileText,
   Download,
-  Upload,
   BarChart3,
   Award,
   Eye,
@@ -89,16 +88,6 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
           <p className="text-muted-foreground mt-1">
             Manage student grades and view grading progress
           </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export Grades
-          </Button>
-          <Button variant="outline">
-            <Upload className="mr-2 h-4 w-4" />
-            Import Grades
-          </Button>
         </div>
       </div>
 

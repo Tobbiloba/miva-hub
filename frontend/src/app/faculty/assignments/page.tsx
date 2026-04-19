@@ -2,36 +2,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { 
+import {
   FileText,
   Plus,
-  Search,
-  Filter,
   Calendar,
   Clock,
   Users,
   Award,
   Edit3,
   Eye,
-  Trash2,
-  Download,
   AlertCircle,
   CheckCircle,
-  MoreHorizontal,
-  Copy
 } from "lucide-react";
 import { getSession } from "@/lib/auth/server";
 import { getFacultyInfo } from "@/lib/auth/faculty";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import Link from "next/link";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 export default async function FacultyAssignmentsPage() {
   const session = await getSession();
@@ -88,22 +74,12 @@ export default async function FacultyAssignmentsPage() {
             Create and manage assignments across all your courses
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
-          <Button variant="outline">
-            <Search className="mr-2 h-4 w-4" />
-            Search
-          </Button>
-          <Button asChild>
-            <Link href="/faculty/assignments/create">
-              <Plus className="mr-2 h-4 w-4" />
-              New Assignment
-            </Link>
-          </Button>
-        </div>
+        <Button asChild>
+          <Link href="/faculty/assignments/create">
+            <Plus className="mr-2 h-4 w-4" />
+            New Assignment
+          </Link>
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -164,27 +140,6 @@ export default async function FacultyAssignmentsPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Search and Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search assignments by title, course, or type..."
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Button variant="outline">
-              <Filter className="mr-2 h-4 w-4" />
-              More Filters
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Assignment Tabs */}
       <Tabs defaultValue="all" className="w-full">
@@ -373,47 +328,17 @@ function AssignmentsList({
                     
                     <div className="flex items-center gap-2">
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/faculty/assignments/${assignment.id}/edit`}>
-                          <Edit3 className="mr-2 h-3 w-3" />
-                          Edit
-                        </Link>
-                      </Button>
-                      
-                      <Button variant="outline" size="sm" asChild>
                         <Link href={`/faculty/assignments/${assignment.id}/grade`}>
                           <Award className="mr-2 h-3 w-3" />
                           Grade
                         </Link>
                       </Button>
-                      
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <MoreHorizontal className="h-3 w-3" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/faculty/assignments/${assignment.id}`}>
-                              <Eye className="mr-2 h-3 w-3" />
-                              View Details
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Copy className="mr-2 h-3 w-3" />
-                            Duplicate
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Download className="mr-2 h-3 w-3" />
-                            Export Submissions
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">
-                            <Trash2 className="mr-2 h-3 w-3" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/faculty/assignments/${assignment.id}`}>
+                          <Eye className="mr-2 h-3 w-3" />
+                          View Details
+                        </Link>
+                      </Button>
                     </div>
                   </div>
                 </div>

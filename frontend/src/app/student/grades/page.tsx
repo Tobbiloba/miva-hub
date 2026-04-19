@@ -2,13 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Award, 
-  TrendingUp, 
+import {
+  Award,
   BarChart3,
   FileText,
-  Target,
-  Download
+  Target
 } from "lucide-react";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { getSession } from "@/lib/auth/server";
@@ -39,8 +37,11 @@ export default async function StudentGradesPage() {
 
   // Transform data for grade calculator
   const courseGrades: CourseGrade[] = transformToGradeCalculatorFormat(gradesSummary, courses);
-  const currentSemesterGrades = courseGrades; // TODO: Filter by current semester
-  
+  // TODO (Sprint 4): split courseGrades by user.current_session to get true semester-only grades.
+  // Until then only Cumulative GPA is shown; "Semester GPA" card is suppressed to avoid
+  // displaying the same number twice under two different labels.
+  const currentSemesterGrades = courseGrades;
+
   // Calculate sophisticated GPA and academic metrics
   const gpaCalculation = calculateSemesterGPA(currentSemesterGrades, courseGrades);
   const academicStanding = calculateAcademicStanding(gpaCalculation.cumulativeGPA || gpaCalculation.gpa, gpaCalculation.totalCreditHours);
@@ -56,22 +57,16 @@ export default async function StudentGradesPage() {
             Track your grades and academic progress
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export Transcript
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/student/assignments">
-              <FileText className="mr-2 h-4 w-4" />
-              View Assignments
-            </Link>
-          </Button>
-        </div>
+        <Button variant="outline" asChild>
+          <Link href="/student/assignments">
+            <FileText className="mr-2 h-4 w-4" />
+            View Assignments
+          </Link>
+        </Button>
       </div>
 
       {/* GPA Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -84,23 +79,6 @@ export default async function StudentGradesPage() {
                 <Badge variant={academicStanding.standing === "Dean's List" ? 'default' : academicStanding.standing === 'Good Standing' ? 'secondary' : 'destructive'} className="text-xs mt-1">
                   {academicStanding.standing}
                 </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{(gpaCalculation.semesterGPA || gpaCalculation.gpa).toFixed(2)}</p>
-                <p className="text-sm text-muted-foreground">Current Semester</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {gpaCalculation.totalCreditHours} credit hours
-                </p>
               </div>
             </div>
           </CardContent>
