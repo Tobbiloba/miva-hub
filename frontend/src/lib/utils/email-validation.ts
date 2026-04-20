@@ -125,42 +125,28 @@ export function normalizeEmail(email: string): string {
 }
 
 /**
- * Checks if email belongs to faculty/staff based on patterns
+ * Detects user role from email patterns (faculty vs student)
  */
-export function detectUserRole(email: string): 'student' | 'faculty' | 'staff' {
+export function detectUserRole(email: string): 'student' | 'faculty' | 'admin' {
   const normalizedEmail = email.toLowerCase().trim();
   const localPart = normalizedEmail.split('@')[0];
-  
+
   // Faculty patterns: contain 'prof', 'dr', 'faculty', department names
   const facultyPatterns = [
     /^(prof|dr|professor)/,
     /\.(prof|dr|faculty)$/,
     /^faculty\./,
-    /(admin|dean|chair)/
+    /(dean|chair)/
   ];
-  
-  // Staff patterns: contain 'admin', 'staff', department codes
-  const staffPatterns = [
-    /^(admin|staff|registrar|bursar)/,
-    /\.(admin|staff|office)$/,
-    /(library|it|maintenance)/
-  ];
-  
+
   // Check faculty patterns
   for (const pattern of facultyPatterns) {
     if (pattern.test(localPart)) {
       return 'faculty';
     }
   }
-  
-  // Check staff patterns  
-  for (const pattern of staffPatterns) {
-    if (pattern.test(localPart)) {
-      return 'staff';
-    }
-  }
-  
-  // Default to student
+
+  // Default to student (admin role is granted manually, not via email pattern)
   return 'student';
 }
 

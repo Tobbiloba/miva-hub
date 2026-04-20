@@ -148,6 +148,20 @@
       "when": 1761314364812,
       "tag": "0020_flimsy_carlie_cooper",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1776705473194,
+      "tag": "0021_exotic_photon",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1776710089633,
+      "tag": "0022_tough_switch",
+      "breakpoints": true
     }
   ]
 }

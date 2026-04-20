@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/server";
-import { isAdminEmail } from "@/lib/auth/admin";
+import { isAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { SystemSettingsSchema } from "@/lib/db/pg/schema.pg";
 import { eq, and, sql } from "drizzle-orm";
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   try {
     // Check authentication and admin permissions
     const session = await getSession();
-    if (!session?.user?.email || !isAdminEmail(session.user.email)) {
+    if (!isAdmin(session?.user)) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
   try {
     // Check authentication and admin permissions
     const session = await getSession();
-    if (!session?.user?.email || !isAdminEmail(session.user.email)) {
+    if (!isAdmin(session?.user)) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
@@ -140,7 +140,7 @@ export async function PUT(request: NextRequest) {
   try {
     // Check authentication and admin permissions
     const session = await getSession();
-    if (!session?.user?.email || !isAdminEmail(session.user.email)) {
+    if (!isAdmin(session?.user)) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }

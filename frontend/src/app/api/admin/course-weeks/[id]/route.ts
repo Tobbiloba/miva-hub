@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/server";
-import { isAdminEmail } from "@/lib/auth/admin";
+import { isAdmin } from "@/lib/auth/admin";
 import { pgAcademicRepository as academicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { z } from "zod";
 
@@ -27,7 +27,7 @@ export async function PATCH(
   try {
     // Check authentication and admin permissions
     const session = await getSession();
-    if (!session?.user?.email || !isAdminEmail(session.user.email)) {
+    if (!isAdmin(session?.user)) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
@@ -122,7 +122,7 @@ export async function DELETE(
   try {
     // Check authentication and admin permissions
     const session = await getSession();
-    if (!session?.user?.email || !isAdminEmail(session.user.email)) {
+    if (!isAdmin(session?.user)) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
@@ -175,7 +175,7 @@ export async function GET(
   try {
     // Check authentication and admin permissions
     const session = await getSession();
-    if (!session?.user?.email || !isAdminEmail(session.user.email)) {
+    if (!isAdmin(session?.user)) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }

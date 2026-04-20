@@ -2,53 +2,32 @@ import "server-only";
 import { getSession } from "./server";
 import { NextResponse } from "next/server";
 
-// Centralized admin email for easy maintenance
-const ADMIN_EMAIL = "oluwatobi.salau@miva.edu.ng";
-
 /**
- * Check if the current session belongs to an admin user
- * @returns Promise<boolean> - true if user is admin, false otherwise
+ * Check if a user object has admin role.
+ * Works with session.user from Better Auth (role comes from DB enum column).
  */
-export async function isAdmin(): Promise<boolean> {
-  try {
-    const session = await getSession();
-    return session?.user?.email === ADMIN_EMAIL;
-  } catch {
-    return false;
-  }
+export function isAdmin(user: { role?: string | null } | null | undefined): boolean {
+  return user?.role === "admin";
 }
 
 /**
- * Require admin access for API routes
- * @returns Promise<Session | NextResponse> - session if admin, error response if not
+ * Require admin access for server components and API routes.
+ * Returns session if admin, NextResponse error otherwise.
  */
 export async function requireAdmin() {
   try {
     const session = await getSession();
-    
-    if (!session?.user?.email || session.user.email !== ADMIN_EMAIL) {
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
+    if (!isAdmin(session.user)) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
-    
+
     return session;
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
-}
-
-/**
- * Check if an email is the admin email
- * @param email - Email to check
- * @returns boolean - true if admin email
- */
-export function isAdminEmail(email: string | null | undefined): boolean {
-  return email === ADMIN_EMAIL;
-}
-
-/**
- * Get the admin email (for display purposes)
- * @returns string - admin email
- */
-export function getAdminEmail(): string {
-  return ADMIN_EMAIL;
 }

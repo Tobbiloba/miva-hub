@@ -8,7 +8,7 @@ declare module "better-auth/types" {
     major?: string | null;
     year?: string | null; // 100, 200, 300, 400, graduate, doctoral
     currentSemester?: string | null; // first, second
-    role?: string | null; // student, faculty, admin, staff
+    role?: "admin" | "faculty" | "student" | null; // from user_role_enum
     academicYear?: string | null; // 2024-2025, 2025-2026
     enrollmentStatus?: string | null; // active, inactive, graduated, suspended, transferred
     graduationDate?: Date | null;

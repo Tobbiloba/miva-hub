@@ -37,7 +37,8 @@ Askly features a powerful suite of visualization tools powered by **Recharts** t
   - Export to CSV/Excel formats
   - Column visibility controls
   - Pagination for large datasets
-  - Smart data type formatting (strings, numbers, dates, booleans)
+  - Smart data type format
+  ing (strings, numbers, dates, booleans)
 
 - **`createBarChart`** - Generate professional bar charts for:
   - Comparing values across categories

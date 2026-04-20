@@ -1,6 +1,6 @@
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { getSession } from "@/lib/auth/server";
-import { isAdminEmail } from "@/lib/auth/admin";
+import { isAdmin } from "@/lib/auth/admin";
 import { redirect } from "next/navigation";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
@@ -17,8 +17,8 @@ export default async function AdminLayout({
     redirect("/sign-in");
   }
 
-  // Double-check admin authorization using centralized helper
-  if (!isAdminEmail(session?.user?.email)) {
+  // Check admin role from DB enum column
+  if (!isAdmin(session?.user)) {
     redirect("/unauthorized");
   }
 

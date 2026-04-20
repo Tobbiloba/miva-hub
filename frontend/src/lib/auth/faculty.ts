@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getSession } from "./server";
-import { getUserRole } from "./user-utils";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 
 /**
@@ -22,22 +21,14 @@ export async function requireFaculty() {
     );
   }
   
-  // Check if user has faculty role
-  if (getUserRole(session.user) !== "faculty") {
+  // Check if user has faculty role (from DB enum column)
+  if (session.user.role !== "faculty") {
     return NextResponse.json(
-      { error: "Faculty access required" }, 
+      { error: "Faculty access required" },
       { status: 403 }
     );
   }
-  
-  // Check if user has valid MIVA email
-  if (!session.user.email?.endsWith("@miva.edu.ng")) {
-    return NextResponse.json(
-      { error: "Invalid institutional email" }, 
-      { status: 403 }
-    );
-  }
-  
+
   // Verify faculty record exists and is active
   try {
     const facultyRecord = await pgAcademicRepository.getFacultyByUserId(session.user.id);
@@ -73,14 +64,8 @@ export async function requireFaculty() {
  */
 export function getFacultyInfo(session?: any) {
   if (!session?.user) return null;
-  
-  const isFaculty = (
-    session.user.role === "faculty" &&
-    session.user.email?.endsWith("@miva.edu.ng")
-  );
-  
-  if (!isFaculty) return null;
-  
+  if (session.user.role !== "faculty") return null;
+
   return {
     id: session.user.id,
     name: session.user.name,

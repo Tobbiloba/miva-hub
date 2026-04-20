@@ -4,6 +4,7 @@ import { MCPServerConfig } from "app-types/mcp";
 import { sql } from "drizzle-orm";
 import {
   pgTable,
+  pgEnum,
   text,
   timestamp,
   json,
@@ -20,6 +21,14 @@ import { isNotNull } from "drizzle-orm";
 import { DBWorkflow, DBEdge, DBNode } from "app-types/workflow";
 import { UIMessage } from "ai";
 import { ChatMetadata } from "app-types/chat";
+
+// ===============================
+// ENUM DEFINITIONS
+// ===============================
+
+export const userRoleEnum = pgEnum('user_role_enum', ['admin', 'faculty', 'student']);
+export const semesterEnum = pgEnum('semester_enum', ['first', 'second']);
+export const academicSessionStatusEnum = pgEnum('academic_session_status_enum', ['upcoming', 'active', 'closed']);
 
 export const ChatThreadSchema = pgTable("chat_thread", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
@@ -104,10 +113,16 @@ export const UserSchema = pgTable("user", {
   major: text("major"),
   year: text("year"), // 100, 200, 300, 400, graduate, doctoral
   currentSemester: text("current_semester"), // first, second
-  role: text("role").default("student"), // student, faculty, admin, staff
+  role: userRoleEnum("role").default("student"),
   academicYear: text("academic_year"), // 2024-2025, 2025-2026
   enrollmentStatus: text("enrollment_status").default("active"), // active, inactive, graduated, suspended, transferred
   graduationDate: timestamp("graduation_date"),
+
+  // Sprint 1: Academic progression fields
+  currentLevel: integer("current_level"), // 100, 200, 300, 400, 500
+  programId: uuid("program_id").references(() => ProgramSchema.id, { onDelete: "set null" }),
+  admissionSession: text("admission_session"), // e.g. '2023/2024'
+  admissionLevel: integer("admission_level").default(100),
   
   // Subscription fields
   paystackCustomerCode: text("paystack_customer_code"),
@@ -431,11 +446,58 @@ export const CoursePrerequisiteSchema = pgTable(
       .notNull()
       .references(() => CourseSchema.id, { onDelete: "cascade" }),
     isRequired: boolean("is_required").notNull().default(true),
+    minGrade: text("min_grade"), // Minimum letter grade required (default: pass = D)
     createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     unique().on(table.courseId, table.prerequisiteCourseId),
     index("prerequisite_course_idx").on(table.courseId),
+  ],
+);
+
+// Academic session table (tracks current session/semester for the institution)
+export const AcademicSessionSchema = pgTable(
+  "academic_session",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    sessionName: text("session_name").notNull().unique(), // e.g. '2025/2026'
+    currentSemester: semesterEnum("current_semester").notNull(),
+    isCurrent: boolean("is_current").notNull().default(false),
+    firstSemStart: date("first_sem_start"),
+    firstSemEnd: date("first_sem_end"),
+    secondSemStart: date("second_sem_start"),
+    secondSemEnd: date("second_sem_end"),
+    status: academicSessionStatusEnum("status").notNull().default("upcoming"),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("academic_session_status_idx").on(table.status),
+    // Note: partial unique index on is_current WHERE is_current = true
+    // must be added via raw SQL in migration (drizzle doesn't support partial unique indexes natively)
+  ],
+);
+
+// Program curriculum table (maps courses to programs by level/semester)
+export const ProgramCurriculumSchema = pgTable(
+  "program_curriculum",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    programId: uuid("program_id")
+      .notNull()
+      .references(() => ProgramSchema.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    level: integer("level").notNull(), // 100, 200, 300, 400, 500
+    semester: semesterEnum("semester").notNull(),
+    isCompulsory: boolean("is_compulsory").notNull().default(true),
+    orderInSemester: integer("order_in_semester"),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    unique().on(table.programId, table.courseId, table.level, table.semester),
+    index("program_curriculum_lookup_idx").on(table.programId, table.level, table.semester),
   ],
 );
 
@@ -733,33 +795,6 @@ export const AssignmentSubmissionSchema = pgTable(
     index("submission_student_idx").on(table.studentId),
     index("submission_date_idx").on(table.submittedAt),
     index("submission_graded_idx").on(table.gradedAt),
-  ],
-);
-
-// Attendance tracking table
-export const AttendanceSchema = pgTable(
-  "attendance",
-  {
-    id: uuid("id").primaryKey().notNull().defaultRandom(),
-    enrollmentId: uuid("enrollment_id")
-      .notNull()
-      .references(() => StudentEnrollmentSchema.id, { onDelete: "cascade" }),
-    classDate: date("class_date").notNull(),
-    status: varchar("status", {
-      enum: ["present", "absent", "late", "excused"],
-    }).notNull(),
-    markedById: uuid("marked_by_id")
-      .notNull()
-      .references(() => UserSchema.id),
-    notes: text("notes"),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-  },
-  (table) => [
-    unique().on(table.enrollmentId, table.classDate),
-    index("attendance_enrollment_idx").on(table.enrollmentId),
-    index("attendance_date_idx").on(table.classDate),
-    index("attendance_status_idx").on(table.status),
   ],
 );
 
@@ -1273,7 +1308,6 @@ export type AcademicCalendarEntity = typeof AcademicCalendarSchema.$inferSelect;
 export type AnnouncementEntity = typeof AnnouncementSchema.$inferSelect;
 export type AssignmentEntity = typeof AssignmentSchema.$inferSelect;
 export type AssignmentSubmissionEntity = typeof AssignmentSubmissionSchema.$inferSelect;
-export type AttendanceEntity = typeof AttendanceSchema.$inferSelect;
 
 // AI Processing entity types
 export type AIProcessingJobEntity = typeof AIProcessingJobSchema.$inferSelect;
@@ -1299,3 +1333,7 @@ export type PerformanceHistoryEntity = typeof PerformanceHistorySchema.$inferSel
 export type ConceptMasteryEntity = typeof ConceptMasterySchema.$inferSelect;
 export type StudentStudySessionsEntity = typeof StudentStudySessionsSchema.$inferSelect;
 export type GradePredictionsEntity = typeof GradePredictionsSchema.$inferSelect;
+
+// Sprint 1 entity types
+export type AcademicSessionEntity = typeof AcademicSessionSchema.$inferSelect;
+export type ProgramCurriculumEntity = typeof ProgramCurriculumSchema.$inferSelect;
