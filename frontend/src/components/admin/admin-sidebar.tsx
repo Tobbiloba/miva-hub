@@ -54,6 +54,7 @@ const adminRoutes = [
     children: [
       { title: "Academic Sessions", href: "/admin/academic", icon: GraduationCap },
       { title: "Departments", href: "/admin/departments", icon: Building2 },
+      { title: "Programs", href: "/admin/programs", icon: FileText },
       { title: "Courses", href: "/admin/courses", icon: BookOpen },
       { title: "Faculty", href: "/admin/faculty", icon: UserCheck },
       { title: "Class Schedule", href: "/admin/schedule", icon: Clock },

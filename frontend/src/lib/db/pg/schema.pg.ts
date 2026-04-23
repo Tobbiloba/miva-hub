@@ -1336,4 +1336,5 @@ export type GradePredictionsEntity = typeof GradePredictionsSchema.$inferSelect;
 
 // Sprint 1 entity types
 export type AcademicSessionEntity = typeof AcademicSessionSchema.$inferSelect;
+export type ProgramEntity = typeof ProgramSchema.$inferSelect;
 export type ProgramCurriculumEntity = typeof ProgramCurriculumSchema.$inferSelect;
