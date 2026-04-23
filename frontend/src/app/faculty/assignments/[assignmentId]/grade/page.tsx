@@ -120,7 +120,7 @@ export default async function AssignmentGradingPage({ params, searchParams }: Pa
             </Button>
           )}
           <Button variant="outline" asChild>
-            <Link href={`/faculty/assignments/${assignmentId}`}>
+            <Link href={`/faculty/assignments/${assignmentId}/edit`}>
               <Eye className="mr-2 h-4 w-4" />
               View Assignment
             </Link>

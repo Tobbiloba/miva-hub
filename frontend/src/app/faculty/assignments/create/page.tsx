@@ -98,13 +98,10 @@ export default function CreateAssignmentPage() {
 
   const fetchFacultyCourses = async () => {
     try {
-      // This would fetch from faculty dashboard API
-      // For now, using placeholder
-      setCourses([
-        { id: "1", courseCode: "CS101", title: "Introduction to Programming" },
-        { id: "2", courseCode: "CS201", title: "Data Structures" },
-        { id: "3", courseCode: "MATH201", title: "Calculus II" },
-      ]);
+      const res = await fetch("/api/faculty/courses");
+      if (!res.ok) throw new Error("Failed to fetch courses");
+      const data = await res.json();
+      setCourses(data.data || []);
     } catch (error) {
       toast.error("Failed to load courses");
     }
@@ -175,10 +172,11 @@ export default function CreateAssignmentPage() {
         toast.success(isDraft ? "Assignment saved as draft" : "Assignment created successfully");
         router.push("/faculty/assignments");
       } else {
-        throw new Error("Failed to create assignment");
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to create assignment");
       }
     } catch (error) {
-      toast.error("Failed to create assignment");
+      toast.error(error instanceof Error ? error.message : "Failed to create assignment");
     } finally {
       setIsLoading(false);
     }

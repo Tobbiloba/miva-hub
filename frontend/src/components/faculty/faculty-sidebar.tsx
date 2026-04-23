@@ -8,12 +8,10 @@ import {
   BookOpen,
   FileText,
   GraduationCap,
-  BarChart3,
   Megaphone,
   FolderOpen,
   Users,
   Calendar,
-  Settings,
   User,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -68,12 +66,6 @@ const navigationItems = [
     description: "View student rosters and performance"
   },
   {
-    title: "Analytics",
-    href: "/faculty/analytics",
-    icon: BarChart3,
-    description: "Course performance and insights"
-  },
-  {
     title: "Announcements",
     href: "/faculty/announcements",
     icon: Megaphone,
@@ -99,12 +91,6 @@ const bottomNavItems = [
     href: "/profile",
     icon: User,
     description: "Manage your profile and account settings"
-  },
-  {
-    title: "Settings",
-    href: "/faculty/settings",
-    icon: Settings,
-    description: "Application preferences"
   },
 ];
 
