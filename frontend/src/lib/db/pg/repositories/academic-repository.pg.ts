@@ -16,6 +16,7 @@ import {
   AIProcessingJobSchema,
   AIProcessedContentSchema,
   ContentEmbeddingSchema,
+  CalendarEventSchema,
   UserSchema,
   type DepartmentEntity,
   type CourseEntity,
@@ -1463,6 +1464,136 @@ export const pgAcademicRepository = {
   },
 
   // Get course weeks with content counts
+  // Student portal page queries
+
+  getStudentMaterials: async (
+    studentId: string,
+    filters?: { courseId?: string; materialType?: string }
+  ) => {
+    try {
+      const conditions = [
+        eq(StudentEnrollmentSchema.studentId, studentId),
+        eq(StudentEnrollmentSchema.status, "enrolled"),
+        eq(CourseMaterialSchema.isPublic, true),
+      ];
+      if (filters?.courseId) {
+        conditions.push(eq(CourseMaterialSchema.courseId, filters.courseId));
+      }
+      if (filters?.materialType) {
+        conditions.push(eq(CourseMaterialSchema.materialType, filters.materialType as "syllabus" | "lecture" | "assignment" | "resource" | "reading" | "exam"));
+      }
+
+      return db
+        .select({
+          material: CourseMaterialSchema,
+          course: CourseSchema,
+        })
+        .from(CourseMaterialSchema)
+        .innerJoin(CourseSchema, eq(CourseMaterialSchema.courseId, CourseSchema.id))
+        .innerJoin(
+          StudentEnrollmentSchema,
+          eq(CourseSchema.id, StudentEnrollmentSchema.courseId)
+        )
+        .where(and(...conditions))
+        .orderBy(desc(CourseMaterialSchema.createdAt));
+    } catch (error) {
+      console.error("Error fetching student materials:", error);
+      return [];
+    }
+  },
+
+  getStudentSchedule: async (studentId: string) => {
+    try {
+      return db
+        .select({
+          schedule: ClassScheduleSchema,
+          course: CourseSchema,
+          facultyName: UserSchema.name,
+        })
+        .from(ClassScheduleSchema)
+        .innerJoin(CourseSchema, eq(ClassScheduleSchema.courseId, CourseSchema.id))
+        .innerJoin(
+          StudentEnrollmentSchema,
+          and(
+            eq(CourseSchema.id, StudentEnrollmentSchema.courseId),
+            eq(StudentEnrollmentSchema.studentId, studentId),
+            eq(StudentEnrollmentSchema.status, "enrolled")
+          )
+        )
+        .leftJoin(
+          CourseInstructorSchema,
+          and(
+            eq(CourseSchema.id, CourseInstructorSchema.courseId),
+            eq(CourseInstructorSchema.role, "primary")
+          )
+        )
+        .leftJoin(FacultySchema, eq(CourseInstructorSchema.facultyId, FacultySchema.id))
+        .leftJoin(UserSchema, eq(FacultySchema.userId, UserSchema.id))
+        .orderBy(
+          asc(ClassScheduleSchema.dayOfWeek),
+          asc(ClassScheduleSchema.startTime)
+        );
+    } catch (error) {
+      console.error("Error fetching student schedule:", error);
+      return [];
+    }
+  },
+
+  getStudentCourseFaculty: async (studentId: string) => {
+    try {
+      return db
+        .select({
+          course: CourseSchema,
+          courseInstructor: CourseInstructorSchema,
+          faculty: FacultySchema,
+          user: UserSchema,
+        })
+        .from(CourseInstructorSchema)
+        .innerJoin(FacultySchema, eq(CourseInstructorSchema.facultyId, FacultySchema.id))
+        .innerJoin(UserSchema, eq(FacultySchema.userId, UserSchema.id))
+        .innerJoin(CourseSchema, eq(CourseInstructorSchema.courseId, CourseSchema.id))
+        .innerJoin(
+          StudentEnrollmentSchema,
+          and(
+            eq(CourseSchema.id, StudentEnrollmentSchema.courseId),
+            eq(StudentEnrollmentSchema.studentId, studentId),
+            eq(StudentEnrollmentSchema.status, "enrolled")
+          )
+        )
+        .orderBy(asc(CourseSchema.courseCode), asc(CourseInstructorSchema.role));
+    } catch (error) {
+      console.error("Error fetching student course faculty:", error);
+      return [];
+    }
+  },
+
+  getStudentCalendarEvents: async (studentId: string) => {
+    try {
+      return db
+        .select()
+        .from(CalendarEventSchema)
+        .where(
+          and(
+            sql`${CalendarEventSchema.status} != 'cancelled'`,
+            sql`(
+              ${CalendarEventSchema.affectedUsers} IN ('all', 'students')
+              OR (
+                ${CalendarEventSchema.affectedUsers} = 'specific' AND
+                ${CalendarEventSchema.courseId} IN (
+                  SELECT course_id FROM student_enrollment
+                  WHERE student_id = ${studentId} AND status = 'enrolled'
+                )
+              )
+            )`
+          )
+        )
+        .orderBy(asc(CalendarEventSchema.startDate));
+    } catch (error) {
+      console.error("Error fetching student calendar events:", error);
+      return [];
+    }
+  },
+
   getCourseWeeksWithContentCounts: async (courseId: string): Promise<(CourseWeekEntity & { contentCount: number })[]> => {
     const weeks = await db
       .select({
