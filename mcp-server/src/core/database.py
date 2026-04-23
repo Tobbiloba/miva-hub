@@ -307,35 +307,84 @@ class AcademicRepository:
             print(f"Error getting course info: {e}")
             return {"error": f"Failed to retrieve course info: {str(e)}"}
     
-    async def _check_enrollment(self, student_id: str, course_code: str) -> bool:
-        """Check if student is enrolled in course - real database implementation."""
+    async def _get_student_context(self, student_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch student's current academic context for scoping queries.
+
+        Returns:
+            dict with: user_uuid, current_level, current_semester, academic_year,
+                       program_id, enrollment_status
+            Or None if student not found or not active.
+        """
+        conn = self.get_connection()
+        if not conn:
+            return None
+
+        try:
+            def run_query():
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT u.id, u.current_level, u.current_semester,
+                           u.academic_year, u.program_id, u.enrollment_status
+                    FROM "user" u
+                    WHERE u.student_id = %s AND u.role = 'student'
+                          AND u.enrollment_status = 'active'
+                    LIMIT 1
+                """, (student_id,))
+                result = cursor.fetchone()
+                cursor.close()
+                conn.close()
+                return result
+
+            row = await asyncio.to_thread(run_query)
+            if not row:
+                return None
+
+            return {
+                "user_uuid": str(row["id"]),
+                "current_level": row["current_level"],
+                "current_semester": row["current_semester"],
+                "academic_year": row["academic_year"],
+                "program_id": str(row["program_id"]) if row["program_id"] else None,
+                "enrollment_status": row["enrollment_status"],
+            }
+        except Exception as e:
+            print(f"Error fetching student context: {e}")
+            return None
+
+    async def _verify_student_enrollment(self, student_id: str, course_code: str) -> bool:
+        """Verify a student is enrolled in the given course (status = 'enrolled').
+
+        Uses user.student_id (text) to look up the user, then checks student_enrollment.
+        """
         conn = self.get_connection()
         if not conn:
             return False
-        
+
         try:
-            # Run database operations in thread to avoid blocking event loop
             def run_query():
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT 1 FROM "user" u
                     JOIN student_enrollment se ON u.id = se.student_id
                     JOIN course c ON se.course_id = c.id
-                    WHERE u.student_id = %s AND c.course_code = %s AND se.status = 'enrolled'
+                    WHERE u.student_id = %s AND c.course_code = %s
+                          AND se.status = 'enrolled'
                     LIMIT 1
                 """, (student_id, course_code.upper()))
-                
                 result = cursor.fetchone()
                 cursor.close()
                 conn.close()
                 return result
-            
+
             result = await asyncio.to_thread(run_query)
             return result is not None
-            
         except Exception as e:
-            print(f"Error checking enrollment: {e}")
+            print(f"Error verifying enrollment: {e}")
             return False
+
+    async def _check_enrollment(self, student_id: str, course_code: str) -> bool:
+        """Legacy alias — delegates to _verify_student_enrollment."""
+        return await self._verify_student_enrollment(student_id, course_code)
 
     async def get_student_enrollments(self, student_id: str, semester: Optional[str] = None) -> Dict[str, Any]:
         """Get all courses a student is enrolled in - real database implementation."""
@@ -476,180 +525,583 @@ class AcademicRepository:
             return {"error": f"Failed to retrieve assignment details: {str(e)}"}
 
     async def get_course_schedule(self, course_code: str, student_id: str) -> Dict[str, Any]:
-        """Get schedule for a specific course - real database implementation."""
-        # Check enrollment first
-        is_enrolled = await self._check_enrollment(student_id, course_code)
+        """Get schedule for a specific course - real database implementation.
+
+        Joins class_schedule -> course, LEFT JOINs course_instructor -> faculty -> user
+        to include faculty name per schedule entry.
+        """
+        ctx = await self._get_student_context(student_id)
+        if not ctx:
+            return {"error": "Student context not found. Please log in again."}
+
+        is_enrolled = await self._verify_student_enrollment(student_id, course_code)
         if not is_enrolled:
-            return {
-                "error": "Access denied: Student not enrolled in this course",
-                "course_code": course_code,
-                "student_id": student_id
-            }
-        
+            return {"error": "You are not enrolled in this course this semester"}
+
         conn = self.get_connection()
         if not conn:
             return {"error": "Database connection failed"}
-        
+
         try:
-            # Run database operations in thread to avoid blocking event loop
             def run_query():
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT cs.day_of_week, cs.start_time, cs.end_time, 
+                    SELECT cs.day_of_week, cs.start_time, cs.end_time,
                            cs.room_location, cs.building_name, cs.class_type,
-                           c.title as course_name
+                           c.course_code, c.title AS course_name,
+                           u.name AS faculty_name
                     FROM class_schedule cs
                     JOIN course c ON cs.course_id = c.id
+                    LEFT JOIN course_instructor ci ON c.id = ci.course_id AND ci.role = 'primary'
+                    LEFT JOIN faculty f ON ci.faculty_id = f.id
+                    LEFT JOIN "user" u ON f.user_id = u.id
                     WHERE c.course_code = %s
-                    ORDER BY 
+                    ORDER BY
                         CASE cs.day_of_week
-                            WHEN 'monday' THEN 1
-                            WHEN 'tuesday' THEN 2
-                            WHEN 'wednesday' THEN 3
-                            WHEN 'thursday' THEN 4
-                            WHEN 'friday' THEN 5
-                            WHEN 'saturday' THEN 6
+                            WHEN 'monday' THEN 1 WHEN 'tuesday' THEN 2
+                            WHEN 'wednesday' THEN 3 WHEN 'thursday' THEN 4
+                            WHEN 'friday' THEN 5 WHEN 'saturday' THEN 6
                             WHEN 'sunday' THEN 7
                         END,
                         cs.start_time
                 """, (course_code.upper(),))
-                
                 results = cursor.fetchall()
                 cursor.close()
                 conn.close()
                 return results
-            
+
             results = await asyncio.to_thread(run_query)
-            
+
             schedule = []
             for row in results:
-                # Format time display
-                start_time = row["start_time"]
-                end_time = row["end_time"]
-                time_display = f"{start_time} - {end_time}"
-                
-                # Format room location
                 room_display = row["room_location"]
                 if row["building_name"]:
                     room_display = f"{row['room_location']}, {row['building_name']}"
-                
+
                 schedule.append({
                     "day": row["day_of_week"].title(),
-                    "time": time_display,
+                    "time": f"{row['start_time']} - {row['end_time']}",
                     "room": room_display or "TBA",
-                    "type": row["class_type"]
+                    "type": row["class_type"],
+                    "faculty_name": row["faculty_name"] or "TBA",
                 })
-            
+
             return {
                 "course_code": course_code,
-                "course_name": results[0]["course_name"] if results else None,
+                "course_name": results[0]["course_name"] if results else course_code,
                 "schedule": schedule,
-                "total_sessions": len(schedule)
+                "total_sessions": len(schedule),
             }
-            
+
         except Exception as e:
             print(f"Error getting course schedule: {e}")
             return {"error": f"Failed to retrieve course schedule: {str(e)}"}
 
-    async def get_course_announcements(self, course_code: str, student_id: str, limit: int = 10) -> Dict[str, Any]:
-        """Get announcements for a specific course - real database implementation."""
-        # Check enrollment first
-        is_enrolled = await self._check_enrollment(student_id, course_code)
-        if not is_enrolled:
-            return {
-                "error": "Access denied: Student not enrolled in this course",
-                "course_code": course_code,
-                "student_id": student_id
-            }
-        
+    async def get_course_announcements(
+        self, course_code: Optional[str], student_id: str, limit: int = 10
+    ) -> Dict[str, Any]:
+        """Get announcements for a specific course or all enrolled courses.
+
+        If course_code is provided, verify enrollment and return that course's announcements.
+        If omitted, return announcements across all enrolled courses + global announcements.
+        Filters: is_active = true, not expired, target_audience in ('all','students','course_specific').
+        """
+        ctx = await self._get_student_context(student_id)
+        if not ctx:
+            return {"error": "Student context not found. Please log in again."}
+
+        if course_code:
+            is_enrolled = await self._verify_student_enrollment(student_id, course_code)
+            if not is_enrolled:
+                return {"error": "You are not enrolled in this course this semester"}
+
         conn = self.get_connection()
         if not conn:
             return {"error": "Database connection failed"}
-        
+
         try:
-            # Run database operations in thread to avoid blocking event loop
             def run_query():
                 cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT a.id, a.title, a.content, a.created_at, u.name as author_name
-                    FROM announcement a
-                    JOIN course c ON a.course_id = c.id
-                    JOIN "user" u ON a.created_by_id = u.id
-                    WHERE c.course_code = %s AND a.is_active = true
-                    ORDER BY a.created_at DESC
-                    LIMIT %s
-                """, (course_code.upper(), limit))
-                
+
+                if course_code:
+                    cursor.execute("""
+                        SELECT a.id, a.title, a.content, a.priority,
+                               a.created_at, c.course_code, u.name AS author_name
+                        FROM announcement a
+                        JOIN course c ON a.course_id = c.id
+                        LEFT JOIN "user" u ON a.created_by_id = u.id
+                        WHERE c.course_code = %s
+                              AND a.is_active = true
+                              AND (a.expires_at IS NULL OR a.expires_at > CURRENT_TIMESTAMP)
+                              AND a.target_audience IN ('all', 'students', 'course_specific')
+                        ORDER BY a.created_at DESC
+                        LIMIT %s
+                    """, (course_code.upper(), limit))
+                else:
+                    # All announcements for student's enrolled courses + global
+                    cursor.execute("""
+                        SELECT a.id, a.title, a.content, a.priority,
+                               a.created_at, c.course_code, u.name AS author_name
+                        FROM announcement a
+                        LEFT JOIN course c ON a.course_id = c.id
+                        LEFT JOIN "user" u ON a.created_by_id = u.id
+                        WHERE a.is_active = true
+                              AND (a.expires_at IS NULL OR a.expires_at > CURRENT_TIMESTAMP)
+                              AND a.target_audience IN ('all', 'students', 'course_specific')
+                              AND (
+                                  a.course_id IS NULL
+                                  OR a.course_id IN (
+                                      SELECT se.course_id FROM student_enrollment se
+                                      WHERE se.student_id = %s AND se.status = 'enrolled'
+                                  )
+                              )
+                        ORDER BY a.created_at DESC
+                        LIMIT %s
+                    """, (ctx["user_uuid"], limit))
+
                 results = cursor.fetchall()
                 cursor.close()
                 conn.close()
                 return results
-            
+
             results = await asyncio.to_thread(run_query)
-            
+
             announcements = []
             for row in results:
                 announcements.append({
                     "id": row["id"],
                     "title": row["title"],
                     "content": row["content"],
+                    "priority": row["priority"],
                     "posted_date": row["created_at"].isoformat() if row["created_at"] else None,
-                    "author": row["author_name"]
+                    "course_code": row["course_code"],
+                    "author": row["author_name"] or "System",
                 })
-            
+
             return {
-                "course_code": course_code,
+                "course_code": course_code or "all",
                 "announcements": announcements,
-                "total_count": len(announcements)
+                "total_count": len(announcements),
             }
-            
+
         except Exception as e:
             print(f"Error getting course announcements: {e}")
             return {"error": f"Failed to retrieve announcements: {str(e)}"}
 
     async def get_course_syllabus(self, course_code: str, student_id: str) -> Dict[str, Any]:
-        """Get syllabus for a specific course."""
-        await self._check_enrollment(student_id, course_code)
-        return {
-            "course_code": course_code,
-            "course_name": f"{course_code} Course",
-            "instructor": "Dr. Sarah Johnson",
-            "credits": 3,
-            "description": "Introduction to fundamental concepts",
-            "learning_objectives": [
-                "Understand basic programming concepts",
-                "Write simple programs", 
-                "Debug and test code"
-            ],
-            "grading_policy": {
-                "assignments": "40%",
-                "midterm": "25%",
-                "final": "25%", 
-                "participation": "10%"
-            },
-            "required_materials": [
-                "Textbook: Programming Fundamentals",
-                "Laptop with development environment"
-            ]
-        }
+        """Get syllabus for a specific course.
+
+        Primary: course_week records (week-by-week structure).
+        Fallback: course_material WHERE material_type = 'syllabus'.
+        Always includes course metadata.
+        """
+        ctx = await self._get_student_context(student_id)
+        if not ctx:
+            return {"error": "Student context not found. Please log in again."}
+
+        is_enrolled = await self._verify_student_enrollment(student_id, course_code)
+        if not is_enrolled:
+            return {"error": "You are not enrolled in this course this semester"}
+
+        conn = self.get_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+
+        try:
+            def run_query():
+                cursor = conn.cursor()
+
+                # Course metadata
+                cursor.execute("""
+                    SELECT c.id, c.course_code, c.title, c.description,
+                           c.credits, c.total_weeks, c.level
+                    FROM course c
+                    WHERE c.course_code = %s AND c.is_active = true
+                    LIMIT 1
+                """, (course_code.upper(),))
+                course_row = cursor.fetchone()
+                if not course_row:
+                    cursor.close()
+                    conn.close()
+                    return None, None, None
+
+                course_id = course_row["id"]
+
+                # Week-by-week structure
+                cursor.execute("""
+                    SELECT week_number, title, description,
+                           learning_objectives, topics
+                    FROM course_week
+                    WHERE course_id = %s
+                    ORDER BY week_number
+                """, (course_id,))
+                weeks = cursor.fetchall()
+
+                # Fallback syllabus documents
+                syllabus_docs = []
+                if not weeks:
+                    cursor.execute("""
+                        SELECT id, title, description, content_url, week_number
+                        FROM course_material
+                        WHERE course_id = %s AND material_type = 'syllabus'
+                              AND is_public = true
+                        ORDER BY created_at
+                    """, (course_id,))
+                    syllabus_docs = cursor.fetchall()
+
+                cursor.close()
+                conn.close()
+                return course_row, weeks, syllabus_docs
+
+            course_row, weeks, syllabus_docs = await asyncio.to_thread(run_query)
+
+            if not course_row:
+                return {"error": f"Course {course_code} not found"}
+
+            result = {
+                "course_code": course_row["course_code"],
+                "course_name": course_row["title"],
+                "description": course_row["description"],
+                "credits": course_row["credits"],
+                "level": course_row["level"],
+                "total_weeks": course_row["total_weeks"],
+            }
+
+            if weeks:
+                result["weekly_structure"] = [
+                    {
+                        "week_number": w["week_number"],
+                        "title": w["title"],
+                        "learning_objectives": w["learning_objectives"],
+                        "topics": w["topics"],
+                    }
+                    for w in weeks
+                ]
+            elif syllabus_docs:
+                result["syllabus_documents"] = [
+                    {
+                        "id": d["id"],
+                        "title": d["title"],
+                        "description": d["description"],
+                        "content_url": d["content_url"],
+                        "week_number": d["week_number"],
+                    }
+                    for d in syllabus_docs
+                ]
+            else:
+                result["note"] = "No syllabus or weekly structure has been published yet."
+
+            return result
+
+        except Exception as e:
+            print(f"Error getting course syllabus: {e}")
+            return {"error": f"Failed to retrieve course syllabus: {str(e)}"}
 
     async def get_faculty_info(self, course_code: str, student_id: str) -> Dict[str, Any]:
-        """Get faculty information for a course."""
-        await self._check_enrollment(student_id, course_code)
-        return {
-            "course_code": course_code,
-            "faculty": [
-                {
-                    "name": "Dr. Sarah Johnson",
-                    "role": "Instructor", 
-                    "email": "s.johnson@miva.edu.ng",
-                    "office": "CS Building, Room 301",
-                    "office_hours": "Tuesday 2-4 PM, Thursday 10-12 PM",
-                    "phone": "+234-xxx-xxxx"
-                }
-            ]
-        }
+        """Get faculty information for a course.
+
+        Joins course_instructor -> faculty -> user to return all instructors
+        assigned to the course. Sorted by role priority (primary first).
+        """
+        ctx = await self._get_student_context(student_id)
+        if not ctx:
+            return {"error": "Student context not found. Please log in again."}
+
+        is_enrolled = await self._verify_student_enrollment(student_id, course_code)
+        if not is_enrolled:
+            return {"error": "You are not enrolled in this course this semester"}
+
+        conn = self.get_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+
+        try:
+            def run_query():
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT u.name, u.email, f.position, f.office_location,
+                           f.office_hours, f.contact_phone, ci.role
+                    FROM course_instructor ci
+                    JOIN faculty f ON ci.faculty_id = f.id
+                    JOIN "user" u ON f.user_id = u.id
+                    JOIN course c ON ci.course_id = c.id
+                    WHERE c.course_code = %s
+                    ORDER BY
+                        CASE ci.role
+                            WHEN 'primary' THEN 1
+                            WHEN 'assistant' THEN 2
+                            WHEN 'lab_instructor' THEN 3
+                            WHEN 'grader' THEN 4
+                        END
+                """, (course_code.upper(),))
+                results = cursor.fetchall()
+                cursor.close()
+                conn.close()
+                return results
+
+            results = await asyncio.to_thread(run_query)
+
+            faculty_list = []
+            for row in results:
+                # office_hours is stored as JSON array
+                office_hours = row["office_hours"]
+                if isinstance(office_hours, list):
+                    office_hours_str = ", ".join(str(oh) for oh in office_hours) if office_hours else "By appointment"
+                else:
+                    office_hours_str = str(office_hours) if office_hours else "By appointment"
+
+                faculty_list.append({
+                    "name": row["name"],
+                    "email": row["email"],
+                    "title": row["position"],
+                    "office": row["office_location"] or "TBA",
+                    "office_hours": office_hours_str,
+                    "phone": row["contact_phone"],
+                    "role": row["role"],
+                })
+
+            return {
+                "course_code": course_code,
+                "faculty": faculty_list,
+                "total_count": len(faculty_list),
+            }
+
+        except Exception as e:
+            print(f"Error getting faculty info: {e}")
+            return {"error": f"Failed to retrieve faculty info: {str(e)}"}
     
+    async def get_course_videos(
+        self, course_code: str, student_id: str,
+        week_number: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """Get video materials for a course.
+
+        Queries course_material WHERE material_type = 'video' OR mime_type starts
+        with 'video/'. Includes external URLs (YouTube, Coursera, etc.).
+        """
+        ctx = await self._get_student_context(student_id)
+        if not ctx:
+            return {"error": "Student context not found. Please log in again."}
+
+        is_enrolled = await self._verify_student_enrollment(student_id, course_code)
+        if not is_enrolled:
+            return {"error": "You are not enrolled in this course this semester"}
+
+        conn = self.get_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+
+        try:
+            def run_query():
+                cursor = conn.cursor()
+                query = """
+                    SELECT cm.id, cm.title, cm.description, cm.content_url,
+                           cm.public_url, cm.week_number, cm.material_type,
+                           cm.mime_type, cm.file_size, cm.created_at
+                    FROM course_material cm
+                    JOIN course c ON cm.course_id = c.id
+                    WHERE c.course_code = %s AND cm.is_public = true
+                          AND (cm.material_type = 'lecture'
+                               OR (cm.mime_type IS NOT NULL AND cm.mime_type LIKE 'video/%%'))
+                """
+                params: list = [course_code.upper()]
+
+                if week_number is not None:
+                    query += " AND cm.week_number = %s"
+                    params.append(week_number)
+
+                query += " ORDER BY cm.week_number NULLS LAST, cm.created_at"
+                cursor.execute(query, params)
+                results = cursor.fetchall()
+                cursor.close()
+                conn.close()
+                return results
+
+            results = await asyncio.to_thread(run_query)
+
+            videos = []
+            for row in results:
+                # Prefer public_url (external), fall back to content_url (S3)
+                url = row["public_url"] or row["content_url"]
+                videos.append({
+                    "id": row["id"],
+                    "title": row["title"],
+                    "description": row["description"],
+                    "content_url": url,
+                    "week_number": row["week_number"],
+                    "material_type": row["material_type"],
+                    "file_size": row["file_size"],
+                    "upload_date": row["created_at"].isoformat() if row["created_at"] else None,
+                })
+
+            return {
+                "course_code": course_code,
+                "videos": videos,
+                "total_count": len(videos),
+            }
+
+        except Exception as e:
+            print(f"Error getting course videos: {e}")
+            return {"error": f"Failed to retrieve course videos: {str(e)}"}
+
+    async def get_reading_materials(
+        self, course_code: str, student_id: str,
+        week_number: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """Get reading / document materials for a course.
+
+        Includes material_type IN ('reading','syllabus','resource') and PDFs.
+        Excludes videos and audio.
+        """
+        ctx = await self._get_student_context(student_id)
+        if not ctx:
+            return {"error": "Student context not found. Please log in again."}
+
+        is_enrolled = await self._verify_student_enrollment(student_id, course_code)
+        if not is_enrolled:
+            return {"error": "You are not enrolled in this course this semester"}
+
+        conn = self.get_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+
+        try:
+            def run_query():
+                cursor = conn.cursor()
+                query = """
+                    SELECT cm.id, cm.title, cm.description, cm.content_url,
+                           cm.public_url, cm.week_number, cm.material_type,
+                           cm.mime_type, cm.file_size, cm.created_at
+                    FROM course_material cm
+                    JOIN course c ON cm.course_id = c.id
+                    WHERE c.course_code = %s AND cm.is_public = true
+                          AND (
+                              cm.material_type IN ('reading', 'syllabus', 'resource')
+                              OR cm.mime_type IN ('application/pdf', 'text/html')
+                          )
+                          AND (cm.mime_type IS NULL
+                               OR cm.mime_type NOT LIKE 'video/%%')
+                """
+                params: list = [course_code.upper()]
+
+                if week_number is not None:
+                    query += " AND cm.week_number = %s"
+                    params.append(week_number)
+
+                query += " ORDER BY cm.week_number NULLS LAST, cm.created_at"
+                cursor.execute(query, params)
+                results = cursor.fetchall()
+                cursor.close()
+                conn.close()
+                return results
+
+            results = await asyncio.to_thread(run_query)
+
+            materials = []
+            for row in results:
+                url = row["public_url"] or row["content_url"]
+                materials.append({
+                    "id": row["id"],
+                    "title": row["title"],
+                    "description": row["description"],
+                    "content_url": url,
+                    "week_number": row["week_number"],
+                    "material_type": row["material_type"],
+                    "file_size": row["file_size"],
+                    "upload_date": row["created_at"].isoformat() if row["created_at"] else None,
+                })
+
+            return {
+                "course_code": course_code,
+                "materials": materials,
+                "total_count": len(materials),
+            }
+
+        except Exception as e:
+            print(f"Error getting reading materials: {e}")
+            return {"error": f"Failed to retrieve reading materials: {str(e)}"}
+
+    async def get_assignment_info(
+        self, course_code: str, student_id: str
+    ) -> Dict[str, Any]:
+        """Get published assignments for a course with submission status per student.
+
+        Joins assignment -> course, LEFT JOINs assignment_submission to determine
+        whether the student has submitted and their grade.
+        """
+        ctx = await self._get_student_context(student_id)
+        if not ctx:
+            return {"error": "Student context not found. Please log in again."}
+
+        is_enrolled = await self._verify_student_enrollment(student_id, course_code)
+        if not is_enrolled:
+            return {"error": "You are not enrolled in this course this semester"}
+
+        conn = self.get_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+
+        try:
+            def run_query():
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT a.id, a.title, a.description, a.instructions,
+                           a.due_date, a.total_points, a.assignment_type,
+                           a.allow_late_submission, a.late_submission_penalty,
+                           a.week_number,
+                           asub.id AS submission_id,
+                           asub.grade, asub.feedback, asub.submitted_at,
+                           CASE
+                               WHEN asub.id IS NOT NULL THEN 'submitted'
+                               WHEN a.due_date < CURRENT_TIMESTAMP THEN 'overdue'
+                               ELSE 'pending'
+                           END AS submission_status
+                    FROM assignment a
+                    JOIN course c ON a.course_id = c.id
+                    LEFT JOIN assignment_submission asub
+                        ON a.id = asub.assignment_id AND asub.student_id = %s
+                    WHERE c.course_code = %s AND a.is_published = true
+                    ORDER BY a.due_date ASC
+                """, (ctx["user_uuid"], course_code.upper()))
+                results = cursor.fetchall()
+                cursor.close()
+                conn.close()
+                return results
+
+            results = await asyncio.to_thread(run_query)
+
+            assignments = []
+            for row in results:
+                entry = {
+                    "id": row["id"],
+                    "title": row["title"],
+                    "description": row["description"],
+                    "instructions": row["instructions"],
+                    "due_date": row["due_date"].isoformat() if row["due_date"] else None,
+                    "total_points": float(row["total_points"]) if row["total_points"] else 0,
+                    "assignment_type": row["assignment_type"],
+                    "allow_late_submission": row["allow_late_submission"],
+                    "late_submission_penalty": float(row["late_submission_penalty"]) if row["late_submission_penalty"] else 0,
+                    "week_number": row["week_number"],
+                    "submission_status": row["submission_status"],
+                }
+                if row["submission_id"]:
+                    entry["grade"] = float(row["grade"]) if row["grade"] else None
+                    entry["feedback"] = row["feedback"]
+                    entry["submitted_at"] = row["submitted_at"].isoformat() if row["submitted_at"] else None
+
+                assignments.append(entry)
+
+            return {
+                "course_code": course_code,
+                "assignments": assignments,
+                "total_count": len(assignments),
+            }
+
+        except Exception as e:
+            print(f"Error getting assignment info: {e}")
+            return {"error": f"Failed to retrieve assignment info: {str(e)}"}
+
     async def get_academic_schedule(
         self, 
         student_id: str, 
