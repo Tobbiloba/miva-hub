@@ -11,7 +11,7 @@ export async function POST() {
     const serverName = MCP_CONFIG.DEFAULT_SERVER_NAME;
     const serverConfig: MCPServerConfig = {
       url: MCP_CONFIG.SERVER_URL,
-      // Add any other required configuration here
+      ...(Object.keys(MCP_CONFIG.HEADERS).length > 0 && { headers: MCP_CONFIG.HEADERS }),
     };
 
     // Clean up old server name if it exists

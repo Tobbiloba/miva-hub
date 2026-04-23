@@ -15,9 +15,23 @@ export const getMCPServerURL = (): string => {
   return process.env.NEXT_PUBLIC_MCP_SERVER_URL || "http://localhost:8080/sse";
 };
 
+/**
+ * Build default headers for MCP server requests.
+ * Includes X-MCP-Secret when MCP_SHARED_SECRET is set.
+ */
+const getMCPHeaders = (): Record<string, string> => {
+  const headers: Record<string, string> = {};
+  const secret = process.env.MCP_SHARED_SECRET;
+  if (secret) {
+    headers["X-MCP-Secret"] = secret;
+  }
+  return headers;
+};
+
 export const MCP_CONFIG = {
   SERVER_URL: getMCPServerURL(),
   DEFAULT_SERVER_NAME: "miva-academic",
+  HEADERS: getMCPHeaders(),
 } as const;
 
 /**

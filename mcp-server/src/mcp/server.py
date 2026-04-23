@@ -1,10 +1,14 @@
 from typing import Any
 import asyncio
 import json
+import logging
 from mcp.server.fastmcp import FastMCP
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from mcp.server.sse import SseServerTransport
 from starlette.requests import Request
+from starlette.responses import JSONResponse
 from starlette.routing import Mount, Route
 from mcp.server import Server
 import uvicorn
@@ -15,8 +19,13 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.database import academic_repo
 
+logger = logging.getLogger(__name__)
+
 # Initialize FastMCP server for MIVA Academic tools
 mcp = FastMCP("miva-academic")
+
+# Shared-secret value (read once at import time)
+_MCP_SHARED_SECRET = os.environ.get("MCP_SHARED_SECRET", "")
 
 
 # Course Management Tools
@@ -50,7 +59,8 @@ async def get_course_materials(
         )
         return json.dumps(result, indent=2)
     except Exception as e:
-        return json.dumps({"error": f"Failed to fetch course materials: {str(e)}"})
+        logger.error("Tool get_course_materials failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Could not retrieve course materials. Please try again."})
 
 
 @mcp.tool()
@@ -83,7 +93,8 @@ async def get_upcoming_assignments(
         )
         return json.dumps(result, indent=2)
     except Exception as e:
-        return json.dumps({"error": f"Failed to fetch assignments: {str(e)}"})
+        logger.error("Tool get_upcoming_assignments failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Could not retrieve assignments. Please try again."})
 
 
 @mcp.tool()
@@ -103,7 +114,8 @@ async def get_course_info(course_code: str) -> str:
         result = await academic_repo.get_course_info(course_code.upper())
         return json.dumps(result, indent=2)
     except Exception as e:
-        return json.dumps({"error": f"Failed to fetch course info: {str(e)}"})
+        logger.error("Tool get_course_info failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Could not retrieve course info. Please try again."})
 
 
 @mcp.tool()
@@ -127,7 +139,8 @@ async def list_enrolled_courses(student_id: str, semester: str | None = None) ->
         )
         return json.dumps(result, indent=2)
     except Exception as e:
-        return json.dumps({"error": f"Failed to fetch enrolled courses: {str(e)}"})
+        logger.error("Tool list_enrolled_courses failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Could not retrieve enrolled courses. Please try again."})
 
 
 @mcp.tool()
@@ -157,7 +170,8 @@ async def get_course_schedule(student_id: str, course_code: str | None = None) -
             )
         return json.dumps(result, indent=2)
     except Exception as e:
-        return json.dumps({"error": f"Failed to fetch schedule: {str(e)}"})
+        logger.error("Tool get_course_schedule failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Could not retrieve schedule. Please try again."})
 
 
 # Student Content Access Tools
@@ -190,7 +204,8 @@ async def get_course_videos(
         )
         return json.dumps(result, indent=2)
     except Exception as e:
-        return json.dumps({"error": f"Failed to fetch course videos: {str(e)}"})
+        logger.error("Tool get_course_videos failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Could not retrieve course videos. Please try again."})
 
 
 @mcp.tool()
@@ -222,7 +237,8 @@ async def get_reading_materials(
         )
         return json.dumps(result, indent=2)
     except Exception as e:
-        return json.dumps({"error": f"Failed to fetch reading materials: {str(e)}"})
+        logger.error("Tool get_reading_materials failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Could not retrieve reading materials. Please try again."})
 
 
 @mcp.tool()
@@ -253,7 +269,8 @@ async def view_course_announcements(
         )
         return json.dumps(result, indent=2)
     except Exception as e:
-        return json.dumps({"error": f"Failed to fetch announcements: {str(e)}"})
+        logger.error("Tool view_course_announcements failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Could not retrieve announcements. Please try again."})
 
 
 @mcp.tool()
@@ -278,7 +295,8 @@ async def get_course_syllabus(course_code: str, student_id: str) -> str:
         )
         return json.dumps(result, indent=2)
     except Exception as e:
-        return json.dumps({"error": f"Failed to fetch course syllabus: {str(e)}"})
+        logger.error("Tool get_course_syllabus failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Could not retrieve course syllabus. Please try again."})
 
 
 @mcp.tool()
@@ -302,7 +320,8 @@ async def get_faculty_contact(course_code: str, student_id: str) -> str:
         )
         return json.dumps(result, indent=2)
     except Exception as e:
-        return json.dumps({"error": f"Failed to fetch faculty contact: {str(e)}"})
+        logger.error("Tool get_faculty_contact failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Could not retrieve faculty contact info. Please try again."})
 
 
 @mcp.tool()
@@ -333,7 +352,69 @@ async def view_assignment_info(
         )
         return json.dumps(result, indent=2)
     except Exception as e:
-        return json.dumps({"error": f"Failed to fetch assignment information: {str(e)}"})
+        logger.error("Tool view_assignment_info failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Could not retrieve assignment information. Please try again."})
+
+
+@mcp.tool()
+async def get_curriculum_guidance(student_id: str) -> str:
+    """Returns the curriculum map for the student's current program, level, and semester.
+
+    Lists compulsory and elective courses they should be taking, and identifies
+    any gaps in their current enrollments.
+
+    Args:
+        student_id: Student ID
+
+    Returns:
+        Formatted JSON string with curriculum guidance
+    """
+    try:
+        result = await academic_repo.get_curriculum_guidance(
+            student_id=student_id,
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        logger.error("Tool get_curriculum_guidance failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Could not retrieve curriculum guidance. Please try again."})
+
+
+@mcp.tool()
+async def get_academic_standing(student_id: str) -> str:
+    """Returns the student's cumulative academic performance.
+
+    Includes CGPA, credits earned, degree classification (First Class, 2:1,
+    2:2, Third, Pass), and graduation progress.
+
+    Args:
+        student_id: Student ID
+
+    Returns:
+        Formatted JSON string with academic standing
+    """
+    try:
+        result = await academic_repo.get_academic_standing(
+            student_id=student_id,
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        logger.error("Tool get_academic_standing failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Could not retrieve academic standing. Please try again."})
+
+
+# ---------------------------------------------------------------------------
+# Shared-secret authentication middleware
+# ---------------------------------------------------------------------------
+class SharedSecretMiddleware(BaseHTTPMiddleware):
+    """Validates X-MCP-Secret header on all requests when MCP_SHARED_SECRET is set."""
+
+    async def dispatch(self, request: Request, call_next):
+        if _MCP_SHARED_SECRET:
+            provided = request.headers.get("X-MCP-Secret", "")
+            if provided != _MCP_SHARED_SECRET:
+                logger.warning("Rejected MCP request: invalid or missing X-MCP-Secret header")
+                return JSONResponse({"error": "Unauthorized"}, status_code=401)
+        return await call_next(request)
 
 
 def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlette:
@@ -373,6 +454,9 @@ def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlett
                 mcp_server.create_initialization_options(),
             )
 
+    # Build middleware stack — auth is applied when MCP_SHARED_SECRET is set
+    middleware = [Middleware(SharedSecretMiddleware)]
+
     # Create and return the Starlette application with routes
     return Starlette(
         debug=debug,
@@ -380,7 +464,15 @@ def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlett
             Route("/sse", endpoint=handle_sse),  # Endpoint for SSE connections
             Mount("/messages/", app=sse.handle_post_message),  # Endpoint for posting messages
         ],
+        middleware=middleware,
     )
+
+
+# Configure logging for the MCP server
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+)
 
 
 if __name__ == "__main__":

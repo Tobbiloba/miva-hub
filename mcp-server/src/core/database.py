@@ -2,9 +2,12 @@
 
 import os
 import asyncio
+import logging
 from typing import Any, Dict, List, Optional
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -60,7 +63,7 @@ class AcademicRepository:
                     cursor_factory=RealDictCursor
                 )
         except Exception as e:
-            print(f"Database connection failed: {e}")
+            logger.error("Database connection failed: %s", e, exc_info=True)
             return None
     
     async def get_course_materials(
@@ -139,8 +142,8 @@ class AcademicRepository:
             }
             
         except Exception as e:
-            print(f"Error getting course materials: {e}")
-            return {"error": f"Failed to retrieve course materials: {str(e)}"}
+            logger.error("Error getting course materials: %s", e, exc_info=True)
+            return {"error": "Could not retrieve course materials. Please try again."}
     
     async def get_upcoming_assignments(
         self,
@@ -236,8 +239,8 @@ class AcademicRepository:
             }
             
         except Exception as e:
-            print(f"Error getting upcoming assignments: {e}")
-            return {"error": f"Failed to retrieve upcoming assignments: {str(e)}"}
+            logger.error("Error getting upcoming assignments: %s", e, exc_info=True)
+            return {"error": "Could not retrieve upcoming assignments. Please try again."}
     
     async def get_course_info(self, course_code: str, include_materials: bool = False) -> Dict[str, Any]:
         """Get detailed course information - real database implementation."""
@@ -304,8 +307,8 @@ class AcademicRepository:
             return course_info
             
         except Exception as e:
-            print(f"Error getting course info: {e}")
-            return {"error": f"Failed to retrieve course info: {str(e)}"}
+            logger.error("Error getting course info: %s", e, exc_info=True)
+            return {"error": "Could not retrieve course info. Please try again."}
     
     async def _get_student_context(self, student_id: str) -> Optional[Dict[str, Any]]:
         """Fetch student's current academic context for scoping queries.
@@ -348,7 +351,7 @@ class AcademicRepository:
                 "enrollment_status": row["enrollment_status"],
             }
         except Exception as e:
-            print(f"Error fetching student context: {e}")
+            logger.error("Error fetching student context: %s", e, exc_info=True)
             return None
 
     async def _verify_student_enrollment(self, student_id: str, course_code: str) -> bool:
@@ -379,7 +382,7 @@ class AcademicRepository:
             result = await asyncio.to_thread(run_query)
             return result is not None
         except Exception as e:
-            print(f"Error verifying enrollment: {e}")
+            logger.error("Error verifying enrollment: %s", e, exc_info=True)
             return False
 
     async def _check_enrollment(self, student_id: str, course_code: str) -> bool:
@@ -451,8 +454,8 @@ class AcademicRepository:
             }
             
         except Exception as e:
-            print(f"Error getting student enrollments: {e}")
-            return {"error": f"Failed to retrieve enrollments: {str(e)}"}
+            logger.error("Error getting student enrollments: %s", e, exc_info=True)
+            return {"error": "Could not retrieve enrollments. Please try again."}
 
     async def get_assignment_details(self, assignment_id: str, student_id: str) -> Dict[str, Any]:
         """Get detailed information for a specific assignment - real database implementation."""
@@ -521,8 +524,8 @@ class AcademicRepository:
             }
             
         except Exception as e:
-            print(f"Error getting assignment details: {e}")
-            return {"error": f"Failed to retrieve assignment details: {str(e)}"}
+            logger.error("Error getting assignment details: %s", e, exc_info=True)
+            return {"error": "Could not retrieve assignment details. Please try again."}
 
     async def get_course_schedule(self, course_code: str, student_id: str) -> Dict[str, Any]:
         """Get schedule for a specific course - real database implementation.
@@ -594,8 +597,8 @@ class AcademicRepository:
             }
 
         except Exception as e:
-            print(f"Error getting course schedule: {e}")
-            return {"error": f"Failed to retrieve course schedule: {str(e)}"}
+            logger.error("Error getting course schedule: %s", e, exc_info=True)
+            return {"error": "Could not retrieve course schedule. Please try again."}
 
     async def get_course_announcements(
         self, course_code: Optional[str], student_id: str, limit: int = 10
@@ -685,8 +688,8 @@ class AcademicRepository:
             }
 
         except Exception as e:
-            print(f"Error getting course announcements: {e}")
-            return {"error": f"Failed to retrieve announcements: {str(e)}"}
+            logger.error("Error getting course announcements: %s", e, exc_info=True)
+            return {"error": "Could not retrieve announcements. Please try again."}
 
     async def get_course_syllabus(self, course_code: str, student_id: str) -> Dict[str, Any]:
         """Get syllabus for a specific course.
@@ -794,8 +797,8 @@ class AcademicRepository:
             return result
 
         except Exception as e:
-            print(f"Error getting course syllabus: {e}")
-            return {"error": f"Failed to retrieve course syllabus: {str(e)}"}
+            logger.error("Error getting course syllabus: %s", e, exc_info=True)
+            return {"error": "Could not retrieve course syllabus. Please try again."}
 
     async def get_faculty_info(self, course_code: str, student_id: str) -> Dict[str, Any]:
         """Get faculty information for a course.
@@ -867,8 +870,8 @@ class AcademicRepository:
             }
 
         except Exception as e:
-            print(f"Error getting faculty info: {e}")
-            return {"error": f"Failed to retrieve faculty info: {str(e)}"}
+            logger.error("Error getting faculty info: %s", e, exc_info=True)
+            return {"error": "Could not retrieve faculty information. Please try again."}
     
     async def get_course_videos(
         self, course_code: str, student_id: str,
@@ -941,8 +944,8 @@ class AcademicRepository:
             }
 
         except Exception as e:
-            print(f"Error getting course videos: {e}")
-            return {"error": f"Failed to retrieve course videos: {str(e)}"}
+            logger.error("Error getting course videos: %s", e, exc_info=True)
+            return {"error": "Could not retrieve course videos. Please try again."}
 
     async def get_reading_materials(
         self, course_code: str, student_id: str,
@@ -1018,8 +1021,8 @@ class AcademicRepository:
             }
 
         except Exception as e:
-            print(f"Error getting reading materials: {e}")
-            return {"error": f"Failed to retrieve reading materials: {str(e)}"}
+            logger.error("Error getting reading materials: %s", e, exc_info=True)
+            return {"error": "Could not retrieve reading materials. Please try again."}
 
     async def get_assignment_info(
         self, course_code: str, student_id: str
@@ -1099,8 +1102,8 @@ class AcademicRepository:
             }
 
         except Exception as e:
-            print(f"Error getting assignment info: {e}")
-            return {"error": f"Failed to retrieve assignment info: {str(e)}"}
+            logger.error("Error getting assignment info: %s", e, exc_info=True)
+            return {"error": "Could not retrieve assignment information. Please try again."}
 
     async def get_academic_schedule(
         self, 
@@ -1214,8 +1217,8 @@ class AcademicRepository:
             }
             
         except Exception as e:
-            print(f"Error getting academic schedule: {e}")
-            return {"error": f"Failed to retrieve academic schedule: {str(e)}"}
+            logger.error("Error getting academic schedule: %s", e, exc_info=True)
+            return {"error": "Could not retrieve academic schedule. Please try again."}
 
     async def search_course_materials(
         self,
@@ -1292,9 +1295,9 @@ class AcademicRepository:
             }
             
         except Exception as e:
-            print(f"Error searching course materials: {e}")
+            logger.error("Error searching course materials: %s", e, exc_info=True)
             conn.close()
-            return {"error": f"Search failed: {str(e)}"}
+            return {"error": "Search failed. Please try again."}
     
     async def get_material_by_id(self, material_id: str) -> Dict[str, Any]:
         """Get a single material by ID with full details."""
@@ -1336,10 +1339,235 @@ class AcademicRepository:
             return material
             
         except Exception as e:
-            print(f"Error getting material by ID: {e}")
+            logger.error("Error getting material by ID: %s", e, exc_info=True)
             conn.close()
-            return {"error": f"Failed to retrieve material: {str(e)}"}
+            return {"error": "Could not retrieve material. Please try again."}
     
+    async def get_curriculum_guidance(self, student_id: str) -> Dict[str, Any]:
+        """Return curriculum map for the student's current program, level, and semester.
+
+        Joins program_curriculum -> course, LEFT JOINs student_enrollment to
+        identify which required courses the student is already enrolled in.
+        """
+        ctx = await self._get_student_context(student_id)
+        if not ctx:
+            return {"error": "Student context not found. Please log in again."}
+
+        if not ctx["program_id"]:
+            return {
+                "error": "You need to be assigned to a program to get curriculum guidance. "
+                         "Please contact administration."
+            }
+
+        conn = self.get_connection()
+        if not conn:
+            return {"error": "Service temporarily unavailable. Please try again."}
+
+        try:
+            def run_query():
+                cursor = conn.cursor()
+
+                # Resolve program name
+                cursor.execute("""
+                    SELECT name FROM program WHERE id = %s
+                """, (ctx["program_id"],))
+                prog = cursor.fetchone()
+                program_name = prog["name"] if prog else "Unknown Program"
+
+                # Curriculum courses for this level + semester
+                cursor.execute("""
+                    SELECT pc.is_compulsory, pc.order_in_semester,
+                           c.id AS course_id, c.course_code, c.title, c.credits
+                    FROM program_curriculum pc
+                    JOIN course c ON pc.course_id = c.id
+                    WHERE pc.program_id = %s
+                          AND pc.level = %s
+                          AND pc.semester = %s
+                    ORDER BY pc.is_compulsory DESC, pc.order_in_semester NULLS LAST, c.course_code
+                """, (ctx["program_id"], ctx["current_level"], ctx["current_semester"]))
+                curriculum = cursor.fetchall()
+
+                # Current enrollments for the student
+                cursor.execute("""
+                    SELECT se.course_id
+                    FROM student_enrollment se
+                    WHERE se.student_id = %s AND se.status = 'enrolled'
+                """, (ctx["user_uuid"],))
+                enrolled_ids = {str(row["course_id"]) for row in cursor.fetchall()}
+
+                cursor.close()
+                conn.close()
+                return program_name, curriculum, enrolled_ids
+
+            program_name, curriculum, enrolled_ids = await asyncio.to_thread(run_query)
+
+            compulsory = []
+            elective = []
+            total_required_credits = 0
+            enrolled_credits = 0
+            missing = []
+
+            for row in curriculum:
+                is_enrolled = str(row["course_id"]) in enrolled_ids
+                entry = {
+                    "course_code": row["course_code"],
+                    "title": row["title"],
+                    "credits": row["credits"],
+                    "enrolled": is_enrolled,
+                }
+                total_required_credits += row["credits"] or 0
+                if is_enrolled:
+                    enrolled_credits += row["credits"] or 0
+                else:
+                    missing.append(row["course_code"])
+
+                if row["is_compulsory"]:
+                    compulsory.append(entry)
+                else:
+                    elective.append(entry)
+
+            return {
+                "program_name": program_name,
+                "level": ctx["current_level"],
+                "semester": ctx["current_semester"],
+                "academic_year": ctx["academic_year"],
+                "compulsory_courses": compulsory,
+                "elective_courses": elective,
+                "total_required_credits": total_required_credits,
+                "currently_enrolled_credits": enrolled_credits,
+                "missing_enrollments": missing,
+            }
+
+        except Exception as e:
+            logger.error("Error getting curriculum guidance: %s", e, exc_info=True)
+            return {"error": "Could not retrieve curriculum guidance. Please try again."}
+
+    async def get_academic_standing(self, student_id: str) -> Dict[str, Any]:
+        """Return the student's cumulative academic performance.
+
+        Computes CGPA, credits earned, degree classification, and graduation
+        progress from completed enrollments.
+        """
+        ctx = await self._get_student_context(student_id)
+        if not ctx:
+            return {"error": "Student context not found. Please log in again."}
+
+        conn = self.get_connection()
+        if not conn:
+            return {"error": "Service temporarily unavailable. Please try again."}
+
+        try:
+            def run_query():
+                cursor = conn.cursor()
+
+                # Student name
+                cursor.execute("""
+                    SELECT name FROM "user" WHERE id = %s
+                """, (ctx["user_uuid"],))
+                user_row = cursor.fetchone()
+                student_name = user_row["name"] if user_row else "Unknown"
+
+                # Completed enrollments with grade points
+                cursor.execute("""
+                    SELECT se.final_grade, se.grade_points, c.credits
+                    FROM student_enrollment se
+                    JOIN course c ON se.course_id = c.id
+                    WHERE se.student_id = %s AND se.status = 'completed'
+                """, (ctx["user_uuid"],))
+                completed = cursor.fetchall()
+
+                # Current semester enrollments (active)
+                cursor.execute("""
+                    SELECT se.final_grade, se.grade_points, c.credits
+                    FROM student_enrollment se
+                    JOIN course c ON se.course_id = c.id
+                    WHERE se.student_id = %s AND se.status = 'completed'
+                          AND se.semester = %s AND se.academic_year = %s
+                """, (ctx["user_uuid"], ctx["current_semester"], ctx["academic_year"]))
+                current_sem = cursor.fetchall()
+
+                cursor.close()
+                conn.close()
+                return student_name, completed, current_sem
+
+            student_name, completed, current_sem = await asyncio.to_thread(run_query)
+
+            # Compute CGPA
+            total_weighted = 0.0
+            total_credits_attempted = 0
+            credits_earned = 0
+            grade_dist = {"A": 0, "B": 0, "C": 0, "D": 0, "E": 0, "F": 0}
+
+            for row in completed:
+                credits = row["credits"] or 0
+                gp = float(row["grade_points"]) if row["grade_points"] is not None else None
+                fg = row["final_grade"] or ""
+
+                if gp is not None and credits > 0:
+                    total_weighted += gp * credits
+                    total_credits_attempted += credits
+                    if fg.upper() != "F":
+                        credits_earned += credits
+
+                # Grade distribution
+                letter = fg.upper()[:1] if fg else ""
+                if letter in grade_dist:
+                    grade_dist[letter] += 1
+
+            cgpa = round(total_weighted / total_credits_attempted, 2) if total_credits_attempted > 0 else 0.0
+
+            # Semester GPA
+            sem_weighted = 0.0
+            sem_credits = 0
+            for row in current_sem:
+                credits = row["credits"] or 0
+                gp = float(row["grade_points"]) if row["grade_points"] is not None else None
+                if gp is not None and credits > 0:
+                    sem_weighted += gp * credits
+                    sem_credits += credits
+            semester_gpa = round(sem_weighted / sem_credits, 2) if sem_credits > 0 else None
+
+            # Degree classification (Nigerian scale)
+            if cgpa >= 4.50:
+                classification = "First Class"
+            elif cgpa >= 3.50:
+                classification = "Second Class Upper"
+            elif cgpa >= 2.40:
+                classification = "Second Class Lower"
+            elif cgpa >= 1.50:
+                classification = "Third Class"
+            elif cgpa >= 1.00:
+                classification = "Pass"
+            else:
+                classification = "Fail" if total_credits_attempted > 0 else "No graded courses yet"
+
+            # Graduation progress — Nigerian 4-year undergrad = max 400L
+            max_level = 400
+            current_level = ctx["current_level"] or 100
+            on_track = cgpa >= 1.00 and current_level <= max_level if total_credits_attempted > 0 else None
+
+            # Estimate total required credits (4 years × ~30 credits/year = 120 baseline)
+            credits_required = 120
+            credits_remaining = max(0, credits_required - credits_earned)
+
+            return {
+                "student_name": student_name,
+                "current_level": current_level,
+                "current_semester": ctx["current_semester"],
+                "cgpa": cgpa,
+                "credits_earned": credits_earned,
+                "credits_required": credits_required,
+                "credits_remaining": credits_remaining,
+                "current_classification": classification,
+                "on_track_to_graduate": on_track,
+                "grade_distribution": grade_dist,
+                "semester_gpa": semester_gpa,
+            }
+
+        except Exception as e:
+            logger.error("Error getting academic standing: %s", e, exc_info=True)
+            return {"error": "Could not retrieve academic standing. Please try again."}
+
     async def close(self):
         """Close database connections."""
         if self._connection:

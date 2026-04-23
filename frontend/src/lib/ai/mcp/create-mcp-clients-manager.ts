@@ -419,6 +419,10 @@ export class MCPClientsManager {
       'get_academic_schedule',
       'get_upcoming_assignments',
       'get_course_schedule',
+      'get_faculty_contact',
+      'view_assignment_info',
+      'get_curriculum_guidance',
+      'get_academic_standing',
       'ask_study_question',
       'start_study_session',
       'view_study_history'
@@ -440,6 +444,10 @@ export class MCPClientsManager {
       'get_academic_schedule',
       'get_upcoming_assignments',
       'get_course_schedule',
+      'get_faculty_contact',
+      'view_assignment_info',
+      'get_curriculum_guidance',
+      'get_academic_standing',
       // Usage-limited tools that need student_id for tracking
       'ask_study_question',
       'generate_study_guide',
