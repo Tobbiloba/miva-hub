@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -271,10 +272,10 @@ export default function CalendarManagePage() {
             Export Calendar
           </Button>
           <Button asChild>
-            <a href="/admin/calendar/create">
+            <Link href="/admin/calendar/create">
               <Plus className="mr-2 h-4 w-4" />
               Add Event
-            </a>
+            </Link>
           </Button>
         </div>
       </div>
@@ -411,10 +412,10 @@ export default function CalendarManagePage() {
                   }
                 </p>
                 <Button asChild>
-                  <a href="/admin/calendar/create">
+                  <Link href="/admin/calendar/create">
                     <Plus className="mr-2 h-4 w-4" />
                     Add Event
-                  </a>
+                  </Link>
                 </Button>
               </div>
             </div>

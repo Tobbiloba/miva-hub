@@ -231,10 +231,10 @@ export default function UsersManagePage() {
         
         <div className="flex gap-2">
           <Button asChild>
-            <a href="/admin/users/create">
+            <Link href="/admin/users/create">
               <Plus className="mr-2 h-4 w-4" />
               Add User
-            </a>
+            </Link>
           </Button>
         </div>
       </div>

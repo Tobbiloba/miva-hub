@@ -37,6 +37,7 @@ import {
   FileText,
   TrendingUp,
   Zap,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Session, User } from "better-auth";
@@ -51,9 +52,11 @@ const adminRoutes = [
     title: "Academic Management",
     icon: BookOpen,
     children: [
+      { title: "Academic Sessions", href: "/admin/academic", icon: GraduationCap },
       { title: "Departments", href: "/admin/departments", icon: Building2 },
       { title: "Courses", href: "/admin/courses", icon: BookOpen },
       { title: "Faculty", href: "/admin/faculty", icon: UserCheck },
+      { title: "Class Schedule", href: "/admin/schedule", icon: Clock },
       { title: "Academic Calendar", href: "/admin/calendar", icon: Calendar },
     ],
   },

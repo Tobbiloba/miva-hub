@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -95,12 +96,11 @@ export default async function FacultyManagementPage() {
         </div>
         
         <div className="flex gap-2">
-          {/* TODO (Sprint 2): wire up Add Faculty form.
-               The POST /api/admin/faculty response includes `data.tempPassword`
-               which must be shown in a copy-able modal/toast before the dialog closes. */}
-          <Button className="flex items-center gap-2" disabled title="Coming in Sprint 2">
-            <Plus className="h-4 w-4" />
-            Add Faculty
+          <Button className="flex items-center gap-2" asChild>
+            <Link href="/admin/faculty/create">
+              <Plus className="h-4 w-4" />
+              Add Faculty
+            </Link>
           </Button>
         </div>
       </div>

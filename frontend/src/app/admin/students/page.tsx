@@ -32,6 +32,7 @@ import {
   AlertCircle,
   CheckCircle
 } from "lucide-react";
+import Link from "next/link";
 import { getSession } from "@/lib/auth/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
@@ -340,8 +341,10 @@ export default async function StudentManagementPage() {
                           <Button variant="ghost" size="sm">
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
-                            <GraduationCap className="h-4 w-4" />
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/admin/students/${student.id}/academic`} title="Academic Record">
+                              <GraduationCap className="h-4 w-4" />
+                            </Link>
                           </Button>
                         </div>
                       </TableCell>

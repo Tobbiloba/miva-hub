@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, BookOpen, Save, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { CourseInstructors } from "./course-instructors";
 
 interface Department {
   id: string;
@@ -478,6 +479,9 @@ export default function EditCoursePage() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Faculty Assignments Section */}
+      <CourseInstructors courseId={courseId} />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -221,10 +222,10 @@ export default function AnnouncementsManagePage() {
         </div>
         
         <Button asChild>
-          <a href="/admin/announcements/create">
+          <Link href="/admin/announcements/create">
             <Plus className="mr-2 h-4 w-4" />
             Create Announcement
-          </a>
+          </Link>
         </Button>
       </div>
 
@@ -375,10 +376,10 @@ export default function AnnouncementsManagePage() {
                   }
                 </p>
                 <Button asChild>
-                  <a href="/admin/announcements/create">
+                  <Link href="/admin/announcements/create">
                     <Plus className="mr-2 h-4 w-4" />
                     Create Announcement
-                  </a>
+                  </Link>
                 </Button>
               </div>
             </div>
