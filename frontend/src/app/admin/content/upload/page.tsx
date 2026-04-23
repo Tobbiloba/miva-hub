@@ -10,9 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { CourseSelector } from "@/components/admin/course-selector";
 import { FileUploadZone } from "@/components/admin/file-upload-zone";
-import { 
-  Upload, 
-  ArrowLeft, 
+import {
+  Upload,
+  ArrowLeft,
   FileText,
   Settings,
   CheckCircle,
@@ -20,7 +20,9 @@ import {
   AlertCircle,
   Brain,
   Zap,
-  Database
+  Database,
+  Link2,
+  Globe
 } from "lucide-react";
 import Link from "next/link";
 
@@ -60,6 +62,8 @@ export default function ContentUploadPage() {
   const [description, setDescription] = useState<string>("");
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [inputMode, setInputMode] = useState<'file' | 'url'>('file');
+  const [externalUrl, setExternalUrl] = useState("");
 
   // Auto-redirect state
   const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
@@ -373,8 +377,57 @@ export default function ContentUploadPage() {
     }
   };
 
+  const handleSaveUrl = async () => {
+    if (!selectedCourse || !materialType || !weekNumber || !title || !externalUrl) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    if (!isUrlValid) {
+      toast.error("Please enter a valid URL (http:// or https://)");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('externalUrl', externalUrl);
+      formData.append('courseId', selectedCourse);
+      formData.append('materialType', materialType);
+      formData.append('weekNumber', weekNumber);
+      formData.append('title', title);
+      formData.append('description', description);
+
+      const response = await fetch('/api/content/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to save URL');
+      }
+
+      toast.success("External URL added as material");
+      setExternalUrl("");
+      setTitle("");
+      setDescription("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save URL");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const isFormValid = selectedCourse && materialType && weekNumber && title;
-  const canUpload = isFormValid && selectedFiles.length > 0 && !uploading;
+  const isUrlValid = (() => {
+    if (!externalUrl) return false;
+    try {
+      const parsed = new URL(externalUrl);
+      return ['http:', 'https:'].includes(parsed.protocol);
+    } catch { return false; }
+  })();
+  const canUpload = isFormValid && (inputMode === 'file' ? selectedFiles.length > 0 : isUrlValid) && !uploading;
   const pendingFiles = selectedFiles.filter(f => f.status === 'pending');
   const uploadingFiles = selectedFiles.filter(f => f.status === 'uploading');
   const processingFiles = selectedFiles.filter(f => f.status === 'processing');
@@ -521,7 +574,7 @@ export default function ContentUploadPage() {
               {isFormValid && (
                 <div className="mt-4 p-3 bg-green-50 dark:bg-green-950 rounded-lg">
                   <p className="text-sm text-green-700 dark:text-green-300">
-                    Ready to upload files!
+                    {inputMode === 'file' ? 'Ready to upload files!' : 'Ready to save URL!'}
                   </p>
                 </div>
               )}
@@ -606,12 +659,88 @@ export default function ContentUploadPage() {
           </Card>
         </div>
 
-        {/* File Upload Area */}
+        {/* File Upload / URL Area */}
         <div className="lg:col-span-2 space-y-4">
-          <FileUploadZone
-            onFilesSelected={handleFilesAdded}
-            disabled={!isFormValid}
-          />
+          {/* Mode Toggle */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={inputMode === 'file' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setInputMode('file')}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Upload File
+                </Button>
+                <Button
+                  variant={inputMode === 'url' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setInputMode('url')}
+                  className="flex items-center gap-2"
+                >
+                  <Globe className="h-4 w-4" />
+                  External URL
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {inputMode === 'file' ? (
+            <FileUploadZone
+              onFilesSelected={handleFilesAdded}
+              disabled={!isFormValid}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Link2 className="h-5 w-5" />
+                  External URL
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="externalUrl">URL *</Label>
+                  <Input
+                    id="externalUrl"
+                    type="url"
+                    value={externalUrl}
+                    onChange={(e) => setExternalUrl(e.target.value)}
+                    placeholder="https://youtube.com/watch?v=... or any public URL"
+                    disabled={!isFormValid}
+                  />
+                  {externalUrl && !isUrlValid && (
+                    <p className="text-xs text-destructive">
+                      Enter a valid URL starting with http:// or https://
+                    </p>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Paste a YouTube video, Coursera link, Wikipedia page, arXiv paper, or any public URL.
+                  No file upload or AI processing — the URL is stored directly as course material.
+                </p>
+                <Button
+                  onClick={handleSaveUrl}
+                  disabled={!canUpload}
+                  className="w-full"
+                >
+                  {uploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="h-4 w-4 mr-2" />
+                      Save URL as Material
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Selected Files Preview */}
           {selectedFiles.length > 0 && (
@@ -828,10 +957,10 @@ export default function ContentUploadPage() {
                   <Upload className="h-4 w-4" />
                   <div>
                     <p className="text-sm font-medium mb-1">
-                      Complete the form to enable file selection
+                      Complete the form to enable {inputMode === 'file' ? 'file selection' : 'URL input'}
                     </p>
                     <p className="text-xs text-amber-600/80 dark:text-amber-400/80">
-                      All fields marked with * are required before you can select files for upload.
+                      All fields marked with * are required before you can {inputMode === 'file' ? 'select files for upload' : 'enter a URL'}.
                     </p>
                   </div>
                 </div>

@@ -13,16 +13,70 @@ export async function POST(request: NextRequest) {
     const session = sessionOrError;
 
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get('file') as File | null;
+    const externalUrl = formData.get('externalUrl') as string | null;
     const courseId = formData.get('courseId') as string;
     const materialType = formData.get('materialType') as string;
     const weekNumber = formData.get('weekNumber') as string;
     const title = formData.get('title') as string;
     const description = formData.get('description') as string || '';
 
-    if (!file || !courseId || !materialType || !weekNumber || !title) {
+    if (!courseId || !materialType || !weekNumber || !title) {
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // ── External URL mode ──────────────────────────────────────────
+    if (externalUrl) {
+      try {
+        const parsed = new URL(externalUrl);
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+          return NextResponse.json(
+            { error: "URL must use http:// or https://" },
+            { status: 400 }
+          );
+        }
+      } catch {
+        return NextResponse.json(
+          { error: "Invalid URL format" },
+          { status: 400 }
+        );
+      }
+
+      const course = await pgAcademicRepository.getCourseById(courseId);
+      if (!course) {
+        return NextResponse.json(
+          { error: "Course not found" },
+          { status: 404 }
+        );
+      }
+
+      const insertedMaterial = await pgAcademicRepository.insertCourseMaterial({
+        courseId,
+        title,
+        description,
+        materialType: materialType as "syllabus" | "lecture" | "assignment" | "resource" | "reading" | "exam",
+        weekNumber: parseInt(weekNumber),
+        contentUrl: externalUrl,
+        publicUrl: externalUrl,
+        fileName: null,
+        fileSize: null,
+        mimeType: null,
+        uploadedById: session.user.id,
+      });
+
+      return NextResponse.json({
+        message: "External URL added as material",
+        materialId: insertedMaterial.id,
+      }, { status: 201 });
+    }
+
+    // ── File upload mode ───────────────────────────────────────────
+    if (!file) {
+      return NextResponse.json(
+        { error: "Missing required fields: file or externalUrl" },
         { status: 400 }
       );
     }
