@@ -515,26 +515,42 @@ export const pgAcademicRepository = {
   },
 
   // Student-specific queries
-  getStudentEnrollmentStats: async (studentId: string) => {
+  getStudentEnrollmentStats: async (studentId: string, options?: { academicYear?: string; includeHistorical?: boolean }) => {
     try {
+      const opts = options ?? {};
+      const baseConditions = [
+        eq(StudentEnrollmentSchema.studentId, studentId),
+        eq(StudentEnrollmentSchema.status, "enrolled")
+      ];
+
+      // Default to current academic year unless historical requested
+      if (!opts.includeHistorical) {
+        let academicYear = opts.academicYear;
+        if (!academicYear) {
+          const [user] = await db
+            .select({ academicYear: UserSchema.academicYear })
+            .from(UserSchema)
+            .where(eq(UserSchema.id, studentId))
+            .limit(1);
+          academicYear = user?.academicYear ?? undefined;
+        }
+        if (academicYear) {
+          baseConditions.push(eq(StudentEnrollmentSchema.academicYear, academicYear));
+        }
+      }
+
       const [enrollments, totalCredits] = await Promise.all([
         db.select({ count: sql`count(*)` })
           .from(StudentEnrollmentSchema)
-          .where(and(
-            eq(StudentEnrollmentSchema.studentId, studentId),
-            eq(StudentEnrollmentSchema.status, "enrolled")
-          )),
-        db.select({ 
+          .where(and(...baseConditions)),
+        db.select({
           totalCredits: sql`sum(${CourseSchema.credits})`.as('totalCredits')
         })
           .from(StudentEnrollmentSchema)
           .innerJoin(CourseSchema, eq(StudentEnrollmentSchema.courseId, CourseSchema.id))
-          .where(and(
-            eq(StudentEnrollmentSchema.studentId, studentId),
-            eq(StudentEnrollmentSchema.status, "enrolled")
-          ))
+          .where(and(...baseConditions))
       ]);
-      
+
       return {
         enrolledCourses: Number(enrollments[0]?.count) || 0,
         totalCredits: Number(totalCredits[0]?.totalCredits) || 0,
@@ -545,15 +561,34 @@ export const pgAcademicRepository = {
     }
   },
 
-  getStudentCourses: async (studentId: string, semester?: string) => {
+  getStudentCourses: async (studentId: string, options?: { semester?: string; academicYear?: string; includeHistorical?: boolean }) => {
     try {
       const conditions = [
         eq(StudentEnrollmentSchema.studentId, studentId),
         eq(StudentEnrollmentSchema.status, "enrolled")
       ];
-      
-      if (semester) {
-        conditions.push(eq(StudentEnrollmentSchema.semester, semester));
+
+      const opts = options ?? {};
+
+      if (opts.semester) {
+        conditions.push(eq(StudentEnrollmentSchema.semester, opts.semester));
+      }
+
+      // Default to current academic year unless historical data is requested
+      if (!opts.includeHistorical && !opts.semester) {
+        let academicYear = opts.academicYear;
+        if (!academicYear) {
+          // Look up the student's current academic year
+          const [user] = await db
+            .select({ academicYear: UserSchema.academicYear })
+            .from(UserSchema)
+            .where(eq(UserSchema.id, studentId))
+            .limit(1);
+          academicYear = user?.academicYear ?? undefined;
+        }
+        if (academicYear) {
+          conditions.push(eq(StudentEnrollmentSchema.academicYear, academicYear));
+        }
       }
 
       const coursesWithDetails = await db
@@ -575,8 +610,28 @@ export const pgAcademicRepository = {
     }
   },
 
-  getStudentUpcomingAssignments: async (studentId: string, limit = 5) => {
+  getStudentUpcomingAssignments: async (studentId: string, limit = 5, options?: { academicYear?: string }) => {
     try {
+      // Resolve academic year for current-semester scoping
+      let academicYear = options?.academicYear;
+      if (!academicYear) {
+        const [user] = await db
+          .select({ academicYear: UserSchema.academicYear })
+          .from(UserSchema)
+          .where(eq(UserSchema.id, studentId))
+          .limit(1);
+        academicYear = user?.academicYear ?? undefined;
+      }
+
+      const enrollmentConditions = [
+        eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
+        eq(StudentEnrollmentSchema.studentId, studentId),
+        eq(StudentEnrollmentSchema.status, "enrolled"),
+      ];
+      if (academicYear) {
+        enrollmentConditions.push(eq(StudentEnrollmentSchema.academicYear, academicYear));
+      }
+
       const upcomingAssignments = await db
         .select({
           assignment: AssignmentSchema,
@@ -586,15 +641,11 @@ export const pgAcademicRepository = {
         .from(AssignmentSchema)
         .innerJoin(CourseSchema, eq(AssignmentSchema.courseId, CourseSchema.id))
         .innerJoin(
-          StudentEnrollmentSchema, 
-          and(
-            eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
-            eq(StudentEnrollmentSchema.studentId, studentId),
-            eq(StudentEnrollmentSchema.status, "enrolled")
-          )
+          StudentEnrollmentSchema,
+          and(...enrollmentConditions)
         )
         .leftJoin(
-          AssignmentSubmissionSchema, 
+          AssignmentSubmissionSchema,
           and(
             eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
             eq(AssignmentSubmissionSchema.studentId, studentId)
@@ -614,8 +665,27 @@ export const pgAcademicRepository = {
     }
   },
 
-  getStudentOverdueAssignments: async (studentId: string) => {
+  getStudentOverdueAssignments: async (studentId: string, options?: { academicYear?: string }) => {
     try {
+      let academicYear = options?.academicYear;
+      if (!academicYear) {
+        const [user] = await db
+          .select({ academicYear: UserSchema.academicYear })
+          .from(UserSchema)
+          .where(eq(UserSchema.id, studentId))
+          .limit(1);
+        academicYear = user?.academicYear ?? undefined;
+      }
+
+      const enrollmentConditions = [
+        eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
+        eq(StudentEnrollmentSchema.studentId, studentId),
+        eq(StudentEnrollmentSchema.status, "enrolled"),
+      ];
+      if (academicYear) {
+        enrollmentConditions.push(eq(StudentEnrollmentSchema.academicYear, academicYear));
+      }
+
       const overdueAssignments = await db
         .select({
           assignment: AssignmentSchema,
@@ -626,11 +696,7 @@ export const pgAcademicRepository = {
         .innerJoin(CourseSchema, eq(AssignmentSchema.courseId, CourseSchema.id))
         .innerJoin(
           StudentEnrollmentSchema,
-          and(
-            eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
-            eq(StudentEnrollmentSchema.studentId, studentId),
-            eq(StudentEnrollmentSchema.status, "enrolled")
-          )
+          and(...enrollmentConditions)
         )
         .leftJoin(
           AssignmentSubmissionSchema,
@@ -653,8 +719,27 @@ export const pgAcademicRepository = {
     }
   },
 
-  getStudentSubmittedAssignments: async (studentId: string) => {
+  getStudentSubmittedAssignments: async (studentId: string, options?: { academicYear?: string }) => {
     try {
+      let academicYear = options?.academicYear;
+      if (!academicYear) {
+        const [user] = await db
+          .select({ academicYear: UserSchema.academicYear })
+          .from(UserSchema)
+          .where(eq(UserSchema.id, studentId))
+          .limit(1);
+        academicYear = user?.academicYear ?? undefined;
+      }
+
+      const enrollmentConditions = [
+        eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
+        eq(StudentEnrollmentSchema.studentId, studentId),
+        eq(StudentEnrollmentSchema.status, "enrolled"),
+      ];
+      if (academicYear) {
+        enrollmentConditions.push(eq(StudentEnrollmentSchema.academicYear, academicYear));
+      }
+
       const submittedAssignments = await db
         .select({
           assignment: AssignmentSchema,
@@ -665,11 +750,7 @@ export const pgAcademicRepository = {
         .innerJoin(CourseSchema, eq(AssignmentSchema.courseId, CourseSchema.id))
         .innerJoin(
           StudentEnrollmentSchema,
-          and(
-            eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
-            eq(StudentEnrollmentSchema.studentId, studentId),
-            eq(StudentEnrollmentSchema.status, "enrolled")
-          )
+          and(...enrollmentConditions)
         )
         .innerJoin(
           AssignmentSubmissionSchema,
@@ -725,15 +806,20 @@ export const pgAcademicRepository = {
     }
   },
 
-  getStudentGradesSummary: async (studentId: string, semester?: string) => {
+  getStudentGradesSummary: async (studentId: string, options?: { semester?: string; academicYear?: string; includeHistorical?: boolean }) => {
     try {
+      const opts = options ?? {};
       const conditions = [
         eq(AssignmentSubmissionSchema.studentId, studentId),
         sql`${AssignmentSubmissionSchema.grade} IS NOT NULL`
       ];
 
-      if (semester) {
-        conditions.push(eq(StudentEnrollmentSchema.semester, semester));
+      if (opts.semester) {
+        conditions.push(eq(StudentEnrollmentSchema.semester, opts.semester));
+      }
+
+      if (opts.academicYear) {
+        conditions.push(eq(StudentEnrollmentSchema.academicYear, opts.academicYear));
       }
 
       const grades = await db
@@ -741,6 +827,7 @@ export const pgAcademicRepository = {
           assignment: AssignmentSchema,
           course: CourseSchema,
           submission: AssignmentSubmissionSchema,
+          enrollment: StudentEnrollmentSchema,
         })
         .from(AssignmentSubmissionSchema)
         .innerJoin(AssignmentSchema, eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id))

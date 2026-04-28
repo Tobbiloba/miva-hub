@@ -10,9 +10,10 @@ import {
 } from "lucide-react";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { getSession } from "@/lib/auth/server";
-import { 
-  calculateSemesterGPA, 
-  percentageToLetterGrade, 
+import {
+  calculateSemesterGPA,
+  calculateGPA,
+  percentageToLetterGrade,
   percentageToGradePoints,
   calculateAcademicStanding,
   calculateDegreeProgress,
@@ -22,28 +23,36 @@ import Link from "next/link";
 
 export default async function StudentGradesPage() {
   const session = await getSession();
-  
+
   if (!session?.user) {
     return <div>Error: Not logged in</div>;
   }
 
   const userId = session.user.id;
+  const userAcademicYear = (session.user as any).academicYear as string | undefined;
 
-  // Fetch grades and course data
-  const [gradesSummary, courses] = await Promise.all([
-    pgAcademicRepository.getStudentGradesSummary(userId),
-    pgAcademicRepository.getStudentCourses(userId)
+  // Fetch ALL grades (historical) and current-semester courses
+  const [allGradesSummary, courses] = await Promise.all([
+    pgAcademicRepository.getStudentGradesSummary(userId, { includeHistorical: true }),
+    pgAcademicRepository.getStudentCourses(userId, { includeHistorical: true })
   ]);
 
-  // Transform data for grade calculator
-  const courseGrades: CourseGrade[] = transformToGradeCalculatorFormat(gradesSummary, courses);
-  // TODO (Sprint 4): split courseGrades by user.current_session to get true semester-only grades.
-  // Until then only Cumulative GPA is shown; "Semester GPA" card is suppressed to avoid
-  // displaying the same number twice under two different labels.
-  const currentSemesterGrades = courseGrades;
+  // Transform ALL grades for cumulative GPA
+  const allCourseGrades: CourseGrade[] = transformToGradeCalculatorFormat(allGradesSummary, courses);
 
-  // Calculate sophisticated GPA and academic metrics
-  const gpaCalculation = calculateSemesterGPA(currentSemesterGrades, courseGrades);
+  // Split current-semester grades by matching enrollment academicYear
+  const currentSemesterGrades: CourseGrade[] = userAcademicYear
+    ? transformToGradeCalculatorFormat(
+        allGradesSummary.filter(g => g.enrollment?.academicYear === userAcademicYear),
+        courses
+      )
+    : allCourseGrades;
+
+  const hasCurrentSemesterGrades = currentSemesterGrades.length > 0;
+
+  // Calculate GPA metrics
+  const gpaCalculation = calculateSemesterGPA(currentSemesterGrades, allCourseGrades);
+  const currentSemesterGPA = hasCurrentSemesterGrades ? calculateGPA(currentSemesterGrades) : null;
   const academicStanding = calculateAcademicStanding(gpaCalculation.cumulativeGPA || gpaCalculation.gpa, gpaCalculation.totalCreditHours);
   const degreeProgress = calculateDegreeProgress(gpaCalculation.totalCreditHours, 120, gpaCalculation.cumulativeGPA || gpaCalculation.gpa);
   
@@ -66,7 +75,7 @@ export default async function StudentGradesPage() {
       </div>
 
       {/* GPA Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -83,7 +92,31 @@ export default async function StudentGradesPage() {
             </div>
           </CardContent>
         </Card>
-        
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                <BarChart3 className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                {hasCurrentSemesterGrades ? (
+                  <>
+                    <p className="text-2xl font-bold">{currentSemesterGPA!.gpa.toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">Current Semester GPA</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-lg font-medium text-muted-foreground">—</p>
+                    <p className="text-sm text-muted-foreground">Current Semester GPA</p>
+                    <p className="text-xs text-muted-foreground mt-1">No graded courses this semester yet</p>
+                  </>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -100,7 +133,7 @@ export default async function StudentGradesPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -108,7 +141,7 @@ export default async function StudentGradesPage() {
                 <BarChart3 className="h-6 w-6 text-orange-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{gradesSummary.length}</p>
+                <p className="text-2xl font-bold">{allGradesSummary.length}</p>
                 <p className="text-sm text-muted-foreground">Graded Assignments</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {degreeProgress.estimatedSemestersRemaining} semesters left
@@ -129,13 +162,13 @@ export default async function StudentGradesPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {courseGrades.map((courseGrade) => (
+            {allCourseGrades.map((courseGrade) => (
               <CourseGradeCard 
                 key={courseGrade.courseId}
                 courseGrade={courseGrade}
               />
             ))}
-            {courseGrades.length === 0 && (
+            {allCourseGrades.length === 0 && (
               <div className="text-center py-8">
                 <Award className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
                 <p className="text-muted-foreground">No grades available yet</p>
@@ -158,7 +191,7 @@ export default async function StudentGradesPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {gradesSummary.slice(0, 10).map(({ assignment, course, submission }) => (
+            {allGradesSummary.slice(0, 10).map(({ assignment, course, submission }) => (
               <RecentGradeItem 
                 key={assignment.id}
                 assignment={assignment}
@@ -166,7 +199,7 @@ export default async function StudentGradesPage() {
                 submission={submission}
               />
             ))}
-            {gradesSummary.length === 0 && (
+            {allGradesSummary.length === 0 && (
               <div className="text-center py-6">
                 <p className="text-muted-foreground">No recent grades to display</p>
               </div>

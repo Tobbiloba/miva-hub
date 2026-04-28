@@ -16,15 +16,28 @@ import Link from "next/link";
 
 export default async function StudentCoursesPage() {
   const session = await getSession();
-  
+
   if (!session?.user) {
     return <div>Error: Not logged in</div>;
   }
 
   const userId = session.user.id;
 
-  // Fetch student courses
-  const courses = await pgAcademicRepository.getStudentCourses(userId);
+  // Fetch student courses and full schedule in parallel (one batched query each)
+  const [courses, allSchedules] = await Promise.all([
+    pgAcademicRepository.getStudentCourses(userId),
+    pgAcademicRepository.getStudentSchedule(userId),
+  ]);
+
+  // Build schedule lookup by courseId
+  const scheduleMap = new Map<string, typeof allSchedules>();
+  for (const entry of allSchedules) {
+    const courseId = entry.course.id;
+    if (!scheduleMap.has(courseId)) {
+      scheduleMap.set(courseId, []);
+    }
+    scheduleMap.get(courseId)!.push(entry);
+  }
 
   // Calculate total credits
   const totalCredits = courses.reduce((sum, { course }) => sum + (course.credits || 0), 0);
@@ -61,6 +74,7 @@ export default async function StudentCoursesPage() {
               department={department}
               enrollment={enrollment}
               studentId={userId}
+              scheduleEntries={scheduleMap.get(course.id) ?? []}
             />
           ))}
         </div>
@@ -71,28 +85,24 @@ export default async function StudentCoursesPage() {
   );
 }
 
-async function CourseCard({ 
-  course, 
-  department, 
-  enrollment, 
-  studentId 
-}: { 
-  course: any; 
-  department: any; 
-  enrollment: any; 
-  studentId: string 
+async function CourseCard({
+  course,
+  department,
+  enrollment,
+  studentId,
+  scheduleEntries,
+}: {
+  course: any;
+  department: any;
+  enrollment: any;
+  studentId: string;
+  scheduleEntries: { schedule: any; course: any; facultyName: string | null }[];
 }) {
-  // Get additional course data
-  const [upcomingAssignments, courseSchedule] = await Promise.all([
-    pgAcademicRepository.getStudentUpcomingAssignments(studentId, 3).then(assignments => 
-      assignments.filter(a => a.assignment.courseId === course.id)
-    ),
-    // Mock schedule for now - in real implementation, would fetch from ClassScheduleSchema
-    Promise.resolve([
-      { dayOfWeek: "monday", startTime: "10:00", endTime: "11:30", roomLocation: "Room 101" },
-      { dayOfWeek: "wednesday", startTime: "10:00", endTime: "11:30", roomLocation: "Room 101" },
-    ])
-  ]);
+  // Get upcoming assignments for this course
+  const upcomingAssignments = await pgAcademicRepository.getStudentUpcomingAssignments(studentId, 3)
+    .then(assignments => assignments.filter(a => a.assignment.courseId === course.id));
+
+  const courseSchedule = scheduleEntries.map(e => e.schedule);
 
   const enrollmentDate = new Date(enrollment.enrollmentDate);
   const isNewEnrollment = (Date.now() - enrollmentDate.getTime()) < (7 * 24 * 60 * 60 * 1000); // 7 days
@@ -133,12 +143,12 @@ async function CourseCard({
         </div>
 
         {/* Schedule */}
-        {courseSchedule.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              <span>Schedule</span>
-            </div>
+        <div className="space-y-2">
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            <span>Schedule</span>
+          </div>
+          {courseSchedule.length > 0 ? (
             <div className="space-y-1">
               {courseSchedule.slice(0, 2).map((schedule, index) => (
                 <div key={index} className="flex items-center justify-between text-xs bg-muted/30 p-2 rounded">
@@ -146,13 +156,15 @@ async function CourseCard({
                   <span>{schedule.startTime} - {schedule.endTime}</span>
                   <div className="flex items-center gap-1">
                     <MapPin className="h-3 w-3" />
-                    <span>{schedule.roomLocation}</span>
+                    <span>{schedule.roomLocation || 'TBD'}</span>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <p className="text-xs text-muted-foreground italic">Schedule not yet set</p>
+          )}
+        </div>
 
         {/* Upcoming Assignments */}
         {upcomingAssignments.length > 0 && (

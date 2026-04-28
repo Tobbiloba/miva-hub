@@ -4,8 +4,11 @@ import { getStudentInfo } from "@/lib/auth/student";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { AssignmentSubmissionSchema } from "@/lib/db/pg/schema.pg";
+import { s3Service } from "@/lib/aws/s3-service";
+import type { S3AccessOptions } from "@/lib/aws/s3-service";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
+import { randomUUID } from "crypto";
 
 export async function POST(
   request: NextRequest,
@@ -34,7 +37,7 @@ export async function POST(
       );
     }
 
-    const { assignment, submission: existingSubmission } = assignmentData;
+    const { assignment, course, submission: existingSubmission } = assignmentData;
 
     // Check if already submitted
     if (existingSubmission) {
@@ -81,28 +84,38 @@ export async function POST(
         );
       }
 
-      // Validate file size (10MB limit)
-      const maxFileSize = 10 * 1024 * 1024; // 10MB
+      // Validate file size (100MB limit — matches admin upload)
+      const maxFileSize = 100 * 1024 * 1024; // 100MB
       if (submissionFile.size > maxFileSize) {
         return NextResponse.json(
-          { error: "File size must be less than 10MB" },
+          { error: "File size must be less than 100MB" },
           { status: 400 }
         );
       }
 
-      // Validate file type
+      // Validate file type (matches admin upload + student extras)
       const allowedTypes = [
         'application/pdf',
         'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'text/plain',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'video/mp4',
+        'video/quicktime',
+        'audio/mpeg',
+        'audio/mp3',
+        'audio/wav',
+        'audio/x-m4a',
+        'audio/mp4',
         'application/zip',
-        'application/x-zip-compressed'
+        'application/x-zip-compressed',
+        'image/jpeg',
+        'image/png',
+        'text/plain',
       ];
 
       if (!allowedTypes.includes(submissionFile.type)) {
         return NextResponse.json(
-          { error: "Invalid file type. Please upload PDF, DOC, DOCX, TXT, or ZIP files." },
+          { error: "Invalid file type. Allowed: PDF, DOCX, PPTX, MP4, MOV, MP3, WAV, M4A, ZIP, JPG, PNG, TXT." },
           { status: 400 }
         );
       }
@@ -115,23 +128,35 @@ export async function POST(
     let mimeType: string | null = null;
 
     if (submissionFile && submissionFile.size > 0) {
-      // TODO: Implement actual file storage (e.g., AWS S3, local storage, etc.)
-      // For now, we'll store file metadata but not the actual file
       fileName = submissionFile.name;
       fileSize = submissionFile.size;
       mimeType = submissionFile.type;
-      
-      // Placeholder URL - in production, this would be the actual file URL
-      fileUrl = `/uploads/assignments/${assignmentId}/${studentInfo.id}/${fileName}`;
-      
-      // TODO: Save actual file to storage
-      console.log('File to be saved:', {
-        fileName,
-        fileSize,
-        mimeType,
-        assignmentId: assignmentId,
-        studentId: studentInfo.id
-      });
+
+      // Generate S3 key for submission file
+      const sanitizedName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const s3Key = `submissions/${assignmentId}/${studentInfo.id}/${randomUUID()}-${sanitizedName}`;
+
+      const accessOptions: S3AccessOptions = {
+        userId: studentInfo.id,
+        userRole: 'student',
+        courseId: course.id,
+      };
+
+      const uploadResult = await s3Service.uploadFile(
+        submissionFile,
+        s3Key,
+        accessOptions,
+      );
+
+      if (!uploadResult.success) {
+        return NextResponse.json(
+          { error: "Failed to upload file. Please try again." },
+          { status: 500 }
+        );
+      }
+
+      // Store the S3 URL (same format used by admin content uploads)
+      fileUrl = uploadResult.s3Url;
     }
 
     // Create submission record
