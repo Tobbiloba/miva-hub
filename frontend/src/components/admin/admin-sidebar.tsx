@@ -38,6 +38,7 @@ import {
   TrendingUp,
   Zap,
   Clock,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Session, User } from "better-auth";
@@ -76,6 +77,7 @@ const adminRoutes = [
       { title: "Upload Content", href: "/admin/content/upload", icon: Plus },
       { title: "Manage Content", href: "/admin/content/manage", icon: Database },
       { title: "AI Processing", href: "/admin/processing", icon: Zap },
+      { title: "Moderation Queue", href: "/admin/content/moderation", icon: ShieldCheck },
       { title: "Announcements", href: "/admin/announcements", icon: Megaphone },
     ],
   },
