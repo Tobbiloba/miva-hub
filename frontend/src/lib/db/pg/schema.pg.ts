@@ -366,6 +366,8 @@ export const ProgramSchema = pgTable(
     departmentId: uuid("department_id")
       .notNull()
       .references(() => DepartmentSchema.id),
+    durationYears: integer("duration_years").notNull().default(4),
+    requiredCredits: integer("required_credits").notNull().default(120),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),

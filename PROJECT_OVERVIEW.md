@@ -157,7 +157,7 @@ Our **custom-built Python MCP server** is the heart of Askly's academic intellig
 ## Project Structure
 
 ```
-better-chatbot-main/
+miva-hub/
 ├── frontend/              # Next.js application
 │   ├── src/
 │   │   ├── app/          # Next.js app router

@@ -6,7 +6,7 @@ import {
   UserSchema,
   ProgramSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and, sql, gte } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
 
 const endSessionSchema = z.object({
@@ -24,10 +24,9 @@ const endSessionSchema = z.object({
     }, "Second year must be exactly one year after the first"),
 });
 
-// Graduation threshold: current_level >= 400
-// Simplification: we treat 400L as the final year for all programs.
-// TODO: Replace with program.duration_years when programs are fully wired.
-const GRADUATION_LEVEL = 400;
+// Graduation threshold: current_level >= program.duration_years * 100
+// Falls back to 400 (4-year default) when program_id is null.
+const DEFAULT_GRADUATION_LEVEL = 400;
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,7 +53,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Count graduating students (level >= 400)
+    // Graduation level per student: COALESCE(program.duration_years * 100, 400)
+    const gradLevelExpr = sql`COALESCE(${ProgramSchema.durationYears} * 100, ${DEFAULT_GRADUATION_LEVEL})`;
+
+    // Count graduating students (level >= program graduation level)
     const graduatingStudents = await pgDb
       .select({
         currentLevel: UserSchema.currentLevel,
@@ -67,7 +69,7 @@ export async function POST(request: NextRequest) {
         and(
           eq(UserSchema.enrollmentStatus, "active"),
           eq(UserSchema.role, "student"),
-          gte(UserSchema.currentLevel, GRADUATION_LEVEL)
+          sql`${UserSchema.currentLevel} >= ${gradLevelExpr}`
         )
       )
       .groupBy(UserSchema.currentLevel, ProgramSchema.name);
@@ -77,7 +79,7 @@ export async function POST(request: NextRequest) {
       0
     );
 
-    // Count advancing students (active, level < 400)
+    // Count advancing students (active, level < graduation level)
     const advancingStudents = await pgDb
       .select({
         currentLevel: UserSchema.currentLevel,
@@ -90,7 +92,7 @@ export async function POST(request: NextRequest) {
         and(
           eq(UserSchema.enrollmentStatus, "active"),
           eq(UserSchema.role, "student"),
-          sql`${UserSchema.currentLevel} < ${GRADUATION_LEVEL}`
+          sql`${UserSchema.currentLevel} < ${gradLevelExpr}`
         )
       )
       .groupBy(UserSchema.currentLevel, ProgramSchema.name);
@@ -146,7 +148,8 @@ export async function POST(request: NextRequest) {
 
     // Execute the full session transition in a single transaction
     const result = await pgDb.transaction(async (tx) => {
-      // Step 1: Mark graduating students
+      // Step 1: Mark graduating students (level >= program.duration_years * 100)
+      // Use a subquery since we can't join in an UPDATE with Drizzle easily
       const graduated = await tx
         .update(UserSchema)
         .set({
@@ -158,7 +161,7 @@ export async function POST(request: NextRequest) {
           and(
             eq(UserSchema.enrollmentStatus, "active"),
             eq(UserSchema.role, "student"),
-            gte(UserSchema.currentLevel, GRADUATION_LEVEL)
+            sql`${UserSchema.currentLevel} >= COALESCE((SELECT p.duration_years * 100 FROM program p WHERE p.id = ${UserSchema.programId}), ${DEFAULT_GRADUATION_LEVEL})`
           )
         )
         .returning({ id: UserSchema.id });

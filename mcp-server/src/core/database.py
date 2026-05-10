@@ -1460,12 +1460,17 @@ class AcademicRepository:
             def run_query():
                 cursor = conn.cursor()
 
-                # Student name
+                # Student name + program info (for required_credits / duration)
                 cursor.execute("""
-                    SELECT name FROM "user" WHERE id = %s
+                    SELECT u.name, p.required_credits, p.duration_years
+                    FROM "user" u
+                    LEFT JOIN program p ON u.program_id = p.id
+                    WHERE u.id = %s
                 """, (ctx["user_uuid"],))
                 user_row = cursor.fetchone()
                 student_name = user_row["name"] if user_row else "Unknown"
+                program_required_credits = user_row["required_credits"] if user_row and user_row["required_credits"] else 120
+                program_duration_years = user_row["duration_years"] if user_row and user_row["duration_years"] else 4
 
                 # Completed enrollments with grade points
                 cursor.execute("""
@@ -1488,9 +1493,9 @@ class AcademicRepository:
 
                 cursor.close()
                 conn.close()
-                return student_name, completed, current_sem
+                return student_name, completed, current_sem, program_required_credits, program_duration_years
 
-            student_name, completed, current_sem = await asyncio.to_thread(run_query)
+            student_name, completed, current_sem, program_required_credits, program_duration_years = await asyncio.to_thread(run_query)
 
             # Compute CGPA
             total_weighted = 0.0
@@ -1541,13 +1546,12 @@ class AcademicRepository:
             else:
                 classification = "Fail" if total_credits_attempted > 0 else "No graded courses yet"
 
-            # Graduation progress — Nigerian 4-year undergrad = max 400L
-            max_level = 400
+            # Graduation progress — use program duration/credits from DB
+            max_level = program_duration_years * 100
             current_level = ctx["current_level"] or 100
             on_track = cgpa >= 1.00 and current_level <= max_level if total_credits_attempted > 0 else None
 
-            # Estimate total required credits (4 years × ~30 credits/year = 120 baseline)
-            credits_required = 120
+            credits_required = program_required_credits
             credits_remaining = max(0, credits_required - credits_earned)
 
             return {

@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime
 
 # Database connection
-DB_URL = os.environ.get("POSTGRES_URL", "postgresql://better_chatbot:better_chatbot@localhost:5432/better_chatbot")
+DB_URL = os.environ.get("POSTGRES_URL", "postgresql://miva_hub:miva_hub@localhost:5432/miva_hub")
 
 # Department definitions
 DEPARTMENTS = [
