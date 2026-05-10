@@ -169,6 +169,13 @@
       "when": 1777422460387,
       "tag": "0023_milky_tempest",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1778424251345,
+      "tag": "0024_mute_luminals",
+      "breakpoints": true
     }
   ]
 }

@@ -29,6 +29,8 @@ import { ChatMetadata } from "app-types/chat";
 export const userRoleEnum = pgEnum('user_role_enum', ['admin', 'faculty', 'student']);
 export const semesterEnum = pgEnum('semester_enum', ['first', 'second']);
 export const academicSessionStatusEnum = pgEnum('academic_session_status_enum', ['upcoming', 'active', 'closed']);
+export const ingestionSourceEnum = pgEnum('ingestion_source_enum', ['manual', 'volunteer_extension', 'scraper', 'seed']);
+export const ingestionJobStatusEnum = pgEnum('ingestion_job_status_enum', ['queued', 'downloading', 'completed', 'failed']);
 
 export const ChatThreadSchema = pgTable("chat_thread", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
@@ -124,6 +126,9 @@ export const UserSchema = pgTable("user", {
   admissionSession: text("admission_session"), // e.g. '2023/2024'
   admissionLevel: integer("admission_level").default(100),
   
+  // Volunteer flag (composable — a student can also be a volunteer)
+  isVolunteer: boolean("is_volunteer").notNull().default(false),
+
   // Subscription fields
   paystackCustomerCode: text("paystack_customer_code"),
   subscriptionStatus: text("subscription_status").default("none"),
@@ -524,9 +529,14 @@ export const CourseMaterialSchema = pgTable(
     weekNumber: integer("week_number"), // Which week of the semester
     moduleNumber: integer("module_number"), // Which module/unit
     isPublic: boolean("is_public").notNull().default(true),
+    isPublished: boolean("is_published").notNull().default(true),
     uploadedById: uuid("uploaded_by_id")
       .notNull()
       .references(() => UserSchema.id),
+    sessionId: uuid("session_id").references(() => AcademicSessionSchema.id, { onDelete: "set null" }),
+    ingestionSource: ingestionSourceEnum("ingestion_source").notNull().default("manual"),
+    volunteerId: uuid("volunteer_id").references(() => UserSchema.id, { onDelete: "set null" }),
+    deletedAt: timestamp("deleted_at"), // soft delete for rejected content
     createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   },
@@ -535,6 +545,9 @@ export const CourseMaterialSchema = pgTable(
     index("material_type_idx").on(table.materialType),
     index("material_week_idx").on(table.weekNumber),
     index("material_uploaded_by_idx").on(table.uploadedById),
+    index("material_session_idx").on(table.sessionId),
+    index("material_ingestion_source_idx").on(table.ingestionSource),
+    index("material_volunteer_idx").on(table.volunteerId),
   ],
 );
 
@@ -883,6 +896,42 @@ export const ContentEmbeddingSchema = pgTable(
     index("embedding_processed_idx").on(table.aiProcessedId),
     index("embedding_type_idx").on(table.chunkType),
     index("embedding_chunk_idx").on(table.chunkIndex),
+  ],
+);
+
+// ===============================
+// CONTENT INGESTION PIPELINE
+// ===============================
+
+// Ingestion jobs table — tracks volunteer-submitted content capture requests
+export const IngestionJobSchema = pgTable(
+  "ingestion_job",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    volunteerId: uuid("volunteer_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    sourceUrl: text("source_url").notNull(), // MIVA LMS page URL
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    weekNumber: integer("week_number"),
+    lessonTitle: text("lesson_title").notNull(),
+    sessionId: uuid("session_id").references(() => AcademicSessionSchema.id, { onDelete: "set null" }),
+    contentType: varchar("content_type", { enum: ["video", "pdf"] }).notNull(),
+    payload: json("payload").notNull().$type<Record<string, any>>(), // vimeo or pdf details
+    status: ingestionJobStatusEnum("status").notNull().default("queued"),
+    courseMaterialId: uuid("course_material_id").references(() => CourseMaterialSchema.id, { onDelete: "set null" }),
+    errorMessage: text("error_message"),
+    completedAt: timestamp("completed_at"),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("ingestion_job_volunteer_idx").on(table.volunteerId),
+    index("ingestion_job_course_idx").on(table.courseId),
+    index("ingestion_job_status_idx").on(table.status),
+    index("ingestion_job_created_idx").on(table.createdAt),
   ],
 );
 
@@ -1329,6 +1378,9 @@ export type UsageTrackingEntity = typeof UsageTrackingSchema.$inferSelect;
 export type PaymentTransactionEntity = typeof PaymentTransactionSchema.$inferSelect;
 export type WebhookEventEntity = typeof WebhookEventSchema.$inferSelect;
 export type SubscriptionChangeLogEntity = typeof SubscriptionChangeLogSchema.$inferSelect;
+
+// Content Ingestion entity types
+export type IngestionJobEntity = typeof IngestionJobSchema.$inferSelect;
 
 // Performance Tracking entity types
 export type PerformanceHistoryEntity = typeof PerformanceHistorySchema.$inferSelect;
