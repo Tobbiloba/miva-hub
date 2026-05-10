@@ -31,6 +31,7 @@ const {
 export const auth = betterAuth({
   plugins: [nextCookies()],
   baseURL: process.env.NEXT_PUBLIC_BASE_URL,
+  trustedOrigins: ["chrome-extension://*"],
   database: drizzleAdapter(pgDb, {
     provider: "pg",
     schema: {
@@ -118,6 +119,7 @@ export const auth = betterAuth({
       process.env.NO_HTTPS == "1"
         ? false
         : process.env.NODE_ENV === "production",
+    disableCSRFCheck: process.env.NODE_ENV !== "production",
     database: {
       generateId: false,
     },

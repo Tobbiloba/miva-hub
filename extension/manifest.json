@@ -3,7 +3,7 @@
   "name": "Askly Capture",
   "version": "0.1.1",
   "description": "Capture MIVA University lesson content for the Askly AI study assistant",
-  "permissions": ["activeTab", "storage", "scripting"],
+  "permissions": ["activeTab", "storage", "scripting", "cookies"],
   "host_permissions": [
     "https://lms.miva.university/*",
     "https://player.vimeo.com/*",

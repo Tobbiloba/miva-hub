@@ -109,31 +109,62 @@ async function loginToAskly(email, password) {
     );
   }
 
-  // Extract session cookies from Set-Cookie headers.
-  // In Manifest V3 service workers, response headers are accessible.
-  const setCookies = res.headers.getSetCookie
-    ? res.headers.getSetCookie()
-    : []; // getSetCookie() is available in modern Chrome
-
-  // Build the cookie string we need to send with future requests:
-  // better-auth sets both "better-auth.session_token" and "better-auth.session_data"
-  const cookieParts = [];
-  for (const sc of setCookies) {
-    const nameValue = sc.split(";")[0]; // "better-auth.session_token=VALUE"
-    if (
-      nameValue.startsWith("better-auth.session_token=") ||
-      nameValue.startsWith("better-auth.session_data=")
-    ) {
-      cookieParts.push(nameValue);
-    }
-  }
-
   const data = await res.json();
 
-  // Store session with the full cookie string
+  // Extract session cookies from response headers.
+  // Try getSetCookie() first, fall back to get('set-cookie'), then use
+  // the response body token to read cookies from the browser cookie jar.
+  let cookieValue = "";
+
+  // Method 1: getSetCookie() (Chrome 115+)
+  const setCookies = res.headers.getSetCookie
+    ? res.headers.getSetCookie()
+    : [];
+
+  if (setCookies.length > 0) {
+    const parts = [];
+    for (const sc of setCookies) {
+      const nameValue = sc.split(";")[0];
+      if (
+        nameValue.startsWith("better-auth.session_token=") ||
+        nameValue.startsWith("better-auth.session_data=")
+      ) {
+        parts.push(nameValue);
+      }
+    }
+    cookieValue = parts.join("; ");
+  }
+
+  // Method 2: If Set-Cookie headers weren't accessible, read cookies
+  // from Chrome's cookie store for the API domain
+  if (!cookieValue && chrome.cookies) {
+    const apiUrl = await getApiUrl();
+    const url = new URL(apiUrl);
+    const cookies = await chrome.cookies.getAll({ domain: url.hostname });
+    const parts = cookies
+      .filter(
+        (c) =>
+          c.name === "better-auth.session_token" ||
+          c.name === "better-auth.session_data"
+      )
+      .map((c) => `${c.name}=${c.value}`);
+    cookieValue = parts.join("; ");
+  }
+
+  // Method 3: Fall back to raw token from response body — construct
+  // a minimal cookie (works when CSRF check is disabled in dev)
+  if (!cookieValue && data.token) {
+    cookieValue = `better-auth.session_token=${data.token}`;
+  }
+
+  if (!cookieValue) {
+    throw new Error("Login succeeded but failed to capture session cookie");
+  }
+
+  // Store session
   await chrome.storage.local.set({
     askly_session: {
-      cookieValue: cookieParts.join("; "),
+      cookieValue,
       user: data.user,
     },
   });
