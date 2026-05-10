@@ -31,7 +31,7 @@ let currentMetadata = null;
 document.addEventListener("DOMContentLoaded", async () => {
   // Check login state
   const sessionRes = await sendMessage({ type: "GET_SESSION" });
-  const isLoggedIn = sessionRes?.ok && sessionRes.data?.token;
+  const isLoggedIn = sessionRes?.ok && sessionRes.data?.cookieValue;
 
   if (!isLoggedIn) {
     loginPrompt.style.display = "block";

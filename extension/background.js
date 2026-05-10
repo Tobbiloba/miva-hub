@@ -12,12 +12,12 @@ async function getApiUrl() {
 
 async function getAuthHeaders() {
   const { askly_session } = await chrome.storage.local.get("askly_session");
-  if (!askly_session?.token) {
+  if (!askly_session?.cookieValue) {
     throw new Error("Not logged in");
   }
   return {
     "Content-Type": "application/json",
-    Cookie: `better-auth.session_token=${askly_session.token}`,
+    Cookie: askly_session.cookieValue,
   };
 }
 
@@ -48,7 +48,6 @@ async function submitLesson(metadata) {
     method: "POST",
     headers,
     body: JSON.stringify(body),
-    credentials: "include",
   });
 
   if (!res.ok) {
@@ -75,10 +74,7 @@ async function pollJobStatus(jobId) {
   const apiUrl = await getApiUrl();
   const headers = await getAuthHeaders();
 
-  const res = await fetch(`${apiUrl}/api/ingest/jobs/${jobId}`, {
-    headers,
-    credentials: "include",
-  });
+  const res = await fetch(`${apiUrl}/api/ingest/jobs/${jobId}`, { headers });
 
   if (!res.ok) return null;
   return res.json();
@@ -91,7 +87,6 @@ async function triggerProcessing() {
   const res = await fetch(`${apiUrl}/api/ingest/process-jobs`, {
     method: "POST",
     headers,
-    credentials: "include",
   });
 
   if (!res.ok) return null;
@@ -105,20 +100,40 @@ async function loginToAskly(email, password) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
-    credentials: "include",
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || err.message || `Login failed: HTTP ${res.status}`);
+    throw new Error(
+      err.error || err.message || `Login failed: HTTP ${res.status}`
+    );
+  }
+
+  // Extract session cookies from Set-Cookie headers.
+  // In Manifest V3 service workers, response headers are accessible.
+  const setCookies = res.headers.getSetCookie
+    ? res.headers.getSetCookie()
+    : []; // getSetCookie() is available in modern Chrome
+
+  // Build the cookie string we need to send with future requests:
+  // better-auth sets both "better-auth.session_token" and "better-auth.session_data"
+  const cookieParts = [];
+  for (const sc of setCookies) {
+    const nameValue = sc.split(";")[0]; // "better-auth.session_token=VALUE"
+    if (
+      nameValue.startsWith("better-auth.session_token=") ||
+      nameValue.startsWith("better-auth.session_data=")
+    ) {
+      cookieParts.push(nameValue);
+    }
   }
 
   const data = await res.json();
 
-  // Store session
+  // Store session with the full cookie string
   await chrome.storage.local.set({
     askly_session: {
-      token: data.token || data.session?.token,
+      cookieValue: cookieParts.join("; "),
       user: data.user,
     },
   });
@@ -166,38 +181,46 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         case "GET_CACHED_METADATA":
           return { ok: true, data: lastPageMetadata };
 
-        case "SUBMIT_CAPTURE":
+        case "SUBMIT_CAPTURE": {
           const result = await submitLesson(msg.data);
           // Trigger processing after submission
           triggerProcessing().catch(() => {}); // fire-and-forget
           return { ok: true, data: result };
+        }
 
-        case "POLL_JOB":
+        case "POLL_JOB": {
           const job = await pollJobStatus(msg.jobId);
           if (job) {
             await updateCaptureStatus(msg.jobId, job.status);
           }
           return { ok: true, data: job };
+        }
 
-        case "LOGIN":
+        case "LOGIN": {
           const loginResult = await loginToAskly(msg.email, msg.password);
           return { ok: true, data: loginResult };
+        }
 
         case "LOGOUT":
           await chrome.storage.local.remove(["askly_session"]);
           return { ok: true };
 
-        case "GET_SESSION":
+        case "GET_SESSION": {
           const { askly_session } = await chrome.storage.local.get(
             "askly_session"
           );
-          return { ok: true, data: askly_session || null };
+          return {
+            ok: true,
+            data: askly_session?.cookieValue ? askly_session : null,
+          };
+        }
 
-        case "GET_RECENT_CAPTURES":
+        case "GET_RECENT_CAPTURES": {
           const { recent_captures = [] } = await chrome.storage.local.get(
             "recent_captures"
           );
           return { ok: true, data: recent_captures };
+        }
 
         default:
           return { ok: false, error: "Unknown message type" };
