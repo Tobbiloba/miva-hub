@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/server";
+import { auth } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
   UserSchema,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/db/pg/schema.pg";
 import { eq, sql } from "drizzle-orm";
 import { s3Service } from "@/lib/aws/s3-service";
+import { headers } from "next/headers";
 
 /**
  * Process queued ingestion jobs.
@@ -19,7 +20,7 @@ import { s3Service } from "@/lib/aws/s3-service";
 export async function POST(_request: NextRequest) {
   try {
     // Auth — require logged-in volunteer
-    const session = await getSession();
+    const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user) {
       return NextResponse.json(
         { error: "Authentication required" },

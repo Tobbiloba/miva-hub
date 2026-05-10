@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/server";
+import { auth } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { IngestionJobSchema } from "@/lib/db/pg/schema.pg";
 import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
-    const session = await getSession();
+    const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user) {
       return NextResponse.json(
         { error: "Authentication required" },

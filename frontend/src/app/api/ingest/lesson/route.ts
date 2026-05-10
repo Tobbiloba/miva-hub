@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/server";
+import { auth } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
   UserSchema,
@@ -8,11 +8,13 @@ import {
   IngestionJobSchema,
 } from "@/lib/db/pg/schema.pg";
 import { eq, ilike } from "drizzle-orm";
+import { headers } from "next/headers";
 
 export async function POST(request: NextRequest) {
   try {
     // 1. Auth — require logged-in volunteer
-    const session = await getSession();
+    // Use auth.api.getSession directly to avoid redirect() in API routes
+    const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user) {
       return NextResponse.json(
         { error: "Authentication required" },
