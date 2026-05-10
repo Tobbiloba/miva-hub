@@ -1,6 +1,6 @@
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { getSession } from "@/lib/auth/server";
-import { isAdmin } from "@/lib/auth/admin";
+import { checkIsAdmin } from "@/lib/auth/admin";
 import { redirect } from "next/navigation";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
@@ -17,8 +17,8 @@ export default async function AdminLayout({
     redirect("/sign-in");
   }
 
-  // Check admin role from DB enum column
-  if (!isAdmin(session?.user)) {
+  // Check admin role from DB — better-auth sessions don't include custom columns
+  if (!session?.user?.id || !(await checkIsAdmin(session.user.id))) {
     redirect("/unauthorized");
   }
 
