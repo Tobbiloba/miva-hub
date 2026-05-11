@@ -11,6 +11,7 @@ import {
 import { eq, sql } from "drizzle-orm";
 import { s3Service } from "@/lib/aws/s3-service";
 import { headers } from "next/headers";
+import { extractTranscriptForMaterial } from "@/lib/extraction/transcript-extractor";
 
 /**
  * Process queued ingestion jobs.
@@ -156,6 +157,17 @@ export async function POST(_request: NextRequest) {
             })
             .where(eq(IngestionJobSchema.id, job.id));
 
+          // Extract text from PDF (inline, no separate queue for v1)
+          const pdfExtraction = await extractTranscriptForMaterial(
+            material.id,
+            "application/pdf",
+            { pdfBuffer }
+          );
+          console.log(
+            `[ingest/process-jobs] PDF transcript extraction: ${pdfExtraction.status}` +
+            (pdfExtraction.wordCount ? ` (${pdfExtraction.wordCount} words)` : "")
+          );
+
           results.push({ job_id: job.id, status: "completed" });
         } else if (job.contentType === "video") {
           // ── Video download (yt-dlp stub) ──────────────────────
@@ -204,6 +216,19 @@ export async function POST(_request: NextRequest) {
               updatedAt: new Date(),
             })
             .where(eq(IngestionJobSchema.id, job.id));
+
+          // Extract VTT transcript from Vimeo (even though video bytes are stubbed)
+          if (vimeoId) {
+            const vttExtraction = await extractTranscriptForMaterial(
+              material.id,
+              "video/mp4",
+              { vimeoVideoId: vimeoId, vimeoHash: vimeoHash || undefined }
+            );
+            console.log(
+              `[ingest/process-jobs] Vimeo VTT extraction: ${vttExtraction.status}` +
+              (vttExtraction.wordCount ? ` (${vttExtraction.wordCount} words)` : "")
+            );
+          }
 
           results.push({
             job_id: job.id,
