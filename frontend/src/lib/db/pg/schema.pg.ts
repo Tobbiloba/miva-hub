@@ -31,6 +31,8 @@ export const semesterEnum = pgEnum('semester_enum', ['first', 'second']);
 export const academicSessionStatusEnum = pgEnum('academic_session_status_enum', ['upcoming', 'active', 'closed']);
 export const ingestionSourceEnum = pgEnum('ingestion_source_enum', ['manual', 'volunteer_extension', 'scraper', 'seed']);
 export const ingestionJobStatusEnum = pgEnum('ingestion_job_status_enum', ['queued', 'downloading', 'completed', 'failed']);
+export const transcriptSourceEnum = pgEnum('transcript_source_enum', ['pdfjs', 'vimeo_vtt', 'manual']);
+export const transcriptStatusEnum = pgEnum('transcript_status_enum', ['pending', 'extracting', 'extracted', 'failed', 'skipped']);
 
 export const ChatThreadSchema = pgTable("chat_thread", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
@@ -537,6 +539,13 @@ export const CourseMaterialSchema = pgTable(
     ingestionSource: ingestionSourceEnum("ingestion_source").notNull().default("manual"),
     volunteerId: uuid("volunteer_id").references(() => UserSchema.id, { onDelete: "set null" }),
     deletedAt: timestamp("deleted_at"), // soft delete for rejected content
+    // Transcript / text extraction fields
+    transcriptText: text("transcript_text"),
+    transcriptSource: transcriptSourceEnum("transcript_source"),
+    transcriptExtractedAt: timestamp("transcript_extracted_at"),
+    transcriptWordCount: integer("transcript_word_count"),
+    transcriptStatus: transcriptStatusEnum("transcript_status").default("pending"),
+    transcriptErrorMessage: text("transcript_error_message"),
     createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   },
@@ -548,6 +557,8 @@ export const CourseMaterialSchema = pgTable(
     index("material_session_idx").on(table.sessionId),
     index("material_ingestion_source_idx").on(table.ingestionSource),
     index("material_volunteer_idx").on(table.volunteerId),
+    index("material_transcript_status_idx").on(table.transcriptStatus),
+    index("material_transcript_text_gin_idx").using("gin", sql`to_tsvector('english', ${table.transcriptText})`),
   ],
 );
 
