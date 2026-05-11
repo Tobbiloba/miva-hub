@@ -402,6 +402,69 @@ async def get_academic_standing(student_id: str) -> str:
         return json.dumps({"error": "Could not retrieve academic standing. Please try again."})
 
 
+# Content Search & Retrieval Tools
+@mcp.tool()
+async def search_course_content(
+    student_id: str,
+    course_code: str,
+    query: str
+) -> str:
+    """Search inside course material content (PDF text and video transcripts).
+
+    Performs full-text search across extracted transcript text for a specific
+    course. Returns matching materials with relevant snippets. Use this when
+    a student asks about specific topics covered in lectures or readings.
+
+    Args:
+        student_id: Student ID for enrollment verification
+        course_code: Course code (e.g., COS202, CS101)
+        query: Search query — keywords or phrases to find in content
+
+    Returns:
+        Formatted JSON string with matching materials and text snippets
+    """
+    try:
+        result = await academic_repo.search_course_content(
+            student_id=student_id,
+            course_code=course_code.upper(),
+            query=query,
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        logger.error("Tool search_course_content failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Content search failed. Please try again."})
+
+
+@mcp.tool()
+async def get_lesson_content(
+    student_id: str,
+    material_id: str
+) -> str:
+    """Get the full text content of a specific course material.
+
+    Returns the complete extracted text (from PDF or video transcript) for a
+    single material. Use this when a student asks to explain what was covered
+    in a specific lecture or reading, or when you need the full context to
+    answer a detailed question.
+
+    Args:
+        student_id: Student ID for enrollment verification
+        material_id: UUID of the course material to retrieve
+
+    Returns:
+        Formatted JSON string with full transcript text, source info, and metadata
+    """
+    try:
+        result = await academic_repo.get_lesson_content(
+            student_id=student_id,
+            material_id=material_id,
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        logger.error("Tool get_lesson_content failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Could not retrieve lesson content. Please try again."})
+
+
 # ---------------------------------------------------------------------------
 # Shared-secret authentication middleware
 # ---------------------------------------------------------------------------

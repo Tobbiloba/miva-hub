@@ -744,7 +744,8 @@ class AcademicRepository:
                 syllabus_docs = []
                 if not weeks:
                     cursor.execute("""
-                        SELECT id, title, description, content_url, week_number
+                        SELECT id, title, description, content_url, week_number,
+                               transcript_status, transcript_text
                         FROM course_material
                         WHERE course_id = %s AND material_type = 'syllabus'
                               AND is_public = true
@@ -781,16 +782,20 @@ class AcademicRepository:
                     for w in weeks
                 ]
             elif syllabus_docs:
-                result["syllabus_documents"] = [
-                    {
+                docs = []
+                for d in syllabus_docs:
+                    entry = {
                         "id": d["id"],
                         "title": d["title"],
                         "description": d["description"],
                         "content_url": d["content_url"],
                         "week_number": d["week_number"],
+                        "has_transcript": d.get("transcript_status") == "extracted",
                     }
-                    for d in syllabus_docs
-                ]
+                    if d.get("transcript_status") == "extracted" and d.get("transcript_text"):
+                        entry["transcript_text"] = d["transcript_text"]
+                    docs.append(entry)
+                result["syllabus_documents"] = docs
             else:
                 result["note"] = "No syllabus or weekly structure has been published yet."
 
@@ -900,7 +905,9 @@ class AcademicRepository:
                 query = """
                     SELECT cm.id, cm.title, cm.description, cm.content_url,
                            cm.public_url, cm.week_number, cm.material_type,
-                           cm.mime_type, cm.file_size, cm.created_at
+                           cm.mime_type, cm.file_size, cm.created_at,
+                           cm.transcript_status, cm.transcript_word_count,
+                           LEFT(cm.transcript_text, 500) AS transcript_excerpt
                     FROM course_material cm
                     JOIN course c ON cm.course_id = c.id
                     WHERE c.course_code = %s AND cm.is_public = true
@@ -926,7 +933,7 @@ class AcademicRepository:
             for row in results:
                 # Prefer public_url (external), fall back to content_url (S3)
                 url = row["public_url"] or row["content_url"]
-                videos.append({
+                entry = {
                     "id": row["id"],
                     "title": row["title"],
                     "description": row["description"],
@@ -935,7 +942,11 @@ class AcademicRepository:
                     "material_type": row["material_type"],
                     "file_size": row["file_size"],
                     "upload_date": row["created_at"].isoformat() if row["created_at"] else None,
-                })
+                    "has_transcript": row["transcript_status"] == "extracted",
+                }
+                if row["transcript_status"] == "extracted" and row["transcript_excerpt"]:
+                    entry["transcript_excerpt"] = row["transcript_excerpt"]
+                videos.append(entry)
 
             return {
                 "course_code": course_code,
@@ -974,7 +985,9 @@ class AcademicRepository:
                 query = """
                     SELECT cm.id, cm.title, cm.description, cm.content_url,
                            cm.public_url, cm.week_number, cm.material_type,
-                           cm.mime_type, cm.file_size, cm.created_at
+                           cm.mime_type, cm.file_size, cm.created_at,
+                           cm.transcript_status, cm.transcript_word_count,
+                           LEFT(cm.transcript_text, 500) AS transcript_excerpt
                     FROM course_material cm
                     JOIN course c ON cm.course_id = c.id
                     WHERE c.course_code = %s AND cm.is_public = true
@@ -1003,7 +1016,7 @@ class AcademicRepository:
             materials = []
             for row in results:
                 url = row["public_url"] or row["content_url"]
-                materials.append({
+                entry = {
                     "id": row["id"],
                     "title": row["title"],
                     "description": row["description"],
@@ -1012,7 +1025,11 @@ class AcademicRepository:
                     "material_type": row["material_type"],
                     "file_size": row["file_size"],
                     "upload_date": row["created_at"].isoformat() if row["created_at"] else None,
-                })
+                    "has_transcript": row["transcript_status"] == "extracted",
+                }
+                if row["transcript_status"] == "extracted" and row["transcript_excerpt"]:
+                    entry["transcript_excerpt"] = row["transcript_excerpt"]
+                materials.append(entry)
 
             return {
                 "course_code": course_code,
@@ -1571,6 +1588,154 @@ class AcademicRepository:
         except Exception as e:
             logger.error("Error getting academic standing: %s", e, exc_info=True)
             return {"error": "Could not retrieve academic standing. Please try again."}
+
+    async def search_course_content(
+        self, student_id: str, course_code: str, query: str
+    ) -> Dict[str, Any]:
+        """Full-text search across transcript_text of course materials.
+
+        Uses Postgres to_tsvector + plainto_tsquery on transcript_text.
+        Returns top 5 matching materials with ts_headline snippets.
+        FERPA-restricted: only materials for courses the student is enrolled in
+        and where is_published = true.
+        """
+        ctx = await self._get_student_context(student_id)
+        if not ctx:
+            return {"error": "Student context not found. Please log in again."}
+
+        is_enrolled = await self._verify_student_enrollment(student_id, course_code)
+        if not is_enrolled:
+            return {"error": "You are not enrolled in this course this semester"}
+
+        conn = self.get_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+
+        try:
+            def run_query():
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT cm.id, cm.title, cm.material_type, cm.week_number,
+                           cm.transcript_source, cm.transcript_word_count,
+                           ts_rank(
+                               to_tsvector('english', cm.transcript_text),
+                               plainto_tsquery('english', %s)
+                           ) AS rank,
+                           ts_headline(
+                               'english', cm.transcript_text,
+                               plainto_tsquery('english', %s),
+                               'MaxFragments=2, MaxWords=60, MinWords=20'
+                           ) AS snippet
+                    FROM course_material cm
+                    JOIN course c ON cm.course_id = c.id
+                    WHERE c.course_code = %s
+                          AND cm.is_published = true
+                          AND cm.transcript_status = 'extracted'
+                          AND cm.transcript_text IS NOT NULL
+                          AND to_tsvector('english', cm.transcript_text)
+                              @@ plainto_tsquery('english', %s)
+                    ORDER BY rank DESC
+                    LIMIT 5
+                """, (query, query, course_code.upper(), query))
+                results = cursor.fetchall()
+                cursor.close()
+                conn.close()
+                return results
+
+            results = await asyncio.to_thread(run_query)
+
+            matches = []
+            for row in results:
+                matches.append({
+                    "material_id": row["id"],
+                    "title": row["title"],
+                    "material_type": row["material_type"],
+                    "week_number": row["week_number"],
+                    "transcript_source": row["transcript_source"],
+                    "word_count": row["transcript_word_count"],
+                    "relevance": float(row["rank"]),
+                    "snippet": row["snippet"],
+                })
+
+            return {
+                "course_code": course_code,
+                "query": query,
+                "matches": matches,
+                "total_matches": len(matches),
+            }
+
+        except Exception as e:
+            logger.error("Error searching course content: %s", e, exc_info=True)
+            return {"error": "Content search failed. Please try again."}
+
+    async def get_lesson_content(
+        self, student_id: str, material_id: str
+    ) -> Dict[str, Any]:
+        """Return full transcript_text for a single material the student has access to.
+
+        Verifies that the student is enrolled in the course that owns the material
+        and that the material is published. Returns full text for AI to reason over.
+        """
+        ctx = await self._get_student_context(student_id)
+        if not ctx:
+            return {"error": "Student context not found. Please log in again."}
+
+        conn = self.get_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+
+        try:
+            def run_query():
+                cursor = conn.cursor()
+                # Fetch material + verify enrollment in one query
+                cursor.execute("""
+                    SELECT cm.id, cm.title, cm.material_type, cm.week_number,
+                           cm.transcript_text, cm.transcript_source,
+                           cm.transcript_word_count, cm.transcript_status,
+                           c.course_code, c.title AS course_name
+                    FROM course_material cm
+                    JOIN course c ON cm.course_id = c.id
+                    JOIN student_enrollment se ON c.id = se.course_id
+                    JOIN "user" u ON se.student_id = u.id
+                    WHERE cm.id = %s
+                          AND u.student_id = %s
+                          AND se.status = 'enrolled'
+                          AND cm.is_published = true
+                    LIMIT 1
+                """, (material_id, student_id))
+                result = cursor.fetchone()
+                cursor.close()
+                conn.close()
+                return result
+
+            row = await asyncio.to_thread(run_query)
+
+            if not row:
+                return {"error": "Material not found or access denied"}
+
+            if row["transcript_status"] != "extracted" or not row["transcript_text"]:
+                return {
+                    "material_id": row["id"],
+                    "title": row["title"],
+                    "error": "No transcript available for this material",
+                    "transcript_status": row["transcript_status"],
+                }
+
+            return {
+                "material_id": row["id"],
+                "title": row["title"],
+                "material_type": row["material_type"],
+                "week_number": row["week_number"],
+                "course_code": row["course_code"],
+                "course_name": row["course_name"],
+                "transcript_source": row["transcript_source"],
+                "word_count": row["transcript_word_count"],
+                "transcript_text": row["transcript_text"],
+            }
+
+        except Exception as e:
+            logger.error("Error getting lesson content: %s", e, exc_info=True)
+            return {"error": "Could not retrieve lesson content. Please try again."}
 
     async def close(self):
         """Close database connections."""
