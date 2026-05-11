@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { CourseMaterialSchema } from "@/lib/db/pg/schema.pg";
 import { eq } from "drizzle-orm";
+import { extractTranscriptForMaterial } from "@/lib/extraction/transcript-extractor";
 
 /**
  * PATCH /api/admin/content/moderation/:id
@@ -74,10 +75,77 @@ export async function PATCH(
       return NextResponse.json({ success: true, action: "edited" });
     }
 
+    case "re-extract": {
+      // Fetch material details for extraction
+      const [mat] = await pgDb
+        .select({
+          mimeType: CourseMaterialSchema.mimeType,
+          contentUrl: CourseMaterialSchema.contentUrl,
+          publicUrl: CourseMaterialSchema.publicUrl,
+        })
+        .from(CourseMaterialSchema)
+        .where(eq(CourseMaterialSchema.id, id))
+        .limit(1);
+
+      const result = await extractTranscriptForMaterial(
+        id,
+        mat.mimeType,
+        { s3Key: mat.contentUrl ?? undefined }
+      );
+
+      return NextResponse.json({
+        success: result.status !== "failed",
+        action: "re-extracted",
+        transcriptStatus: result.status,
+        wordCount: result.wordCount,
+        error: result.error,
+      });
+    }
+
     default:
       return NextResponse.json(
-        { error: "Invalid action. Use 'approve', 'reject', or 'edit'" },
+        { error: "Invalid action. Use 'approve', 'reject', 'edit', or 're-extract'" },
         { status: 400 }
       );
   }
+}
+
+/**
+ * GET /api/admin/content/moderation/:id
+ * Returns full transcript text for a material (admin only).
+ */
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const adminAccess = await requireAdmin();
+  if (adminAccess instanceof NextResponse) return adminAccess;
+
+  const { id } = await params;
+
+  const [material] = await pgDb
+    .select({
+      id: CourseMaterialSchema.id,
+      title: CourseMaterialSchema.title,
+      transcriptText: CourseMaterialSchema.transcriptText,
+      transcriptStatus: CourseMaterialSchema.transcriptStatus,
+      transcriptSource: CourseMaterialSchema.transcriptSource,
+      transcriptWordCount: CourseMaterialSchema.transcriptWordCount,
+    })
+    .from(CourseMaterialSchema)
+    .where(eq(CourseMaterialSchema.id, id))
+    .limit(1);
+
+  if (!material) {
+    return NextResponse.json({ error: "Material not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    id: material.id,
+    title: material.title,
+    transcriptText: material.transcriptText,
+    transcriptStatus: material.transcriptStatus,
+    transcriptSource: material.transcriptSource,
+    transcriptWordCount: material.transcriptWordCount,
+  });
 }

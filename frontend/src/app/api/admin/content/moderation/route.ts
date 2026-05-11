@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
   const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
   const limit = Math.min(50, parseInt(searchParams.get("limit") || "50"));
   const offset = (page - 1) * limit;
+  const transcriptFilter = searchParams.get("transcriptStatus"); // optional filter
 
   const volunteer = pgDb
     .select({
@@ -29,6 +30,15 @@ export async function GET(request: NextRequest) {
     })
     .from(UserSchema)
     .as("volunteer");
+
+  const baseWhere = and(
+    eq(CourseMaterialSchema.isPublished, false),
+    eq(CourseMaterialSchema.ingestionSource, "volunteer_extension"),
+    isNull(CourseMaterialSchema.deletedAt),
+    ...(transcriptFilter
+      ? [eq(CourseMaterialSchema.transcriptStatus, transcriptFilter as any)]
+      : [])
+  );
 
   const items = await pgDb
     .select({
@@ -48,17 +58,14 @@ export async function GET(request: NextRequest) {
       courseTitle: CourseSchema.title,
       volunteerName: volunteer.name,
       volunteerEmail: volunteer.email,
+      transcriptStatus: CourseMaterialSchema.transcriptStatus,
+      transcriptWordCount: CourseMaterialSchema.transcriptWordCount,
+      transcriptErrorMessage: CourseMaterialSchema.transcriptErrorMessage,
     })
     .from(CourseMaterialSchema)
     .innerJoin(CourseSchema, eq(CourseMaterialSchema.courseId, CourseSchema.id))
     .leftJoin(volunteer, eq(CourseMaterialSchema.volunteerId, volunteer.id))
-    .where(
-      and(
-        eq(CourseMaterialSchema.isPublished, false),
-        eq(CourseMaterialSchema.ingestionSource, "volunteer_extension"),
-        isNull(CourseMaterialSchema.deletedAt)
-      )
-    )
+    .where(baseWhere)
     .orderBy(sql`${CourseMaterialSchema.createdAt} DESC`)
     .limit(limit)
     .offset(offset);
@@ -67,13 +74,7 @@ export async function GET(request: NextRequest) {
   const [countResult] = await pgDb
     .select({ count: sql<number>`count(*)::int` })
     .from(CourseMaterialSchema)
-    .where(
-      and(
-        eq(CourseMaterialSchema.isPublished, false),
-        eq(CourseMaterialSchema.ingestionSource, "volunteer_extension"),
-        isNull(CourseMaterialSchema.deletedAt)
-      )
-    );
+    .where(baseWhere);
 
   return NextResponse.json({
     items,

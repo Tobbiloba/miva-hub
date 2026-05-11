@@ -62,6 +62,9 @@ interface ModerationItem {
   courseTitle: string;
   volunteerName: string | null;
   volunteerEmail: string | null;
+  transcriptStatus: string | null;
+  transcriptWordCount: number | null;
+  transcriptErrorMessage: string | null;
 }
 
 interface EditForm {
@@ -86,12 +89,22 @@ export default function ModerationQueuePage() {
   });
   const [previewItem, setPreviewItem] = useState<ModerationItem | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [transcriptFilter, setTranscriptFilter] = useState<string>("all");
+  const [transcriptViewItem, setTranscriptViewItem] = useState<{
+    id: string;
+    title: string;
+    text: string | null;
+    source: string | null;
+    wordCount: number | null;
+  } | null>(null);
+  const [transcriptLoading, setTranscriptLoading] = useState(false);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
+      const filterParam = transcriptFilter !== "all" ? `&transcriptStatus=${transcriptFilter}` : "";
       const res = await fetch(
-        `/api/admin/content/moderation?page=${page}&limit=50`
+        `/api/admin/content/moderation?page=${page}&limit=50${filterParam}`
       );
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
@@ -103,7 +116,7 @@ export default function ModerationQueuePage() {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, transcriptFilter]);
 
   useEffect(() => {
     fetchItems();
@@ -167,6 +180,49 @@ export default function ModerationQueuePage() {
     }
   }
 
+  async function handleReExtract(id: string) {
+    setActionLoading(id);
+    try {
+      const res = await fetch(`/api/admin/content/moderation/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "re-extract" }),
+      });
+      if (!res.ok) throw new Error("Re-extract failed");
+      const data = await res.json();
+      toast.success(
+        data.transcriptStatus === "extracted"
+          ? `Transcript extracted (${data.wordCount} words)`
+          : `Extraction ${data.transcriptStatus}: ${data.error || ""}`
+      );
+      fetchItems();
+    } catch {
+      toast.error("Failed to re-extract transcript");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function viewTranscript(item: ModerationItem) {
+    setTranscriptLoading(true);
+    try {
+      const res = await fetch(`/api/admin/content/moderation/${item.id}`);
+      if (!res.ok) throw new Error("Failed to fetch transcript");
+      const data = await res.json();
+      setTranscriptViewItem({
+        id: data.id,
+        title: data.title,
+        text: data.transcriptText,
+        source: data.transcriptSource,
+        wordCount: data.transcriptWordCount,
+      });
+    } catch {
+      toast.error("Failed to load transcript");
+    } finally {
+      setTranscriptLoading(false);
+    }
+  }
+
   function openEdit(item: ModerationItem) {
     setEditForm({
       title: item.title,
@@ -193,6 +249,16 @@ export default function ModerationQueuePage() {
     });
   }
 
+  function transcriptBadgeVariant(status: string | null): "default" | "secondary" | "destructive" | "outline" {
+    switch (status) {
+      case "extracted": return "default";
+      case "failed": return "destructive";
+      case "extracting": return "secondary";
+      case "skipped": return "outline";
+      default: return "outline";
+    }
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -207,6 +273,18 @@ export default function ModerationQueuePage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Select value={transcriptFilter} onValueChange={(v) => { setTranscriptFilter(v); setPage(1); }}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Transcript filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All transcripts</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="extracted">Extracted</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
+              <SelectItem value="skipped">Skipped</SelectItem>
+            </SelectContent>
+          </Select>
           <Badge variant="outline">{total} pending</Badge>
           <Button variant="outline" size="sm" onClick={fetchItems}>
             <RefreshCw className="h-4 w-4 mr-1" />
@@ -245,6 +323,7 @@ export default function ModerationQueuePage() {
                     <TableHead>Course</TableHead>
                     <TableHead>Week</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Transcript</TableHead>
                     <TableHead>Volunteer</TableHead>
                     <TableHead>Captured</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -288,6 +367,18 @@ export default function ModerationQueuePage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant={transcriptBadgeVariant(item.transcriptStatus)}>
+                            {item.transcriptStatus || "pending"}
+                          </Badge>
+                          {item.transcriptWordCount && (
+                            <span className="text-xs text-muted-foreground">
+                              {item.transcriptWordCount.toLocaleString()} words
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <div>
                           <p className="text-sm">
                             {item.volunteerName || "Unknown"}
@@ -302,6 +393,28 @@ export default function ModerationQueuePage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center gap-1 justify-end">
+                          {item.transcriptStatus === "extracted" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => viewTranscript(item)}
+                              disabled={transcriptLoading}
+                              title="View transcript"
+                            >
+                              <FileText className="h-4 w-4 text-green-600" />
+                            </Button>
+                          )}
+                          {(item.transcriptStatus === "failed" || item.transcriptStatus === "skipped") && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleReExtract(item.id)}
+                              disabled={actionLoading === item.id}
+                              title="Re-extract transcript"
+                            >
+                              <RefreshCw className="h-4 w-4 text-orange-500" />
+                            </Button>
+                          )}
                           {item.publicUrl && (
                             <Button
                               variant="ghost"
@@ -453,6 +566,33 @@ export default function ModerationQueuePage() {
               Save Changes
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transcript View Dialog */}
+      <Dialog
+        open={!!transcriptViewItem}
+        onOpenChange={(open) => !open && setTranscriptViewItem(null)}
+      >
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Transcript: {transcriptViewItem?.title}</DialogTitle>
+            <DialogDescription>
+              Source: {transcriptViewItem?.source || "unknown"} &middot;{" "}
+              {transcriptViewItem?.wordCount?.toLocaleString() || 0} words
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2 overflow-auto max-h-[60vh]">
+            {transcriptViewItem?.text ? (
+              <pre className="whitespace-pre-wrap text-sm font-mono bg-muted p-4 rounded">
+                {transcriptViewItem.text}
+              </pre>
+            ) : (
+              <p className="text-muted-foreground text-center py-8">
+                No transcript text available.
+              </p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
