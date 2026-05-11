@@ -36,19 +36,21 @@ async def get_course_materials(
     week_number: int | None = None,
     material_type: str | None = None
 ) -> str:
-    """Get course materials for enrolled courses.
-    
-    Fetches course materials for a specific course, optionally filtered by
-    week number and material type. Only accessible for enrolled students.
-    
+    """List all materials available in a course (metadata only, not content).
+
+    Use this to list all materials in a specific course the student is enrolled
+    in — returns titles, types, weeks, and file info. Does NOT search inside
+    material content. For searching across material CONTENTS (transcripts, PDF
+    text), use search_course_content instead.
+
     Args:
         course_code: Course code (e.g., CS101, MATH201)
         student_id: Student ID for enrollment verification
         week_number: Optional week number filter (1-16)
         material_type: Optional material type filter (lecture, reading, assignment, quiz, video)
-        
+
     Returns:
-        Formatted JSON string with course materials or error message
+        Formatted JSON string with course materials list or error message
     """
     try:
         result = await academic_repo.get_course_materials(
@@ -409,19 +411,21 @@ async def search_course_content(
     course_code: str,
     query: str
 ) -> str:
-    """Search inside course material content (PDF text and video transcripts).
+    """Search across the full text of all transcripts and PDFs the student has access to.
 
-    Performs full-text search across extracted transcript text for a specific
-    course. Returns matching materials with relevant snippets. Use this when
-    a student asks about specific topics covered in lectures or readings.
+    Use this when the user asks "search for X", "find content about X",
+    "where did we discuss X", "is there anything about X in my materials",
+    or similar phrasing. Searches inside the actual lesson content (extracted
+    PDF text and video transcripts), not just titles or metadata. Returns
+    matching materials with relevant text snippets showing where the match was found.
 
     Args:
         student_id: Student ID for enrollment verification
-        course_code: Course code (e.g., COS202, CS101)
-        query: Search query — keywords or phrases to find in content
+        course_code: Course code to search within (e.g., COS202, CS101)
+        query: A keyword or phrase to search for in lesson transcripts and PDF text
 
     Returns:
-        Formatted JSON string with matching materials and text snippets
+        Formatted JSON string with matching materials, relevance scores, and text snippets
     """
     try:
         result = await academic_repo.search_course_content(
@@ -440,19 +444,20 @@ async def get_lesson_content(
     student_id: str,
     material_id: str
 ) -> str:
-    """Get the full text content of a specific course material.
+    """Get the full transcript text of a single lesson by material_id.
 
-    Returns the complete extracted text (from PDF or video transcript) for a
-    single material. Use this when a student asks to explain what was covered
-    in a specific lecture or reading, or when you need the full context to
-    answer a detailed question.
+    Use this when the user asks "explain what's in week 3 lecture",
+    "show me the content of [specific lesson]", or when you need the
+    complete text of a material to answer a detailed question. Requires
+    the material_id (UUID) — use get_course_materials or search_course_content
+    first to find the right material_id, then call this tool for the full text.
 
     Args:
         student_id: Student ID for enrollment verification
-        material_id: UUID of the course material to retrieve
+        material_id: UUID of the course material (get this from get_course_materials or search_course_content results)
 
     Returns:
-        Formatted JSON string with full transcript text, source info, and metadata
+        Formatted JSON string with full transcript text, source type, word count, and metadata
     """
     try:
         result = await academic_repo.get_lesson_content(
