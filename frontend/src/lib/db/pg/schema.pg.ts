@@ -8,6 +8,7 @@ import {
   text,
   timestamp,
   json,
+  jsonb,
   uuid,
   boolean,
   unique,
@@ -520,7 +521,7 @@ export const CourseMaterialSchema = pgTable(
       .notNull()
       .references(() => CourseSchema.id, { onDelete: "cascade" }),
     materialType: varchar("material_type", {
-      enum: ["syllabus", "lecture", "assignment", "resource", "reading", "exam"],
+      enum: ["syllabus", "lecture", "assignment", "resource", "reading", "exam", "quiz", "assignment_external"],
     }).notNull(),
     title: text("title").notNull(),
     description: text("description"),
@@ -547,6 +548,8 @@ export const CourseMaterialSchema = pgTable(
     transcriptWordCount: integer("transcript_word_count"),
     transcriptStatus: transcriptStatusEnum("transcript_status").default("pending"),
     transcriptErrorMessage: text("transcript_error_message"),
+    // Quiz/assignment metadata (loose schema JSONB)
+    externalMetadata: jsonb("external_metadata").$type<Record<string, any>>(),
     // Video dedup + download fields
     vimeoVideoId: text("vimeo_video_id"), // extracted from payload for dedup indexing
     // yt-dlp video download fields

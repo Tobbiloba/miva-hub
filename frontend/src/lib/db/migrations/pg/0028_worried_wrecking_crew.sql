@@ -1,0 +1,1 @@
+ALTER TABLE "course_material" ADD COLUMN "external_metadata" jsonb;
