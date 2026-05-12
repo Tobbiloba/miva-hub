@@ -33,7 +33,7 @@ async function submitLesson(metadata) {
     week_number: metadata.week_number,
     lesson_title: metadata.lesson_title,
     session_label: metadata.session_label,
-    content_type: metadata.page_type, // 'video' or 'pdf'
+    content_type: metadata.page_type, // 'video', 'pdf', 'quiz', or 'assignment_external'
   };
 
   if (metadata.page_type === "video") {

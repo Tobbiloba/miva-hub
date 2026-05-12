@@ -179,8 +179,9 @@ captureBtn.addEventListener("click", async () => {
   captureBtn.textContent = "Capture this lesson";
 
   if (result?.ok) {
+    const id = result.data.job_id || result.data.material_id || "?";
     showSuccess(
-      `Captured! Job ID: ${result.data.job_id?.slice(0, 8)}... Status: ${result.data.status}`
+      `Captured! ID: ${id.slice(0, 8)}... Status: ${result.data.status}`
     );
     loadRecentCaptures();
   } else {

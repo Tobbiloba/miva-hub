@@ -49,6 +49,14 @@ export async function POST(request: NextRequest) {
       vimeo_hash,
       pdf_url,
       pdf_filename,
+      // Quiz fields
+      quiz_questions,
+      quiz_instructions,
+      quiz_metadata,
+      // Assignment fields
+      assignment_instructions,
+      assignment_requirements,
+      assignment_metadata,
     } = body;
 
     if (!source_url || !course_code || !lesson_title || !content_type) {
@@ -58,9 +66,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!["video", "pdf"].includes(content_type)) {
+    if (!["video", "pdf", "quiz", "assignment_external"].includes(content_type)) {
       return NextResponse.json(
-        { error: "content_type must be 'video' or 'pdf'" },
+        { error: "content_type must be 'video', 'pdf', 'quiz', or 'assignment_external'" },
         { status: 400 }
       );
     }
@@ -178,7 +186,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 7. Insert ingestion job
+    // 7. Quiz/assignment → create course_material directly (no background job needed)
+    if (content_type === "quiz" || content_type === "assignment_external") {
+      const transcriptText =
+        content_type === "quiz"
+          ? formatQuizTranscript(lesson_title, quiz_instructions, quiz_questions)
+          : formatAssignmentTranscript(lesson_title, assignment_instructions, assignment_requirements, assignment_metadata);
+
+      const wordCount = transcriptText.split(/\s+/).filter(Boolean).length;
+      const extMeta =
+        content_type === "quiz" ? (quiz_metadata || {}) : (assignment_metadata || {});
+      if (content_type === "quiz" && quiz_questions?.length) {
+        extMeta.question_count = quiz_questions.length;
+      }
+
+      const [material] = await pgDb
+        .insert(CourseMaterialSchema)
+        .values({
+          courseId: course.id,
+          materialType: content_type === "quiz" ? "quiz" : "assignment_external",
+          title: lesson_title,
+          description: content_type === "quiz" ? quiz_instructions : assignment_instructions,
+          mimeType: "text/plain",
+          weekNumber: week_number ?? null,
+          isPublic: false,
+          isPublished: false,
+          uploadedById: session.user.id,
+          sessionId,
+          ingestionSource: "volunteer_extension",
+          volunteerId: session.user.id,
+          transcriptText,
+          transcriptSource: "manual",
+          transcriptExtractedAt: new Date(),
+          transcriptWordCount: wordCount,
+          transcriptStatus: "extracted",
+          externalMetadata: extMeta,
+        })
+        .returning({ id: CourseMaterialSchema.id });
+
+      return NextResponse.json(
+        { material_id: material.id, status: "captured", content_type },
+        { status: 201 }
+      );
+    }
+
+    // 8. Video/PDF → insert ingestion job for background processing
     const [job] = await pgDb
       .insert(IngestionJobSchema)
       .values({
@@ -205,4 +257,61 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// ── Transcript formatting helpers ────────────────────────────────
+
+function formatQuizTranscript(
+  title: string,
+  instructions: string | null,
+  questions: Array<{ text: string; options?: string[] }> | null
+): string {
+  const parts: string[] = [`Quiz: ${title}`];
+
+  if (instructions) {
+    parts.push(`Instructions: ${instructions}`);
+  }
+
+  if (questions?.length) {
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      parts.push(`\nQuestion ${i + 1}: ${q.text}`);
+      if (q.options?.length) {
+        parts.push(`Options: ${q.options.join(", ")}`);
+      }
+    }
+  }
+
+  return parts.join("\n");
+}
+
+function formatAssignmentTranscript(
+  title: string,
+  instructions: string | null,
+  requirements: string | null,
+  metadata: Record<string, any> | null
+): string {
+  const parts: string[] = [`Assignment: ${title}`];
+
+  if (instructions) {
+    parts.push(`\nInstructions: ${instructions}`);
+  }
+
+  if (requirements) {
+    parts.push(`\nRequirements: ${requirements}`);
+  }
+
+  if (metadata?.due_date) {
+    parts.push(`\nDue: ${metadata.due_date}`);
+  }
+
+  if (metadata?.max_grade) {
+    parts.push(`Max Grade: ${metadata.max_grade}`);
+  }
+
+  if (metadata?.submission_types) {
+    parts.push(`Submission Type: ${metadata.submission_types}`);
+  }
+
+  return parts.join("\n");
 }
