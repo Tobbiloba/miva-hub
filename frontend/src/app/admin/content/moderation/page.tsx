@@ -386,10 +386,21 @@ export default function ModerationQueuePage() {
                           variant={
                             item.materialType === "lecture"
                               ? "default"
-                              : "secondary"
+                              : item.materialType === "quiz"
+                                ? "outline"
+                                : item.materialType === "assignment_external"
+                                  ? "outline"
+                                  : "secondary"
+                          }
+                          className={
+                            item.materialType === "quiz"
+                              ? "border-purple-400 text-purple-700"
+                              : item.materialType === "assignment_external"
+                                ? "border-green-400 text-green-700"
+                                : ""
                           }
                         >
-                          {item.materialType}
+                          {item.materialType === "assignment_external" ? "assignment" : item.materialType}
                         </Badge>
                       </TableCell>
                       <TableCell>

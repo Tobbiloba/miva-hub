@@ -470,6 +470,35 @@ async def get_lesson_content(
         return json.dumps({"error": "Could not retrieve lesson content. Please try again."})
 
 
+@mcp.tool()
+async def list_quizzes_and_assignments(
+    student_id: str,
+    course_code: str | None = None
+) -> str:
+    """List quizzes and assignments for enrolled courses.
+
+    Returns all captured quizzes and assignments the student has access to.
+    Use this when a student asks "what quizzes do I have", "show my
+    assignments for COS201", or "what assessments are coming up".
+
+    Args:
+        student_id: Student ID for enrollment verification
+        course_code: Optional course filter (e.g., COS202). If omitted, returns across all enrolled courses.
+
+    Returns:
+        Formatted JSON string with quizzes and assignments including metadata (question count, due dates, max grade)
+    """
+    try:
+        result = await academic_repo.list_quizzes_and_assignments(
+            student_id=student_id,
+            course_code=course_code.upper() if course_code else None,
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        logger.error("Tool list_quizzes_and_assignments failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Could not retrieve quizzes and assignments. Please try again."})
+
+
 # ---------------------------------------------------------------------------
 # Shared-secret authentication middleware
 # ---------------------------------------------------------------------------

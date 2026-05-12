@@ -1737,6 +1737,104 @@ class AcademicRepository:
             logger.error("Error getting lesson content: %s", e, exc_info=True)
             return {"error": "Could not retrieve lesson content. Please try again."}
 
+    async def list_quizzes_and_assignments(
+        self, student_id: str, course_code: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """List quizzes and assignments for student's enrolled courses.
+
+        Returns quiz and assignment_external materials with metadata
+        (question_count, due_date, max_grade) from external_metadata JSONB.
+        FERPA-restricted: only published materials for enrolled courses.
+        """
+        ctx = await self._get_student_context(student_id)
+        if not ctx:
+            return {"error": "Student context not found. Please log in again."}
+
+        if course_code:
+            is_enrolled = await self._verify_student_enrollment(student_id, course_code)
+            if not is_enrolled:
+                return {"error": "You are not enrolled in this course this semester"}
+
+        conn = self.get_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+
+        try:
+            def run_query():
+                cursor = conn.cursor()
+                query = """
+                    SELECT cm.id, cm.title, cm.material_type, cm.week_number,
+                           cm.transcript_word_count,
+                           cm.external_metadata,
+                           c.course_code, c.title AS course_name
+                    FROM course_material cm
+                    JOIN course c ON cm.course_id = c.id
+                    JOIN student_enrollment se ON c.id = se.course_id
+                    JOIN "user" u ON se.student_id = u.id
+                    WHERE u.student_id = %s
+                          AND se.status = 'enrolled'
+                          AND cm.is_published = true
+                          AND cm.material_type IN ('quiz', 'assignment_external')
+                          AND cm.deleted_at IS NULL
+                """
+                params: list = [student_id]
+
+                if course_code:
+                    query += " AND c.course_code = %s"
+                    params.append(course_code.upper())
+
+                query += " ORDER BY c.course_code, cm.week_number NULLS LAST, cm.created_at"
+                cursor.execute(query, params)
+                results = cursor.fetchall()
+                cursor.close()
+                conn.close()
+                return results
+
+            results = await asyncio.to_thread(run_query)
+
+            items = []
+            for row in results:
+                meta = row["external_metadata"] or {}
+                if isinstance(meta, str):
+                    import json as _json
+                    try:
+                        meta = _json.loads(meta)
+                    except Exception:
+                        meta = {}
+
+                entry = {
+                    "id": row["id"],
+                    "title": row["title"],
+                    "material_type": row["material_type"],
+                    "course_code": row["course_code"],
+                    "course_name": row["course_name"],
+                    "week_number": row["week_number"],
+                    "word_count": row["transcript_word_count"],
+                }
+
+                if row["material_type"] == "quiz":
+                    entry["question_count"] = meta.get("question_count")
+                    entry["time_limit"] = meta.get("time_limit")
+
+                if row["material_type"] == "assignment_external":
+                    entry["due_date"] = meta.get("due_date")
+                    entry["max_grade"] = meta.get("max_grade")
+                    entry["submission_types"] = meta.get("submission_types")
+
+                items.append(entry)
+
+            return {
+                "course_code": course_code or "all",
+                "items": items,
+                "total_count": len(items),
+                "quizzes": len([i for i in items if i["material_type"] == "quiz"]),
+                "assignments": len([i for i in items if i["material_type"] == "assignment_external"]),
+            }
+
+        except Exception as e:
+            logger.error("Error listing quizzes and assignments: %s", e, exc_info=True)
+            return {"error": "Could not retrieve quizzes and assignments. Please try again."}
+
     async def close(self):
         """Close database connections."""
         if self._connection:
