@@ -102,9 +102,26 @@ export async function PATCH(
       });
     }
 
+    case "force-recapture": {
+      // Soft-delete the existing row so a new capture of the same lesson succeeds
+      await pgDb
+        .update(CourseMaterialSchema)
+        .set({
+          deletedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(CourseMaterialSchema.id, id));
+
+      return NextResponse.json({
+        success: true,
+        action: "force-recaptured",
+        message: "Existing capture removed. Volunteers can now re-capture this lesson.",
+      });
+    }
+
     default:
       return NextResponse.json(
-        { error: "Invalid action. Use 'approve', 'reject', 'edit', or 're-extract'" },
+        { error: "Invalid action. Use 'approve', 'reject', 'edit', 're-extract', or 'force-recapture'" },
         { status: 400 }
       );
   }

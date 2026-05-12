@@ -42,6 +42,7 @@ import {
   Eye,
   Shield,
   RefreshCw,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -98,6 +99,7 @@ export default function ModerationQueuePage() {
     wordCount: number | null;
   } | null>(null);
   const [transcriptLoading, setTranscriptLoading] = useState(false);
+  const [forceRecaptureItem, setForceRecaptureItem] = useState<ModerationItem | null>(null);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -220,6 +222,30 @@ export default function ModerationQueuePage() {
       toast.error("Failed to load transcript");
     } finally {
       setTranscriptLoading(false);
+    }
+  }
+
+  async function handleForceRecapture() {
+    if (!forceRecaptureItem) return;
+    setActionLoading(forceRecaptureItem.id);
+    try {
+      const res = await fetch(
+        `/api/admin/content/moderation/${forceRecaptureItem.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "force-recapture" }),
+        }
+      );
+      if (!res.ok) throw new Error("Force re-capture failed");
+      toast.success("Existing capture removed. Volunteers can now re-capture this lesson.");
+      setForceRecaptureItem(null);
+      setItems((prev) => prev.filter((item) => item.id !== forceRecaptureItem.id));
+      setTotal((prev) => prev - 1);
+    } catch {
+      toast.error("Failed to force re-capture");
+    } finally {
+      setActionLoading(null);
     }
   }
 
@@ -453,6 +479,16 @@ export default function ModerationQueuePage() {
                           >
                             <XCircle className="h-4 w-4" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                            onClick={() => setForceRecaptureItem(item)}
+                            disabled={actionLoading === item.id}
+                            title="Force re-capture (remove and allow new)"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -491,6 +527,39 @@ export default function ModerationQueuePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Force Re-capture Confirmation Dialog */}
+      <Dialog
+        open={!!forceRecaptureItem}
+        onOpenChange={(open) => !open && setForceRecaptureItem(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Force Re-capture</DialogTitle>
+            <DialogDescription>
+              This will remove the existing capture of &ldquo;{forceRecaptureItem?.title}&rdquo;
+              and allow a new volunteer to capture it. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2 text-sm text-muted-foreground">
+            <p><strong>Course:</strong> {forceRecaptureItem?.courseCode}</p>
+            <p><strong>Week:</strong> {forceRecaptureItem?.weekNumber ? `Week ${forceRecaptureItem.weekNumber}` : "—"}</p>
+            <p><strong>Captured by:</strong> {forceRecaptureItem?.volunteerName || "Unknown"}</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setForceRecaptureItem(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleForceRecapture}
+              disabled={!!actionLoading}
+            >
+              Remove & Allow Re-capture
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog
