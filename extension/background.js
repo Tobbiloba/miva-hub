@@ -42,6 +42,14 @@ async function submitLesson(metadata) {
   } else if (metadata.page_type === "pdf") {
     body.pdf_url = metadata.pdf_url;
     body.pdf_filename = metadata.pdf_filename;
+  } else if (metadata.page_type === "quiz") {
+    body.quiz_questions = metadata.quiz_questions;
+    body.quiz_instructions = metadata.quiz_instructions;
+    body.quiz_metadata = metadata.quiz_metadata;
+  } else if (metadata.page_type === "assignment_external") {
+    body.assignment_instructions = metadata.assignment_instructions;
+    body.assignment_requirements = metadata.assignment_requirements;
+    body.assignment_metadata = metadata.assignment_metadata;
   }
 
   const res = await fetch(`${apiUrl}/api/ingest/lesson`, {

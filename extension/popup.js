@@ -93,9 +93,24 @@ function populateForm(metadata) {
   captureForm.style.display = "block";
 
   // Content type badge
-  contentTypeBadge.textContent = metadata.page_type.toUpperCase();
+  const badgeLabels = {
+    video: "VIDEO",
+    pdf: "PDF",
+    quiz: "QUIZ",
+    assignment_external: "ASSIGNMENT",
+  };
+  contentTypeBadge.textContent = badgeLabels[metadata.page_type] || metadata.page_type.toUpperCase();
   contentTypeBadge.className = `badge ${metadata.page_type}`;
-  detectionStatus.textContent = "Auto-detected from page";
+
+  // Detection status with extra info
+  let statusMsg = "Auto-detected from page";
+  if (metadata.page_type === "quiz" && metadata.quiz_questions?.length) {
+    statusMsg += ` — ${metadata.quiz_questions.length} question(s) found`;
+  }
+  if (metadata.page_type === "assignment_external" && metadata.assignment_metadata?.due_date) {
+    statusMsg += ` — Due: ${metadata.assignment_metadata.due_date}`;
+  }
+  detectionStatus.textContent = statusMsg;
 
   // Fill fields
   courseCodeInput.value = metadata.course_code || "";

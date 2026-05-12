@@ -96,6 +96,16 @@ body {
   color: #92400e;
 }
 
+.badge.quiz {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.badge.assignment_external {
+  background: #dcfce7;
+  color: #166534;
+}
+
 /* Form fields */
 .field {
   margin-bottom: 8px;
