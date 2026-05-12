@@ -547,6 +547,8 @@ export const CourseMaterialSchema = pgTable(
     transcriptWordCount: integer("transcript_word_count"),
     transcriptStatus: transcriptStatusEnum("transcript_status").default("pending"),
     transcriptErrorMessage: text("transcript_error_message"),
+    // Video dedup + download fields
+    vimeoVideoId: text("vimeo_video_id"), // extracted from payload for dedup indexing
     // yt-dlp video download fields
     ytDlpStatus: ytDlpStatusEnum("yt_dlp_status"),
     ytDlpErrorMessage: text("yt_dlp_error_message"),
