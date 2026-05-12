@@ -203,6 +203,7 @@ export async function POST(_request: NextRequest) {
               sessionId: job.sessionId,
               ingestionSource: "volunteer_extension",
               volunteerId: job.volunteerId,
+              ytDlpStatus: "pending",
             })
             .returning({ id: CourseMaterialSchema.id });
 

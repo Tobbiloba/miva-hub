@@ -33,6 +33,7 @@ export const ingestionSourceEnum = pgEnum('ingestion_source_enum', ['manual', 'v
 export const ingestionJobStatusEnum = pgEnum('ingestion_job_status_enum', ['queued', 'downloading', 'completed', 'failed']);
 export const transcriptSourceEnum = pgEnum('transcript_source_enum', ['pdfjs', 'vimeo_vtt', 'manual']);
 export const transcriptStatusEnum = pgEnum('transcript_status_enum', ['pending', 'extracting', 'extracted', 'failed', 'skipped']);
+export const ytDlpStatusEnum = pgEnum('yt_dlp_status_enum', ['pending', 'downloading', 'completed', 'failed', 'skipped']);
 
 export const ChatThreadSchema = pgTable("chat_thread", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
@@ -546,6 +547,9 @@ export const CourseMaterialSchema = pgTable(
     transcriptWordCount: integer("transcript_word_count"),
     transcriptStatus: transcriptStatusEnum("transcript_status").default("pending"),
     transcriptErrorMessage: text("transcript_error_message"),
+    // yt-dlp video download fields
+    ytDlpStatus: ytDlpStatusEnum("yt_dlp_status"),
+    ytDlpErrorMessage: text("yt_dlp_error_message"),
     createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   },
@@ -558,6 +562,7 @@ export const CourseMaterialSchema = pgTable(
     index("material_ingestion_source_idx").on(table.ingestionSource),
     index("material_volunteer_idx").on(table.volunteerId),
     index("material_transcript_status_idx").on(table.transcriptStatus),
+    index("material_yt_dlp_status_idx").on(table.ytDlpStatus),
     index("material_transcript_text_gin_idx").using("gin", sql`to_tsvector('english', ${table.transcriptText})`),
   ],
 );
