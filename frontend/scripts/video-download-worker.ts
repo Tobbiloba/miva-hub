@@ -114,7 +114,8 @@ async function downloadVideo(
     const { stderr } = await execFileAsync(
       "yt-dlp",
       [
-        "-f", "best[ext=mp4]/best",
+        "-f", "bv*+ba/b",
+        "--merge-output-format", "mp4",
         "--no-warnings",
         "-o", outputPath,
         vimeoUrl,
