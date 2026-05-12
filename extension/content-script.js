@@ -127,13 +127,159 @@
     return match ? match[1] : null;
   }
 
+  // ── Quiz detection (/mod/quiz/view.php) ───────────────────────
+
+  function detectQuiz() {
+    if (!window.location.pathname.includes("/mod/quiz/")) return null;
+
+    const quiz = { questions: [], instructions: null, metadata: {} };
+
+    // Instructions / description
+    const descEl =
+      document.querySelector(".box.quizinfo") ||
+      document.querySelector("#region-main .activity-description") ||
+      document.querySelector(".box.generalbox");
+    if (descEl) quiz.instructions = descEl.innerText.trim();
+
+    // Questions (visible on attempt or review pages)
+    const questionEls = document.querySelectorAll(".que");
+    for (const qEl of questionEls) {
+      const qText =
+        qEl.querySelector(".qtext")?.innerText?.trim() || null;
+      if (!qText) continue;
+
+      const options = [];
+      const answerEls = qEl.querySelectorAll(
+        ".answer label, .answer .flex-fill, .answer input[type='radio'] + span, .answer .ml-1"
+      );
+      for (const a of answerEls) {
+        const optText = a.innerText.trim();
+        if (optText) options.push(optText);
+      }
+      // Deduplicate options
+      const uniqueOpts = [...new Set(options)];
+      quiz.questions.push({ text: qText, options: uniqueOpts });
+    }
+
+    // If no structured questions found, try extracting all visible text
+    if (quiz.questions.length === 0) {
+      const mainContent = document.querySelector("#region-main");
+      if (mainContent) {
+        quiz.instructions =
+          (quiz.instructions || "") +
+          "\n\n" +
+          mainContent.innerText.trim().slice(0, 5000);
+        quiz.instructions = quiz.instructions.trim();
+      }
+    }
+
+    // Metadata
+    const infoItems = document.querySelectorAll(
+      ".quizinfo .cell, .box.quizinfo p, .activity-information .completion-info, .activity-dates .date"
+    );
+    for (const item of infoItems) {
+      const text = item.innerText.toLowerCase();
+      if (text.includes("time limit")) {
+        quiz.metadata.time_limit = item.innerText.trim();
+      }
+      if (text.includes("attempt")) {
+        quiz.metadata.attempts_allowed = item.innerText.trim();
+      }
+      if (text.includes("grading") || text.includes("grade")) {
+        quiz.metadata.grading_method = item.innerText.trim();
+      }
+    }
+
+    // Due date from activity-dates or .dates
+    const dateEl =
+      document.querySelector(".activity-dates time") ||
+      document.querySelector(".dates td time") ||
+      document.querySelector(".activity-information time");
+    if (dateEl) {
+      quiz.metadata.due_date =
+        dateEl.getAttribute("datetime") || dateEl.innerText.trim();
+    }
+
+    return quiz;
+  }
+
+  // ── Assignment detection (/mod/assign/view.php) ──────────────
+
+  function detectAssignment() {
+    if (!window.location.pathname.includes("/mod/assign/")) return null;
+
+    const assign = { instructions: null, requirements: null, metadata: {} };
+
+    // Instructions / description
+    const descEl =
+      document.querySelector("#intro .no-overflow") ||
+      document.querySelector("#intro") ||
+      document.querySelector(".box.generalbox.boxaligncenter") ||
+      document.querySelector(".box.generalbox");
+    if (descEl) assign.instructions = descEl.innerText.trim();
+
+    // If no structured instructions, fall back to main content
+    if (!assign.instructions) {
+      const mainContent = document.querySelector("#region-main");
+      if (mainContent) {
+        assign.instructions = mainContent.innerText.trim().slice(0, 5000);
+      }
+    }
+
+    // Submission requirements
+    const reqEl = document.querySelector(".submissionstatustable");
+    if (reqEl) assign.requirements = reqEl.innerText.trim();
+
+    // Metadata
+    const dateEl =
+      document.querySelector(".activity-information time") ||
+      document.querySelector(".activity-dates time") ||
+      document.querySelector(".dates td time");
+    if (dateEl) {
+      assign.metadata.due_date =
+        dateEl.getAttribute("datetime") || dateEl.innerText.trim();
+    }
+
+    const gradeEl = document.querySelector(
+      ".gradeitem .maximumgrade, .gradevalue, .submissionstatustable .cell.c1.lastcol"
+    );
+    if (gradeEl) {
+      const gradeText = gradeEl.innerText.trim();
+      const gradeMatch = gradeText.match(/(\d+)/);
+      if (gradeMatch) assign.metadata.max_grade = parseInt(gradeMatch[1]);
+    }
+
+    // Submission types from status table
+    const typeEls = document.querySelectorAll(
+      ".submissionstatustable tr"
+    );
+    for (const row of typeEls) {
+      const label = row.querySelector("td:first-child")?.innerText?.toLowerCase() || "";
+      const value = row.querySelector("td:last-child")?.innerText?.trim() || "";
+      if (label.includes("submission type")) {
+        assign.metadata.submission_types = value;
+      }
+      if (label.includes("due date")) {
+        assign.metadata.due_date = assign.metadata.due_date || value;
+      }
+    }
+
+    return assign;
+  }
+
   // ── Main detection ────────────────────────────────────────────
 
   const video = detectVideo();
   const pdfs = detectPDFs();
+  const quiz = detectQuiz();
+  const assignment = detectAssignment();
 
   let pageType = "unknown";
-  if (video) {
+  if (quiz) {
+    pageType = "quiz";
+  } else if (assignment) {
+    pageType = "assignment_external";
+  } else if (video) {
     pageType = "video";
   } else if (pdfs.length > 0) {
     pageType = "pdf";
@@ -153,6 +299,14 @@
     pdf_url: pdfs.length > 0 ? pdfs[0].url : null,
     pdf_filename: pdfs.length > 0 ? pdfs[0].filename : null,
     all_pdfs: pdfs, // all detected PDFs for user selection
+    // Quiz fields
+    quiz_questions: quiz?.questions || null,
+    quiz_instructions: quiz?.instructions || null,
+    quiz_metadata: quiz?.metadata || null,
+    // Assignment fields
+    assignment_instructions: assignment?.instructions || null,
+    assignment_requirements: assignment?.requirements || null,
+    assignment_metadata: assignment?.metadata || null,
   };
 
   // Store in page-level data for popup to retrieve
