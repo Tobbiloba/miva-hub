@@ -69,11 +69,11 @@ const Testimonials: React.FC = () => {
         <div className="relative col-span-2">
           <div className="bg-black/30 rounded p-5 sm:p-6 md:p-8 lg:p-10 shadow-sm">
             <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-normal mb-4 sm:mb-6 text-white">
-              "Studying finally feels manageable."
+              &ldquo;Studying finally feels manageable.&rdquo;
             </h2>
 
             <p className="text-neutral-300 text-sm sm:text-base leading-relaxed mb-6 sm:mb-8">
-              "{testimonials[activeIndex].quote}"
+              &ldquo;{testimonials[activeIndex].quote}&rdquo;
             </p>
 
             <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">

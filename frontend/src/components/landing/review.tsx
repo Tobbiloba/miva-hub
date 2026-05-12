@@ -30,7 +30,7 @@ const Review = () => {
           </div>
           <div className="w-9/12 border-l-1 text-2xl pl-24">
             <h1>
-              "Askly helped me break down tough topics and practice with targeted quizzes. I study less but remember more."
+              &ldquo;Askly helped me break down tough topics and practice with targeted quizzes. I study less but remember more.&rdquo;
             </h1>
           </div>
         </div>
