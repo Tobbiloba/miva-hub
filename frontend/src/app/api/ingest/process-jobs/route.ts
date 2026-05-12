@@ -203,6 +203,7 @@ export async function POST(_request: NextRequest) {
               sessionId: job.sessionId,
               ingestionSource: "volunteer_extension",
               volunteerId: job.volunteerId,
+              vimeoVideoId: vimeoId || null,
               ytDlpStatus: "pending",
             })
             .returning({ id: CourseMaterialSchema.id });

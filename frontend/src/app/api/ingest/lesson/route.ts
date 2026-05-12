@@ -6,8 +6,9 @@ import {
   CourseSchema,
   AcademicSessionSchema,
   IngestionJobSchema,
+  CourseMaterialSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, ilike } from "drizzle-orm";
+import { eq, and, or, isNull, ilike, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 
 export async function POST(request: NextRequest) {
@@ -109,7 +110,75 @@ export async function POST(request: NextRequest) {
         ? { vimeo_video_id, vimeo_hash: vimeo_hash || null }
         : { pdf_url, pdf_filename: pdf_filename || null };
 
-    // 6. Insert ingestion job
+    // 6. Duplicate detection — check for existing course_material matching this capture
+    const weekMatch = week_number != null
+      ? eq(CourseMaterialSchema.weekNumber, week_number)
+      : isNull(CourseMaterialSchema.weekNumber);
+
+    const sessionMatch = sessionId
+      ? eq(CourseMaterialSchema.sessionId, sessionId)
+      : isNull(CourseMaterialSchema.sessionId);
+
+    // Build match conditions: vimeo_video_id (videos), file_name (PDFs), or title (fallback)
+    const contentMatch =
+      content_type === "video" && vimeo_video_id
+        ? eq(CourseMaterialSchema.vimeoVideoId, vimeo_video_id)
+        : content_type === "pdf" && pdf_filename
+          ? sql`lower(${CourseMaterialSchema.fileName}) = lower(${pdf_filename})`
+          : sql`lower(trim(${CourseMaterialSchema.title})) = lower(trim(${lesson_title}))`;
+
+    const [existingDup] = await pgDb
+      .select({
+        id: CourseMaterialSchema.id,
+        isPublished: CourseMaterialSchema.isPublished,
+        volunteerId: CourseMaterialSchema.volunteerId,
+      })
+      .from(CourseMaterialSchema)
+      .where(
+        and(
+          eq(CourseMaterialSchema.courseId, course.id),
+          weekMatch,
+          sessionMatch,
+          isNull(CourseMaterialSchema.deletedAt),
+          contentMatch
+        )
+      )
+      .limit(1);
+
+    if (existingDup) {
+      if (existingDup.isPublished) {
+        return NextResponse.json(
+          {
+            error: "This lesson has already been added by another volunteer and approved. No action needed.",
+            duplicate: true,
+            existing_material_id: existingDup.id,
+          },
+          { status: 409 }
+        );
+      }
+
+      if (existingDup.volunteerId === session.user.id) {
+        return NextResponse.json(
+          {
+            error: "You already captured this lesson. It's pending admin review.",
+            duplicate: true,
+            existing_material_id: existingDup.id,
+          },
+          { status: 409 }
+        );
+      }
+
+      return NextResponse.json(
+        {
+          error: "This lesson is already in the moderation queue. Admin will review the existing capture.",
+          duplicate: true,
+          existing_material_id: existingDup.id,
+        },
+        { status: 409 }
+      );
+    }
+
+    // 7. Insert ingestion job
     const [job] = await pgDb
       .insert(IngestionJobSchema)
       .values({
