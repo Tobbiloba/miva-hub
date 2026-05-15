@@ -1576,3 +1576,101 @@
   transform: rotateY(180deg);
 }
 
+/* ─── Askly Design System ───────────────────────────────────────────────────
+   Tokens layer on top of shadcn/Tailwind — no existing variables are changed.
+   Askly pages import these; non-Askly pages continue using shadcn variables.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Background */
+  --askly-bg: #0a0807;
+  --askly-bg-elevated: #15110d;
+
+  /* Amber ramp */
+  --askly-amber-50: #FAEEDA;
+  --askly-amber-100: #FAC775;
+  --askly-amber-400: #EF9F27;
+  --askly-amber-600: #BA7517;
+  --askly-amber-800: #633806;
+  --askly-amber-900: #412402;
+
+  /* Text */
+  --askly-text-primary: rgba(255, 255, 255, 0.95);
+  --askly-text-secondary: rgba(255, 255, 255, 0.65);
+  --askly-text-tertiary: rgba(255, 255, 255, 0.45);
+  --askly-text-muted: rgba(255, 255, 255, 0.3);
+
+  /* Borders */
+  --askly-border: rgba(255, 255, 255, 0.08);
+  --askly-border-hover: rgba(255, 255, 255, 0.16);
+  --askly-border-active: rgba(250, 199, 117, 0.35);
+
+  /* Glass backgrounds */
+  --askly-glass-bg: rgba(20, 16, 12, 0.45);
+  --askly-glass-bg-subtle: rgba(255, 255, 255, 0.04);
+  --askly-glass-bg-active: rgba(250, 199, 117, 0.12);
+}
+
+/* ── Glass surface utilities ─────────────────────────────────────────────── */
+
+.askly-glass {
+  background: var(--askly-glass-bg);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 0.5px solid var(--askly-border);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.4),
+    0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.askly-glass-subtle {
+  background: var(--askly-glass-bg-subtle);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 0.5px solid var(--askly-border);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.askly-glass-subtle:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--askly-border-hover);
+}
+
+.askly-glass-active {
+  background: var(--askly-glass-bg-active);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 0.5px solid var(--askly-border-active);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.15),
+    0 0 24px rgba(250, 199, 117, 0.18);
+}
+
+/* ── Orb animation keyframes ─────────────────────────────────────────────── */
+
+@keyframes askly-orb-float-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(60px, 40px) scale(1.1); }
+}
+
+@keyframes askly-orb-float-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(-50px, 30px) scale(0.95); }
+}
+
+@keyframes askly-orb-float-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(40px, -50px) scale(1.05); }
+}
+
+@keyframes askly-pulse-glow {
+  0%, 100% { opacity: 0.85; }
+  50%       { opacity: 1; }
+}
+
+.askly-orb-1 { animation: askly-orb-float-1 14s ease-in-out infinite; }
+.askly-orb-2 { animation: askly-orb-float-2 18s ease-in-out infinite; }
+.askly-orb-3 { animation: askly-orb-float-3 22s ease-in-out infinite; }
+.askly-pulse-glow { animation: askly-pulse-glow 4s ease-in-out infinite; }
+
