@@ -105,6 +105,16 @@ export const auth = betterAuth({
       }
     },
   },
+  user: {
+    additionalFields: {
+      role: { type: "string", nullable: true, defaultValue: null },
+      enrollmentStatus: { type: "string", nullable: true, defaultValue: null },
+      studentId: { type: "string", nullable: true, defaultValue: null },
+      academicYear: { type: "string", nullable: true, defaultValue: null },
+      year: { type: "string", nullable: true, defaultValue: null },
+      major: { type: "string", nullable: true, defaultValue: null },
+    },
+  },
   session: {
     cookieCache: {
       enabled: true,
