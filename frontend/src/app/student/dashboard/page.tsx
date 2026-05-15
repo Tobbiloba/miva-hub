@@ -26,8 +26,13 @@ async function getPageData(userId: string) {
       .catch(() => []),
   ]);
 
+  // Only consider currently-active enrollments (excludes completed 100L courses)
+  const activeEnrollments = enrollments.filter(
+    (e) => (e as any).status === "enrolled"
+  );
+
   // Resolve first course details (enrollment only has courseId)
-  const firstEnrollment = enrollments[0] ?? null;
+  const firstEnrollment = activeEnrollments[0] ?? null;
   const firstCourse = firstEnrollment
     ? await pgAcademicRepository
         .getCourseById(firstEnrollment.courseId)
@@ -68,7 +73,7 @@ async function getPageData(userId: string) {
 
   return {
     courseCode,
-    hasEnrollments: enrollments.length > 0,
+    hasEnrollments: activeEnrollments.length > 0,
     upcomingAssignment,
     latestAnnouncement,
   };

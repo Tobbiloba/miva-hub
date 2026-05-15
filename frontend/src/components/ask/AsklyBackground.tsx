@@ -31,47 +31,47 @@ export function AsklyBackground({ intensity = "normal" }: AsklyBackgroundProps) 
           position: "absolute",
           top: "-10%",
           left: "-5%",
-          width: `${700 * cfg.scale}px`,
-          height: `${700 * cfg.scale}px`,
+          width: `${750 * cfg.scale}px`,
+          height: `${750 * cfg.scale}px`,
           borderRadius: "50%",
           background:
-            "radial-gradient(ellipse at center, rgba(239,159,39,0.38) 0%, rgba(186,117,23,0.18) 40%, transparent 70%)",
+            "radial-gradient(ellipse at center, rgba(239,159,39,0.58) 0%, rgba(186,117,23,0.28) 40%, transparent 70%)",
           opacity: cfg.opacity,
-          filter: "blur(8px)",
+          filter: "blur(80px)",
         }}
       />
 
-      {/* Orb 2 — deep amber/orange, bottom-right */}
+      {/* Orb 2 — red-orange, bottom-right */}
       <div
         className="askly-orb-2"
         style={{
           position: "absolute",
           bottom: "-15%",
           right: "-8%",
-          width: `${600 * cfg.scale}px`,
-          height: `${600 * cfg.scale}px`,
+          width: `${650 * cfg.scale}px`,
+          height: `${650 * cfg.scale}px`,
           borderRadius: "50%",
           background:
-            "radial-gradient(ellipse at center, rgba(250,199,117,0.28) 0%, rgba(239,159,39,0.12) 45%, transparent 70%)",
-          opacity: cfg.opacity * 0.85,
-          filter: "blur(10px)",
+            "radial-gradient(ellipse at center, rgba(216,90,48,0.42) 0%, rgba(186,60,20,0.2) 45%, transparent 70%)",
+          opacity: cfg.opacity * 0.9,
+          filter: "blur(90px)",
         }}
       />
 
-      {/* Orb 3 — burnt amber accent, center-right */}
+      {/* Orb 3 — lighter amber accent, center-right */}
       <div
         className="askly-orb-3"
         style={{
           position: "absolute",
           top: "30%",
           right: "15%",
-          width: `${420 * cfg.scale}px`,
-          height: `${420 * cfg.scale}px`,
+          width: `${500 * cfg.scale}px`,
+          height: `${500 * cfg.scale}px`,
           borderRadius: "50%",
           background:
-            "radial-gradient(ellipse at center, rgba(99,56,6,0.45) 0%, rgba(65,36,2,0.2) 50%, transparent 75%)",
-          opacity: cfg.opacity * 0.7,
-          filter: "blur(6px)",
+            "radial-gradient(ellipse at center, rgba(250,199,117,0.35) 0%, rgba(239,159,39,0.15) 50%, transparent 75%)",
+          opacity: cfg.opacity * 0.8,
+          filter: "blur(70px)",
         }}
       />
 
