@@ -100,16 +100,17 @@ export async function PUT(
     const { id } = await params;
     const userId = id;
     const body = await request.json();
-    const { 
-      name, 
-      email, 
-      role, 
-      status, 
-      studentId, 
-      major, 
-      year, 
+    const {
+      name,
+      email,
+      role,
+      status,
+      studentId,
+      major,
+      year,
       currentSemester,
-      enrollmentStatus 
+      enrollmentStatus,
+      isVerified,
     } = body;
 
     // Check if user exists
@@ -127,19 +128,25 @@ export async function PUT(
     }
 
     // Update user
+    // Build the update payload — only include fields that were sent
+    const updateData: Record<string, any> = { updatedAt: new Date() };
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
+    if (role !== undefined) updateData.role = role;
+    if (role === 'student') {
+      if (studentId !== undefined) updateData.studentId = studentId;
+      if (major !== undefined) updateData.major = major;
+      if (year !== undefined) updateData.year = year;
+      if (currentSemester !== undefined) updateData.currentSemester = currentSemester;
+    }
+    if (enrollmentStatus !== undefined || status !== undefined) {
+      updateData.enrollmentStatus = enrollmentStatus || status;
+    }
+    if (typeof isVerified === "boolean") updateData.isVerified = isVerified;
+
     const updatedUser = await pgDb
       .update(UserSchema)
-      .set({
-        name,
-        email,
-        role,
-        studentId: role === 'student' ? studentId : null,
-        major: role === 'student' ? major : null,
-        year: role === 'student' ? year : null,
-        currentSemester: role === 'student' ? currentSemester : null,
-        enrollmentStatus: enrollmentStatus || status,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(UserSchema.id, userId))
       .returning();
 

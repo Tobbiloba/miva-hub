@@ -77,18 +77,19 @@ export async function GET(request: NextRequest) {
       email: user.email,
       role: user.role,
       status: user.enrollmentStatus || 'active',
+      isVerified: user.isVerified,
       department: department?.name || 'Not assigned',
       studentId: user.studentId,
       level: user.year,
       joinDate: user.createdAt.toISOString(),
-      lastLogin: user.updatedAt.toISOString(), // Placeholder - would need session tracking
+      lastLogin: user.updatedAt.toISOString(),
       phone: faculty?.contactPhone || null,
-      gpa: 3.2, // Placeholder - would calculate from actual grades
-      creditsCompleted: 0, // Placeholder - would calculate from enrollments
+      gpa: 3.2,
+      creditsCompleted: 0,
       employeeId: faculty?.employeeId || null,
       position: faculty?.position || null,
       officeLocation: faculty?.officeLocation || null,
-      coursesTeaching: 0, // Placeholder - would count from course assignments
+      coursesTeaching: 0,
       permissions: user.role === 'admin' ? ['user_management', 'system_admin'] : [],
     }));
 

@@ -54,6 +54,7 @@ interface User {
   email: string;
   role: string;
   status: string;
+  isVerified: boolean;
   department: string;
   studentId?: string;
   level?: string;
@@ -125,6 +126,8 @@ export default function UsersManagePage() {
   const [selectedRole, setSelectedRole] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
+  const [selectedVerified, setSelectedVerified] = useState<string>("all");
+  const [togglingVerify, setTogglingVerify] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -181,6 +184,34 @@ export default function UsersManagePage() {
     }
   };
 
+  const handleToggleVerify = async (user: User) => {
+    setTogglingVerify(user.id);
+    try {
+      const response = await fetch(`/api/admin/users/${user.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isVerified: !user.isVerified }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === user.id ? { ...u, isVerified: !u.isVerified } : u
+          )
+        );
+        toast.success(
+          `${user.name} marked as ${!user.isVerified ? "verified" : "unverified"}`
+        );
+      } else {
+        toast.error(data.message || "Failed to update verification");
+      }
+    } catch {
+      toast.error("Failed to update verification");
+    } finally {
+      setTogglingVerify(null);
+    }
+  };
+
   // Filter users based on search and selections
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -189,8 +220,11 @@ export default function UsersManagePage() {
     const matchesRole = selectedRole === "all" || user.role === selectedRole;
     const matchesStatus = selectedStatus === "all" || user.status === selectedStatus;
     const matchesDepartment = selectedDepartment === "all" || user.department === selectedDepartment;
-    
-    return matchesSearch && matchesRole && matchesStatus && matchesDepartment;
+    const matchesVerified = selectedVerified === "all" ||
+      (selectedVerified === "verified" && user.isVerified) ||
+      (selectedVerified === "unverified" && !user.isVerified);
+
+    return matchesSearch && matchesRole && matchesStatus && matchesDepartment && matchesVerified;
   });
 
   // Pagination
@@ -341,6 +375,16 @@ export default function UsersManagePage() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={selectedVerified} onValueChange={setSelectedVerified}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Verification" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Verification</SelectItem>
+                <SelectItem value="verified">Verified</SelectItem>
+                <SelectItem value="unverified">Unverified</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -421,9 +465,23 @@ export default function UsersManagePage() {
                       </TableCell>
                       
                       <TableCell>
-                        <Badge variant="outline" className={getStatusColor(user.status)}>
-                          {user.status}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="outline" className={getStatusColor(user.status)}>
+                            {user.status}
+                          </Badge>
+                          {user.role === "student" && (
+                            <Badge
+                              variant="outline"
+                              className={
+                                user.isVerified
+                                  ? "bg-green-50 text-green-700 border-green-200 text-xs"
+                                  : "bg-amber-50 text-amber-700 border-amber-200 text-xs"
+                              }
+                            >
+                              {user.isVerified ? "Verified" : "Unverified"}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       
                       <TableCell>
@@ -477,17 +535,39 @@ export default function UsersManagePage() {
                       </TableCell>
                       
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => {
-                            setUserToDelete(user);
-                            setDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          {user.role === "student" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={togglingVerify === user.id}
+                              className={
+                                user.isVerified
+                                  ? "text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  : "text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                              }
+                              title={user.isVerified ? "Verified — click to unverify" : "Unverified — click to verify"}
+                              onClick={() => handleToggleVerify(user)}
+                            >
+                              {togglingVerify === user.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <UserCheck className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => {
+                              setUserToDelete(user);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
