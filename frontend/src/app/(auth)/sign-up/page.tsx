@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,190 +20,200 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useObjectState } from "@/hooks/use-object-state";
-import { cn } from "lib/utils";
-import { ChevronLeft, Loader } from "lucide-react";
+import { ChevronLeft, Loader, AlertCircle, Info } from "lucide-react";
 import { toast } from "sonner";
-import { safe } from "ts-safe";
-import { UserZodSchema } from "app-types/user";
 import { existsByEmailAction } from "@/app/api/auth/actions";
-import { useRouter } from "next/navigation";
-import useSWR from "swr";
-import { validateSchoolEmail } from "@/lib/utils/email-validation";
 
-// SWR fetcher function
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+// ── Types ────────────────────────────────────────────────────────────────────
+
+interface Program {
+  id: string;
+  code: string;
+  name: string;
+  durationYears: number;
+}
+
+interface AcademicSession {
+  sessionName: string;
+  currentSemester: "first" | "second";
+  academicYear: string;
+  enrollmentSemester: string;
+  status: string;
+}
+
+// ── Component ────────────────────────────────────────────────────────────────
 
 export default function SignUpPage() {
-  const [step, setStep] = useState(1);
   const router = useRouter();
+  const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
-  const [formData, setFormData] = useObjectState({
-    // Basic info
-    email: "",
-    name: "",
-    studentId: "",
-    password: "",
-    // Academic info
-    major: "",
-    year: "",
-    semester: "",
-  });
 
-  // Fetch departments and courses data
-  const { data: departments } = useSWR('/api/departments/public', fetcher);
+  // Form state
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [programId, setProgramId] = useState("");
+  const [level, setLevel] = useState("");
+  const [matricNumber, setMatricNumber] = useState("");
 
-  // Build the courses URL with all filters (departmentId, level, semester)
-  const coursesUrl = formData.major && departments
-    ? (() => {
-        const selectedDept = departments.find((dept: any) => dept.value === formData.major);
-        if (!selectedDept) return '/api/courses/available';
-        
-        const params = new URLSearchParams({
-          departmentId: selectedDept.id
-        });
-        
-        // Add level filter if year is selected
-        if (formData.year) {
-          const levelMap: Record<string, string> = {
-            '100': '100L',
-            '200': '200L', 
-            '300': '300L',
-            '400': '400L',
-            'graduate': 'graduate',
-            'doctoral': 'doctoral'
-          };
-          params.append('level', levelMap[formData.year] || formData.year);
-        }
-        
-        // Add semester filter if semester is selected
-        if (formData.semester) {
-          const semesterMap: Record<string, string> = {
-            'first': 'fall',
-            'second': 'spring'
-          };
-          params.append('semester', semesterMap[formData.semester] || formData.semester);
-        }
-        
-        return `/api/courses/available?${params.toString()}`;
-      })()
-    : '/api/courses/available';
+  // Data
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [session, setSession] = useState<AcademicSession | null>(null);
 
-  const { data: coursesData } = useSWR(coursesUrl, fetcher);
+  // Validation state
+  const [emailWarning, setEmailWarning] = useState("");
+  const [matricError, setMatricError] = useState("");
 
-  const steps = [
-    "Basic Information",
-    "Academic Information", 
-    "Course Selection",
-  ];
+  // Fetch programs and session on mount
+  useEffect(() => {
+    fetch("/api/programs/public")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setPrograms(data);
+      })
+      .catch(() => toast.error("Failed to load programs"));
 
-  const safeProcessWithLoading = function <T>(fn: () => Promise<T>) {
-    setIsLoading(true);
-    return safe(() => fn()).watch(() => setIsLoading(false));
-  };
+    fetch("/api/academic/session/current")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.sessionName) setSession(data);
+      })
+      .catch(() => {});
+  }, []);
 
-  const backStep = () => {
-    setStep(Math.max(step - 1, 1));
-  };
+  // Email domain check (soft warning)
+  useEffect(() => {
+    if (email && !email.toLowerCase().endsWith("@miva.edu.ng")) {
+      setEmailWarning("We recommend using your MIVA email (@miva.edu.ng)");
+    } else {
+      setEmailWarning("");
+    }
+  }, [email]);
 
-  const validateBasicInfo = async () => {
-    // Validate MIVA email
-    const emailValidation = validateSchoolEmail(formData.email);
-    if (!emailValidation.isValid) {
-      toast.error(emailValidation.error || "Please use your MIVA University email address");
+  // Matric number format validation
+  useEffect(() => {
+    if (matricNumber && !/^MIVA\/[A-Z]{2,4}\/\d{4}\/\d{3}$/.test(matricNumber)) {
+      setMatricError("Format: MIVA/DEPT/YEAR/NNN (e.g. MIVA/CS/2025/001)");
+    } else {
+      setMatricError("");
+    }
+  }, [matricNumber]);
+
+  const passwordStrong =
+    password.length >= 8 &&
+    /[A-Z]/.test(password) &&
+    /[0-9]/.test(password);
+
+  // ── Step 1 validation ──────────────────────────────────────────────────────
+
+  const validateStep1 = async (): Promise<boolean> => {
+    if (!name.trim()) {
+      toast.error("Please enter your full name");
+      return false;
+    }
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Please enter a valid email address");
+      return false;
+    }
+    if (!passwordStrong) {
+      toast.error("Password needs 8+ chars, one uppercase, one number");
+      return false;
+    }
+    if (password !== confirmPassword) {
+      toast.error("Passwords don't match");
       return false;
     }
 
     // Check if email already exists
-    const exists = await safeProcessWithLoading(() =>
-      existsByEmailAction(formData.email),
-    ).orElse(false);
-    if (exists) {
-      toast.error("Email already exists");
-      return false;
-    }
-
-    // Validate name
-    const { success: nameValid } = UserZodSchema.shape.name.safeParse(formData.name);
-    if (!nameValid || !formData.name.trim()) {
-      toast.error("Please enter your full name");
-      return false;
-    }
-
-    // Validate student ID
-    if (!formData.studentId.trim()) {
-      toast.error("Please enter your student ID");
-      return false;
-    }
-
-    // Validate password
-    const { success: passwordValid } = UserZodSchema.shape.password.safeParse(formData.password);
-    if (!passwordValid || !formData.password) {
-      toast.error("Please enter a valid password (minimum 8 characters)");
-      return false;
+    setIsLoading(true);
+    try {
+      const exists = await existsByEmailAction(email);
+      if (exists) {
+        toast.error("An account with this email already exists");
+        return false;
+      }
+    } catch {
+      // Allow through if check fails
+    } finally {
+      setIsLoading(false);
     }
 
     return true;
   };
 
-  const validateAcademicInfo = () => {
-    if (!formData.major) {
-      toast.error("Please select your major");
-      return false;
-    }
-    if (!formData.year) {
-      toast.error("Please select your academic level");
-      return false;
-    }
-    if (!formData.semester) {
-      toast.error("Please select your current semester");
-      return false;
-    }
-    return true;
-  };
+  // ── Step 2 validation + submit ─────────────────────────────────────────────
 
-  const nextStep = async () => {
-    if (step === 1) {
-      const valid = await validateBasicInfo();
-      if (valid) setStep(2);
-    } else if (step === 2) {
-      const valid = validateAcademicInfo();
-      if (valid) setStep(3);
-    } else if (step === 3) {
-      await completeRegistration();
+  const validateAndSubmit = async () => {
+    if (!programId) {
+      toast.error("Please select your program");
+      return;
     }
-  };
-
-  const completeRegistration = async () => {
-    if (selectedCourses.length === 0) {
-      toast.error("Please select at least one course");
+    if (!level) {
+      toast.error("Please select your level");
+      return;
+    }
+    if (!session) {
+      toast.error("No active academic session available. Contact admin.");
+      return;
+    }
+    if (matricError) {
+      toast.error("Please fix the matric number format or leave it blank");
       return;
     }
 
-    await safeProcessWithLoading(async () => {
-      // Use our custom registration endpoint that handles academic fields and enrollments
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...formData,
-          selectedCourses,
+          name: name.trim(),
+          email: email.toLowerCase().trim(),
+          password,
+          programId,
+          level: Number(level),
+          matricNumber: matricNumber.trim() || undefined,
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Registration failed');
+        throw new Error(data.error || "Registration failed");
       }
 
-      toast.success("Registration completed successfully!");
-      router.push("/pricing");
-    }).unwrap();
+      const enrolledCount = data.enrolledCourses ?? 0;
+      const semesterLabel =
+        data.semester === "first" ? "First Semester" : "Second Semester";
+
+      toast.success(
+        enrolledCount > 0
+          ? `Welcome! You're enrolled in ${enrolledCount} courses for ${semesterLabel} ${data.academicYear}`
+          : `Account created! Visit your dashboard to get started.`
+      );
+
+      // Brief delay so the user sees the success toast
+      setTimeout(() => router.push("/student/dashboard"), 1500);
+    } catch (error: any) {
+      toast.error(error.message || "Registration failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const handleNext = async () => {
+    if (step === 1) {
+      const valid = await validateStep1();
+      if (valid) setStep(2);
+    } else {
+      await validateAndSubmit();
+    }
+  };
+
+  const selectedProgram = programs.find((p) => p.id === programId);
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="animate-in fade-in duration-1000 w-full h-full flex flex-col p-4 md:p-8 justify-center relative">
@@ -211,211 +222,241 @@ export default function SignUpPage() {
           <Button variant="ghost">Sign In</Button>
         </Link>
       </div>
+
       <Card className="w-full md:max-w-lg bg-background border-none mx-auto gap-0 shadow-none">
         <CardHeader>
           <CardTitle className="text-2xl text-center">
             Join MIVA University
           </CardTitle>
-          <CardDescription className="py-12">
+          <CardDescription className="py-6">
             <div className="flex flex-col gap-2">
               <p className="text-xs text-muted-foreground text-right">
-                Step {step} of {steps.length}
+                Step {step} of 2
               </p>
-              <div className="h-2 w-full relative bg-input">
+              <div className="h-2 w-full relative bg-input rounded-full overflow-hidden">
                 <div
-                  style={{
-                    width: `${(step / 3) * 100}%`,
-                  }}
+                  style={{ width: `${(step / 2) * 100}%` }}
                   className="h-full bg-primary transition-all duration-300"
-                ></div>
+                />
               </div>
             </div>
           </CardDescription>
         </CardHeader>
+
         <CardContent>
           <div className="flex flex-col gap-4">
+            {/* ── Step 1: Basic Info ───────────────────────────────────── */}
             {step === 1 && (
-              <div className="flex flex-col gap-4">
+              <>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input
                     id="name"
-                    type="text"
                     placeholder="Enter your full name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     disabled={isLoading}
                     autoFocus
-                    value={formData.name}
-                    onChange={(e) => setFormData({ name: e.target.value })}
-                    required
                   />
                 </div>
+
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="email">MIVA University Email</Label>
+                  <Label htmlFor="email">Email Address</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="student.name@miva.edu.ng"
+                    placeholder="you@miva.edu.ng"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     disabled={isLoading}
-                    value={formData.email}
-                    onChange={(e) => setFormData({ email: e.target.value })}
-                    required
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Must be your MIVA University email address
-                  </p>
+                  {emailWarning && (
+                    <p className="text-xs text-amber-500 flex items-center gap-1">
+                      <Info className="size-3 shrink-0" />
+                      {emailWarning}
+                    </p>
+                  )}
                 </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="studentId">Student ID</Label>
-                  <Input
-                    id="studentId"
-                    type="text"
-                    placeholder="Enter your student ID"
-                    disabled={isLoading}
-                    value={formData.studentId}
-                    onChange={(e) => setFormData({ studentId: e.target.value })}
-                    required
-                  />
-                </div>
+
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="password">Password</Label>
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Enter a secure password"
+                    placeholder="Min 8 chars, 1 uppercase, 1 number"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     disabled={isLoading}
-                    value={formData.password}
-                    onChange={(e) => setFormData({ password: e.target.value })}
-                    required
-                    minLength={8}
                   />
+                  {password && (
+                    <div className="flex gap-1.5 mt-1">
+                      <div
+                        className={`h-1 flex-1 rounded-full ${
+                          password.length >= 8
+                            ? "bg-green-500"
+                            : "bg-muted-foreground/30"
+                        }`}
+                      />
+                      <div
+                        className={`h-1 flex-1 rounded-full ${
+                          /[A-Z]/.test(password)
+                            ? "bg-green-500"
+                            : "bg-muted-foreground/30"
+                        }`}
+                      />
+                      <div
+                        className={`h-1 flex-1 rounded-full ${
+                          /[0-9]/.test(password)
+                            ? "bg-green-500"
+                            : "bg-muted-foreground/30"
+                        }`}
+                      />
+                    </div>
+                  )}
                 </div>
-              </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Re-enter your password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={isLoading}
+                  />
+                  {confirmPassword && password !== confirmPassword && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="size-3" />
+                      Passwords don&apos;t match
+                    </p>
+                  )}
+                </div>
+              </>
             )}
 
+            {/* ── Step 2: Academic Info ────────────────────────────────── */}
             {step === 2 && (
-              <div className="flex flex-col gap-4">
+              <>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="major">Major</Label>
-                  <Select value={formData.major} onValueChange={(value) => setFormData({ major: value })}>
+                  <Label>Program</Label>
+                  <Select value={programId} onValueChange={setProgramId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select your major" />
+                      <SelectValue placeholder="Select your program" />
                     </SelectTrigger>
                     <SelectContent>
-                      {departments?.map((dept: any) => (
-                        <SelectItem key={dept.value} value={dept.value}>
-                          {dept.label}
+                      {programs.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          B.Sc {p.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="year">Academic Level</Label>
-                  <Select value={formData.year} onValueChange={(value) => setFormData({ year: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your academic level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="100">100 Level (Freshman)</SelectItem>
-                      <SelectItem value="200">200 Level (Sophomore)</SelectItem>
-                      <SelectItem value="300">300 Level (Junior)</SelectItem>
-                      <SelectItem value="400">400 Level (Senior)</SelectItem>
-                      <SelectItem value="graduate">Graduate Student</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="semester">Current Semester</Label>
-                  <Select value={formData.semester} onValueChange={(value) => setFormData({ semester: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your current semester" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="first">First Semester</SelectItem>
-                      <SelectItem value="second">Second Semester</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
 
-            {step === 3 && (
-              <div className="flex flex-col gap-4">
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Select Your Courses</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Choose the courses you&apos;re enrolling in for {coursesData?.semester || "this semester"}
-                  </p>
+                <div className="flex flex-col gap-2">
+                  <Label>Level</Label>
+                  <Select value={level} onValueChange={setLevel}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="100">100 Level</SelectItem>
+                      <SelectItem value="200">200 Level</SelectItem>
+                      <SelectItem value="300">300 Level</SelectItem>
+                      <SelectItem value="400">400 Level</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {coursesData?.courses?.map((course: any) => (
-                    <div key={course.id} className="flex items-start space-x-3 p-3 border rounded-lg">
-                      <Checkbox
-                        id={course.id}
-                        checked={selectedCourses.includes(course.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedCourses([...selectedCourses, course.id]);
-                          } else {
-                            setSelectedCourses(selectedCourses.filter(id => id !== course.id));
-                          }
-                        }}
-                      />
-                      <div className="flex-1">
-                        <Label htmlFor={course.id} className="cursor-pointer">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <div className="font-medium">{course.code}</div>
-                              <div className="text-sm text-muted-foreground">{course.title}</div>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {course.credits} credits
-                            </div>
-                          </div>
-                          {course.schedule && course.schedule.length > 0 && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {course.schedule.map((s: any, idx: number) => (
-                                <span key={idx}>
-                                  {s.day.charAt(0).toUpperCase() + s.day.slice(1)} {s.time}
-                                  {idx < course.schedule.length - 1 && ", "}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </Label>
-                      </div>
-                    </div>
-                  ))}
-                  {!coursesData?.courses && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      Loading available courses...
-                    </div>
+
+                {/* Session/Semester — read-only display */}
+                {session ? (
+                  <div className="rounded-lg border bg-muted/50 px-4 py-3">
+                    <p className="text-xs text-muted-foreground mb-1">
+                      Current Session
+                    </p>
+                    <p className="text-sm font-medium">
+                      {session.sessionName} &middot;{" "}
+                      {session.currentSemester === "first"
+                        ? "First Semester"
+                        : "Second Semester"}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+                    <p className="text-xs text-destructive">
+                      No active academic session detected. Contact admin.
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="matric">
+                    Matric Number{" "}
+                    <span className="text-muted-foreground font-normal">
+                      (optional)
+                    </span>
+                  </Label>
+                  <Input
+                    id="matric"
+                    placeholder="MIVA/CS/2025/001"
+                    value={matricNumber}
+                    onChange={(e) => setMatricNumber(e.target.value.toUpperCase())}
+                    disabled={isLoading}
+                  />
+                  {matricError && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="size-3 shrink-0" />
+                      {matricError}
+                    </p>
                   )}
                 </div>
-              </div>
+
+                {/* Preview what they'll be enrolled in */}
+                {selectedProgram && level && session && (
+                  <div className="rounded-lg border bg-muted/30 px-4 py-3">
+                    <p className="text-xs text-muted-foreground">
+                      You&apos;ll be auto-enrolled in all compulsory{" "}
+                      <span className="font-medium text-foreground">
+                        {level}L {selectedProgram.code}
+                      </span>{" "}
+                      courses for{" "}
+                      <span className="font-medium text-foreground">
+                        {session.currentSemester === "first"
+                          ? "First"
+                          : "Second"}{" "}
+                        Semester {session.academicYear}
+                      </span>
+                    </p>
+                  </div>
+                )}
+              </>
             )}
 
-            <p className="text-muted-foreground text-xs mb-6">
-              {steps[step - 1]}
+            {/* ── Step label ──────────────────────────────────────────── */}
+            <p className="text-muted-foreground text-xs mb-2">
+              {step === 1 ? "Basic Information" : "Academic Information"}
             </p>
 
+            {/* ── Navigation buttons ──────────────────────────────────── */}
             <div className="flex gap-2">
               <Button
                 disabled={isLoading}
-                className={cn(step === 1 && "opacity-0", "w-1/2")}
+                className={step === 1 ? "opacity-0 pointer-events-none" : ""}
+                style={{ width: "50%" }}
                 variant="ghost"
-                onClick={backStep}
+                onClick={() => setStep(1)}
               >
                 <ChevronLeft className="size-4" />
                 Back
               </Button>
               <Button
                 disabled={isLoading}
-                className="w-1/2"
-                onClick={nextStep}
+                style={{ width: "50%" }}
+                onClick={handleNext}
               >
-                {step === 3 ? "Complete Registration" : "Next"}
-                {isLoading && <Loader className="size-4 ml-2" />}
+                {step === 2 ? "Create Account" : "Next"}
+                {isLoading && <Loader className="size-4 ml-2 animate-spin" />}
               </Button>
             </div>
           </div>

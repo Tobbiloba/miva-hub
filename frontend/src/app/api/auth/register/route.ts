@@ -1,160 +1,174 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validateSchoolEmail, prepareUserRegistrationData } from "lib/utils/email-validation";
 import { auth } from "lib/auth/server";
 import { sendEmail } from "@/lib/email/smtp-service";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, name, password, studentId, major, year, semester, selectedCourses } = body;
+    const {
+      email,
+      name,
+      password,
+      programId,
+      level,
+      matricNumber,
+    } = body;
 
     // Validate required fields
-    if (!email || !name || !password || !studentId || !major || !year || !semester) {
+    if (!email || !name || !password || !programId || !level) {
       return NextResponse.json(
-        { error: "All basic and academic information fields are required" },
+        { error: "Name, email, password, program, and level are required" },
         { status: 400 }
       );
     }
 
-    // Validate courses selection
-    if (!selectedCourses || !Array.isArray(selectedCourses) || selectedCourses.length === 0) {
+    if (password.length < 8) {
       return NextResponse.json(
-        { error: "Please select at least one course" },
+        { error: "Password must be at least 8 characters" },
         { status: 400 }
       );
     }
 
-    // Validate school email BEFORE attempting registration
-    const emailValidation = validateSchoolEmail(email);
-    if (!emailValidation.isValid) {
+    // Validate matric number format if provided
+    if (matricNumber && !/^MIVA\/[A-Z]{2,4}\/\d{4}\/\d{3}$/.test(matricNumber)) {
       return NextResponse.json(
-        { 
-          error: emailValidation.error,
-          code: "INVALID_SCHOOL_EMAIL" 
-        },
+        { error: "Invalid matric number format. Expected: MIVA/DEPT/YEAR/NNN" },
         { status: 400 }
       );
     }
 
-    // Prepare user data with academic fields (but override studentId with form input)
-    const userData = prepareUserRegistrationData({ email, name, password });
-    userData.studentId = studentId; // Use the studentId from form input
+    // Get active academic session for semester/year context
+    const activeSession = await pgAcademicRepository.getActiveAcademicSession();
+    if (!activeSession) {
+      return NextResponse.json(
+        { error: "No active academic session. Contact admin." },
+        { status: 503 }
+      );
+    }
 
-    // Call Better Auth's sign-up API
+    const academicYear = activeSession.sessionName.replace("/", "-");
+    const currentSemester = activeSession.currentSemester; // "first" | "second"
+
+    // Build enrollment semester string: "first" + "2025/2026" → "2025-fall"
+    const [startYear, endYear] = activeSession.sessionName.split("/");
+    const enrollmentSemester =
+      currentSemester === "first"
+        ? `${startYear}-fall`
+        : `${endYear}-spring`;
+
+    // 1. Create user via Better Auth
     const signUpResponse = await auth.api.signUpEmail({
-      body: {
-        email: userData.email,
-        name: userData.name,
-        password: password, // Use original password directly to ensure it's defined
-      },
+      body: { email: email.toLowerCase().trim(), name: name.trim(), password },
       headers: request.headers,
     });
 
-    // If sign-up was successful, update user with academic fields and create enrollments
-    if (signUpResponse && signUpResponse.user) {
-      const { pgDb } = await import("lib/db/pg/db.pg");
-      const { 
-        UserSchema, 
-        StudentEnrollmentSchema
-      } = await import("lib/db/pg/schema.pg");
-      const { pgAcademicRepository } = await import("@/lib/db/pg/repositories/academic-repository.pg");
-      const { eq } = await import("drizzle-orm");
+    if (!signUpResponse?.user) {
+      return NextResponse.json(
+        { error: "Failed to create account" },
+        { status: 500 }
+      );
+    }
 
-      try {
-        // Get the active academic calendar for enrollment context
-        const activeCalendar = await pgAcademicRepository.getActiveAcademicCalendar();
-        
-        // Find the department that matches the selected major
-        const department = await pgAcademicRepository.getDepartmentByCode(major.toUpperCase());
-        
-        // Update user with academic fields
-        await pgDb
-          .update(UserSchema)
-          .set({
-            studentId: userData.studentId,
-            major: department?.name || major,
-            year: year,
-            currentSemester: semester,
-            role: userData.role,
-            academicYear: userData.academicYear,
-            enrollmentStatus: userData.enrollmentStatus,
-          })
-          .where(eq(UserSchema.id, signUpResponse.user.id));
+    const userId = signUpResponse.user.id;
 
-        // Get current semester/year if not available in calendar
-        const { getCurrentSemester, getCurrentAcademicYear } = await import("@/lib/utils/semester");
-        const [currentSemester, currentAcademicYear] = await Promise.all([
-          getCurrentSemester(),
-          getCurrentAcademicYear()
-        ]);
+    // 2. Update user with academic fields
+    const { pgDb } = await import("lib/db/pg/db.pg");
+    const { UserSchema } = await import("lib/db/pg/schema.pg");
+    const { eq } = await import("drizzle-orm");
 
-        // Create student enrollments for selected courses
-        const enrollments = selectedCourses.map((courseId: string) => ({
-          studentId: signUpResponse.user.id,
-          courseId: courseId,
-          semester: activeCalendar?.semester || currentSemester,
-          academicYear: activeCalendar?.academicYear || currentAcademicYear,
-          status: "enrolled" as const,
-        }));
+    await pgDb
+      .update(UserSchema)
+      .set({
+        role: "student",
+        programId,
+        currentLevel: Number(level),
+        currentSemester,
+        academicYear,
+        enrollmentStatus: "active",
+        isVerified: false,
+        studentId: matricNumber || null,
+        year: String(level),
+        admissionSession: activeSession.sessionName,
+        admissionLevel: Number(level),
+      })
+      .where(eq(UserSchema.id, userId));
 
-        await pgDb.insert(StudentEnrollmentSchema).values(enrollments);
+    // 3. Auto-enroll in compulsory courses
+    let enrolledCount = 0;
+    try {
+      enrolledCount = await pgAcademicRepository.autoEnrollStudent(
+        userId,
+        programId,
+        Number(level),
+        currentSemester as "first" | "second",
+        academicYear,
+        enrollmentSemester
+      );
+    } catch (enrollError) {
+      console.error("Auto-enrollment error (non-fatal):", enrollError);
+      // Don't fail registration if enrollment fails
+    }
 
-        console.log(`User ${signUpResponse.user.id} registered with:`, {
-          role: userData.role,
-          academicYear: userData.academicYear,
-          studentId: userData.studentId,
-          major: department?.name || major,
-          year: year,
-          semester: semester,
-          enrolledCourses: selectedCourses.length,
-        });
+    // 4. Send welcome email (best-effort)
+    try {
+      const fs = await import("fs");
+      const path = await import("path");
+      const templatePath = path.join(
+        process.cwd(),
+        "src/lib/email/templates/welcome-email.html"
+      );
 
-      } catch (enrollmentError) {
-        console.error("Error creating student enrollments:", enrollmentError);
-        // Don't fail the registration if enrollment creation fails
-        // The user account was created successfully
-      }
-
-      // Send welcome email
-      try {
-        const fs = await import("fs");
-        const path = await import("path");
-        const welcomeTemplate = fs.readFileSync(
-          path.join(process.cwd(), "src/lib/email/templates/welcome-email.html"),
-          "utf-8"
-        );
-
+      if (fs.existsSync(templatePath)) {
+        const welcomeTemplate = fs.readFileSync(templatePath, "utf-8");
         const welcomeHtml = welcomeTemplate
-          .replace("{{userName}}", signUpResponse.user.name || "User")
-          .replace(/{{appUrl}}/g, process.env.NEXT_PUBLIC_APP_URL || "https://miva-hub.com");
+          .replace("{{userName}}", name.trim())
+          .replace(
+            /\{\{appUrl\}\}/g,
+            process.env.NEXT_PUBLIC_APP_URL || "https://miva-hub.com"
+          );
 
         await sendEmail({
-          to: signUpResponse.user.email,
+          to: email,
           subject: "Welcome to MIVA Hub! 🎓",
           html: welcomeHtml,
         });
-        console.log(`Welcome email sent to ${signUpResponse.user.email}`);
-      } catch (emailError) {
-        console.error("Error sending welcome email:", emailError);
-        // Don't fail registration if email fails
+        console.log(`Welcome email sent to ${email}`);
+      } else {
+        console.log(`[EMAIL STUB] Welcome email would be sent to ${email}`);
       }
+    } catch (emailError) {
+      console.error("Welcome email error (non-fatal):", emailError);
     }
 
-    return NextResponse.json(signUpResponse);
+    console.log(`Self-service signup complete:`, {
+      userId,
+      email,
+      programId,
+      level,
+      semester: currentSemester,
+      academicYear,
+      enrolledCourses: enrolledCount,
+    });
 
+    return NextResponse.json({
+      ...signUpResponse,
+      enrolledCourses: enrolledCount,
+      academicYear,
+      semester: currentSemester,
+    });
   } catch (error: any) {
     console.error("Registration error:", error);
-    
-    // Handle known Better Auth errors
+
     if (error.message?.includes("User already exists")) {
       return NextResponse.json(
-        { error: "A user with this email already exists", code: "USER_EXISTS" },
+        { error: "An account with this email already exists", code: "USER_EXISTS" },
         { status: 409 }
       );
     }
 
     return NextResponse.json(
-      { error: "Registration failed. Please try again." },
+      { error: error.message || "Registration failed. Please try again." },
       { status: 500 }
     );
   }

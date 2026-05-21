@@ -44,14 +44,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: emailAndPasswordEnabled,
     disableSignUp: !signUpEnabled,
-    requireEmailVerification: true,
-    onValidate: async ({ email }) => {
-      // Validate school email before registration
-      const validation = validateSchoolEmail(email);
-      if (!validation.isValid) {
-        throw new Error(validation.error);
-      }
-    },
+    requireEmailVerification: false,
     onSignUp: async ({ user }) => {
       try {
         // Prepare academic user data
@@ -113,6 +106,7 @@ export const auth = betterAuth({
       academicYear: { type: "string", nullable: true, defaultValue: null },
       year: { type: "string", nullable: true, defaultValue: null },
       major: { type: "string", nullable: true, defaultValue: null },
+      isVerified: { type: "boolean", defaultValue: false },
     },
   },
   session: {

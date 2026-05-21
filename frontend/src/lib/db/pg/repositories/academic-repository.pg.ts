@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, sql } from "drizzle-orm";
+import { eq, and, desc, asc, sql, inArray } from "drizzle-orm";
 import { pgDb as db } from "../db.pg";
 import {
   DepartmentSchema,
@@ -9,6 +9,9 @@ import {
   FacultySchema,
   AnnouncementSchema,
   AcademicCalendarSchema,
+  AcademicSessionSchema,
+  ProgramSchema,
+  ProgramCurriculumSchema,
   ClassScheduleSchema,
   CourseInstructorSchema,
   AssignmentSchema,
@@ -349,7 +352,10 @@ export const pgAcademicRepository = {
       .select()
       .from(StudentEnrollmentSchema)
       .where(and(...conditions))
-      .orderBy(desc(StudentEnrollmentSchema.enrollmentDate));
+      .orderBy(
+        desc(StudentEnrollmentSchema.academicYear),
+        desc(StudentEnrollmentSchema.enrollmentDate)
+      );
   },
 
   getCourseEnrollments: async (
@@ -1700,6 +1706,116 @@ export const pgAcademicRepository = {
       ...week,
       contentCount: Number(week.contentCount)
     }));
+  },
+
+  // ── Self-service signup helpers ──────────────────────────────────────────
+
+  getActivePrograms: async () => {
+    return db
+      .select({
+        id: ProgramSchema.id,
+        code: ProgramSchema.code,
+        name: ProgramSchema.name,
+        durationYears: ProgramSchema.durationYears,
+      })
+      .from(ProgramSchema)
+      .where(eq(ProgramSchema.isActive, true))
+      .orderBy(asc(ProgramSchema.name));
+  },
+
+  getActiveAcademicSession: async () => {
+    const [session] = await db
+      .select()
+      .from(AcademicSessionSchema)
+      .where(eq(AcademicSessionSchema.isCurrent, true))
+      .limit(1);
+    return session ?? null;
+  },
+
+  getCurriculumForEnrollment: async (
+    programId: string,
+    level: number,
+    semester: "first" | "second"
+  ) => {
+    return db
+      .select({
+        courseId: ProgramCurriculumSchema.courseId,
+        courseCode: CourseSchema.courseCode,
+        courseTitle: CourseSchema.title,
+        credits: CourseSchema.credits,
+        isCompulsory: ProgramCurriculumSchema.isCompulsory,
+      })
+      .from(ProgramCurriculumSchema)
+      .innerJoin(CourseSchema, eq(ProgramCurriculumSchema.courseId, CourseSchema.id))
+      .where(
+        and(
+          eq(ProgramCurriculumSchema.programId, programId),
+          eq(ProgramCurriculumSchema.level, level),
+          eq(ProgramCurriculumSchema.semester, semester),
+          eq(ProgramCurriculumSchema.isCompulsory, true)
+        )
+      )
+      .orderBy(asc(CourseSchema.courseCode));
+  },
+
+  /**
+   * Auto-enroll a student in all compulsory courses for their program/level/semester.
+   * Wraps in a transaction. Skips duplicates (idempotent).
+   * Returns count of newly created enrollment rows.
+   */
+  autoEnrollStudent: async (
+    userId: string,
+    programId: string,
+    level: number,
+    semester: "first" | "second",
+    academicYear: string,
+    enrollmentSemester: string // e.g. "2025-fall"
+  ): Promise<number> => {
+    const curriculum = await db
+      .select({ courseId: ProgramCurriculumSchema.courseId })
+      .from(ProgramCurriculumSchema)
+      .where(
+        and(
+          eq(ProgramCurriculumSchema.programId, programId),
+          eq(ProgramCurriculumSchema.level, level),
+          eq(ProgramCurriculumSchema.semester, semester),
+          eq(ProgramCurriculumSchema.isCompulsory, true)
+        )
+      );
+
+    if (curriculum.length === 0) return 0;
+
+    // Find existing enrollments to skip duplicates
+    const existingEnrollments = await db
+      .select({ courseId: StudentEnrollmentSchema.courseId })
+      .from(StudentEnrollmentSchema)
+      .where(
+        and(
+          eq(StudentEnrollmentSchema.studentId, userId),
+          eq(StudentEnrollmentSchema.semester, enrollmentSemester),
+          inArray(
+            StudentEnrollmentSchema.courseId,
+            curriculum.map((c) => c.courseId)
+          )
+        )
+      );
+
+    const existingCourseIds = new Set(existingEnrollments.map((e) => e.courseId));
+    const newCourses = curriculum.filter((c) => !existingCourseIds.has(c.courseId));
+
+    if (newCourses.length === 0) return 0;
+
+    await db.insert(StudentEnrollmentSchema).values(
+      newCourses.map((c) => ({
+        studentId: userId,
+        courseId: c.courseId,
+        semester: enrollmentSemester,
+        academicYear,
+        status: "enrolled" as const,
+      }))
+    );
+
+    return newCourses.length;
   },
 };
 

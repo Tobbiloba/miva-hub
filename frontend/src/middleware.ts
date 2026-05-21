@@ -53,6 +53,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api/auth|api/departments|api/courses|api/content|sign-in|sign-up|reset-password|landing|unauthorized|privacy|terms).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api/auth|api/departments|api/courses|api/content|api/programs/public|api/academic/session|sign-in|sign-up|reset-password|landing|unauthorized|privacy|terms).*)",
   ],
 };
