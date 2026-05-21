@@ -130,6 +130,9 @@ export const UserSchema = pgTable("user", {
   admissionSession: text("admission_session"), // e.g. '2023/2024'
   admissionLevel: integer("admission_level").default(100),
   
+  // Verification flag (admin-toggled; gates nothing in v1)
+  isVerified: boolean("is_verified").notNull().default(false),
+
   // Volunteer flag (composable — a student can also be a volunteer)
   isVolunteer: boolean("is_volunteer").notNull().default(false),
 
