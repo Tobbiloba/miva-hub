@@ -451,12 +451,12 @@ class DuplicateDetector:
             
             # First check for exact file matches (same hash)
             cursor.execute("""
-                SELECT DISTINCT cm.id, cm.title, cm.file_name, cm.file_path, 
+                SELECT DISTINCT cm.id, cm.title, cm.file_name, cm.content_url,
                        apc.extracted_text, cm."course_id"
                 FROM course_material cm
                 LEFT JOIN ai_processed_content apc ON cm.id = apc.course_material_id
                 WHERE (%s IS NULL OR cm."course_id" = %s)
-                AND cm.file_path IS NOT NULL
+                AND cm.content_url IS NOT NULL
             """, (course_id, course_id))
             
             existing_materials = cursor.fetchall()
@@ -469,7 +469,7 @@ class DuplicateDetector:
                     material_id = material['id']
                     title = material['title']
                     file_name = material['file_name']
-                    file_path = material['file_path']
+                    file_path = material['content_url']
                     extracted_text = material['extracted_text']
                     material_course_id = material['course_id']
                 else:

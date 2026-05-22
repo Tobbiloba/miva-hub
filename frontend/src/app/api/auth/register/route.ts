@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
         currentSemester,
         academicYear,
         enrollmentStatus: "active",
+        emailVerified: true,
         isVerified: false,
         studentId: matricNumber || null,
         year: String(level),

@@ -174,6 +174,7 @@ export async function POST(request: NextRequest) {
         year: role === 'student' ? year : null,
         currentSemester: role === 'student' ? currentSemester : null,
         enrollmentStatus: 'active',
+        emailVerified: true,
       })
       .returning();
 

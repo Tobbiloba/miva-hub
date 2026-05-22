@@ -126,7 +126,7 @@ async def test_get_curriculum_guidance(repo: AcademicRepository):
 
 async def test_view_course_announcements(repo: AcademicRepository):
     """Tool: view_course_announcements."""
-    data = await repo.get_course_announcements(ADA_STUDENT_ID, ADA_ENROLLED_COURSE)
+    data = await repo.get_course_announcements(ADA_ENROLLED_COURSE, ADA_STUDENT_ID)
     if assert_keys(data, ["announcements", "total_count"], "view_course_announcements: shape"):
         record("view_course_announcements: shape", True)
 
@@ -217,7 +217,7 @@ async def test_get_upcoming_assignments(repo: AcademicRepository):
 
 async def test_get_course_schedule(repo: AcademicRepository):
     """Tool: get_course_schedule."""
-    data = await repo.get_course_schedule(ADA_STUDENT_ID, ADA_ENROLLED_COURSE)
+    data = await repo.get_course_schedule(ADA_ENROLLED_COURSE, ADA_STUDENT_ID)
     if "error" in data:
         record("get_course_schedule: shape", False, f"Error: {data['error']}")
     else:
