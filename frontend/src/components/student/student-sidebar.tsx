@@ -33,6 +33,7 @@ import {
   PanelLeft,
   User,
   Settings,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Session, User as AuthUser } from "better-auth";
@@ -78,6 +79,11 @@ const studentRoutes = [
     title: "Calendar",
     href: "/student/calendar",
     icon: CalendarDays,
+  },
+  {
+    title: "Flashcards",
+    href: "/student/flashcards",
+    icon: Layers,
   },
   {
     title: "Grades",

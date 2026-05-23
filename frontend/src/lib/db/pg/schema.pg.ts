@@ -17,6 +17,7 @@ import {
   integer,
   decimal,
   date,
+  real,
 } from "drizzle-orm/pg-core";
 import { isNotNull } from "drizzle-orm";
 import { DBWorkflow, DBEdge, DBNode } from "app-types/workflow";
@@ -1354,6 +1355,67 @@ export const GradePredictionsSchema = pgTable(
   ]
 );
 
+// ================================================
+// SPACED-REPETITION FLASHCARDS
+// ================================================
+
+export const FlashcardDeckSchema = pgTable(
+  "flashcard_deck",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    weekNumber: integer("week_number"),
+    title: text("title").notNull(),
+    sourceMaterialIds: jsonb("source_material_ids")
+      .notNull()
+      .default([])
+      .$type<string[]>(),
+    cardCount: integer("card_count").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("flashcard_deck_student_idx").on(table.studentId),
+    index("flashcard_deck_course_idx").on(table.courseId),
+    index("flashcard_deck_student_course_idx").on(table.studentId, table.courseId),
+  ],
+);
+
+export const flashcardLastRatingEnum = pgEnum("flashcard_last_rating_enum", [
+  "again",
+  "good",
+]);
+
+export const FlashcardSchema = pgTable(
+  "flashcard",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    deckId: uuid("deck_id")
+      .notNull()
+      .references(() => FlashcardDeckSchema.id, { onDelete: "cascade" }),
+    front: text("front").notNull(),
+    back: text("back").notNull(),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    // Review state (Level A — simple doubling, upgrade-ready for SM-2)
+    lastReviewedAt: timestamp("last_reviewed_at"),
+    nextDueAt: timestamp("next_due_at"),
+    intervalDays: integer("interval_days").notNull().default(0),
+    reviewCount: integer("review_count").notNull().default(0),
+    lapseCount: integer("lapse_count").notNull().default(0),
+    lastRating: flashcardLastRatingEnum("last_rating"),
+    easeFactor: real("ease_factor").notNull().default(2.5),
+  },
+  (table) => [
+    index("flashcard_deck_idx").on(table.deckId),
+    index("flashcard_due_idx").on(table.nextDueAt),
+  ],
+);
+
 export type McpServerEntity = typeof McpServerSchema.$inferSelect;
 export type ChatThreadEntity = typeof ChatThreadSchema.$inferSelect;
 export type ChatMessageEntity = typeof ChatMessageSchema.$inferSelect;
@@ -1411,6 +1473,10 @@ export type PerformanceHistoryEntity = typeof PerformanceHistorySchema.$inferSel
 export type ConceptMasteryEntity = typeof ConceptMasterySchema.$inferSelect;
 export type StudentStudySessionsEntity = typeof StudentStudySessionsSchema.$inferSelect;
 export type GradePredictionsEntity = typeof GradePredictionsSchema.$inferSelect;
+
+// Flashcard entity types
+export type FlashcardDeckEntity = typeof FlashcardDeckSchema.$inferSelect;
+export type FlashcardEntity = typeof FlashcardSchema.$inferSelect;
 
 // Sprint 1 entity types
 export type AcademicSessionEntity = typeof AcademicSessionSchema.$inferSelect;

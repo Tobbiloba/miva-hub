@@ -499,6 +499,74 @@ async def list_quizzes_and_assignments(
         return json.dumps({"error": "Could not retrieve quizzes and assignments. Please try again."})
 
 
+@mcp.tool()
+async def generate_flashcards(
+    student_id: str,
+    course_code: str,
+    week_number: int | None = None,
+    count: int = 10,
+) -> str:
+    """Generate a deck of spaced-repetition flashcards from a course's captured
+    lectures and readings, and SAVE them for the student to review later.
+
+    Use when the student says "make flashcards", "create a deck",
+    "flashcards for week X", "help me memorize X".
+
+    Different from generate_practice_questions (which makes exam-style Q&A and
+    does NOT save) — flashcards are saved and reviewed over time via a
+    spaced-repetition scheduler.
+
+    Args:
+        student_id: Student ID for enrollment verification (e.g., MIVA/CS/2024/001)
+        course_code: Course code (e.g., COS201)
+        week_number: Optional week filter — if omitted, draws from all available weeks
+        count: Number of flashcards to generate (default 10, max 20)
+
+    Returns:
+        JSON with deck_id, title, card_count, and the generated cards (front/back)
+    """
+    try:
+        count = max(5, min(20, count))
+        result = await academic_repo.generate_flashcards(
+            student_id=student_id,
+            course_code=course_code.upper(),
+            week_number=week_number,
+            count=count,
+        )
+        return json.dumps(result, indent=2, default=str)
+    except Exception as e:
+        logger.error("Tool generate_flashcards failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Could not generate flashcards. Please try again."})
+
+
+@mcp.tool()
+async def list_flashcard_decks(
+    student_id: str,
+    course_code: str | None = None,
+) -> str:
+    """List the student's saved flashcard decks with how many cards are due.
+
+    Use when the student asks "show my flashcards", "what decks do I have",
+    "flashcards for COS201", or "review my cards".
+
+    Args:
+        student_id: Student ID (e.g., MIVA/CS/2024/001)
+        course_code: Optional course filter
+
+    Returns:
+        JSON with list of decks (deck_id, title, course_code, card_count, due_count)
+    """
+    try:
+        result = await academic_repo.list_flashcard_decks(
+            student_id=student_id,
+            course_code=course_code.upper() if course_code else None,
+        )
+        return json.dumps(result, indent=2, default=str)
+    except Exception as e:
+        logger.error("Tool list_flashcard_decks failed: %s", e, exc_info=True)
+        return json.dumps({"error": "Could not retrieve flashcard decks. Please try again."})
+
+
 # ---------------------------------------------------------------------------
 # Shared-secret authentication middleware
 # ---------------------------------------------------------------------------

@@ -1835,6 +1835,286 @@ class AcademicRepository:
             logger.error("Error listing quizzes and assignments: %s", e, exc_info=True)
             return {"error": "Could not retrieve quizzes and assignments. Please try again."}
 
+    # ─── Flashcard generation & retrieval ───────────────────────────────
+
+    async def generate_flashcards(
+        self,
+        student_id: str,
+        course_code: str,
+        week_number: Optional[int] = None,
+        count: int = 10,
+    ) -> Dict[str, Any]:
+        """Generate a spaced-repetition flashcard deck from captured course content.
+
+        1. Verify enrollment (FERPA).
+        2. Fetch extracted transcripts for the course (+ optional week).
+        3. Call LLM to produce front/back pairs as JSON.
+        4. Persist a flashcard_deck + flashcard rows.
+        5. Return deck metadata + cards.
+        """
+        is_enrolled = await self._verify_student_enrollment(student_id, course_code)
+        if not is_enrolled:
+            return {"error": "Access denied: you are not enrolled in this course."}
+
+        conn = self.get_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+
+        try:
+            # ── 1. Fetch content ──────────────────────────────────────────
+            def fetch_content():
+                cursor = conn.cursor()
+                query = """
+                    SELECT cm.id, cm.title, cm.material_type, cm.week_number,
+                           cm.transcript_text
+                    FROM course_material cm
+                    JOIN course c ON cm.course_id = c.id
+                    WHERE c.course_code = %s
+                      AND cm.is_published = true
+                      AND cm.transcript_status = 'extracted'
+                      AND cm.transcript_text IS NOT NULL
+                      AND cm.deleted_at IS NULL
+                """
+                params: list = [course_code.upper()]
+                if week_number is not None:
+                    query += " AND cm.week_number = %s"
+                    params.append(week_number)
+                query += " ORDER BY cm.week_number NULLS LAST, cm.created_at LIMIT 10"
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
+                cursor.close()
+                return rows
+
+            rows = await asyncio.to_thread(fetch_content)
+
+            if not rows:
+                conn.close()
+                return {
+                    "error": "No captured content available for this course"
+                    + (f" week {week_number}" if week_number else "")
+                    + " yet. Flashcards need lecture or reading material to generate from."
+                }
+
+            # Trim transcripts to ~3000 chars total
+            context_parts: list[str] = []
+            source_ids: list[str] = []
+            total_chars = 0
+            for row in rows:
+                text = row["transcript_text"] or ""
+                remaining = 3000 - total_chars
+                if remaining <= 0:
+                    break
+                snippet = text[:remaining]
+                context_parts.append(
+                    f"--- {row['title']} (Week {row['week_number']}, {row['material_type']}) ---\n{snippet}"
+                )
+                source_ids.append(str(row["id"]))
+                total_chars += len(snippet)
+
+            context_text = "\n\n".join(context_parts)
+
+            # ── 2. Call LLM ───────────────────────────────────────────────
+            from core.ai_integration import MIVAAIStack
+
+            ai = MIVAAIStack()
+            prompt = (
+                f"You are a university flashcard generator. "
+                f"Using the course material below, create exactly {count} flashcards.\n\n"
+                f"Course material:\n{context_text}\n\n"
+                f"Return ONLY a valid JSON array (no markdown, no explanation) where each element is "
+                f'{{"front": "<question or prompt>", "back": "<concise answer>"}}.\n'
+                f"The front should test a key concept, definition, or application. "
+                f"The back should be a clear, concise answer."
+            )
+
+            ai_resp = await ai.generate_llm_response(prompt)
+            cards: list[dict] = []
+
+            if ai_resp.get("success"):
+                raw = ai_resp["response"].strip()
+                # Strip markdown fences if present
+                if raw.startswith("```"):
+                    raw = raw.split("\n", 1)[-1]
+                    if raw.endswith("```"):
+                        raw = raw[:-3].strip()
+                try:
+                    import json as _json
+                    cards = _json.loads(raw)
+                except Exception:
+                    # Retry with stricter instruction
+                    retry_prompt = (
+                        "Return ONLY a valid JSON array, no markdown, no extra text. "
+                        f"Each element: {{\"front\": \"...\", \"back\": \"...\"}}. "
+                        f"Create {count} flashcards from this content:\n{context_text[:1500]}"
+                    )
+                    retry_resp = await ai.generate_llm_response(retry_prompt)
+                    if retry_resp.get("success"):
+                        raw2 = retry_resp["response"].strip()
+                        if raw2.startswith("```"):
+                            raw2 = raw2.split("\n", 1)[-1]
+                            if raw2.endswith("```"):
+                                raw2 = raw2[:-3].strip()
+                        try:
+                            cards = _json.loads(raw2)
+                        except Exception:
+                            conn.close()
+                            return {"error": "Failed to parse flashcards from LLM after retry."}
+
+            if not cards or not isinstance(cards, list):
+                conn.close()
+                return {"error": "LLM did not return valid flashcard data."}
+
+            # Validate card shape — handle both dicts and stringified-JSON elements
+            import json as _json
+            validated: list[dict] = []
+            for c in cards:
+                if isinstance(c, str):
+                    try:
+                        c = _json.loads(c)
+                    except Exception:
+                        continue
+                if isinstance(c, dict) and "front" in c and "back" in c:
+                    validated.append({"front": str(c["front"]), "back": str(c["back"])})
+            cards = validated[:count]
+
+            if not cards:
+                conn.close()
+                return {"error": "LLM returned data but no valid front/back cards."}
+
+            # ── 3. Persist deck + cards ───────────────────────────────────
+            week_label = f" Week {week_number}" if week_number else ""
+            title = f"{course_code.upper()}{week_label} — Flashcards"
+
+            def persist():
+                cursor = conn.cursor()
+                # Get course_id + user_id
+                cursor.execute(
+                    'SELECT c.id AS course_id FROM course c WHERE c.course_code = %s',
+                    (course_code.upper(),),
+                )
+                course_row = cursor.fetchone()
+                cursor.execute(
+                    'SELECT u.id AS user_id FROM "user" u WHERE u.student_id = %s',
+                    (student_id,),
+                )
+                user_row = cursor.fetchone()
+                if not course_row or not user_row:
+                    cursor.close()
+                    return None, None
+
+                import json as _json
+
+                cursor.execute(
+                    """INSERT INTO flashcard_deck
+                       (student_id, course_id, week_number, title, source_material_ids, card_count)
+                       VALUES (%s, %s, %s, %s, %s, %s)
+                       RETURNING id""",
+                    (
+                        user_row["user_id"],
+                        course_row["course_id"],
+                        week_number,
+                        title,
+                        _json.dumps(source_ids),
+                        len(cards),
+                    ),
+                )
+                deck_id = cursor.fetchone()["id"]
+
+                for card in cards:
+                    cursor.execute(
+                        """INSERT INTO flashcard (deck_id, front, back, next_due_at)
+                           VALUES (%s, %s, %s, CURRENT_TIMESTAMP)""",
+                        (deck_id, card["front"], card["back"]),
+                    )
+
+                conn.commit()
+                cursor.close()
+                return str(deck_id), str(course_row["course_id"])
+
+            deck_id, course_id = await asyncio.to_thread(persist)
+            conn.close()
+
+            if not deck_id:
+                return {"error": "Could not resolve student or course in database."}
+
+            return {
+                "deck_id": deck_id,
+                "title": title,
+                "course_code": course_code.upper(),
+                "week_number": week_number,
+                "card_count": len(cards),
+                "cards": cards,
+                "source_material_ids": source_ids,
+            }
+
+        except Exception as e:
+            logger.error("Error generating flashcards: %s", e, exc_info=True)
+            try:
+                conn.close()
+            except Exception:
+                pass
+            return {"error": "Flashcard generation failed. Please try again."}
+
+    async def list_flashcard_decks(
+        self,
+        student_id: str,
+        course_code: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """List the student's saved flashcard decks with due-card counts."""
+        conn = self.get_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+
+        try:
+            def run_query():
+                cursor = conn.cursor()
+                query = """
+                    SELECT fd.id, fd.title, fd.card_count, fd.week_number,
+                           fd.created_at, c.course_code,
+                           (SELECT COUNT(*) FROM flashcard f
+                            WHERE f.deck_id = fd.id
+                              AND (f.next_due_at IS NULL OR f.next_due_at <= CURRENT_TIMESTAMP)
+                           ) AS due_count
+                    FROM flashcard_deck fd
+                    JOIN course c ON fd.course_id = c.id
+                    JOIN "user" u ON fd.student_id = u.id
+                    WHERE u.student_id = %s
+                """
+                params: list = [student_id]
+                if course_code:
+                    query += " AND c.course_code = %s"
+                    params.append(course_code.upper())
+                query += " ORDER BY fd.created_at DESC"
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
+                cursor.close()
+                conn.close()
+                return rows
+
+            rows = await asyncio.to_thread(run_query)
+
+            decks = []
+            for row in rows:
+                decks.append({
+                    "deck_id": str(row["id"]),
+                    "title": row["title"],
+                    "course_code": row["course_code"],
+                    "card_count": row["card_count"],
+                    "week_number": row["week_number"],
+                    "due_count": row["due_count"],
+                    "created_at": str(row["created_at"]),
+                })
+
+            return {
+                "student_id": student_id,
+                "decks": decks,
+                "total_decks": len(decks),
+            }
+
+        except Exception as e:
+            logger.error("Error listing flashcard decks: %s", e, exc_info=True)
+            return {"error": "Could not retrieve flashcard decks. Please try again."}
+
     async def close(self):
         """Close database connections."""
         if self._connection:
