@@ -8,7 +8,9 @@
  * In Week 3 this gets wired to a cron / background worker.
  */
 
-import "dotenv/config";
+import { config } from "dotenv";
+config({ path: ".env.local" });
+config({ path: ".env" });
 
 // Drizzle needs POSTGRES_URL
 if (!process.env.POSTGRES_URL) {
