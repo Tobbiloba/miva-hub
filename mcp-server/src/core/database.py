@@ -2115,6 +2115,244 @@ class AcademicRepository:
             logger.error("Error listing flashcard decks: %s", e, exc_info=True)
             return {"error": "Could not retrieve flashcard decks. Please try again."}
 
+    async def get_my_progress(
+        self,
+        student_id: str,
+        course_code: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get student study progress — streak, activity counts, course coverage."""
+        conn = self.get_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+
+        try:
+            # FERPA: if course_code provided, verify enrollment
+            if course_code:
+                enrolled = await self._check_enrollment(student_id, course_code)
+                if not enrolled:
+                    return {"error": f"Student is not enrolled in {course_code}"}
+
+            def run_query():
+                cursor = conn.cursor()
+
+                # Resolve user UUID from student_id text field
+                cursor.execute(
+                    'SELECT id FROM "user" WHERE student_id = %s LIMIT 1',
+                    (student_id,),
+                )
+                user_row = cursor.fetchone()
+                if not user_row:
+                    return {"error": f"Student {student_id} not found"}
+                user_uuid = user_row["id"]
+
+                # Streak: distinct activity days descending
+                cursor.execute("""
+                    SELECT DISTINCT date_trunc('day', created_at AT TIME ZONE 'UTC')::date AS d
+                    FROM study_activity
+                    WHERE student_id = %s
+                    ORDER BY d DESC LIMIT 365
+                """, (str(user_uuid),))
+                days = [row["d"] for row in cursor.fetchall()]
+
+                from datetime import date, timedelta
+                today = date.today()
+                streak = 0
+                for d in days:
+                    if d == today - timedelta(days=streak):
+                        streak += 1
+                    else:
+                        break
+
+                # Activity counts
+                cursor.execute("""
+                    SELECT
+                        COUNT(*) FILTER (
+                            WHERE date_trunc('day', created_at AT TIME ZONE 'UTC') = CURRENT_DATE
+                        ) AS today,
+                        COUNT(*) FILTER (
+                            WHERE created_at >= date_trunc('week', CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+                        ) AS this_week,
+                        MAX(created_at) AS last_activity
+                    FROM study_activity
+                    WHERE student_id = %s
+                """, (str(user_uuid),))
+                counts = cursor.fetchone()
+
+                if course_code:
+                    # Per-course breakdown
+                    cursor.execute("""
+                        SELECT c.id as course_id, c.course_code, c.title, c.total_weeks
+                        FROM course c
+                        JOIN student_enrollment se ON c.id = se.course_id
+                        WHERE se.student_id = %s AND c.course_code = %s AND se.status = 'enrolled'
+                        LIMIT 1
+                    """, (str(user_uuid), course_code.upper()))
+                    course = cursor.fetchone()
+                    if not course:
+                        cursor.close()
+                        conn.close()
+                        return {"error": f"No active enrollment for {course_code}"}
+
+                    cid = str(course["course_id"])
+                    total_weeks = course["total_weeks"] or 16
+
+                    # Materials coverage
+                    cursor.execute("""
+                        SELECT COUNT(*) AS total FROM course_material
+                        WHERE course_id = %s AND is_published = true
+                    """, (cid,))
+                    total_materials = cursor.fetchone()["total"]
+
+                    cursor.execute("""
+                        SELECT COUNT(DISTINCT entity_id) AS viewed FROM study_activity
+                        WHERE student_id = %s AND course_id = %s
+                          AND activity_type IN ('material_viewed', 'quiz_viewed', 'assignment_viewed')
+                          AND entity_id IS NOT NULL
+                    """, (str(user_uuid), cid))
+                    viewed_materials = cursor.fetchone()["viewed"]
+
+                    # Weeks touched
+                    cursor.execute("""
+                        SELECT DISTINCT week_number FROM study_activity
+                        WHERE student_id = %s AND course_id = %s AND week_number IS NOT NULL
+                        ORDER BY week_number
+                    """, (str(user_uuid), cid))
+                    weeks_touched = [r["week_number"] for r in cursor.fetchall()]
+                    weeks_untouched = [w for w in range(1, total_weeks + 1) if w not in weeks_touched]
+
+                    coverage_pct = round(viewed_materials / total_materials * 100) if total_materials > 0 else None
+
+                    cursor.close()
+                    conn.close()
+                    return {
+                        "student_id": student_id,
+                        "streak_days": streak,
+                        "activities_today": counts["today"],
+                        "activities_this_week": counts["this_week"],
+                        "course": {
+                            "course_code": course["course_code"],
+                            "title": course["title"],
+                            "coverage_pct": coverage_pct,
+                            "total_materials": total_materials,
+                            "viewed_materials": viewed_materials,
+                            "weeks_touched": weeks_touched,
+                            "weeks_untouched": weeks_untouched,
+                        },
+                    }
+                else:
+                    # Overview: top courses
+                    cursor.execute("""
+                        SELECT c.id, c.course_code, c.title, c.total_weeks
+                        FROM course c
+                        JOIN student_enrollment se ON c.id = se.course_id
+                        WHERE se.student_id = %s AND se.status = 'enrolled'
+                        ORDER BY se.academic_year DESC
+                    """, (str(user_uuid),))
+                    courses = cursor.fetchall()
+
+                    course_summaries = []
+                    for c in courses[:5]:
+                        cid = str(c["id"])
+                        cursor.execute("""
+                            SELECT COUNT(*) AS total FROM course_material
+                            WHERE course_id = %s AND is_published = true
+                        """, (cid,))
+                        total = cursor.fetchone()["total"]
+                        cursor.execute("""
+                            SELECT COUNT(DISTINCT entity_id) AS viewed FROM study_activity
+                            WHERE student_id = %s AND course_id = %s
+                              AND activity_type IN ('material_viewed', 'quiz_viewed', 'assignment_viewed')
+                              AND entity_id IS NOT NULL
+                        """, (str(user_uuid), cid))
+                        viewed = cursor.fetchone()["viewed"]
+                        pct = round(viewed / total * 100) if total > 0 else None
+                        course_summaries.append({
+                            "course_code": c["course_code"],
+                            "title": c["title"],
+                            "coverage_pct": pct,
+                        })
+
+                    cursor.close()
+                    conn.close()
+                    return {
+                        "student_id": student_id,
+                        "streak_days": streak,
+                        "activities_today": counts["today"],
+                        "activities_this_week": counts["this_week"],
+                        "last_activity_at": str(counts["last_activity"]) if counts["last_activity"] else None,
+                        "courses": course_summaries,
+                    }
+
+            result = await asyncio.to_thread(run_query)
+            return result
+
+        except Exception as e:
+            logger.error("Error getting student progress: %s", e, exc_info=True)
+            return {"error": "Could not retrieve progress data. Please try again."}
+
+    async def record_study_activity(
+        self,
+        student_id: str,
+        activity_type: str,
+        course_code: Optional[str] = None,
+        week_number: Optional[int] = None,
+        entity_metadata: Optional[Dict] = None,
+    ) -> bool:
+        """Record a study activity event via direct DB write (used by MCP tools)."""
+        conn = self.get_connection()
+        if not conn:
+            return False
+
+        try:
+            def run_query():
+                import json as _json
+                cursor = conn.cursor()
+
+                # Resolve user UUID
+                cursor.execute(
+                    'SELECT id FROM "user" WHERE student_id = %s LIMIT 1',
+                    (student_id,),
+                )
+                user_row = cursor.fetchone()
+                if not user_row:
+                    cursor.close()
+                    conn.close()
+                    return False
+                user_uuid = str(user_row["id"])
+
+                # Resolve course UUID if course_code provided
+                course_uuid = None
+                if course_code:
+                    cursor.execute(
+                        "SELECT id FROM course WHERE course_code = %s LIMIT 1",
+                        (course_code.upper(),),
+                    )
+                    course_row = cursor.fetchone()
+                    if course_row:
+                        course_uuid = str(course_row["id"])
+
+                cursor.execute("""
+                    INSERT INTO study_activity
+                        (id, student_id, course_id, week_number, activity_type, entity_metadata, created_at)
+                    VALUES (gen_random_uuid(), %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                """, (
+                    user_uuid,
+                    course_uuid,
+                    week_number,
+                    activity_type,
+                    _json.dumps(entity_metadata) if entity_metadata else None,
+                ))
+                conn.commit()
+                cursor.close()
+                conn.close()
+                return True
+
+            return await asyncio.to_thread(run_query)
+
+        except Exception as e:
+            logger.error("Error recording study activity: %s", e, exc_info=True)
+            return False
+
     async def close(self):
         """Close database connections."""
         if self._connection:

@@ -14,6 +14,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 # Import usage tracking
 from core.usage_tracker import usage_tracker, create_usage_error_response
+from core.database import academic_repo
 
 STUDY_BUDDY_API_BASE = "http://localhost:8083"
 
@@ -267,7 +268,22 @@ def register_study_buddy_tools(mcp):
                     await usage_tracker.record_usage_after_success(
                         student_id, "study_guides_per_week", "weekly"
                     )
-                
+                    # Record study activity for progress tracking
+                    try:
+                        await academic_repo.record_study_activity(
+                            student_id=student_id,
+                            activity_type="study_guide_generated",
+                            course_code=result.get("course_code") or None,
+                            week_number=weeks_list[0] if weeks_list else None,
+                            entity_metadata={
+                                "guide_id": result.get("guide_id"),
+                                "title": result.get("title"),
+                                "topics": topics_list,
+                            },
+                        )
+                    except Exception:
+                        pass  # Don't fail the tool if activity recording fails
+
                 return guide_text
             
         except httpx.TimeoutException:
