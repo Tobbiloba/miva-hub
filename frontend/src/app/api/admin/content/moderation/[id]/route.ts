@@ -4,6 +4,7 @@ import { pgDb } from "@/lib/db/pg/db.pg";
 import { CourseMaterialSchema } from "@/lib/db/pg/schema.pg";
 import { eq } from "drizzle-orm";
 import { extractTranscriptForMaterial } from "@/lib/extraction/transcript-extractor";
+import { generateNewContentNotification } from "@/lib/notifications/generators/new-content";
 
 /**
  * PATCH /api/admin/content/moderation/:id
@@ -44,6 +45,9 @@ export async function PATCH(
           updatedAt: new Date(),
         })
         .where(eq(CourseMaterialSchema.id, id));
+
+      // Fire-and-forget: notify enrolled students about new content
+      generateNewContentNotification(id).catch(() => {});
 
       return NextResponse.json({ success: true, action: "approved" });
     }
