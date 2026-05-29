@@ -6,6 +6,7 @@ import {
   FlashcardDeckSchema,
 } from "@/lib/db/pg/schema.pg";
 import { eq, sql } from "drizzle-orm";
+import { recordActivity } from "@/lib/progress/record-activity";
 
 export async function POST(
   request: NextRequest,
@@ -40,6 +41,8 @@ export async function POST(
         reviewCount: FlashcardSchema.reviewCount,
         lapseCount: FlashcardSchema.lapseCount,
         studentId: FlashcardDeckSchema.studentId,
+        courseId: FlashcardDeckSchema.courseId,
+        weekNumber: FlashcardDeckSchema.weekNumber,
       })
       .from(FlashcardSchema)
       .innerJoin(
@@ -98,6 +101,16 @@ export async function POST(
       })
       .where(eq(FlashcardSchema.id, cardId))
       .returning();
+
+    // Fire-and-forget: record progress activity
+    recordActivity({
+      studentId: session.user.id,
+      activityType: "flashcard_reviewed",
+      courseId: card.courseId,
+      weekNumber: card.weekNumber,
+      entityId: cardId,
+      entityMetadata: { rating, deckId: card.deckId },
+    }).catch(() => {});
 
     return NextResponse.json({
       success: true,
