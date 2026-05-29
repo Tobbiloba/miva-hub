@@ -116,6 +116,9 @@ async function sendNotificationEmail(
   notificationId: string,
   params: CreateNotificationParams,
 ) {
+  // Skip email entirely if no API key — don't mark delivered_via
+  if (!process.env.RESEND_API_KEY) return;
+
   // Look up student email + name
   const [user] = await pgDb
     .select({ email: UserSchema.email, name: UserSchema.name })
