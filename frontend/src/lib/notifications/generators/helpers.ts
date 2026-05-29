@@ -1,7 +1,7 @@
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { NotificationSchema, UserSchema } from "@/lib/db/pg/schema.pg";
 import { and, eq, gte, sql } from "drizzle-orm";
-import { sendEmailWithResult } from "@/lib/email/smtp-service";
+import { sendEmail } from "@/lib/email/smtp-service";
 import {
   buildNewContentEmail,
   buildCourseNeglectedEmail,
@@ -146,14 +146,14 @@ async function sendNotificationEmail(
 
   if (!emailContent) return;
 
-  const sent = await sendEmailWithResult({
+  const result = await sendEmail({
     to: user.email,
     subject: emailContent.subject,
     html: emailContent.html,
     text: emailContent.text,
   });
 
-  if (!sent) return;
+  if (!result.ok) return;
 
   // Only mark as email-delivered on confirmed send
   await pgDb
