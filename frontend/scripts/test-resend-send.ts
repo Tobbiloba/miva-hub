@@ -3,7 +3,9 @@
  * Usage: pnpm tsx scripts/test-resend-send.ts
  */
 
-import "dotenv/config";
+import { config } from "dotenv";
+config({ path: ".env.local" });
+config({ path: ".env" });
 
 if (!process.env.RESEND_API_KEY) {
   console.error(
