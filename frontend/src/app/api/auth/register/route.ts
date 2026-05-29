@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "lib/auth/server";
 import { sendEmail } from "@/lib/email/smtp-service";
+import { buildWelcomeEmail } from "@/lib/email/templates/welcome";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 
 export async function POST(request: NextRequest) {
@@ -113,31 +114,15 @@ export async function POST(request: NextRequest) {
 
     // 4. Send welcome email (best-effort)
     try {
-      const fs = await import("fs");
-      const path = await import("path");
-      const templatePath = path.join(
-        process.cwd(),
-        "src/lib/email/templates/welcome-email.html"
-      );
+      const firstName = name.trim().split(" ")[0];
+      const { subject, html, text } = buildWelcomeEmail({
+        firstName,
+        courseCount: enrolledCount,
+        semester: currentSemester,
+        academicYear,
+      });
 
-      if (fs.existsSync(templatePath)) {
-        const welcomeTemplate = fs.readFileSync(templatePath, "utf-8");
-        const welcomeHtml = welcomeTemplate
-          .replace("{{userName}}", name.trim())
-          .replace(
-            /\{\{appUrl\}\}/g,
-            process.env.NEXT_PUBLIC_APP_URL || "https://miva-hub.com"
-          );
-
-        await sendEmail({
-          to: email,
-          subject: "Welcome to MIVA Hub! 🎓",
-          html: welcomeHtml,
-        });
-        console.log(`Welcome email sent to ${email}`);
-      } else {
-        console.log(`[EMAIL STUB] Welcome email would be sent to ${email}`);
-      }
+      await sendEmail({ to: email, subject, html, text });
     } catch (emailError) {
       console.error("Welcome email error (non-fatal):", emailError);
     }
