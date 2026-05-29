@@ -225,6 +225,13 @@
       "when": 1780311600000,
       "tag": "0031_study_activity",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1780315200000,
+      "tag": "0032_notification",
+      "breakpoints": true
     }
   ]
 }

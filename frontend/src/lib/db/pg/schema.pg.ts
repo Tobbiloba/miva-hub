@@ -1528,6 +1528,55 @@ export const StudyActivitySchema = pgTable(
 // Study Activity entity type
 export type StudyActivityEntity = typeof StudyActivitySchema.$inferSelect;
 
+// ================================================
+// IN-APP NOTIFICATIONS
+// ================================================
+
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "streak_milestone",
+  "streak_at_risk",
+  "course_neglected",
+  "flashcards_due",
+  "new_content",
+]);
+
+export const NotificationSchema = pgTable(
+  "notification",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    type: notificationTypeEnum("type").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    entityUrl: text("entity_url"),
+    entityId: uuid("entity_id"),
+    entityMetadata: jsonb("entity_metadata").$type<Record<string, any>>(),
+    isRead: boolean("is_read").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    readAt: timestamp("read_at"),
+    deliveredVia: jsonb("delivered_via")
+      .notNull()
+      .default(["in_app"])
+      .$type<string[]>(),
+  },
+  (table) => [
+    index("notification_student_unread_idx").on(
+      table.studentId,
+      table.isRead,
+      table.createdAt,
+    ),
+    index("notification_student_recent_idx").on(
+      table.studentId,
+      table.createdAt,
+    ),
+  ],
+);
+
+// Notification entity type
+export type NotificationEntity = typeof NotificationSchema.$inferSelect;
+
 // Sprint 1 entity types
 export type AcademicSessionEntity = typeof AcademicSessionSchema.$inferSelect;
 export type ProgramEntity = typeof ProgramSchema.$inferSelect;
