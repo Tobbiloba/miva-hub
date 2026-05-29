@@ -20,6 +20,7 @@ from tools.content_navigation_tools import register_content_navigation_tools
 from tools.deep_learning_tools import register_deep_learning_tools
 from tools.exam_tools import register_exam_tools
 from tools.notes_conversion_tools import register_notes_conversion_tools
+from tools.progress_tools import register_progress_tools
 
 # Initialize FastMCP server for MIVA Academic tools
 mcp = FastMCP("miva-academic")
@@ -33,6 +34,7 @@ register_content_navigation_tools(mcp)
 register_deep_learning_tools(mcp)
 register_exam_tools(mcp)
 register_notes_conversion_tools(mcp)
+register_progress_tools(mcp)
 
 if __name__ == "__main__":
     import argparse

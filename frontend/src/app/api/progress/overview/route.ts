@@ -26,8 +26,9 @@ export async function GET() {
       await Promise.all([
         // 1. Streak: count distinct days working backwards from today (UTC)
         // Streak: get distinct activity days descending, count consecutive from today
+        // Cast to text to avoid node-pg local-tz Date parsing issues
         pgDb.execute<{ d: string }>(sql`
-          SELECT DISTINCT date_trunc('day', created_at AT TIME ZONE 'UTC')::date AS d
+          SELECT DISTINCT to_char(date_trunc('day', created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS d
           FROM study_activity
           WHERE student_id = ${studentId}
           ORDER BY d DESC
@@ -35,13 +36,14 @@ export async function GET() {
         `).then(r => {
           const rows = r.rows ?? [];
           if (rows.length === 0) return 0;
-          const today = new Date();
-          today.setUTCHours(0, 0, 0, 0);
+          // Today in UTC as YYYY-MM-DD
+          const now = new Date();
+          const todayStr = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-${String(now.getUTCDate()).padStart(2, "0")}`;
+          const todayMs = Date.parse(todayStr + "T00:00:00Z");
           let streak = 0;
           for (const row of rows) {
-            const day = new Date(row.d);
-            day.setUTCHours(0, 0, 0, 0);
-            const diffDays = Math.round((today.getTime() - day.getTime()) / 86400000);
+            const dayMs = Date.parse(row.d + "T00:00:00Z");
+            const diffDays = Math.round((todayMs - dayMs) / 86400000);
             if (diffDays === streak) {
               streak++;
             } else {
