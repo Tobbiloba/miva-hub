@@ -34,6 +34,7 @@ import {
   User,
   Settings,
   Layers,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Session, User as AuthUser } from "better-auth";
@@ -84,6 +85,11 @@ const studentRoutes = [
     title: "Flashcards",
     href: "/student/flashcards",
     icon: Layers,
+  },
+  {
+    title: "Progress",
+    href: "/student/progress",
+    icon: TrendingUp,
   },
   {
     title: "Grades",
