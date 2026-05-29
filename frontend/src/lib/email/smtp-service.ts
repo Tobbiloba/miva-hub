@@ -1,84 +1,90 @@
-import nodemailer, { Transporter } from "nodemailer";
+import { Resend } from "resend";
 
-let transporter: Transporter | null = null;
+const DEFAULT_FROM = "Askly <noreply@ilehq.com>";
 
-/**
- * Initialize SMTP transporter
- * Supports Gmail, Outlook, or any SMTP provider
- */
-function getTransporter(): Transporter {
-  if (transporter) {
-    return transporter;
+let resendClient: Resend | null = null;
+let missingKeyWarned = false;
+
+function getClient(): Resend | null {
+  if (resendClient) return resendClient;
+
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    if (!missingKeyWarned) {
+      console.warn(
+        "[Email] RESEND_API_KEY not set — emails are being logged, not sent.",
+      );
+      missingKeyWarned = true;
+    }
+    return null;
   }
 
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = parseInt(process.env.SMTP_PORT || "587", 10);
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPassword = process.env.SMTP_PASSWORD;
-
-  if (!smtpHost || !smtpUser || !smtpPassword) {
-    throw new Error(
-      "SMTP configuration missing. Please set SMTP_HOST, SMTP_USER, and SMTP_PASSWORD"
-    );
-  }
-
-  transporter = nodemailer.createTransport({
-    host: smtpHost,
-    port: smtpPort,
-    secure: smtpPort === 465, // Use TLS for port 587, SSL for port 465
-    auth: {
-      user: smtpUser,
-      pass: smtpPassword,
-    },
-  });
-
-  return transporter;
+  resendClient = new Resend(apiKey);
+  return resendClient;
 }
 
 /**
- * Send email using SMTP
+ * Send email via Resend. Falls back to console.log if RESEND_API_KEY is not set.
+ * Never throws — callers should not break on email failure.
  */
 export async function sendEmail({
   to,
   subject,
   html,
   text,
+  from,
 }: {
   to: string;
   subject: string;
   html: string;
   text?: string;
+  from?: string;
 }): Promise<void> {
-  try {
-    const transport = getTransporter();
-    const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const sender = from || DEFAULT_FROM;
+  const plainText = text || html.replace(/<[^>]*>/g, "");
 
-    const result = await transport.sendMail({
-      from,
+  const client = getClient();
+
+  if (!client) {
+    // Stub mode: log the email details for local dev
+    console.log(`[Email Stub] To: ${to} | Subject: ${subject} | From: ${sender}`);
+    return;
+  }
+
+  try {
+    const result = await client.emails.send({
+      from: sender,
       to,
       subject,
       html,
-      text: text || html.replace(/<[^>]*>/g, ""), // Strip HTML if no text version
+      text: plainText,
     });
 
-    console.log(`[Email] Sent to ${to} - ${subject} (${result.messageId})`);
+    if (result.error) {
+      console.error(`[Email] Failed to send to ${to}:`, result.error.message);
+      return;
+    }
+
+    console.log(
+      `[Email] Sent to ${to} — subject: "${subject}" — resend_id: ${result.data?.id}`,
+    );
   } catch (error) {
-    console.error(`[Email Error] Failed to send email to ${to}:`, error);
-    throw error;
+    console.error(
+      `[Email] Error sending to ${to}:`,
+      error instanceof Error ? error.message : error,
+    );
   }
 }
 
 /**
- * Test SMTP connection
+ * Test email connection (checks if API key is set and valid).
  */
 export async function testSMTPConnection(): Promise<boolean> {
-  try {
-    const transport = getTransporter();
-    await transport.verify();
-    console.log("[Email] SMTP connection verified ✓");
-    return true;
-  } catch (error) {
-    console.error("[Email] SMTP connection failed:", error);
+  const client = getClient();
+  if (!client) {
+    console.warn("[Email] Cannot test — RESEND_API_KEY not set");
     return false;
   }
+  console.log("[Email] Resend client initialized ✓");
+  return true;
 }
