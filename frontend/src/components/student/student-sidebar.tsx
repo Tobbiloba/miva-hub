@@ -92,6 +92,11 @@ const studentRoutes = [
     icon: TrendingUp,
   },
   {
+    title: "Notifications",
+    href: "/student/notifications",
+    icon: Bell,
+  },
+  {
     title: "Grades",
     href: "/student/grades",
     icon: Award,
