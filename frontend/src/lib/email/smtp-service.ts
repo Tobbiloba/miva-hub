@@ -77,6 +77,51 @@ export async function sendEmail({
 }
 
 /**
+ * Send email and return whether it was actually delivered.
+ * Used by notification system to conditionally update delivered_via.
+ * Same behavior as sendEmail but returns true only on confirmed delivery.
+ */
+export async function sendEmailWithResult(params: {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+  from?: string;
+}): Promise<boolean> {
+  const sender = params.from || DEFAULT_FROM;
+  const plainText = params.text || params.html.replace(/<[^>]*>/g, "");
+
+  const client = getClient();
+  if (!client) return false;
+
+  try {
+    const result = await client.emails.send({
+      from: sender,
+      to: params.to,
+      subject: params.subject,
+      html: params.html,
+      text: plainText,
+    });
+
+    if (result.error) {
+      console.error(`[Email] Failed to send to ${params.to}:`, result.error.message);
+      return false;
+    }
+
+    console.log(
+      `[Email] Sent to ${params.to} — subject: "${params.subject}" — resend_id: ${result.data?.id}`,
+    );
+    return true;
+  } catch (error) {
+    console.error(
+      `[Email] Error sending to ${params.to}:`,
+      error instanceof Error ? error.message : error,
+    );
+    return false;
+  }
+}
+
+/**
  * Test email connection (checks if API key is set and valid).
  */
 export async function testSMTPConnection(): Promise<boolean> {

@@ -1,7 +1,7 @@
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { NotificationSchema, UserSchema } from "@/lib/db/pg/schema.pg";
 import { and, eq, gte, sql } from "drizzle-orm";
-import { sendEmail } from "@/lib/email/smtp-service";
+import { sendEmailWithResult } from "@/lib/email/smtp-service";
 import {
   buildNewContentEmail,
   buildCourseNeglectedEmail,
@@ -116,9 +116,6 @@ async function sendNotificationEmail(
   notificationId: string,
   params: CreateNotificationParams,
 ) {
-  // Skip email entirely if no API key — don't mark delivered_via
-  if (!process.env.RESEND_API_KEY) return;
-
   // Look up student email + name
   const [user] = await pgDb
     .select({ email: UserSchema.email, name: UserSchema.name })
@@ -149,16 +146,16 @@ async function sendNotificationEmail(
 
   if (!emailContent) return;
 
-  // sendEmail never throws — but we check if it logged an error by wrapping
-  // We trust sendEmail's internal error handling; just attempt the send
-  await sendEmail({
+  const sent = await sendEmailWithResult({
     to: user.email,
     subject: emailContent.subject,
     html: emailContent.html,
     text: emailContent.text,
   });
 
-  // If we got here without exception, mark as email-delivered
+  if (!sent) return;
+
+  // Only mark as email-delivered on confirmed send
   await pgDb
     .update(NotificationSchema)
     .set({
