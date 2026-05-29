@@ -1478,6 +1478,56 @@ export type GradePredictionsEntity = typeof GradePredictionsSchema.$inferSelect;
 export type FlashcardDeckEntity = typeof FlashcardDeckSchema.$inferSelect;
 export type FlashcardEntity = typeof FlashcardSchema.$inferSelect;
 
+// ================================================
+// STUDY ACTIVITY (Progress Tracking)
+// ================================================
+
+export const studyActivityTypeEnum = pgEnum("study_activity_type", [
+  "material_viewed",
+  "flashcard_reviewed",
+  "study_guide_generated",
+  "practice_questions_generated",
+  "quiz_viewed",
+  "assignment_viewed",
+]);
+
+export const StudyActivitySchema = pgTable(
+  "study_activity",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id").references(() => CourseSchema.id, {
+      onDelete: "set null",
+    }),
+    weekNumber: integer("week_number"),
+    activityType: studyActivityTypeEnum("activity_type").notNull(),
+    entityId: uuid("entity_id"),
+    entityMetadata: jsonb("entity_metadata").$type<Record<string, any>>(),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("study_activity_student_recent_idx").on(
+      table.studentId,
+      table.createdAt,
+    ),
+    index("study_activity_student_course_week_idx").on(
+      table.studentId,
+      table.courseId,
+      table.weekNumber,
+    ),
+    index("study_activity_student_type_idx").on(
+      table.studentId,
+      table.activityType,
+      table.createdAt,
+    ),
+  ],
+);
+
+// Study Activity entity type
+export type StudyActivityEntity = typeof StudyActivitySchema.$inferSelect;
+
 // Sprint 1 entity types
 export type AcademicSessionEntity = typeof AcademicSessionSchema.$inferSelect;
 export type ProgramEntity = typeof ProgramSchema.$inferSelect;
