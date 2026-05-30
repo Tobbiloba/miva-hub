@@ -141,7 +141,11 @@ export const UserSchema = pgTable("user", {
   paystackCustomerCode: text("paystack_customer_code"),
   subscriptionStatus: text("subscription_status").default("none"),
   currentPlan: text("current_plan").default("FREE"),
-  
+
+  // Trial fields (set on signup for students)
+  trialStartedAt: timestamp("trial_started_at"),
+  trialEndsAt: timestamp("trial_ends_at"),
+
   createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });

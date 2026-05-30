@@ -73,10 +73,13 @@ export async function POST(request: NextRequest) {
 
     const userId = signUpResponse.user.id;
 
-    // 2. Update user with academic fields
+    // 2. Update user with academic fields + trial
     const { pgDb } = await import("lib/db/pg/db.pg");
     const { UserSchema } = await import("lib/db/pg/schema.pg");
     const { eq } = await import("drizzle-orm");
+
+    const now = new Date();
+    const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
     await pgDb
       .update(UserSchema)
@@ -93,6 +96,8 @@ export async function POST(request: NextRequest) {
         year: String(level),
         admissionSession: activeSession.sessionName,
         admissionLevel: Number(level),
+        trialStartedAt: now,
+        trialEndsAt: trialEnd,
       })
       .where(eq(UserSchema.id, userId));
 
