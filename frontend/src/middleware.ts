@@ -15,12 +15,20 @@ export async function middleware(request: NextRequest) {
   // Get session cookie to check if user is authenticated
   const sessionCookie = getSessionCookie(request);
 
+  // /billing requires auth but is never paywalled (it IS the paywall destination)
+  if (pathname.startsWith("/billing")) {
+    if (!sessionCookie) {
+      return NextResponse.redirect(new URL("/sign-in", request.url));
+    }
+    return NextResponse.next();
+  }
+
   // Protected routes that require authentication
   if (pathname.startsWith("/admin") || pathname.startsWith("/student") || pathname.startsWith("/faculty")) {
     if (!sessionCookie) {
       return NextResponse.redirect(new URL("/sign-in", request.url));
     }
-    // Subscription check will be done in the page/layout components
+    // Paywall check is done in student layout (server component) and API paywall guard
     return NextResponse.next();
   }
 
@@ -53,6 +61,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api/auth|api/departments|api/courses|api/content|api/programs/public|api/academic/session|sign-in|sign-up|reset-password|landing|unauthorized|privacy|terms).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api/auth|api/departments|api/courses|api/content|api/programs/public|api/academic/session|api/webhooks|api/billing|sign-in|sign-up|reset-password|landing|unauthorized|privacy|terms).*)",
   ],
 };
