@@ -2,12 +2,13 @@ import { SidebarProvider } from "ui/sidebar";
 import { AppSidebar } from "@/components/layouts/app-sidebar";
 import { AppHeader } from "@/components/layouts/app-header";
 import { cookies, headers as getHeaders } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { auth } from "auth/server";
 import { COOKIE_KEY_SIDEBAR_STATE } from "lib/const";
 import { AppPopupProvider } from "@/components/layouts/app-popup-provider";
 import { SWRConfigProvider } from "./swr-config";
-// import { SubscriptionGuard } from "@/components/layouts/subscription-guard";
+import { getBillingStatus } from "@/lib/billing/status";
 import { ToolsInfoDrawerProvider } from "@/components/layouts/tools-info-drawer-provider";
 
 export const experimental_ppr = true;
@@ -21,6 +22,14 @@ export default async function ChatLayout({
       headers,
     })
     .catch(() => null);
+
+  // Paywall: redirect paywalled students to /billing
+  if (session?.user?.role === "student") {
+    const billing = await getBillingStatus(session.user.id);
+    if (billing.paywalled) {
+      redirect("/billing");
+    }
+  }
   const isCollapsed =
     cookieStore.get(COOKIE_KEY_SIDEBAR_STATE)?.value !== "true";
   return (
