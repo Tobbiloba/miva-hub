@@ -35,6 +35,7 @@ import {
   Settings,
   Layers,
   TrendingUp,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Session, User as AuthUser } from "better-auth";
@@ -105,6 +106,11 @@ const studentRoutes = [
     title: "Performance",
     href: "/student/dashboard",
     icon: BarChart3,
+  },
+  {
+    title: "Billing",
+    href: "/billing",
+    icon: CreditCard,
   },
   {
     title: "My Profile",

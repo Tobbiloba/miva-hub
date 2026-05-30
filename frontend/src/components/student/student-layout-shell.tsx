@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { SidebarProvider } from "ui/sidebar";
 import { StudentSidebar } from "./student-sidebar";
 import { NotificationBell } from "./notification-bell";
+import { TrialCountdownBanner } from "./trial-countdown-banner";
 
 // Redesigned pages that should render full-bleed with no sidebar
 const FULL_BLEED_PATHS = ["/student/dashboard"];
@@ -27,6 +28,7 @@ export function StudentLayoutShell({ session, children }: StudentLayoutShellProp
       <div className="flex h-screen bg-background w-screen">
         <StudentSidebar session={session} />
         <main className="flex-1 w-full flex flex-col overflow-hidden">
+          <TrialCountdownBanner />
           <div className="flex items-center justify-end border-b px-6 py-2 shrink-0">
             <NotificationBell />
           </div>
