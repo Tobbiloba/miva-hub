@@ -280,18 +280,82 @@ async function sendPaymentReceiptEmail(
 
 async function handleChargeSuccess(data: any) {
   console.log("Charge successful:", data.reference);
-  
-  if (data.plan) {
-    const [subscription] = await db
-      .select()
-      .from(UserSubscriptionSchema)
-      .where(
-        eq(
-          UserSubscriptionSchema.paystackSubscriptionCode,
-          data.subscription.subscription_code
-        )
-      )
-      .limit(1);
+
+  if (data.plan || data.plan_object) {
+    const subCode = data.subscription?.subscription_code;
+
+    // Try to find existing subscription by subscription_code
+    let subscription: any = null;
+    if (subCode) {
+      const [found] = await db
+        .select()
+        .from(UserSubscriptionSchema)
+        .where(eq(UserSubscriptionSchema.paystackSubscriptionCode, subCode))
+        .limit(1);
+      subscription = found;
+    }
+
+    // If no existing subscription, this is the initial charge — create one
+    if (!subscription && data.customer?.email) {
+      const [user] = await db
+        .select({ id: UserSchema.id })
+        .from(UserSchema)
+        .where(eq(UserSchema.email, data.customer.email))
+        .limit(1);
+
+      if (user) {
+        const { SubscriptionPlanSchema } = await import("@/lib/db/pg/schema.pg");
+        const planCode = data.plan_object?.plan_code || data.plan;
+        let planId: string | undefined;
+
+        if (planCode) {
+          const [plan] = await db
+            .select({ id: SubscriptionPlanSchema.id })
+            .from(SubscriptionPlanSchema)
+            .where(eq(SubscriptionPlanSchema.paystackPlanCode, planCode))
+            .limit(1);
+          planId = plan?.id;
+        }
+
+        // Also try from transaction metadata
+        if (!planId) {
+          const txn = await subscriptionRepository.getTransactionByReference(data.reference);
+          if (txn?.metadata) {
+            planId = (txn.metadata as any)?.planId;
+          }
+        }
+
+        if (planId) {
+          const now = new Date();
+          const interval = data.plan_object?.interval;
+          const periodEnd = interval === "annually"
+            ? new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000)
+            : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+          subscription = await subscriptionRepository.createSubscription({
+            userId: user.id,
+            planId,
+            paystackSubscriptionCode: subCode || `charge_${data.reference}`,
+            paystackCustomerCode: data.customer.customer_code || "",
+            paystackAuthorizationCode: data.authorization?.authorization_code || "",
+            currentPeriodStart: now,
+            currentPeriodEnd: periodEnd,
+            nextPaymentDate: periodEnd,
+          });
+
+          await db
+            .update(UserSchema)
+            .set({
+              subscriptionStatus: "active",
+              currentPlan: planCode || "ASKLY_MONTHLY",
+              paystackCustomerCode: data.customer.customer_code,
+            })
+            .where(eq(UserSchema.id, user.id));
+
+          console.log(`Subscription created from charge.success for user ${user.id}`);
+        }
+      }
+    }
 
     if (subscription) {
       // Get user info for email
@@ -301,29 +365,12 @@ async function handleChargeSuccess(data: any) {
         .where(eq(UserSchema.id, subscription.userId))
         .limit(1);
 
-      const currentPeriodEnd = new Date(subscription.currentPeriodEnd);
-      const nextMonth = new Date(currentPeriodEnd);
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
-
-      await subscriptionRepository.updateSubscription(subscription.id, {
-        lastPaymentDate: new Date(),
-        currentPeriodStart: currentPeriodEnd,
-        currentPeriodEnd: nextMonth,
-        nextPaymentDate: nextMonth,
-        amountPaidNgn: data.amount,
-        status: "active",
-      });
-
-      await subscriptionRepository.createTransaction({
-        userId: subscription.userId,
-        subscriptionId: subscription.id,
-        paystackReference: data.reference,
-        paystackTransactionId: data.id.toString(),
-        amountNgn: data.amount,
+      // Update transaction to success
+      await subscriptionRepository.updateTransaction(data.reference, {
         status: "success",
-        customerEmail: data.customer.email,
-        description: "Monthly subscription renewal",
         paidAt: new Date(),
+        paystackTransactionId: data.id?.toString(),
+        subscriptionId: subscription.id,
       });
 
       // Send payment receipt email
