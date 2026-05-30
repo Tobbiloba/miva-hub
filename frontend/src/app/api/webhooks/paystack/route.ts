@@ -96,6 +96,75 @@ async function processWebhookEvent(event: any) {
 
 async function handleSubscriptionCreate(data: any) {
   console.log("Subscription created:", data.subscription_code);
+
+  const customerEmail = data.customer?.email;
+  if (!customerEmail) return;
+
+  // Find user by email
+  const [user] = await db
+    .select({ id: UserSchema.id })
+    .from(UserSchema)
+    .where(eq(UserSchema.email, customerEmail))
+    .limit(1);
+
+  if (!user) {
+    console.error("Webhook subscription.create: no user for email", customerEmail);
+    return;
+  }
+
+  // Look up plan by paystack_plan_code
+  const { SubscriptionPlanSchema } = await import("@/lib/db/pg/schema.pg");
+  const planCode = data.plan?.plan_code;
+  let planId: string | undefined;
+
+  if (planCode) {
+    const [plan] = await db
+      .select({ id: SubscriptionPlanSchema.id })
+      .from(SubscriptionPlanSchema)
+      .where(eq(SubscriptionPlanSchema.paystackPlanCode, planCode))
+      .limit(1);
+    planId = plan?.id;
+  }
+
+  if (!planId) {
+    console.error("Webhook subscription.create: unknown plan code", planCode);
+    return;
+  }
+
+  // Check if subscription already exists (idempotency)
+  const [existing] = await db
+    .select({ id: UserSubscriptionSchema.id })
+    .from(UserSubscriptionSchema)
+    .where(eq(UserSubscriptionSchema.paystackSubscriptionCode, data.subscription_code))
+    .limit(1);
+
+  if (existing) return;
+
+  const now = new Date();
+  const nextPayment = data.next_payment_date ? new Date(data.next_payment_date) : null;
+  const periodEnd = nextPayment ?? new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  await subscriptionRepository.createSubscription({
+    userId: user.id,
+    planId,
+    paystackSubscriptionCode: data.subscription_code,
+    paystackCustomerCode: data.customer?.customer_code ?? "",
+    paystackAuthorizationCode: data.authorization?.authorization_code ?? "",
+    currentPeriodStart: now,
+    currentPeriodEnd: periodEnd,
+    nextPaymentDate: periodEnd,
+  });
+
+  await db
+    .update(UserSchema)
+    .set({
+      subscriptionStatus: "active",
+      currentPlan: planCode,
+      paystackCustomerCode: data.customer?.customer_code,
+    })
+    .where(eq(UserSchema.id, user.id));
+
+  console.log(`Subscription created for user ${user.id}, plan ${planCode}`);
 }
 
 async function handleSubscriptionDisable(data: any) {
@@ -290,17 +359,21 @@ async function handlePaymentFailed(data: any) {
       .limit(1);
 
     if (subscription) {
+      await subscriptionRepository.updateSubscription(subscription.id, {
+        status: "past_due",
+      });
+
       await subscriptionRepository.createTransaction({
         userId: subscription.userId,
         subscriptionId: subscription.id,
         paystackReference: data.reference || `failed_${Date.now()}`,
         amountNgn: data.amount || 0,
         status: "failed",
-        customerEmail: data.customer.email,
+        customerEmail: data.customer?.email,
         description: "Failed subscription renewal",
       });
 
-      console.log(`Payment failed for user ${subscription.userId}`);
+      console.log(`Payment failed for user ${subscription.userId}, status → past_due`);
     }
   }
 }

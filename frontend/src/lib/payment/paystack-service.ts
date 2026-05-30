@@ -177,7 +177,14 @@ class PaystackService {
       .createHmac("sha512", this.apiKey)
       .update(payload)
       .digest("hex");
-    return hash === signature;
+    try {
+      return crypto.timingSafeEqual(
+        Buffer.from(hash, "hex"),
+        Buffer.from(signature, "hex"),
+      );
+    } catch {
+      return false;
+    }
   }
 
   koboToNaira(kobo: number): number {
