@@ -304,6 +304,20 @@ async function handleChargeSuccess(data: any) {
         .limit(1);
 
       if (user) {
+        // Check if subscription.create already handled this
+        const existingSub = await subscriptionRepository.getUserActiveSubscription(user.id);
+        if (existingSub) {
+          // Already have an active sub — just update the transaction
+          await subscriptionRepository.updateTransaction(data.reference, {
+            status: "success",
+            paidAt: new Date(),
+            paystackTransactionId: data.id?.toString(),
+            subscriptionId: existingSub.id,
+          });
+          console.log(`charge.success: subscription already exists for user ${user.id}, updated transaction only`);
+          return;
+        }
+
         const { SubscriptionPlanSchema } = await import("@/lib/db/pg/schema.pg");
         const planCode = data.plan_object?.plan_code || data.plan;
         let planId: string | undefined;
