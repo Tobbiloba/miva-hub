@@ -128,12 +128,9 @@ export async function POST(request: NextRequest) {
 
     // 4. Fire-and-forget starter content generation
     if (enrolledCount > 0) {
-      try {
-        const { generateStarterContent } = await import("@/lib/onboarding/generate-starter-content");
-        generateStarterContent(userId);
-      } catch (e) {
-        console.warn("Starter content init error (non-fatal):", e);
-      }
+      import("@/lib/onboarding/generate-starter-content")
+        .then(({ generateStarterContent }) => generateStarterContent(userId))
+        .catch((e) => console.warn("Starter content init error (non-fatal):", e));
     }
 
     // 5. Send welcome email (best-effort)
