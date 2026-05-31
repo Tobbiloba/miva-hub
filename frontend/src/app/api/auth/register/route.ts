@@ -14,12 +14,20 @@ export async function POST(request: NextRequest) {
       programId,
       level,
       matricNumber,
+      termsAccepted,
     } = body;
 
     // Validate required fields
     if (!email || !name || !password || !programId || !level) {
       return NextResponse.json(
         { error: "Name, email, password, program, and level are required" },
+        { status: 400 }
+      );
+    }
+
+    if (!termsAccepted) {
+      return NextResponse.json(
+        { error: "You must agree to the Terms of Service and Privacy Policy" },
         { status: 400 }
       );
     }
@@ -98,6 +106,7 @@ export async function POST(request: NextRequest) {
         admissionLevel: Number(level),
         trialStartedAt: now,
         trialEndsAt: trialEnd,
+        termsAcceptedAt: now,
       })
       .where(eq(UserSchema.id, userId));
 

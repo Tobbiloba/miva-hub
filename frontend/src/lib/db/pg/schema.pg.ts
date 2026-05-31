@@ -146,6 +146,9 @@ export const UserSchema = pgTable("user", {
   trialStartedAt: timestamp("trial_started_at"),
   trialEndsAt: timestamp("trial_ends_at"),
 
+  // Legal consent
+  termsAcceptedAt: timestamp("terms_accepted_at"),
+
   createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });

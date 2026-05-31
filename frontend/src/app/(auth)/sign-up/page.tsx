@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronLeft, Loader, AlertCircle, Info } from "lucide-react";
 import { toast } from "sonner";
 import { existsByEmailAction } from "@/app/api/auth/actions";
@@ -60,6 +61,9 @@ export default function SignUpPage() {
   // Data
   const [programs, setPrograms] = useState<Program[]>([]);
   const [session, setSession] = useState<AcademicSession | null>(null);
+
+  // ToS acceptance
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Validation state
   const [emailWarning, setEmailWarning] = useState("");
@@ -161,6 +165,10 @@ export default function SignUpPage() {
       toast.error("Please fix the matric number format or leave it blank");
       return;
     }
+    if (!termsAccepted) {
+      toast.error("You must agree to the Terms of Service and Privacy Policy");
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -174,6 +182,7 @@ export default function SignUpPage() {
           programId,
           level: Number(level),
           matricNumber: matricNumber.trim() || undefined,
+          termsAccepted: true,
         }),
       });
 
@@ -431,6 +440,43 @@ export default function SignUpPage() {
                   </div>
                 )}
               </>
+            )}
+
+            {/* ── ToS Checkbox (Step 2 only) ────────────────────────── */}
+            {step === 2 && (
+              <div className="flex items-start gap-2 mt-2">
+                <Checkbox
+                  id="terms"
+                  checked={termsAccepted}
+                  onCheckedChange={(checked) =>
+                    setTermsAccepted(checked === true)
+                  }
+                  disabled={isLoading}
+                />
+                <label
+                  htmlFor="terms"
+                  className="text-xs text-muted-foreground leading-tight cursor-pointer"
+                >
+                  I agree to the{" "}
+                  <a
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline"
+                  >
+                    Terms of Service
+                  </a>{" "}
+                  and{" "}
+                  <a
+                    href="/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline"
+                  >
+                    Privacy Policy
+                  </a>
+                </label>
+              </div>
             )}
 
             {/* ── Step label ──────────────────────────────────────────── */}
