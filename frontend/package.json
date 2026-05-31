@@ -6,10 +6,10 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev --turbopack --port 4001",
     "dev:https": "next dev --turbopack --experimental-https",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port 4001",
     "build:local": "cross-env NO_HTTPS='1' next build",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -48,7 +48,7 @@
     "docker-compose:update": "git pull && docker-compose -f docker/compose.yml up -d --build",
     "docker:pg": "docker run --name miva-hub-pg -e POSTGRES_PASSWORD=your_password -e POSTGRES_USER=your_username -e POSTGRES_DB=your_database_name -p 5432:5432 -d postgres",
     "docker:redis": "docker run --name miva-hub-redis -p 6379:6379 -d redis:7-alpine",
-    "docker:app": "docker build -f docker/Dockerfile -t miva-hub . && docker run -p 3000:3000 -e NO_HTTPS=1 miva-hub",
+    "docker:app": "docker build -f docker/Dockerfile -t miva-hub . && docker run -p 4001:4001 -e NO_HTTPS=1 miva-hub",
     "prepare": "husky",
     "playwright:install": "playwright install",
     "check": "pnpm lint:fix && pnpm check-types && pnpm test"

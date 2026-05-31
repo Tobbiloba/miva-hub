@@ -5,8 +5,8 @@ This document lists all the environment variables used in the MIVA Hub frontend 
 ## Required Environment Variables
 
 ### Application URLs
-- `NEXT_PUBLIC_APP_URL` - Main application URL (default: `http://localhost:3000`)
-- `NEXT_PUBLIC_BASE_URL` - Base URL for the application (default: `http://localhost:3000`)
+- `NEXT_PUBLIC_APP_URL` - Main application URL (default: `http://localhost:4001`)
+- `NEXT_PUBLIC_BASE_URL` - Base URL for the application (default: `http://localhost:4001`)
 
 ### API Service URLs
 - `NEXT_PUBLIC_PROGRESS_API_URL` - Progress API for saving/loading student progress (default: `http://localhost:8083`)
@@ -24,7 +24,7 @@ This document lists all the environment variables used in the MIVA Hub frontend 
 
 ### Authentication
 - `BETTER_AUTH_SECRET` - Authentication secret key (required)
-- `BETTER_AUTH_URL` - Authentication URL (default: `http://localhost:3000`)
+- `BETTER_AUTH_URL` - Authentication URL (default: `http://localhost:4001`)
 
 ### AI Model APIs
 - `OPENAI_API_KEY` - OpenAI API key
@@ -80,8 +80,8 @@ This document lists all the environment variables used in the MIVA Hub frontend 
 
 ### Development
 ```bash
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_BASE_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:4001
+NEXT_PUBLIC_BASE_URL=http://localhost:4001
 NEXT_PUBLIC_PROGRESS_API_URL=http://localhost:8083
 NEXT_PUBLIC_CONTENT_PROCESSOR_URL=http://localhost:8082
 CONTENT_PROCESSOR_URL=http://localhost:8082

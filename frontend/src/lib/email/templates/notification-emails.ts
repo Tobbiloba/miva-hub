@@ -1,5 +1,5 @@
 const APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  process.env.NEXT_PUBLIC_APP_URL || "http://localhost:4001";
 
 function wrapInLayout(title: string, bodyContent: string, ctaUrl: string, ctaLabel: string): string {
   return `<!DOCTYPE html>

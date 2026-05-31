@@ -16,7 +16,7 @@ export default defineConfig({
   workers: process.env.CI ? 4 : undefined,
   reporter: "list",
   use: {
-    baseURL: process.env.TEST_BASE_URL || "http://localhost:3001",
+    baseURL: process.env.TEST_BASE_URL || "http://localhost:4002",
     ignoreHTTPSErrors: true,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
@@ -30,8 +30,8 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: "pnpm dev --port 3001",
-    url: "http://localhost:3001",
+    command: "pnpm dev --port 4002",
+    url: "http://localhost:4002",
     reuseExistingServer: true,
     timeout: 60_000,
     stdout: "pipe",

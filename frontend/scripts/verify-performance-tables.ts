@@ -30,7 +30,7 @@ async function verifyTables() {
       console.log("\n🎉 Database is ready for testing!");
       console.log("\nYou can now:");
       console.log("  1. Run the dev server: pnpm dev");
-      console.log("  2. Visit: http://localhost:3000/student/dashboard");
+      console.log("  2. Visit: http://localhost:4001/student/dashboard");
       console.log("\n⚠️  Note: You'll need to be logged in as a student");
       
     } else {

@@ -36,7 +36,7 @@ pnpm docker:pg
 pnpm build:local && pnpm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to get started.
+Open [http://localhost:4001](http://localhost:4001) to get started.
 
 ## Environment Variables
 

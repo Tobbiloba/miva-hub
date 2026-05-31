@@ -105,7 +105,7 @@ async function createTables() {
     console.log("\n🎉 SUCCESS! All tables created!\n");
     console.log("Next steps:");
     console.log("  1. Run: pnpm dev");
-    console.log("  2. Visit: http://localhost:3000/student/dashboard");
+    console.log("  2. Visit: http://localhost:4001/student/dashboard");
     console.log("  3. Login as a student to test");
 
     process.exit(0);

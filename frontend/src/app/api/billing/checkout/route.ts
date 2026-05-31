@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/billing/callback`;
+    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:4001"}/billing/callback`;
 
     // Initialize transaction with plan
     const initRes = await paystackService.initializeSubscription({
