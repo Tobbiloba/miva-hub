@@ -126,7 +126,17 @@ export async function POST(request: NextRequest) {
       // Don't fail registration if enrollment fails
     }
 
-    // 4. Send welcome email (best-effort)
+    // 4. Fire-and-forget starter content generation
+    if (enrolledCount > 0) {
+      try {
+        const { generateStarterContent } = await import("@/lib/onboarding/generate-starter-content");
+        generateStarterContent(userId);
+      } catch (e) {
+        console.warn("Starter content init error (non-fatal):", e);
+      }
+    }
+
+    // 5. Send welcome email (best-effort)
     try {
       const firstName = name.trim().split(" ")[0];
       const { subject, html, text } = buildWelcomeEmail({
