@@ -40,6 +40,11 @@
 
 @import "tailwindcss";
 @import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+html {
+  scroll-behavior: smooth;
+}
 /* Individual theme variants - themes from  https://github.com/rawestmoreland/theme-generator/blob/main/src/app/globals.css */
 
 @theme inline {
