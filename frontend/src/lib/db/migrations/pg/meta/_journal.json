@@ -232,6 +232,13 @@
       "when": 1780315200000,
       "tag": "0032_notification",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1781207255140,
+      "tag": "0033_bright_bloodscream",
+      "breakpoints": true
     }
   ]
 }
