@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/server";
-import { isAdmin } from "@/lib/auth/admin";
+import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { AnnouncementSchema, UserSchema } from "@/lib/db/pg/schema.pg";
 import { eq } from "drizzle-orm";
@@ -11,13 +10,8 @@ export async function GET(
 ) {
   try {
     // Check authentication and admin permissions
-    const session = await getSession();
-    if (!isAdmin(session?.user)) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const sessionOrError = await requireAdmin();
+    if (sessionOrError instanceof NextResponse) return sessionOrError;
 
     const { id } = await params;
     const announcementId = id;
@@ -58,13 +52,8 @@ export async function PUT(
 ) {
   try {
     // Check authentication and admin permissions
-    const session = await getSession();
-    if (!isAdmin(session?.user)) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const sessionOrError = await requireAdmin();
+    if (sessionOrError instanceof NextResponse) return sessionOrError;
 
     const { id } = await params;
     const announcementId = id;
@@ -135,13 +124,8 @@ export async function DELETE(
 ) {
   try {
     // Check authentication and admin permissions
-    const session = await getSession();
-    if (!isAdmin(session?.user)) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const sessionOrError = await requireAdmin();
+    if (sessionOrError instanceof NextResponse) return sessionOrError;
 
     const { id } = await params;
     const announcementId = id;

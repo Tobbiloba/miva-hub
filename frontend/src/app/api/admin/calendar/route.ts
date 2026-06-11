@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/server";
-import { isAdmin } from "@/lib/auth/admin";
+import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { CalendarEventSchema, UserSchema, CourseSchema, DepartmentSchema } from "@/lib/db/pg/schema.pg";
 import { eq, and, sql, desc, ilike, or, gte, lte, between } from "drizzle-orm";
@@ -8,13 +7,8 @@ import { eq, and, sql, desc, ilike, or, gte, lte, between } from "drizzle-orm";
 export async function GET(request: NextRequest) {
   try {
     // Check authentication and admin permissions
-    const session = await getSession();
-    if (!isAdmin(session?.user)) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const sessionOrError = await requireAdmin();
+    if (sessionOrError instanceof NextResponse) return sessionOrError;
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
@@ -139,13 +133,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Check authentication and admin permissions
-    const session = await getSession();
-    if (!isAdmin(session?.user)) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const sessionOrError = await requireAdmin();
+    if (sessionOrError instanceof NextResponse) return sessionOrError;
+    const session = sessionOrError;
 
     const body = await request.json();
     const { 

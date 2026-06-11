@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/server";
-import { isAdmin } from "@/lib/auth/admin";
+import { requireAdmin } from "@/lib/auth/admin";
 import { pgAcademicRepository as academicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 
 export async function DELETE(
@@ -9,13 +8,8 @@ export async function DELETE(
 ) {
   try {
     // Check authentication and admin permissions
-    const session = await getSession();
-    if (!isAdmin(session?.user)) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const sessionOrError = await requireAdmin();
+    if (sessionOrError instanceof NextResponse) return sessionOrError;
 
     const { id } = await params;
     const materialId = id;
@@ -62,13 +56,8 @@ export async function GET(
 ) {
   try {
     // Check authentication and admin permissions
-    const session = await getSession();
-    if (!isAdmin(session?.user)) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const sessionOrError = await requireAdmin();
+    if (sessionOrError instanceof NextResponse) return sessionOrError;
 
     const { id } = await params;
     const materialId = id;
