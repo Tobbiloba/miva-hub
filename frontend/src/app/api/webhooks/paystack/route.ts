@@ -322,6 +322,30 @@ async function sendPaymentReceiptEmail(
 async function handleChargeSuccess(data: any) {
   console.log("Charge successful:", data.reference);
 
+  // Org (university) seat payments are plan-less one-time charges,
+  // identified by checkout metadata. Activation is idempotent, so the
+  // browser callback and this webhook can both fire safely.
+  if (data.metadata?.type === "university_subscription") {
+    const { activateUniversitySubscription } = await import(
+      "@/lib/billing/org"
+    );
+    const result = await activateUniversitySubscription({
+      subscriptionId: data.metadata.subscriptionId,
+      reference: data.reference,
+      amountKobo: data.amount,
+    });
+    console.log(`Org subscription ${data.metadata.subscriptionId}: ${result}`);
+
+    await subscriptionRepository
+      .updateTransaction(data.reference, {
+        status: "success",
+        paidAt: new Date(),
+        paystackTransactionId: data.id?.toString(),
+      })
+      .catch(() => {});
+    return;
+  }
+
   if (data.plan || data.plan_object) {
     const subCode = data.subscription?.subscription_code;
 

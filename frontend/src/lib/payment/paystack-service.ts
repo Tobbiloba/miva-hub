@@ -1,7 +1,8 @@
 import crypto from "crypto";
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
-const PAYSTACK_API_URL = process.env.PAYSTACK_API_URL || "https://api.paystack.co";
+const PAYSTACK_API_URL =
+  process.env.PAYSTACK_API_URL || "https://api.paystack.co";
 
 export interface InitializeSubscriptionParams {
   email: string;
@@ -52,7 +53,13 @@ export interface VerifyTransactionResponse {
 export interface CreatePlanParams {
   name: string;
   amount: number;
-  interval: "daily" | "weekly" | "monthly" | "quarterly" | "biannually" | "annually";
+  interval:
+    | "daily"
+    | "weekly"
+    | "monthly"
+    | "quarterly"
+    | "biannually"
+    | "annually";
   description?: string;
   currency?: string;
 }
@@ -77,7 +84,7 @@ class PaystackService {
   private async makeRequest(
     endpoint: string,
     method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
-    body?: any
+    body?: any,
   ) {
     try {
       const options: RequestInit = {
@@ -112,7 +119,24 @@ class PaystackService {
     });
   }
 
-  async verifyTransaction(reference: string): Promise<VerifyTransactionResponse> {
+  /** One-time charge (no recurring plan) — used for org/seat invoices. */
+  async initializeTransaction(params: {
+    email: string;
+    amount: number;
+    callbackUrl: string;
+    metadata?: Record<string, any>;
+  }) {
+    return await this.makeRequest("/transaction/initialize", "POST", {
+      email: params.email,
+      amount: params.amount,
+      callback_url: params.callbackUrl,
+      metadata: params.metadata,
+    });
+  }
+
+  async verifyTransaction(
+    reference: string,
+  ): Promise<VerifyTransactionResponse> {
     return await this.makeRequest(`/transaction/verify/${reference}`);
   }
 
@@ -161,13 +185,15 @@ class PaystackService {
   }
 
   async listSubscriptions(page = 1, perPage = 50) {
-    return await this.makeRequest(`/subscription?page=${page}&perPage=${perPage}`);
+    return await this.makeRequest(
+      `/subscription?page=${page}&perPage=${perPage}`,
+    );
   }
 
   async getSubscriptionManageLink(subscriptionCode: string): Promise<string> {
     const response = await this.makeRequest(
       `/subscription/${subscriptionCode}/manage/link`,
-      "GET"
+      "GET",
     );
     return response.data.link;
   }
