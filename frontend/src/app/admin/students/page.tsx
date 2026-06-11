@@ -1,15 +1,14 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { StudentManagementClient } from "@/components/admin/student-management-client";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -18,28 +17,40 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Users,
-  Search,
-  Filter,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { requireAdmin } from "@/lib/auth/admin";
+import { getSession } from "@/lib/auth/server";
+import { pgDb } from "@/lib/db/pg/db.pg";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import {
+  CourseSchema,
+  StudentEnrollmentSchema,
+  UserSchema,
+} from "@/lib/db/pg/schema.pg";
+import { getUserUniversity } from "@/lib/tenant";
+import { and, eq, sql } from "drizzle-orm";
+import {
+  AlertCircle,
+  BookOpen,
+  Calendar,
+  CheckCircle,
   Download,
-  Plus,
   Edit,
+  Filter,
   GraduationCap,
   Mail,
-  Calendar,
-  BookOpen,
+  Plus,
+  Search,
   TrendingUp,
-  AlertCircle,
-  CheckCircle
+  Users,
 } from "lucide-react";
 import Link from "next/link";
-import { getSession } from "@/lib/auth/server";
-import { requireAdmin } from "@/lib/auth/admin";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-import { pgDb } from "@/lib/db/pg/db.pg";
-import { UserSchema, StudentEnrollmentSchema, CourseSchema } from "@/lib/db/pg/schema.pg";
-import { eq, and, sql } from "drizzle-orm";
-import { StudentManagementClient } from "@/components/admin/student-management-client";
 
 export default async function StudentManagementPage() {
   const session = await getSession();
@@ -49,25 +60,40 @@ export default async function StudentManagementPage() {
     return <div>Access denied. Admin privileges required.</div>;
   }
 
+  // Tenant scope: admins only see their own university's students
+  const university = await getUserUniversity(adminAccess.user.id);
+
   // Fetch students and their academic data
   const [students, systemStats, departments] = await Promise.all([
     // Get all students with their enrollment information
     pgDb
       .select({
         user: UserSchema,
-        enrollmentCount: sql<number>`count(${StudentEnrollmentSchema.id})`.as('enrollmentCount'),
+        enrollmentCount: sql<number>`count(${StudentEnrollmentSchema.id})`.as(
+          "enrollmentCount",
+        ),
       })
       .from(UserSchema)
-      .leftJoin(StudentEnrollmentSchema, eq(UserSchema.id, StudentEnrollmentSchema.studentId))
-      .where(eq(UserSchema.role, 'student'))
+      .leftJoin(
+        StudentEnrollmentSchema,
+        eq(UserSchema.id, StudentEnrollmentSchema.studentId),
+      )
+      .where(
+        university
+          ? and(
+              eq(UserSchema.role, "student"),
+              eq(UserSchema.universityId, university.id),
+            )
+          : eq(UserSchema.role, "student"),
+      )
       .groupBy(UserSchema.id)
       .orderBy(UserSchema.createdAt),
-    
+
     // Get system statistics
     pgAcademicRepository.getSystemStats(),
-    
-    // Get departments for filtering
-    pgAcademicRepository.getDepartments()
+
+    // Get departments for filtering (scoped to the admin's university)
+    pgAcademicRepository.getDepartments(university?.id),
   ]);
 
   // Get detailed enrollment information for each student
@@ -81,11 +107,16 @@ export default async function StudentManagementPage() {
             course: CourseSchema,
           })
           .from(StudentEnrollmentSchema)
-          .innerJoin(CourseSchema, eq(StudentEnrollmentSchema.courseId, CourseSchema.id))
-          .where(and(
-            eq(StudentEnrollmentSchema.studentId, user.id),
-            eq(StudentEnrollmentSchema.status, "enrolled")
-          ));
+          .innerJoin(
+            CourseSchema,
+            eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
+          )
+          .where(
+            and(
+              eq(StudentEnrollmentSchema.studentId, user.id),
+              eq(StudentEnrollmentSchema.status, "enrolled"),
+            ),
+          );
 
         // Calculate GPA and academic standing (simplified)
         const academicStanding = enrollmentCount > 0 ? "active" : "inactive";
@@ -97,7 +128,10 @@ export default async function StudentManagementPage() {
           currentEnrollments,
           academicStanding,
           currentGPA,
-          totalCredits: currentEnrollments.reduce((sum, e) => sum + (e.course.credits || 0), 0),
+          totalCredits: currentEnrollments.reduce(
+            (sum, e) => sum + (e.course.credits || 0),
+            0,
+          ),
         };
       } catch (error) {
         console.error(`Error fetching details for student ${user.id}:`, error);
@@ -110,15 +144,22 @@ export default async function StudentManagementPage() {
           totalCredits: 0,
         };
       }
-    })
+    }),
   );
 
   // Calculate statistics
-  const activeStudents = studentsWithDetails.filter(s => s.academicStanding === "active").length;
-  const totalEnrollments = studentsWithDetails.reduce((sum, s) => sum + s.enrollmentCount, 0);
-  const averageGPA = studentsWithDetails.length > 0 
-    ? studentsWithDetails.reduce((sum, s) => sum + s.currentGPA, 0) / studentsWithDetails.length 
-    : 0;
+  const activeStudents = studentsWithDetails.filter(
+    (s) => s.academicStanding === "active",
+  ).length;
+  const totalEnrollments = studentsWithDetails.reduce(
+    (sum, s) => sum + s.enrollmentCount,
+    0,
+  );
+  const averageGPA =
+    studentsWithDetails.length > 0
+      ? studentsWithDetails.reduce((sum, s) => sum + s.currentGPA, 0) /
+        studentsWithDetails.length
+      : 0;
 
   return (
     <div className="space-y-6 p-6">
@@ -133,7 +174,7 @@ export default async function StudentManagementPage() {
             Manage student records, enrollments, and academic progress
           </p>
         </div>
-        
+
         <div className="flex gap-2">
           <Button variant="outline" size="sm">
             <Download className="mr-2 h-4 w-4" />
@@ -155,13 +196,15 @@ export default async function StudentManagementPage() {
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-blue-600" />
               <div>
-                <p className="text-2xl font-bold">{studentsWithDetails.length}</p>
+                <p className="text-2xl font-bold">
+                  {studentsWithDetails.length}
+                </p>
                 <p className="text-xs text-muted-foreground">Total Students</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -173,19 +216,21 @@ export default async function StudentManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-purple-600" />
               <div>
                 <p className="text-2xl font-bold">{totalEnrollments}</p>
-                <p className="text-xs text-muted-foreground">Total Enrollments</p>
+                <p className="text-xs text-muted-foreground">
+                  Total Enrollments
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -206,7 +251,10 @@ export default async function StudentManagementPage() {
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search students by name, email, or student ID..." className="pl-10" />
+                <Input
+                  placeholder="Search students by name, email, or student ID..."
+                  className="pl-10"
+                />
               </div>
             </div>
             <Select>
@@ -283,66 +331,83 @@ export default async function StudentManagementPage() {
                           </div>
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <code className="text-sm bg-muted px-2 py-1 rounded">
                           {(student as any).studentId || "N/A"}
                         </code>
                       </TableCell>
-                      
+
                       <TableCell>
                         <Badge variant="outline">
                           {(student as any).academicYear || "Not Set"} Level
                         </Badge>
                       </TableCell>
-                      
+
                       <TableCell>
-                        <Badge 
-                          variant={student.academicStanding === "active" ? "default" : "secondary"}
+                        <Badge
+                          variant={
+                            student.academicStanding === "active"
+                              ? "default"
+                              : "secondary"
+                          }
                           className={
-                            student.academicStanding === "active" 
-                              ? "bg-green-100 text-green-800 border-green-200" 
+                            student.academicStanding === "active"
+                              ? "bg-green-100 text-green-800 border-green-200"
                               : ""
                           }
                         >
                           {student.academicStanding}
                         </Badge>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <BookOpen className="h-4 w-4 text-muted-foreground" />
                           <span>{student.enrollmentCount}</span>
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
-                        <span className="font-medium">{student.totalCredits}</span>
+                        <span className="font-medium">
+                          {student.totalCredits}
+                        </span>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <TrendingUp className={`h-4 w-4 ${student.currentGPA >= 3.0 ? 'text-green-600' : 'text-orange-600'}`} />
-                          <span className={student.currentGPA >= 3.0 ? 'text-green-600 font-medium' : 'text-orange-600'}>
+                          <TrendingUp
+                            className={`h-4 w-4 ${student.currentGPA >= 3.0 ? "text-green-600" : "text-orange-600"}`}
+                          />
+                          <span
+                            className={
+                              student.currentGPA >= 3.0
+                                ? "text-green-600 font-medium"
+                                : "text-orange-600"
+                            }
+                          >
                             {student.currentGPA.toFixed(2)}
                           </span>
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Calendar className="h-3 w-3" />
                           {new Date(student.createdAt).toLocaleDateString()}
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Button variant="ghost" size="sm">
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/admin/students/${student.id}/academic`} title="Academic Record">
+                            <Link
+                              href={`/admin/students/${student.id}/academic`}
+                              title="Academic Record"
+                            >
                               <GraduationCap className="h-4 w-4" />
                             </Link>
                           </Button>

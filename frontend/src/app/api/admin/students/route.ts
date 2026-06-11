@@ -2,7 +2,7 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { UserSchema } from "@/lib/db/pg/schema.pg";
 import { hash } from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -44,8 +44,15 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
+    // Tenant scope: admins only see their own university's students
+    const { getUserUniversity } = await import("@/lib/tenant");
+    const university = await getUserUniversity(adminAccess.user.id);
+
     // Build query conditions
     const whereConditions = [eq(UserSchema.role, "student")];
+    if (university) {
+      whereConditions.push(eq(UserSchema.universityId, university.id));
+    }
 
     // Add search filter
     if (search) {
@@ -57,7 +64,7 @@ export async function GET(request: NextRequest) {
     const students = await pgDb
       .select()
       .from(UserSchema)
-      .where(eq(UserSchema.role, "student"))
+      .where(and(...whereConditions))
       .limit(limit)
       .offset(offset)
       .orderBy(UserSchema.createdAt);

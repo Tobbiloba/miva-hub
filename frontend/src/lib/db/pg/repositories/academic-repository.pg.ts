@@ -1,47 +1,55 @@
-import { eq, and, desc, asc, sql, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { pgDb as db } from "../db.pg";
 import {
-  DepartmentSchema,
-  CourseSchema,
-  CourseWeekSchema,
-  CourseMaterialSchema,
-  StudentEnrollmentSchema,
-  FacultySchema,
-  AnnouncementSchema,
+  type AIProcessedContentEntity,
+  AIProcessedContentSchema,
+  type AIProcessingJobEntity,
+  AIProcessingJobSchema,
+  type AcademicCalendarEntity,
   AcademicCalendarSchema,
   AcademicSessionSchema,
-  ProgramSchema,
-  ProgramCurriculumSchema,
-  ClassScheduleSchema,
-  CourseInstructorSchema,
+  type AnnouncementEntity,
+  AnnouncementSchema,
   AssignmentSchema,
   AssignmentSubmissionSchema,
-  AIProcessingJobSchema,
-  AIProcessedContentSchema,
-  ContentEmbeddingSchema,
   CalendarEventSchema,
-  UserSchema,
-  type DepartmentEntity,
-  type CourseEntity,
-  type CourseWeekEntity,
-  type CourseMaterialEntity,
-  type StudentEnrollmentEntity,
-  type FacultyEntity,
-  type AnnouncementEntity,
-  type AcademicCalendarEntity,
   type ClassScheduleEntity,
-  type AIProcessingJobEntity,
-  type AIProcessedContentEntity,
+  ClassScheduleSchema,
   type ContentEmbeddingEntity,
+  ContentEmbeddingSchema,
+  type CourseEntity,
+  CourseInstructorSchema,
+  type CourseMaterialEntity,
+  CourseMaterialSchema,
+  CourseSchema,
+  type CourseWeekEntity,
+  CourseWeekSchema,
+  type DepartmentEntity,
+  DepartmentSchema,
+  type FacultyEntity,
+  FacultySchema,
+  ProgramCurriculumSchema,
+  ProgramSchema,
+  type StudentEnrollmentEntity,
+  StudentEnrollmentSchema,
+  UserSchema,
 } from "../schema.pg";
 
 export const pgAcademicRepository = {
   // Department operations
-  getDepartments: async (): Promise<DepartmentEntity[]> => {
-    return db.select().from(DepartmentSchema).orderBy(asc(DepartmentSchema.name));
+  getDepartments: async (
+    universityId?: string,
+  ): Promise<DepartmentEntity[]> => {
+    const base = db.select().from(DepartmentSchema);
+    const scoped = universityId
+      ? base.where(eq(DepartmentSchema.universityId, universityId))
+      : base;
+    return scoped.orderBy(asc(DepartmentSchema.name));
   },
 
-  getDepartmentByCode: async (code: string): Promise<DepartmentEntity | null> => {
+  getDepartmentByCode: async (
+    code: string,
+  ): Promise<DepartmentEntity | null> => {
     const [result] = await db
       .select()
       .from(DepartmentSchema)
@@ -49,7 +57,9 @@ export const pgAcademicRepository = {
     return result ?? null;
   },
 
-  getDepartmentById: async (departmentId: string): Promise<DepartmentEntity | null> => {
+  getDepartmentById: async (
+    departmentId: string,
+  ): Promise<DepartmentEntity | null> => {
     const [result] = await db
       .select()
       .from(DepartmentSchema)
@@ -57,24 +67,32 @@ export const pgAcademicRepository = {
     return result ?? null;
   },
 
-  createDepartment: async (departmentData: Omit<typeof DepartmentSchema.$inferInsert, 'id' | 'createdAt' | 'updatedAt'>): Promise<DepartmentEntity> => {
+  createDepartment: async (
+    departmentData: Omit<
+      typeof DepartmentSchema.$inferInsert,
+      "id" | "createdAt" | "updatedAt"
+    >,
+  ): Promise<DepartmentEntity> => {
     const [insertedDepartment] = await db
       .insert(DepartmentSchema)
       .values({
         ...departmentData,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .returning();
     return insertedDepartment;
   },
 
-  updateDepartment: async (departmentId: string, updates: Partial<typeof DepartmentSchema.$inferInsert>): Promise<DepartmentEntity | null> => {
+  updateDepartment: async (
+    departmentId: string,
+    updates: Partial<typeof DepartmentSchema.$inferInsert>,
+  ): Promise<DepartmentEntity | null> => {
     const [updatedDepartment] = await db
       .update(DepartmentSchema)
       .set({
         ...updates,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(DepartmentSchema.id, departmentId))
       .returning();
@@ -89,10 +107,13 @@ export const pgAcademicRepository = {
   },
 
   // Course operations
-  getCoursesByDepartment: async (departmentId: string, filters?: { level?: string; semester?: string }): Promise<CourseEntity[]> => {
+  getCoursesByDepartment: async (
+    departmentId: string,
+    filters?: { level?: string; semester?: string },
+  ): Promise<CourseEntity[]> => {
     const conditions = [
       eq(CourseSchema.departmentId, departmentId),
-      eq(CourseSchema.isActive, true)
+      eq(CourseSchema.isActive, true),
     ];
 
     if (filters?.level) {
@@ -118,7 +139,10 @@ export const pgAcademicRepository = {
     return result ?? null;
   },
 
-  getActiveCourses: async (filters?: { level?: string; semester?: string }): Promise<CourseEntity[]> => {
+  getActiveCourses: async (filters?: {
+    level?: string;
+    semester?: string;
+  }): Promise<CourseEntity[]> => {
     const conditions = [eq(CourseSchema.isActive, true)];
 
     if (filters?.level) {
@@ -144,24 +168,32 @@ export const pgAcademicRepository = {
     return result ?? null;
   },
 
-  createCourse: async (courseData: Omit<typeof CourseSchema.$inferInsert, 'id' | 'createdAt' | 'updatedAt'>): Promise<CourseEntity> => {
+  createCourse: async (
+    courseData: Omit<
+      typeof CourseSchema.$inferInsert,
+      "id" | "createdAt" | "updatedAt"
+    >,
+  ): Promise<CourseEntity> => {
     const [insertedCourse] = await db
       .insert(CourseSchema)
       .values({
         ...courseData,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .returning();
     return insertedCourse;
   },
 
-  updateCourse: async (courseId: string, updates: Partial<typeof CourseSchema.$inferInsert>): Promise<CourseEntity | null> => {
+  updateCourse: async (
+    courseId: string,
+    updates: Partial<typeof CourseSchema.$inferInsert>,
+  ): Promise<CourseEntity | null> => {
     const [updatedCourse] = await db
       .update(CourseSchema)
       .set({
         ...updates,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(CourseSchema.id, courseId))
       .returning();
@@ -175,17 +207,18 @@ export const pgAcademicRepository = {
     return result.rowCount > 0;
   },
 
-  getAllCourses: async (): Promise<CourseEntity[]> => {
-    return db
-      .select()
-      .from(CourseSchema)
-      .orderBy(asc(CourseSchema.courseCode));
+  getAllCourses: async (universityId?: string): Promise<CourseEntity[]> => {
+    const base = db.select().from(CourseSchema);
+    const scoped = universityId
+      ? base.where(eq(CourseSchema.universityId, universityId))
+      : base;
+    return scoped.orderBy(asc(CourseSchema.courseCode));
   },
 
   // Course materials operations
   getCourseMaterials: async (
     courseId: string,
-    weekNumber?: number
+    weekNumber?: number,
   ): Promise<CourseMaterialEntity[]> => {
     const conditions = [eq(CourseMaterialSchema.courseId, courseId)];
     if (weekNumber) {
@@ -196,7 +229,10 @@ export const pgAcademicRepository = {
       .select()
       .from(CourseMaterialSchema)
       .where(and(...conditions))
-      .orderBy(asc(CourseMaterialSchema.weekNumber), asc(CourseMaterialSchema.createdAt));
+      .orderBy(
+        asc(CourseMaterialSchema.weekNumber),
+        asc(CourseMaterialSchema.createdAt),
+      );
   },
 
   getAllCourseMaterials: async (): Promise<CourseMaterialEntity[]> => {
@@ -208,20 +244,30 @@ export const pgAcademicRepository = {
 
   getCourseMaterialsByType: async (
     courseId: string,
-    materialType: "syllabus" | "lecture" | "assignment" | "resource" | "reading" | "exam"
+    materialType:
+      | "syllabus"
+      | "lecture"
+      | "assignment"
+      | "resource"
+      | "reading"
+      | "exam",
   ): Promise<CourseMaterialEntity[]> => {
     return db
       .select()
       .from(CourseMaterialSchema)
-      .where(and(
-        eq(CourseMaterialSchema.courseId, courseId),
-        eq(CourseMaterialSchema.materialType, materialType)
-      ))
+      .where(
+        and(
+          eq(CourseMaterialSchema.courseId, courseId),
+          eq(CourseMaterialSchema.materialType, materialType),
+        ),
+      )
       .orderBy(asc(CourseMaterialSchema.weekNumber));
   },
 
   // Course material insertion
-  insertCourseMaterial: async (materialData: typeof CourseMaterialSchema.$inferInsert): Promise<CourseMaterialEntity> => {
+  insertCourseMaterial: async (
+    materialData: typeof CourseMaterialSchema.$inferInsert,
+  ): Promise<CourseMaterialEntity> => {
     const [result] = await db
       .insert(CourseMaterialSchema)
       .values(materialData)
@@ -229,7 +275,9 @@ export const pgAcademicRepository = {
     return result;
   },
 
-  getCourseMaterialById: async (materialId: string): Promise<CourseMaterialEntity | null> => {
+  getCourseMaterialById: async (
+    materialId: string,
+  ): Promise<CourseMaterialEntity | null> => {
     const [result] = await db
       .select()
       .from(CourseMaterialSchema)
@@ -237,7 +285,10 @@ export const pgAcademicRepository = {
     return result ?? null;
   },
 
-  updateCourseMaterial: async (materialId: string, updates: Partial<typeof CourseMaterialSchema.$inferInsert>): Promise<CourseMaterialEntity | null> => {
+  updateCourseMaterial: async (
+    materialId: string,
+    updates: Partial<typeof CourseMaterialSchema.$inferInsert>,
+  ): Promise<CourseMaterialEntity | null> => {
     const [result] = await db
       .update(CourseMaterialSchema)
       .set(updates)
@@ -250,25 +301,30 @@ export const pgAcademicRepository = {
     const result = await db
       .delete(CourseMaterialSchema)
       .where(eq(CourseMaterialSchema.id, materialId));
-    
+
     return result.rowCount > 0;
   },
 
-  getCourseMaterialsByWeek: async (courseId: string, weekNumber: number): Promise<CourseMaterialEntity[]> => {
+  getCourseMaterialsByWeek: async (
+    courseId: string,
+    weekNumber: number,
+  ): Promise<CourseMaterialEntity[]> => {
     return db
       .select()
       .from(CourseMaterialSchema)
       .where(
         and(
           eq(CourseMaterialSchema.courseId, courseId),
-          eq(CourseMaterialSchema.weekNumber, weekNumber)
-        )
+          eq(CourseMaterialSchema.weekNumber, weekNumber),
+        ),
       )
       .orderBy(desc(CourseMaterialSchema.uploadedAt));
   },
 
   // AI Processing operations
-  createAIProcessingJob: async (jobData: typeof AIProcessingJobSchema.$inferInsert): Promise<AIProcessingJobEntity> => {
+  createAIProcessingJob: async (
+    jobData: typeof AIProcessingJobSchema.$inferInsert,
+  ): Promise<AIProcessingJobEntity> => {
     const [result] = await db
       .insert(AIProcessingJobSchema)
       .values(jobData)
@@ -277,11 +333,11 @@ export const pgAcademicRepository = {
   },
 
   updateAIProcessingJobStatus: async (
-    jobId: string, 
+    jobId: string,
     status: "pending" | "processing" | "completed" | "failed",
     startedAt?: Date,
     completedAt?: Date,
-    errorMessage?: string
+    errorMessage?: string,
   ): Promise<AIProcessingJobEntity | null> => {
     const updateData: any = { status, updatedAt: new Date() };
     if (startedAt) updateData.startedAt = startedAt;
@@ -296,7 +352,9 @@ export const pgAcademicRepository = {
     return result ?? null;
   },
 
-  getAIProcessingJob: async (jobId: string): Promise<AIProcessingJobEntity | null> => {
+  getAIProcessingJob: async (
+    jobId: string,
+  ): Promise<AIProcessingJobEntity | null> => {
     const [result] = await db
       .select()
       .from(AIProcessingJobSchema)
@@ -304,7 +362,9 @@ export const pgAcademicRepository = {
     return result ?? null;
   },
 
-  insertAIProcessedContent: async (contentData: typeof AIProcessedContentSchema.$inferInsert): Promise<AIProcessedContentEntity> => {
+  insertAIProcessedContent: async (
+    contentData: typeof AIProcessedContentSchema.$inferInsert,
+  ): Promise<AIProcessedContentEntity> => {
     const [result] = await db
       .insert(AIProcessedContentSchema)
       .values(contentData)
@@ -312,7 +372,9 @@ export const pgAcademicRepository = {
     return result;
   },
 
-  getAIProcessedContent: async (courseMaterialId: string): Promise<AIProcessedContentEntity | null> => {
+  getAIProcessedContent: async (
+    courseMaterialId: string,
+  ): Promise<AIProcessedContentEntity | null> => {
     const [result] = await db
       .select()
       .from(AIProcessedContentSchema)
@@ -320,9 +382,11 @@ export const pgAcademicRepository = {
     return result ?? null;
   },
 
-  insertContentEmbeddings: async (embeddingsData: (typeof ContentEmbeddingSchema.$inferInsert)[]): Promise<ContentEmbeddingEntity[]> => {
+  insertContentEmbeddings: async (
+    embeddingsData: (typeof ContentEmbeddingSchema.$inferInsert)[],
+  ): Promise<ContentEmbeddingEntity[]> => {
     if (embeddingsData.length === 0) return [];
-    
+
     const results = await db
       .insert(ContentEmbeddingSchema)
       .values(embeddingsData)
@@ -330,7 +394,9 @@ export const pgAcademicRepository = {
     return results;
   },
 
-  getContentEmbeddings: async (courseMaterialId: string): Promise<ContentEmbeddingEntity[]> => {
+  getContentEmbeddings: async (
+    courseMaterialId: string,
+  ): Promise<ContentEmbeddingEntity[]> => {
     return db
       .select()
       .from(ContentEmbeddingSchema)
@@ -341,7 +407,7 @@ export const pgAcademicRepository = {
   // Student enrollment operations
   getStudentEnrollments: async (
     studentId: string,
-    semester?: string
+    semester?: string,
   ): Promise<StudentEnrollmentEntity[]> => {
     const conditions = [eq(StudentEnrollmentSchema.studentId, studentId)];
     if (semester) {
@@ -354,33 +420,39 @@ export const pgAcademicRepository = {
       .where(and(...conditions))
       .orderBy(
         desc(StudentEnrollmentSchema.academicYear),
-        desc(StudentEnrollmentSchema.enrollmentDate)
+        desc(StudentEnrollmentSchema.enrollmentDate),
       );
   },
 
   getCourseEnrollments: async (
     courseId: string,
-    semester: string
+    semester: string,
   ): Promise<StudentEnrollmentEntity[]> => {
     return db
       .select()
       .from(StudentEnrollmentSchema)
-      .where(and(
-        eq(StudentEnrollmentSchema.courseId, courseId),
-        eq(StudentEnrollmentSchema.semester, semester)
-      ))
+      .where(
+        and(
+          eq(StudentEnrollmentSchema.courseId, courseId),
+          eq(StudentEnrollmentSchema.semester, semester),
+        ),
+      )
       .orderBy(asc(StudentEnrollmentSchema.enrollmentDate));
   },
 
   // Faculty operations
-  getFacultyByDepartment: async (departmentId: string): Promise<FacultyEntity[]> => {
+  getFacultyByDepartment: async (
+    departmentId: string,
+  ): Promise<FacultyEntity[]> => {
     return db
       .select()
       .from(FacultySchema)
-      .where(and(
-        eq(FacultySchema.departmentId, departmentId),
-        eq(FacultySchema.isActive, true)
-      ))
+      .where(
+        and(
+          eq(FacultySchema.departmentId, departmentId),
+          eq(FacultySchema.isActive, true),
+        ),
+      )
       .orderBy(asc(FacultySchema.position));
   },
 
@@ -396,10 +468,10 @@ export const pgAcademicRepository = {
   getAnnouncements: async (
     courseId?: string,
     departmentId?: string,
-    limit = 10
+    limit = 10,
   ): Promise<AnnouncementEntity[]> => {
     const conditions = [eq(AnnouncementSchema.isActive, true)];
-    
+
     if (courseId) {
       conditions.push(eq(AnnouncementSchema.courseId, courseId));
     }
@@ -416,15 +488,18 @@ export const pgAcademicRepository = {
   },
 
   // Academic calendar operations
-  getActiveAcademicCalendar: async (): Promise<AcademicCalendarEntity | null> => {
-    const [result] = await db
-      .select()
-      .from(AcademicCalendarSchema)
-      .where(eq(AcademicCalendarSchema.isActive, true));
-    return result ?? null;
-  },
+  getActiveAcademicCalendar:
+    async (): Promise<AcademicCalendarEntity | null> => {
+      const [result] = await db
+        .select()
+        .from(AcademicCalendarSchema)
+        .where(eq(AcademicCalendarSchema.isActive, true));
+      return result ?? null;
+    },
 
-  getAcademicCalendarBySemester: async (semester: string): Promise<AcademicCalendarEntity | null> => {
+  getAcademicCalendarBySemester: async (
+    semester: string,
+  ): Promise<AcademicCalendarEntity | null> => {
     const [result] = await db
       .select()
       .from(AcademicCalendarSchema)
@@ -435,22 +510,27 @@ export const pgAcademicRepository = {
   // Class schedule operations
   getCourseSchedule: async (
     courseId: string,
-    semester: string
+    semester: string,
   ): Promise<ClassScheduleEntity[]> => {
     return db
       .select()
       .from(ClassScheduleSchema)
-      .where(and(
-        eq(ClassScheduleSchema.courseId, courseId),
-        eq(ClassScheduleSchema.semester, semester)
-      ))
-      .orderBy(asc(ClassScheduleSchema.dayOfWeek), asc(ClassScheduleSchema.startTime));
+      .where(
+        and(
+          eq(ClassScheduleSchema.courseId, courseId),
+          eq(ClassScheduleSchema.semester, semester),
+        ),
+      )
+      .orderBy(
+        asc(ClassScheduleSchema.dayOfWeek),
+        asc(ClassScheduleSchema.startTime),
+      );
   },
 
   // Combined operations for complex queries
   getStudentCoursesWithMaterials: async (
     studentId: string,
-    semester: string
+    semester: string,
   ) => {
     // Get student enrollments with course details
     const enrollmentsWithCourses = await db
@@ -460,12 +540,20 @@ export const pgAcademicRepository = {
         department: DepartmentSchema,
       })
       .from(StudentEnrollmentSchema)
-      .innerJoin(CourseSchema, eq(StudentEnrollmentSchema.courseId, CourseSchema.id))
-      .innerJoin(DepartmentSchema, eq(CourseSchema.departmentId, DepartmentSchema.id))
-      .where(and(
-        eq(StudentEnrollmentSchema.studentId, studentId),
-        eq(StudentEnrollmentSchema.semester, semester)
-      ));
+      .innerJoin(
+        CourseSchema,
+        eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
+      )
+      .innerJoin(
+        DepartmentSchema,
+        eq(CourseSchema.departmentId, DepartmentSchema.id),
+      )
+      .where(
+        and(
+          eq(StudentEnrollmentSchema.studentId, studentId),
+          eq(StudentEnrollmentSchema.semester, semester),
+        ),
+      );
 
     return enrollmentsWithCourses;
   },
@@ -479,12 +567,21 @@ export const pgAcademicRepository = {
         instructorRole: CourseInstructorSchema,
       })
       .from(CourseSchema)
-      .innerJoin(DepartmentSchema, eq(CourseSchema.departmentId, DepartmentSchema.id))
-      .leftJoin(CourseInstructorSchema, and(
-        eq(CourseInstructorSchema.courseId, CourseSchema.id),
-        eq(CourseInstructorSchema.semester, semester)
-      ))
-      .leftJoin(FacultySchema, eq(CourseInstructorSchema.facultyId, FacultySchema.id))
+      .innerJoin(
+        DepartmentSchema,
+        eq(CourseSchema.departmentId, DepartmentSchema.id),
+      )
+      .leftJoin(
+        CourseInstructorSchema,
+        and(
+          eq(CourseInstructorSchema.courseId, CourseSchema.id),
+          eq(CourseInstructorSchema.semester, semester),
+        ),
+      )
+      .leftJoin(
+        FacultySchema,
+        eq(CourseInstructorSchema.facultyId, FacultySchema.id),
+      )
       .where(eq(CourseSchema.id, courseId));
 
     return courseWithInstructor;
@@ -493,40 +590,58 @@ export const pgAcademicRepository = {
   // Admin dashboard statistics
   getSystemStats: async () => {
     try {
-      const [studentCount, courseCount, departmentCount, materialCount, facultyCount] = await Promise.all([
-        db.select({ count: sql`count(*)` }).from(UserSchema).where(eq(UserSchema.role, 'student')),
-        db.select({ count: sql`count(*)` }).from(CourseSchema).where(eq(CourseSchema.isActive, true)),
+      const [
+        studentCount,
+        courseCount,
+        departmentCount,
+        materialCount,
+        facultyCount,
+      ] = await Promise.all([
+        db
+          .select({ count: sql`count(*)` })
+          .from(UserSchema)
+          .where(eq(UserSchema.role, "student")),
+        db
+          .select({ count: sql`count(*)` })
+          .from(CourseSchema)
+          .where(eq(CourseSchema.isActive, true)),
         db.select({ count: sql`count(*)` }).from(DepartmentSchema),
         db.select({ count: sql`count(*)` }).from(CourseMaterialSchema),
-        db.select({ count: sql`count(*)` }).from(FacultySchema).where(eq(FacultySchema.isActive, true))
+        db
+          .select({ count: sql`count(*)` })
+          .from(FacultySchema)
+          .where(eq(FacultySchema.isActive, true)),
       ]);
-      
+
       return {
         students: Number(studentCount[0]?.count) || 0,
         courses: Number(courseCount[0]?.count) || 0,
         departments: Number(departmentCount[0]?.count) || 0,
         materials: Number(materialCount[0]?.count) || 0,
-        faculty: Number(facultyCount[0]?.count) || 0
+        faculty: Number(facultyCount[0]?.count) || 0,
       };
     } catch (error) {
-      console.error('Error fetching system stats:', error);
+      console.error("Error fetching system stats:", error);
       return {
         students: 0,
         courses: 0,
         departments: 0,
         materials: 0,
-        faculty: 0
+        faculty: 0,
       };
     }
   },
 
   // Student-specific queries
-  getStudentEnrollmentStats: async (studentId: string, options?: { academicYear?: string; includeHistorical?: boolean }) => {
+  getStudentEnrollmentStats: async (
+    studentId: string,
+    options?: { academicYear?: string; includeHistorical?: boolean },
+  ) => {
     try {
       const opts = options ?? {};
       const baseConditions = [
         eq(StudentEnrollmentSchema.studentId, studentId),
-        eq(StudentEnrollmentSchema.status, "enrolled")
+        eq(StudentEnrollmentSchema.status, "enrolled"),
       ];
 
       // Default to current academic year unless historical requested
@@ -541,20 +656,27 @@ export const pgAcademicRepository = {
           academicYear = user?.academicYear ?? undefined;
         }
         if (academicYear) {
-          baseConditions.push(eq(StudentEnrollmentSchema.academicYear, academicYear));
+          baseConditions.push(
+            eq(StudentEnrollmentSchema.academicYear, academicYear),
+          );
         }
       }
 
       const [enrollments, totalCredits] = await Promise.all([
-        db.select({ count: sql`count(*)` })
+        db
+          .select({ count: sql`count(*)` })
           .from(StudentEnrollmentSchema)
           .where(and(...baseConditions)),
-        db.select({
-          totalCredits: sql`sum(${CourseSchema.credits})`.as('totalCredits')
-        })
+        db
+          .select({
+            totalCredits: sql`sum(${CourseSchema.credits})`.as("totalCredits"),
+          })
           .from(StudentEnrollmentSchema)
-          .innerJoin(CourseSchema, eq(StudentEnrollmentSchema.courseId, CourseSchema.id))
-          .where(and(...baseConditions))
+          .innerJoin(
+            CourseSchema,
+            eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
+          )
+          .where(and(...baseConditions)),
       ]);
 
       return {
@@ -562,16 +684,23 @@ export const pgAcademicRepository = {
         totalCredits: Number(totalCredits[0]?.totalCredits) || 0,
       };
     } catch (error) {
-      console.error('Error fetching student enrollment stats:', error);
+      console.error("Error fetching student enrollment stats:", error);
       return { enrolledCourses: 0, totalCredits: 0 };
     }
   },
 
-  getStudentCourses: async (studentId: string, options?: { semester?: string; academicYear?: string; includeHistorical?: boolean }) => {
+  getStudentCourses: async (
+    studentId: string,
+    options?: {
+      semester?: string;
+      academicYear?: string;
+      includeHistorical?: boolean;
+    },
+  ) => {
     try {
       const conditions = [
         eq(StudentEnrollmentSchema.studentId, studentId),
-        eq(StudentEnrollmentSchema.status, "enrolled")
+        eq(StudentEnrollmentSchema.status, "enrolled"),
       ];
 
       const opts = options ?? {};
@@ -593,7 +722,9 @@ export const pgAcademicRepository = {
           academicYear = user?.academicYear ?? undefined;
         }
         if (academicYear) {
-          conditions.push(eq(StudentEnrollmentSchema.academicYear, academicYear));
+          conditions.push(
+            eq(StudentEnrollmentSchema.academicYear, academicYear),
+          );
         }
       }
 
@@ -604,19 +735,29 @@ export const pgAcademicRepository = {
           department: DepartmentSchema,
         })
         .from(StudentEnrollmentSchema)
-        .innerJoin(CourseSchema, eq(StudentEnrollmentSchema.courseId, CourseSchema.id))
-        .innerJoin(DepartmentSchema, eq(CourseSchema.departmentId, DepartmentSchema.id))
+        .innerJoin(
+          CourseSchema,
+          eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
+        )
+        .innerJoin(
+          DepartmentSchema,
+          eq(CourseSchema.departmentId, DepartmentSchema.id),
+        )
         .where(and(...conditions))
         .orderBy(asc(CourseSchema.courseCode));
 
       return coursesWithDetails;
     } catch (error) {
-      console.error('Error fetching student courses:', error);
+      console.error("Error fetching student courses:", error);
       return [];
     }
   },
 
-  getStudentUpcomingAssignments: async (studentId: string, limit = 5, options?: { academicYear?: string }) => {
+  getStudentUpcomingAssignments: async (
+    studentId: string,
+    limit = 5,
+    options?: { academicYear?: string },
+  ) => {
     try {
       // Resolve academic year for current-semester scoping
       let academicYear = options?.academicYear;
@@ -635,7 +776,9 @@ export const pgAcademicRepository = {
         eq(StudentEnrollmentSchema.status, "enrolled"),
       ];
       if (academicYear) {
-        enrollmentConditions.push(eq(StudentEnrollmentSchema.academicYear, academicYear));
+        enrollmentConditions.push(
+          eq(StudentEnrollmentSchema.academicYear, academicYear),
+        );
       }
 
       const upcomingAssignments = await db
@@ -646,32 +789,34 @@ export const pgAcademicRepository = {
         })
         .from(AssignmentSchema)
         .innerJoin(CourseSchema, eq(AssignmentSchema.courseId, CourseSchema.id))
-        .innerJoin(
-          StudentEnrollmentSchema,
-          and(...enrollmentConditions)
-        )
+        .innerJoin(StudentEnrollmentSchema, and(...enrollmentConditions))
         .leftJoin(
           AssignmentSubmissionSchema,
           and(
             eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
-            eq(AssignmentSubmissionSchema.studentId, studentId)
-          )
+            eq(AssignmentSubmissionSchema.studentId, studentId),
+          ),
         )
-        .where(and(
-          eq(AssignmentSchema.isPublished, true),
-          sql`${AssignmentSchema.dueDate} > CURRENT_TIMESTAMP`
-        ))
+        .where(
+          and(
+            eq(AssignmentSchema.isPublished, true),
+            sql`${AssignmentSchema.dueDate} > CURRENT_TIMESTAMP`,
+          ),
+        )
         .orderBy(asc(AssignmentSchema.dueDate))
         .limit(limit);
 
       return upcomingAssignments;
     } catch (error) {
-      console.error('Error fetching upcoming assignments:', error);
+      console.error("Error fetching upcoming assignments:", error);
       return [];
     }
   },
 
-  getStudentOverdueAssignments: async (studentId: string, options?: { academicYear?: string }) => {
+  getStudentOverdueAssignments: async (
+    studentId: string,
+    options?: { academicYear?: string },
+  ) => {
     try {
       let academicYear = options?.academicYear;
       if (!academicYear) {
@@ -689,7 +834,9 @@ export const pgAcademicRepository = {
         eq(StudentEnrollmentSchema.status, "enrolled"),
       ];
       if (academicYear) {
-        enrollmentConditions.push(eq(StudentEnrollmentSchema.academicYear, academicYear));
+        enrollmentConditions.push(
+          eq(StudentEnrollmentSchema.academicYear, academicYear),
+        );
       }
 
       const overdueAssignments = await db
@@ -700,32 +847,34 @@ export const pgAcademicRepository = {
         })
         .from(AssignmentSchema)
         .innerJoin(CourseSchema, eq(AssignmentSchema.courseId, CourseSchema.id))
-        .innerJoin(
-          StudentEnrollmentSchema,
-          and(...enrollmentConditions)
-        )
+        .innerJoin(StudentEnrollmentSchema, and(...enrollmentConditions))
         .leftJoin(
           AssignmentSubmissionSchema,
           and(
             eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
-            eq(AssignmentSubmissionSchema.studentId, studentId)
-          )
+            eq(AssignmentSubmissionSchema.studentId, studentId),
+          ),
         )
-        .where(and(
-          eq(AssignmentSchema.isPublished, true),
-          sql`${AssignmentSchema.dueDate} <= CURRENT_TIMESTAMP`,
-          sql`${AssignmentSubmissionSchema.id} IS NULL`
-        ))
+        .where(
+          and(
+            eq(AssignmentSchema.isPublished, true),
+            sql`${AssignmentSchema.dueDate} <= CURRENT_TIMESTAMP`,
+            sql`${AssignmentSubmissionSchema.id} IS NULL`,
+          ),
+        )
         .orderBy(desc(AssignmentSchema.dueDate));
 
       return overdueAssignments;
     } catch (error) {
-      console.error('Error fetching overdue assignments:', error);
+      console.error("Error fetching overdue assignments:", error);
       return [];
     }
   },
 
-  getStudentSubmittedAssignments: async (studentId: string, options?: { academicYear?: string }) => {
+  getStudentSubmittedAssignments: async (
+    studentId: string,
+    options?: { academicYear?: string },
+  ) => {
     try {
       let academicYear = options?.academicYear;
       if (!academicYear) {
@@ -743,7 +892,9 @@ export const pgAcademicRepository = {
         eq(StudentEnrollmentSchema.status, "enrolled"),
       ];
       if (academicYear) {
-        enrollmentConditions.push(eq(StudentEnrollmentSchema.academicYear, academicYear));
+        enrollmentConditions.push(
+          eq(StudentEnrollmentSchema.academicYear, academicYear),
+        );
       }
 
       const submittedAssignments = await db
@@ -754,23 +905,20 @@ export const pgAcademicRepository = {
         })
         .from(AssignmentSchema)
         .innerJoin(CourseSchema, eq(AssignmentSchema.courseId, CourseSchema.id))
-        .innerJoin(
-          StudentEnrollmentSchema,
-          and(...enrollmentConditions)
-        )
+        .innerJoin(StudentEnrollmentSchema, and(...enrollmentConditions))
         .innerJoin(
           AssignmentSubmissionSchema,
           and(
             eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
-            eq(AssignmentSubmissionSchema.studentId, studentId)
-          )
+            eq(AssignmentSubmissionSchema.studentId, studentId),
+          ),
         )
         .where(eq(AssignmentSchema.isPublished, true))
         .orderBy(desc(AssignmentSubmissionSchema.submittedAt));
 
       return submittedAssignments;
     } catch (error) {
-      console.error('Error fetching submitted assignments:', error);
+      console.error("Error fetching submitted assignments:", error);
       return [];
     }
   },
@@ -790,34 +938,43 @@ export const pgAcademicRepository = {
           and(
             eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
             eq(StudentEnrollmentSchema.studentId, studentId),
-            eq(StudentEnrollmentSchema.status, "enrolled")
-          )
+            eq(StudentEnrollmentSchema.status, "enrolled"),
+          ),
         )
         .leftJoin(
           AssignmentSubmissionSchema,
           and(
             eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
-            eq(AssignmentSubmissionSchema.studentId, studentId)
-          )
+            eq(AssignmentSubmissionSchema.studentId, studentId),
+          ),
         )
-        .where(and(
-          eq(AssignmentSchema.id, assignmentId),
-          eq(AssignmentSchema.isPublished, true)
-        ));
+        .where(
+          and(
+            eq(AssignmentSchema.id, assignmentId),
+            eq(AssignmentSchema.isPublished, true),
+          ),
+        );
 
       return result ?? null;
     } catch (error) {
-      console.error('Error fetching assignment by id:', error);
+      console.error("Error fetching assignment by id:", error);
       return null;
     }
   },
 
-  getStudentGradesSummary: async (studentId: string, options?: { semester?: string; academicYear?: string; includeHistorical?: boolean }) => {
+  getStudentGradesSummary: async (
+    studentId: string,
+    options?: {
+      semester?: string;
+      academicYear?: string;
+      includeHistorical?: boolean;
+    },
+  ) => {
     try {
       const opts = options ?? {};
       const conditions = [
         eq(AssignmentSubmissionSchema.studentId, studentId),
-        sql`${AssignmentSubmissionSchema.grade} IS NOT NULL`
+        sql`${AssignmentSubmissionSchema.grade} IS NOT NULL`,
       ];
 
       if (opts.semester) {
@@ -825,7 +982,9 @@ export const pgAcademicRepository = {
       }
 
       if (opts.academicYear) {
-        conditions.push(eq(StudentEnrollmentSchema.academicYear, opts.academicYear));
+        conditions.push(
+          eq(StudentEnrollmentSchema.academicYear, opts.academicYear),
+        );
       }
 
       const grades = await db
@@ -836,21 +995,24 @@ export const pgAcademicRepository = {
           enrollment: StudentEnrollmentSchema,
         })
         .from(AssignmentSubmissionSchema)
-        .innerJoin(AssignmentSchema, eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id))
+        .innerJoin(
+          AssignmentSchema,
+          eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
+        )
         .innerJoin(CourseSchema, eq(AssignmentSchema.courseId, CourseSchema.id))
         .innerJoin(
           StudentEnrollmentSchema,
           and(
             eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
-            eq(StudentEnrollmentSchema.studentId, studentId)
-          )
+            eq(StudentEnrollmentSchema.studentId, studentId),
+          ),
         )
         .where(and(...conditions))
         .orderBy(desc(AssignmentSubmissionSchema.submittedAt));
 
       return grades;
     } catch (error) {
-      console.error('Error fetching student grades:', error);
+      console.error("Error fetching student grades:", error);
       return [];
     }
   },
@@ -863,11 +1025,15 @@ export const pgAcademicRepository = {
           course: CourseSchema,
         })
         .from(AnnouncementSchema)
-        .leftJoin(CourseSchema, eq(AnnouncementSchema.courseId, CourseSchema.id))
-        .where(and(
-          eq(AnnouncementSchema.isActive, true),
-          sql`(${AnnouncementSchema.expiresAt} IS NULL OR ${AnnouncementSchema.expiresAt} > CURRENT_TIMESTAMP)`,
-          sql`(
+        .leftJoin(
+          CourseSchema,
+          eq(AnnouncementSchema.courseId, CourseSchema.id),
+        )
+        .where(
+          and(
+            eq(AnnouncementSchema.isActive, true),
+            sql`(${AnnouncementSchema.expiresAt} IS NULL OR ${AnnouncementSchema.expiresAt} > CURRENT_TIMESTAMP)`,
+            sql`(
             ${AnnouncementSchema.targetAudience} = 'all' OR
             ${AnnouncementSchema.targetAudience} = 'students' OR
             (${AnnouncementSchema.targetAudience} = 'course_specific' AND
@@ -875,14 +1041,15 @@ export const pgAcademicRepository = {
                SELECT course_id FROM student_enrollment
                WHERE student_id = ${studentId} AND status = 'enrolled'
              ))
-          )`
-        ))
+          )`,
+          ),
+        )
         .orderBy(desc(AnnouncementSchema.createdAt))
         .limit(limit);
 
       return announcements;
     } catch (error) {
-      console.error('Error fetching student announcements:', error);
+      console.error("Error fetching student announcements:", error);
       return [];
     }
   },
@@ -902,14 +1069,20 @@ export const pgAcademicRepository = {
           department: DepartmentSchema,
         })
         .from(CourseInstructorSchema)
-        .innerJoin(CourseSchema, eq(CourseInstructorSchema.courseId, CourseSchema.id))
-        .innerJoin(DepartmentSchema, eq(CourseSchema.departmentId, DepartmentSchema.id))
+        .innerJoin(
+          CourseSchema,
+          eq(CourseInstructorSchema.courseId, CourseSchema.id),
+        )
+        .innerJoin(
+          DepartmentSchema,
+          eq(CourseSchema.departmentId, DepartmentSchema.id),
+        )
         .where(and(...conditions))
         .orderBy(asc(CourseSchema.courseCode));
 
       return facultyCourses;
     } catch (error) {
-      console.error('Error fetching faculty courses:', error);
+      console.error("Error fetching faculty courses:", error);
       return [];
     }
   },
@@ -923,17 +1096,22 @@ export const pgAcademicRepository = {
           user: UserSchema,
         })
         .from(CourseInstructorSchema)
-        .innerJoin(FacultySchema, eq(CourseInstructorSchema.facultyId, FacultySchema.id))
+        .innerJoin(
+          FacultySchema,
+          eq(CourseInstructorSchema.facultyId, FacultySchema.id),
+        )
         .innerJoin(UserSchema, eq(FacultySchema.userId, UserSchema.id))
-        .where(and(
-          eq(CourseInstructorSchema.courseId, courseId),
-          eq(CourseInstructorSchema.semester, semester)
-        ))
+        .where(
+          and(
+            eq(CourseInstructorSchema.courseId, courseId),
+            eq(CourseInstructorSchema.semester, semester),
+          ),
+        )
         .orderBy(asc(CourseInstructorSchema.role));
 
       return instructors;
     } catch (error) {
-      console.error('Error fetching course instructors:', error);
+      console.error("Error fetching course instructors:", error);
       return [];
     }
   },
@@ -946,12 +1124,15 @@ export const pgAcademicRepository = {
         .from(CourseInstructorSchema)
         .where(eq(CourseInstructorSchema.facultyId, facultyId));
 
-      const courseIds = facultyCourses.map(fc => fc.courseId);
-      
+      const courseIds = facultyCourses.map((fc) => fc.courseId);
+
       if (courseIds.length === 0) return [];
 
       const conditions = [
-        sql`${AssignmentSchema.courseId} IN (${sql.join(courseIds.map(id => sql`${id}`), sql`, `)})`
+        sql`${AssignmentSchema.courseId} IN (${sql.join(
+          courseIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`,
       ];
 
       if (courseId) {
@@ -970,7 +1151,7 @@ export const pgAcademicRepository = {
 
       return assignments;
     } catch (error) {
-      console.error('Error fetching faculty assignments:', error);
+      console.error("Error fetching faculty assignments:", error);
       return [];
     }
   },
@@ -983,8 +1164,8 @@ export const pgAcademicRepository = {
         .from(CourseInstructorSchema)
         .where(eq(CourseInstructorSchema.facultyId, facultyId));
 
-      const courseIds = facultyCourses.map(fc => fc.courseId);
-      
+      const courseIds = facultyCourses.map((fc) => fc.courseId);
+
       if (courseIds.length === 0) return [];
 
       const pendingGrades = await db
@@ -995,53 +1176,73 @@ export const pgAcademicRepository = {
           student: UserSchema,
         })
         .from(AssignmentSubmissionSchema)
-        .innerJoin(AssignmentSchema, eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id))
+        .innerJoin(
+          AssignmentSchema,
+          eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
+        )
         .innerJoin(CourseSchema, eq(AssignmentSchema.courseId, CourseSchema.id))
-        .innerJoin(UserSchema, eq(AssignmentSubmissionSchema.studentId, UserSchema.id))
-        .where(and(
-          sql`${AssignmentSchema.courseId} IN (${sql.join(courseIds.map(id => sql`${id}`), sql`, `)})`,
-          sql`${AssignmentSubmissionSchema.grade} IS NULL`
-        ))
+        .innerJoin(
+          UserSchema,
+          eq(AssignmentSubmissionSchema.studentId, UserSchema.id),
+        )
+        .where(
+          and(
+            sql`${AssignmentSchema.courseId} IN (${sql.join(
+              courseIds.map((id) => sql`${id}`),
+              sql`, `,
+            )})`,
+            sql`${AssignmentSubmissionSchema.grade} IS NULL`,
+          ),
+        )
         .orderBy(asc(AssignmentSubmissionSchema.submittedAt))
         .limit(limit);
 
       return pendingGrades;
     } catch (error) {
-      console.error('Error fetching faculty grading queue:', error);
+      console.error("Error fetching faculty grading queue:", error);
       return [];
     }
   },
 
-  getFacultyStudents: async (facultyId: string, courseId?: string, semester?: string) => {
+  getFacultyStudents: async (
+    facultyId: string,
+    courseId?: string,
+    semester?: string,
+  ) => {
     try {
       // Get faculty's courses
       let courseIds: string[];
-      
+
       if (courseId) {
         // Verify faculty teaches this course
         const courseAccess = await db
           .select({ courseId: CourseInstructorSchema.courseId })
           .from(CourseInstructorSchema)
-          .where(and(
-            eq(CourseInstructorSchema.facultyId, facultyId),
-            eq(CourseInstructorSchema.courseId, courseId)
-          ));
-        
-        courseIds = courseAccess.map(ca => ca.courseId);
+          .where(
+            and(
+              eq(CourseInstructorSchema.facultyId, facultyId),
+              eq(CourseInstructorSchema.courseId, courseId),
+            ),
+          );
+
+        courseIds = courseAccess.map((ca) => ca.courseId);
       } else {
         const facultyCourses = await db
           .select({ courseId: CourseInstructorSchema.courseId })
           .from(CourseInstructorSchema)
           .where(eq(CourseInstructorSchema.facultyId, facultyId));
-        
-        courseIds = facultyCourses.map(fc => fc.courseId);
+
+        courseIds = facultyCourses.map((fc) => fc.courseId);
       }
 
       if (courseIds.length === 0) return [];
 
       const conditions = [
-        sql`${StudentEnrollmentSchema.courseId} IN (${sql.join(courseIds.map(id => sql`${id}`), sql`, `)})`,
-        eq(StudentEnrollmentSchema.status, "enrolled")
+        sql`${StudentEnrollmentSchema.courseId} IN (${sql.join(
+          courseIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`,
+        eq(StudentEnrollmentSchema.status, "enrolled"),
       ];
 
       if (semester) {
@@ -1055,14 +1256,20 @@ export const pgAcademicRepository = {
           course: CourseSchema,
         })
         .from(StudentEnrollmentSchema)
-        .innerJoin(UserSchema, eq(StudentEnrollmentSchema.studentId, UserSchema.id))
-        .innerJoin(CourseSchema, eq(StudentEnrollmentSchema.courseId, CourseSchema.id))
+        .innerJoin(
+          UserSchema,
+          eq(StudentEnrollmentSchema.studentId, UserSchema.id),
+        )
+        .innerJoin(
+          CourseSchema,
+          eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
+        )
         .where(and(...conditions))
         .orderBy(asc(UserSchema.name));
 
       return students;
     } catch (error) {
-      console.error('Error fetching faculty students:', error);
+      console.error("Error fetching faculty students:", error);
       return [];
     }
   },
@@ -1075,113 +1282,157 @@ export const pgAcademicRepository = {
         .from(CourseInstructorSchema)
         .where(eq(CourseInstructorSchema.facultyId, facultyId));
 
-      const courseIds = facultyCourses.map(fc => fc.courseId);
-      
+      const courseIds = facultyCourses.map((fc) => fc.courseId);
+
       if (courseIds.length === 0) {
         return {
           activeCourses: 0,
           totalStudents: 0,
           pendingGrades: 0,
-          recentSubmissions: 0
+          recentSubmissions: 0,
         };
       }
 
-      const [totalStudents, pendingGrades, recentSubmissions] = await Promise.all([
-        // Total enrolled students across all courses
-        db.select({ count: sql`count(*)` })
-          .from(StudentEnrollmentSchema)
-          .where(and(
-            sql`${StudentEnrollmentSchema.courseId} IN (${sql.join(courseIds.map(id => sql`${id}`), sql`, `)})`,
-            eq(StudentEnrollmentSchema.status, "enrolled")
-          )),
-        
-        // Pending grades count
-        db.select({ count: sql`count(*)` })
-          .from(AssignmentSubmissionSchema)
-          .innerJoin(AssignmentSchema, eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id))
-          .where(and(
-            sql`${AssignmentSchema.courseId} IN (${sql.join(courseIds.map(id => sql`${id}`), sql`, `)})`,
-            sql`${AssignmentSubmissionSchema.grade} IS NULL`
-          )),
-        
-        // Recent submissions (last 7 days)
-        db.select({ count: sql`count(*)` })
-          .from(AssignmentSubmissionSchema)
-          .innerJoin(AssignmentSchema, eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id))
-          .where(and(
-            sql`${AssignmentSchema.courseId} IN (${sql.join(courseIds.map(id => sql`${id}`), sql`, `)})`,
-            sql`${AssignmentSubmissionSchema.submittedAt} >= CURRENT_DATE - INTERVAL '7 days'`
-          ))
-      ]);
+      const [totalStudents, pendingGrades, recentSubmissions] =
+        await Promise.all([
+          // Total enrolled students across all courses
+          db
+            .select({ count: sql`count(*)` })
+            .from(StudentEnrollmentSchema)
+            .where(
+              and(
+                sql`${StudentEnrollmentSchema.courseId} IN (${sql.join(
+                  courseIds.map((id) => sql`${id}`),
+                  sql`, `,
+                )})`,
+                eq(StudentEnrollmentSchema.status, "enrolled"),
+              ),
+            ),
+
+          // Pending grades count
+          db
+            .select({ count: sql`count(*)` })
+            .from(AssignmentSubmissionSchema)
+            .innerJoin(
+              AssignmentSchema,
+              eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
+            )
+            .where(
+              and(
+                sql`${AssignmentSchema.courseId} IN (${sql.join(
+                  courseIds.map((id) => sql`${id}`),
+                  sql`, `,
+                )})`,
+                sql`${AssignmentSubmissionSchema.grade} IS NULL`,
+              ),
+            ),
+
+          // Recent submissions (last 7 days)
+          db
+            .select({ count: sql`count(*)` })
+            .from(AssignmentSubmissionSchema)
+            .innerJoin(
+              AssignmentSchema,
+              eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
+            )
+            .where(
+              and(
+                sql`${AssignmentSchema.courseId} IN (${sql.join(
+                  courseIds.map((id) => sql`${id}`),
+                  sql`, `,
+                )})`,
+                sql`${AssignmentSubmissionSchema.submittedAt} >= CURRENT_DATE - INTERVAL '7 days'`,
+              ),
+            ),
+        ]);
 
       return {
         activeCourses: courseIds.length,
         totalStudents: Number(totalStudents[0]?.count) || 0,
         pendingGrades: Number(pendingGrades[0]?.count) || 0,
-        recentSubmissions: Number(recentSubmissions[0]?.count) || 0
+        recentSubmissions: Number(recentSubmissions[0]?.count) || 0,
       };
     } catch (error) {
-      console.error('Error fetching faculty dashboard stats:', error);
+      console.error("Error fetching faculty dashboard stats:", error);
       return {
         activeCourses: 0,
         totalStudents: 0,
         pendingGrades: 0,
-        recentSubmissions: 0
+        recentSubmissions: 0,
       };
     }
   },
 
   getCourseStatistics: async (courseId: string, semester: string) => {
     try {
-      const [enrollmentCount, assignmentCount, averageGrade] = await Promise.all([
-        // Total enrolled students
-        db.select({ count: sql`count(*)` })
-          .from(StudentEnrollmentSchema)
-          .where(and(
-            eq(StudentEnrollmentSchema.courseId, courseId),
-            eq(StudentEnrollmentSchema.semester, semester),
-            eq(StudentEnrollmentSchema.status, "enrolled")
-          )),
-        
-        // Total assignments
-        db.select({ count: sql`count(*)` })
-          .from(AssignmentSchema)
-          .where(and(
-            eq(AssignmentSchema.courseId, courseId),
-            eq(AssignmentSchema.isPublished, true)
-          )),
-        
-        // Average grade
-        db.select({ 
-          avgGrade: sql`AVG(CAST(${AssignmentSubmissionSchema.grade} AS DECIMAL))`.as('avgGrade')
-        })
-          .from(AssignmentSubmissionSchema)
-          .innerJoin(AssignmentSchema, eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id))
-          .where(and(
-            eq(AssignmentSchema.courseId, courseId),
-            sql`${AssignmentSubmissionSchema.grade} IS NOT NULL`
-          ))
-      ]);
+      const [enrollmentCount, assignmentCount, averageGrade] =
+        await Promise.all([
+          // Total enrolled students
+          db
+            .select({ count: sql`count(*)` })
+            .from(StudentEnrollmentSchema)
+            .where(
+              and(
+                eq(StudentEnrollmentSchema.courseId, courseId),
+                eq(StudentEnrollmentSchema.semester, semester),
+                eq(StudentEnrollmentSchema.status, "enrolled"),
+              ),
+            ),
+
+          // Total assignments
+          db
+            .select({ count: sql`count(*)` })
+            .from(AssignmentSchema)
+            .where(
+              and(
+                eq(AssignmentSchema.courseId, courseId),
+                eq(AssignmentSchema.isPublished, true),
+              ),
+            ),
+
+          // Average grade
+          db
+            .select({
+              avgGrade:
+                sql`AVG(CAST(${AssignmentSubmissionSchema.grade} AS DECIMAL))`.as(
+                  "avgGrade",
+                ),
+            })
+            .from(AssignmentSubmissionSchema)
+            .innerJoin(
+              AssignmentSchema,
+              eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
+            )
+            .where(
+              and(
+                eq(AssignmentSchema.courseId, courseId),
+                sql`${AssignmentSubmissionSchema.grade} IS NOT NULL`,
+              ),
+            ),
+        ]);
 
       return {
         enrolledStudents: Number(enrollmentCount[0]?.count) || 0,
         totalAssignments: Number(assignmentCount[0]?.count) || 0,
         averageGrade: Number(averageGrade[0]?.avgGrade) || 0,
-        submissionRate: 0 // Would need more complex calculation
+        submissionRate: 0, // Would need more complex calculation
       };
     } catch (error) {
-      console.error('Error fetching course statistics:', error);
+      console.error("Error fetching course statistics:", error);
       return {
         enrolledStudents: 0,
         totalAssignments: 0,
         averageGrade: 0,
-        submissionRate: 0
+        submissionRate: 0,
       };
     }
   },
 
   // Grading functions
-  getAssignmentSubmissions: async (assignmentId: string, facultyId?: string) => {
+  getAssignmentSubmissions: async (
+    assignmentId: string,
+    facultyId?: string,
+  ) => {
     try {
       let query = db
         .select({
@@ -1191,16 +1442,24 @@ export const pgAcademicRepository = {
           course: CourseSchema,
         })
         .from(AssignmentSubmissionSchema)
-        .innerJoin(UserSchema, eq(AssignmentSubmissionSchema.studentId, UserSchema.id))
-        .innerJoin(AssignmentSchema, eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id))
+        .innerJoin(
+          UserSchema,
+          eq(AssignmentSubmissionSchema.studentId, UserSchema.id),
+        )
+        .innerJoin(
+          AssignmentSchema,
+          eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
+        )
         .innerJoin(CourseSchema, eq(AssignmentSchema.courseId, CourseSchema.id))
         .where(eq(AssignmentSubmissionSchema.assignmentId, assignmentId));
 
       // If facultyId provided, verify access
       if (facultyId) {
-        query = query
-          .innerJoin(CourseInstructorSchema, eq(CourseSchema.id, CourseInstructorSchema.courseId));
-        
+        query = query.innerJoin(
+          CourseInstructorSchema,
+          eq(CourseSchema.id, CourseInstructorSchema.courseId),
+        );
+
         query = db
           .select({
             submission: AssignmentSubmissionSchema,
@@ -1209,25 +1468,46 @@ export const pgAcademicRepository = {
             course: CourseSchema,
           })
           .from(AssignmentSubmissionSchema)
-          .innerJoin(UserSchema, eq(AssignmentSubmissionSchema.studentId, UserSchema.id))
-          .innerJoin(AssignmentSchema, eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id))
-          .innerJoin(CourseSchema, eq(AssignmentSchema.courseId, CourseSchema.id))
-          .innerJoin(CourseInstructorSchema, eq(CourseSchema.id, CourseInstructorSchema.courseId))
-          .where(and(
-            eq(AssignmentSubmissionSchema.assignmentId, assignmentId),
-            eq(CourseInstructorSchema.facultyId, facultyId)
-          ));
+          .innerJoin(
+            UserSchema,
+            eq(AssignmentSubmissionSchema.studentId, UserSchema.id),
+          )
+          .innerJoin(
+            AssignmentSchema,
+            eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
+          )
+          .innerJoin(
+            CourseSchema,
+            eq(AssignmentSchema.courseId, CourseSchema.id),
+          )
+          .innerJoin(
+            CourseInstructorSchema,
+            eq(CourseSchema.id, CourseInstructorSchema.courseId),
+          )
+          .where(
+            and(
+              eq(AssignmentSubmissionSchema.assignmentId, assignmentId),
+              eq(CourseInstructorSchema.facultyId, facultyId),
+            ),
+          );
       }
 
-      const submissions = await query.orderBy(asc(AssignmentSubmissionSchema.submittedAt));
+      const submissions = await query.orderBy(
+        asc(AssignmentSubmissionSchema.submittedAt),
+      );
       return submissions;
     } catch (error) {
-      console.error('Error fetching assignment submissions:', error);
+      console.error("Error fetching assignment submissions:", error);
       return [];
     }
   },
 
-  updateSubmissionGrade: async (submissionId: string, grade: number, feedback?: string, gradedById?: string) => {
+  updateSubmissionGrade: async (
+    submissionId: string,
+    grade: number,
+    feedback?: string,
+    gradedById?: string,
+  ) => {
     try {
       const updatedSubmission = await db
         .update(AssignmentSubmissionSchema)
@@ -1243,7 +1523,7 @@ export const pgAcademicRepository = {
 
       return updatedSubmission[0] || null;
     } catch (error) {
-      console.error('Error updating submission grade:', error);
+      console.error("Error updating submission grade:", error);
       return null;
     }
   },
@@ -1255,13 +1535,15 @@ export const pgAcademicRepository = {
         const hasAccess = await db
           .select({ id: CourseInstructorSchema.id })
           .from(CourseInstructorSchema)
-          .where(and(
-            eq(CourseInstructorSchema.courseId, courseId),
-            eq(CourseInstructorSchema.facultyId, facultyId)
-          ));
+          .where(
+            and(
+              eq(CourseInstructorSchema.courseId, courseId),
+              eq(CourseInstructorSchema.facultyId, facultyId),
+            ),
+          );
 
         if (hasAccess.length === 0) {
-          throw new Error('Faculty does not have access to this course');
+          throw new Error("Faculty does not have access to this course");
         }
       }
 
@@ -1272,21 +1554,28 @@ export const pgAcademicRepository = {
           enrollment: StudentEnrollmentSchema,
         })
         .from(StudentEnrollmentSchema)
-        .innerJoin(UserSchema, eq(StudentEnrollmentSchema.studentId, UserSchema.id))
-        .where(and(
-          eq(StudentEnrollmentSchema.courseId, courseId),
-          eq(StudentEnrollmentSchema.status, "enrolled")
-        ))
+        .innerJoin(
+          UserSchema,
+          eq(StudentEnrollmentSchema.studentId, UserSchema.id),
+        )
+        .where(
+          and(
+            eq(StudentEnrollmentSchema.courseId, courseId),
+            eq(StudentEnrollmentSchema.status, "enrolled"),
+          ),
+        )
         .orderBy(UserSchema.name);
 
       // Get all assignments for the course
       const assignments = await db
         .select()
         .from(AssignmentSchema)
-        .where(and(
-          eq(AssignmentSchema.courseId, courseId),
-          eq(AssignmentSchema.isPublished, true)
-        ))
+        .where(
+          and(
+            eq(AssignmentSchema.courseId, courseId),
+            eq(AssignmentSchema.isPublished, true),
+          ),
+        )
         .orderBy(asc(AssignmentSchema.dueDate));
 
       // Get all submissions for these assignments
@@ -1296,20 +1585,26 @@ export const pgAcademicRepository = {
           assignment: AssignmentSchema,
         })
         .from(AssignmentSubmissionSchema)
-        .innerJoin(AssignmentSchema, eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id))
+        .innerJoin(
+          AssignmentSchema,
+          eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
+        )
         .where(eq(AssignmentSchema.courseId, courseId));
 
       // Organize submissions by student and assignment
-      const submissionMap = new Map<string, Map<string, typeof submissions[0]>>();
-      
-      submissions.forEach(sub => {
+      const submissionMap = new Map<
+        string,
+        Map<string, (typeof submissions)[0]>
+      >();
+
+      submissions.forEach((sub) => {
         const studentId = sub.submission.studentId;
         const assignmentId = sub.assignment.id;
-        
+
         if (!submissionMap.has(studentId)) {
           submissionMap.set(studentId, new Map());
         }
-        
+
         submissionMap.get(studentId)!.set(assignmentId, sub);
       });
 
@@ -1319,7 +1614,7 @@ export const pgAcademicRepository = {
         submissions: submissionMap,
       };
     } catch (error) {
-      console.error('Error fetching course gradebook:', error);
+      console.error("Error fetching course gradebook:", error);
       return {
         students: [],
         assignments: [],
@@ -1338,8 +1633,14 @@ export const pgAcademicRepository = {
           course: CourseSchema,
         })
         .from(AssignmentSubmissionSchema)
-        .innerJoin(UserSchema, eq(AssignmentSubmissionSchema.studentId, UserSchema.id))
-        .innerJoin(AssignmentSchema, eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id))
+        .innerJoin(
+          UserSchema,
+          eq(AssignmentSubmissionSchema.studentId, UserSchema.id),
+        )
+        .innerJoin(
+          AssignmentSchema,
+          eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
+        )
         .innerJoin(CourseSchema, eq(AssignmentSchema.courseId, CourseSchema.id))
         .where(eq(AssignmentSubmissionSchema.id, submissionId));
 
@@ -1353,20 +1654,34 @@ export const pgAcademicRepository = {
             course: CourseSchema,
           })
           .from(AssignmentSubmissionSchema)
-          .innerJoin(UserSchema, eq(AssignmentSubmissionSchema.studentId, UserSchema.id))
-          .innerJoin(AssignmentSchema, eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id))
-          .innerJoin(CourseSchema, eq(AssignmentSchema.courseId, CourseSchema.id))
-          .innerJoin(CourseInstructorSchema, eq(CourseSchema.id, CourseInstructorSchema.courseId))
-          .where(and(
-            eq(AssignmentSubmissionSchema.id, submissionId),
-            eq(CourseInstructorSchema.facultyId, facultyId)
-          ));
+          .innerJoin(
+            UserSchema,
+            eq(AssignmentSubmissionSchema.studentId, UserSchema.id),
+          )
+          .innerJoin(
+            AssignmentSchema,
+            eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
+          )
+          .innerJoin(
+            CourseSchema,
+            eq(AssignmentSchema.courseId, CourseSchema.id),
+          )
+          .innerJoin(
+            CourseInstructorSchema,
+            eq(CourseSchema.id, CourseInstructorSchema.courseId),
+          )
+          .where(
+            and(
+              eq(AssignmentSubmissionSchema.id, submissionId),
+              eq(CourseInstructorSchema.facultyId, facultyId),
+            ),
+          );
       }
 
       const result = await query;
       return result[0] || null;
     } catch (error) {
-      console.error('Error fetching submission details:', error);
+      console.error("Error fetching submission details:", error);
       return null;
     }
   },
@@ -1377,11 +1692,23 @@ export const pgAcademicRepository = {
         // Get submission statistics
         db
           .select({
-            totalSubmissions: sql`count(*)`.as('totalSubmissions'),
-            gradedSubmissions: sql`count(case when ${AssignmentSubmissionSchema.grade} is not null then 1 end)`.as('gradedSubmissions'),
-            pendingSubmissions: sql`count(case when ${AssignmentSubmissionSchema.grade} is null then 1 end)`.as('pendingSubmissions'),
-            lateSubmissions: sql`count(case when ${AssignmentSubmissionSchema.isLateSubmission} = true then 1 end)`.as('lateSubmissions'),
-            averageGrade: sql`avg(cast(${AssignmentSubmissionSchema.grade} as decimal))`.as('averageGrade'),
+            totalSubmissions: sql`count(*)`.as("totalSubmissions"),
+            gradedSubmissions:
+              sql`count(case when ${AssignmentSubmissionSchema.grade} is not null then 1 end)`.as(
+                "gradedSubmissions",
+              ),
+            pendingSubmissions:
+              sql`count(case when ${AssignmentSubmissionSchema.grade} is null then 1 end)`.as(
+                "pendingSubmissions",
+              ),
+            lateSubmissions:
+              sql`count(case when ${AssignmentSubmissionSchema.isLateSubmission} = true then 1 end)`.as(
+                "lateSubmissions",
+              ),
+            averageGrade:
+              sql`avg(cast(${AssignmentSubmissionSchema.grade} as decimal))`.as(
+                "averageGrade",
+              ),
           })
           .from(AssignmentSubmissionSchema)
           .where(eq(AssignmentSubmissionSchema.assignmentId, assignmentId)),
@@ -1389,14 +1716,19 @@ export const pgAcademicRepository = {
         // Get course enrollment count to calculate submission rate
         db
           .select({
-            enrolledStudents: sql`count(*)`.as('enrolledStudents')
+            enrolledStudents: sql`count(*)`.as("enrolledStudents"),
           })
           .from(StudentEnrollmentSchema)
-          .innerJoin(AssignmentSchema, eq(StudentEnrollmentSchema.courseId, AssignmentSchema.courseId))
-          .where(and(
-            eq(AssignmentSchema.id, assignmentId),
-            eq(StudentEnrollmentSchema.status, "enrolled")
-          ))
+          .innerJoin(
+            AssignmentSchema,
+            eq(StudentEnrollmentSchema.courseId, AssignmentSchema.courseId),
+          )
+          .where(
+            and(
+              eq(AssignmentSchema.id, assignmentId),
+              eq(StudentEnrollmentSchema.status, "enrolled"),
+            ),
+          ),
       ]);
 
       const submissionData = submissionStats[0];
@@ -1409,11 +1741,14 @@ export const pgAcademicRepository = {
         lateSubmissions: Number(submissionData?.lateSubmissions) || 0,
         averageGrade: Number(submissionData?.averageGrade) || 0,
         enrolledStudents: Number(enrollmentData?.enrolledStudents) || 0,
-        submissionRate: enrollmentData?.enrolledStudents ? 
-          (Number(submissionData?.totalSubmissions) / Number(enrollmentData.enrolledStudents)) * 100 : 0,
+        submissionRate: enrollmentData?.enrolledStudents
+          ? (Number(submissionData?.totalSubmissions) /
+              Number(enrollmentData.enrolledStudents)) *
+            100
+          : 0,
       };
     } catch (error) {
-      console.error('Error fetching assignment statistics:', error);
+      console.error("Error fetching assignment statistics:", error);
       return {
         totalSubmissions: 0,
         gradedSubmissions: 0,
@@ -1426,29 +1761,34 @@ export const pgAcademicRepository = {
     }
   },
 
-  getFacultyAssignmentsWithStatistics: async (facultyId: string, courseId?: string) => {
+  getFacultyAssignmentsWithStatistics: async (
+    facultyId: string,
+    courseId?: string,
+  ) => {
     try {
       // Get faculty's courses
       let courseIds: string[];
-      
+
       if (courseId) {
         // Verify faculty teaches this course
         const courseAccess = await db
           .select({ courseId: CourseInstructorSchema.courseId })
           .from(CourseInstructorSchema)
-          .where(and(
-            eq(CourseInstructorSchema.facultyId, facultyId),
-            eq(CourseInstructorSchema.courseId, courseId)
-          ));
-        
-        courseIds = courseAccess.map(ca => ca.courseId);
+          .where(
+            and(
+              eq(CourseInstructorSchema.facultyId, facultyId),
+              eq(CourseInstructorSchema.courseId, courseId),
+            ),
+          );
+
+        courseIds = courseAccess.map((ca) => ca.courseId);
       } else {
         const facultyCourses = await db
           .select({ courseId: CourseInstructorSchema.courseId })
           .from(CourseInstructorSchema)
           .where(eq(CourseInstructorSchema.facultyId, facultyId));
-        
-        courseIds = facultyCourses.map(fc => fc.courseId);
+
+        courseIds = facultyCourses.map((fc) => fc.courseId);
       }
 
       if (courseIds.length === 0) return [];
@@ -1459,21 +1799,40 @@ export const pgAcademicRepository = {
           assignment: AssignmentSchema,
           course: CourseSchema,
           submissionStats: {
-            totalSubmissions: sql`count(${AssignmentSubmissionSchema.id})`.as('totalSubmissions'),
-            gradedSubmissions: sql`count(case when ${AssignmentSubmissionSchema.grade} is not null then 1 end)`.as('gradedSubmissions'),
-            pendingSubmissions: sql`count(case when ${AssignmentSubmissionSchema.grade} is null then 1 end)`.as('pendingSubmissions'),
-          }
+            totalSubmissions: sql`count(${AssignmentSubmissionSchema.id})`.as(
+              "totalSubmissions",
+            ),
+            gradedSubmissions:
+              sql`count(case when ${AssignmentSubmissionSchema.grade} is not null then 1 end)`.as(
+                "gradedSubmissions",
+              ),
+            pendingSubmissions:
+              sql`count(case when ${AssignmentSubmissionSchema.grade} is null then 1 end)`.as(
+                "pendingSubmissions",
+              ),
+          },
         })
         .from(AssignmentSchema)
         .innerJoin(CourseSchema, eq(AssignmentSchema.courseId, CourseSchema.id))
-        .leftJoin(AssignmentSubmissionSchema, eq(AssignmentSchema.id, AssignmentSubmissionSchema.assignmentId))
-        .where(sql`${AssignmentSchema.courseId} IN (${sql.join(courseIds.map(id => sql`${id}`), sql`, `)})`)
+        .leftJoin(
+          AssignmentSubmissionSchema,
+          eq(AssignmentSchema.id, AssignmentSubmissionSchema.assignmentId),
+        )
+        .where(
+          sql`${AssignmentSchema.courseId} IN (${sql.join(
+            courseIds.map((id) => sql`${id}`),
+            sql`, `,
+          )})`,
+        )
         .groupBy(AssignmentSchema.id, CourseSchema.id)
         .orderBy(desc(AssignmentSchema.createdAt));
 
       return assignments;
     } catch (error) {
-      console.error('Error fetching faculty assignments with statistics:', error);
+      console.error(
+        "Error fetching faculty assignments with statistics:",
+        error,
+      );
       return [];
     }
   },
@@ -1504,7 +1863,7 @@ export const pgAcademicRepository = {
         plannedEndDate: data.plannedEndDate,
       })
       .returning();
-    
+
     return courseWeek;
   },
 
@@ -1516,7 +1875,9 @@ export const pgAcademicRepository = {
       .orderBy(asc(CourseWeekSchema.weekNumber));
   },
 
-  getCourseWeekById: async (weekId: string): Promise<CourseWeekEntity | null> => {
+  getCourseWeekById: async (
+    weekId: string,
+  ): Promise<CourseWeekEntity | null> => {
     const [result] = await db
       .select()
       .from(CourseWeekSchema)
@@ -1525,7 +1886,7 @@ export const pgAcademicRepository = {
   },
 
   updateCourseWeek: async (
-    weekId: string, 
+    weekId: string,
     updates: Partial<{
       title: string;
       description: string | null;
@@ -1534,7 +1895,7 @@ export const pgAcademicRepository = {
       isPublished: boolean;
       plannedStartDate: Date | null;
       plannedEndDate: Date | null;
-    }>
+    }>,
   ): Promise<CourseWeekEntity | null> => {
     const [updated] = await db
       .update(CourseWeekSchema)
@@ -1544,7 +1905,7 @@ export const pgAcademicRepository = {
       })
       .where(eq(CourseWeekSchema.id, weekId))
       .returning();
-    
+
     return updated ?? null;
   },
 
@@ -1552,7 +1913,7 @@ export const pgAcademicRepository = {
     const result = await db
       .delete(CourseWeekSchema)
       .where(eq(CourseWeekSchema.id, weekId));
-    
+
     return result.rowCount > 0;
   },
 
@@ -1561,7 +1922,7 @@ export const pgAcademicRepository = {
 
   getStudentMaterials: async (
     studentId: string,
-    filters?: { courseId?: string; materialType?: string }
+    filters?: { courseId?: string; materialType?: string },
   ) => {
     try {
       const conditions = [
@@ -1573,7 +1934,18 @@ export const pgAcademicRepository = {
         conditions.push(eq(CourseMaterialSchema.courseId, filters.courseId));
       }
       if (filters?.materialType) {
-        conditions.push(eq(CourseMaterialSchema.materialType, filters.materialType as "syllabus" | "lecture" | "assignment" | "resource" | "reading" | "exam"));
+        conditions.push(
+          eq(
+            CourseMaterialSchema.materialType,
+            filters.materialType as
+              | "syllabus"
+              | "lecture"
+              | "assignment"
+              | "resource"
+              | "reading"
+              | "exam",
+          ),
+        );
       }
 
       return db
@@ -1582,10 +1954,13 @@ export const pgAcademicRepository = {
           course: CourseSchema,
         })
         .from(CourseMaterialSchema)
-        .innerJoin(CourseSchema, eq(CourseMaterialSchema.courseId, CourseSchema.id))
+        .innerJoin(
+          CourseSchema,
+          eq(CourseMaterialSchema.courseId, CourseSchema.id),
+        )
         .innerJoin(
           StudentEnrollmentSchema,
-          eq(CourseSchema.id, StudentEnrollmentSchema.courseId)
+          eq(CourseSchema.id, StudentEnrollmentSchema.courseId),
         )
         .where(and(...conditions))
         .orderBy(desc(CourseMaterialSchema.createdAt));
@@ -1604,27 +1979,33 @@ export const pgAcademicRepository = {
           facultyName: UserSchema.name,
         })
         .from(ClassScheduleSchema)
-        .innerJoin(CourseSchema, eq(ClassScheduleSchema.courseId, CourseSchema.id))
+        .innerJoin(
+          CourseSchema,
+          eq(ClassScheduleSchema.courseId, CourseSchema.id),
+        )
         .innerJoin(
           StudentEnrollmentSchema,
           and(
             eq(CourseSchema.id, StudentEnrollmentSchema.courseId),
             eq(StudentEnrollmentSchema.studentId, studentId),
-            eq(StudentEnrollmentSchema.status, "enrolled")
-          )
+            eq(StudentEnrollmentSchema.status, "enrolled"),
+          ),
         )
         .leftJoin(
           CourseInstructorSchema,
           and(
             eq(CourseSchema.id, CourseInstructorSchema.courseId),
-            eq(CourseInstructorSchema.role, "primary")
-          )
+            eq(CourseInstructorSchema.role, "primary"),
+          ),
         )
-        .leftJoin(FacultySchema, eq(CourseInstructorSchema.facultyId, FacultySchema.id))
+        .leftJoin(
+          FacultySchema,
+          eq(CourseInstructorSchema.facultyId, FacultySchema.id),
+        )
         .leftJoin(UserSchema, eq(FacultySchema.userId, UserSchema.id))
         .orderBy(
           asc(ClassScheduleSchema.dayOfWeek),
-          asc(ClassScheduleSchema.startTime)
+          asc(ClassScheduleSchema.startTime),
         );
     } catch (error) {
       console.error("Error fetching student schedule:", error);
@@ -1642,18 +2023,27 @@ export const pgAcademicRepository = {
           user: UserSchema,
         })
         .from(CourseInstructorSchema)
-        .innerJoin(FacultySchema, eq(CourseInstructorSchema.facultyId, FacultySchema.id))
+        .innerJoin(
+          FacultySchema,
+          eq(CourseInstructorSchema.facultyId, FacultySchema.id),
+        )
         .innerJoin(UserSchema, eq(FacultySchema.userId, UserSchema.id))
-        .innerJoin(CourseSchema, eq(CourseInstructorSchema.courseId, CourseSchema.id))
+        .innerJoin(
+          CourseSchema,
+          eq(CourseInstructorSchema.courseId, CourseSchema.id),
+        )
         .innerJoin(
           StudentEnrollmentSchema,
           and(
             eq(CourseSchema.id, StudentEnrollmentSchema.courseId),
             eq(StudentEnrollmentSchema.studentId, studentId),
-            eq(StudentEnrollmentSchema.status, "enrolled")
-          )
+            eq(StudentEnrollmentSchema.status, "enrolled"),
+          ),
         )
-        .orderBy(asc(CourseSchema.courseCode), asc(CourseInstructorSchema.role));
+        .orderBy(
+          asc(CourseSchema.courseCode),
+          asc(CourseInstructorSchema.role),
+        );
     } catch (error) {
       console.error("Error fetching student course faculty:", error);
       return [];
@@ -1677,8 +2067,8 @@ export const pgAcademicRepository = {
                   WHERE student_id = ${studentId} AND status = 'enrolled'
                 )
               )
-            )`
-          )
+            )`,
+          ),
         )
         .orderBy(asc(CalendarEventSchema.startDate));
     } catch (error) {
@@ -1687,7 +2077,9 @@ export const pgAcademicRepository = {
     }
   },
 
-  getCourseWeeksWithContentCounts: async (courseId: string): Promise<(CourseWeekEntity & { contentCount: number })[]> => {
+  getCourseWeeksWithContentCounts: async (
+    courseId: string,
+  ): Promise<(CourseWeekEntity & { contentCount: number })[]> => {
     const weeks = await db
       .select({
         ...CourseWeekSchema,
@@ -1696,15 +2088,15 @@ export const pgAcademicRepository = {
            WHERE ${CourseMaterialSchema.courseId} = ${CourseWeekSchema.courseId} 
            AND ${CourseMaterialSchema.weekNumber} = ${CourseWeekSchema.weekNumber}), 
           0
-        )`
+        )`,
       })
       .from(CourseWeekSchema)
       .where(eq(CourseWeekSchema.courseId, courseId))
       .orderBy(asc(CourseWeekSchema.weekNumber));
-    
-    return weeks.map(week => ({
+
+    return weeks.map((week) => ({
       ...week,
-      contentCount: Number(week.contentCount)
+      contentCount: Number(week.contentCount),
     }));
   },
 
@@ -1735,7 +2127,7 @@ export const pgAcademicRepository = {
   getCurriculumForEnrollment: async (
     programId: string,
     level: number,
-    semester: "first" | "second"
+    semester: "first" | "second",
   ) => {
     return db
       .select({
@@ -1746,14 +2138,17 @@ export const pgAcademicRepository = {
         isCompulsory: ProgramCurriculumSchema.isCompulsory,
       })
       .from(ProgramCurriculumSchema)
-      .innerJoin(CourseSchema, eq(ProgramCurriculumSchema.courseId, CourseSchema.id))
+      .innerJoin(
+        CourseSchema,
+        eq(ProgramCurriculumSchema.courseId, CourseSchema.id),
+      )
       .where(
         and(
           eq(ProgramCurriculumSchema.programId, programId),
           eq(ProgramCurriculumSchema.level, level),
           eq(ProgramCurriculumSchema.semester, semester),
-          eq(ProgramCurriculumSchema.isCompulsory, true)
-        )
+          eq(ProgramCurriculumSchema.isCompulsory, true),
+        ),
       )
       .orderBy(asc(CourseSchema.courseCode));
   },
@@ -1769,7 +2164,7 @@ export const pgAcademicRepository = {
     level: number,
     semester: "first" | "second",
     academicYear: string,
-    enrollmentSemester: string // e.g. "2025-fall"
+    enrollmentSemester: string, // e.g. "2025-fall"
   ): Promise<number> => {
     const curriculum = await db
       .select({ courseId: ProgramCurriculumSchema.courseId })
@@ -1779,8 +2174,8 @@ export const pgAcademicRepository = {
           eq(ProgramCurriculumSchema.programId, programId),
           eq(ProgramCurriculumSchema.level, level),
           eq(ProgramCurriculumSchema.semester, semester),
-          eq(ProgramCurriculumSchema.isCompulsory, true)
-        )
+          eq(ProgramCurriculumSchema.isCompulsory, true),
+        ),
       );
 
     if (curriculum.length === 0) return 0;
@@ -1795,13 +2190,17 @@ export const pgAcademicRepository = {
           eq(StudentEnrollmentSchema.semester, enrollmentSemester),
           inArray(
             StudentEnrollmentSchema.courseId,
-            curriculum.map((c) => c.courseId)
-          )
-        )
+            curriculum.map((c) => c.courseId),
+          ),
+        ),
       );
 
-    const existingCourseIds = new Set(existingEnrollments.map((e) => e.courseId));
-    const newCourses = curriculum.filter((c) => !existingCourseIds.has(c.courseId));
+    const existingCourseIds = new Set(
+      existingEnrollments.map((e) => e.courseId),
+    );
+    const newCourses = curriculum.filter(
+      (c) => !existingCourseIds.has(c.courseId),
+    );
 
     if (newCourses.length === 0) return 0;
 
@@ -1812,7 +2211,7 @@ export const pgAcademicRepository = {
         semester: enrollmentSemester,
         academicYear,
         status: "enrolled" as const,
-      }))
+      })),
     );
 
     return newCourses.length;

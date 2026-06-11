@@ -42,6 +42,10 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
+    // Tenant scope: admins only see their own university's faculty
+    const { getUserUniversity } = await import("@/lib/tenant");
+    const university = await getUserUniversity(adminAccess.user.id);
+
     // Fetch faculty with user data
     const facultyQuery = pgDb
       .select({
@@ -50,7 +54,14 @@ export async function GET(request: NextRequest) {
       })
       .from(UserSchema)
       .leftJoin(FacultySchema, eq(UserSchema.id, FacultySchema.userId))
-      .where(eq(UserSchema.role, "faculty"))
+      .where(
+        university
+          ? and(
+              eq(UserSchema.role, "faculty"),
+              eq(UserSchema.universityId, university.id),
+            )
+          : eq(UserSchema.role, "faculty"),
+      )
       .limit(limit)
       .offset(offset)
       .orderBy(UserSchema.createdAt);
