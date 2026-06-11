@@ -1,13 +1,13 @@
+import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { pgDb as db } from "../db.pg";
 import {
-  SubscriptionPlanSchema,
-  UserSubscriptionSchema,
-  UsageTrackingSchema,
   PaymentTransactionSchema,
   SubscriptionChangeLogSchema,
+  SubscriptionPlanSchema,
+  UsageTrackingSchema,
+  UserSubscriptionSchema,
   WebhookEventSchema,
 } from "../schema.pg";
-import { eq, and, gte, sql, desc } from "drizzle-orm";
 
 export class SubscriptionRepository {
   async getAllPlans() {
@@ -41,8 +41,8 @@ export class SubscriptionRepository {
         and(
           eq(UserSubscriptionSchema.userId, userId),
           eq(UserSubscriptionSchema.status, "active"),
-          gte(UserSubscriptionSchema.currentPeriodEnd, new Date())
-        )
+          gte(UserSubscriptionSchema.currentPeriodEnd, new Date()),
+        ),
       )
       .limit(1);
     return subscription;
@@ -54,6 +54,7 @@ export class SubscriptionRepository {
     paystackSubscriptionCode: string;
     paystackCustomerCode: string;
     paystackAuthorizationCode: string;
+    paystackEmailToken?: string | null;
     currentPeriodStart: Date;
     currentPeriodEnd: Date;
     nextPaymentDate: Date;
@@ -70,7 +71,7 @@ export class SubscriptionRepository {
 
   async updateSubscription(
     subscriptionId: string,
-    updates: Partial<typeof UserSubscriptionSchema.$inferInsert>
+    updates: Partial<typeof UserSubscriptionSchema.$inferInsert>,
   ) {
     const [updated] = await db
       .update(UserSubscriptionSchema)
@@ -105,7 +106,7 @@ export class SubscriptionRepository {
   async checkUsageLimit(
     userId: string,
     usageType: string,
-    periodType: "daily" | "weekly" | "monthly" = "daily"
+    periodType: "daily" | "weekly" | "monthly" = "daily",
   ) {
     const result = await db.execute(sql`
       SELECT check_usage_limit(${userId}, ${usageType}, ${periodType}) as usage_status
@@ -117,7 +118,7 @@ export class SubscriptionRepository {
     userId: string,
     usageType: string,
     periodType: "daily" | "weekly" | "monthly" = "daily",
-    increment = 1
+    increment = 1,
   ) {
     const result = await db.execute(sql`
       SELECT increment_usage(${userId}, ${usageType}, ${periodType}, ${increment}) as success
@@ -133,8 +134,8 @@ export class SubscriptionRepository {
         and(
           eq(UsageTrackingSchema.userId, userId),
           eq(UsageTrackingSchema.usageType, usageType),
-          eq(UsageTrackingSchema.periodType, periodType)
-        )
+          eq(UsageTrackingSchema.periodType, periodType),
+        ),
       )
       .orderBy(desc(UsageTrackingSchema.periodStart))
       .limit(1);
@@ -151,7 +152,7 @@ export class SubscriptionRepository {
 
   async updateTransaction(
     reference: string,
-    updates: Partial<typeof PaymentTransactionSchema.$inferInsert>
+    updates: Partial<typeof PaymentTransactionSchema.$inferInsert>,
   ) {
     const [updated] = await db
       .update(PaymentTransactionSchema)
@@ -209,7 +210,11 @@ export class SubscriptionRepository {
     return event;
   }
 
-  async markWebhookProcessed(eventId: string, success: boolean, errorMessage?: string) {
+  async markWebhookProcessed(
+    eventId: string,
+    success: boolean,
+    errorMessage?: string,
+  ) {
     const [updated] = await db
       .update(WebhookEventSchema)
       .set({
@@ -245,12 +250,12 @@ export class SubscriptionRepository {
       .from(UserSubscriptionSchema)
       .innerJoin(
         SubscriptionPlanSchema,
-        eq(UserSubscriptionSchema.planId, SubscriptionPlanSchema.id)
+        eq(UserSubscriptionSchema.planId, SubscriptionPlanSchema.id),
       )
       .where(eq(UserSubscriptionSchema.userId, userId))
       .orderBy(desc(UserSubscriptionSchema.createdAt))
       .limit(1);
-    
+
     return result;
   }
 

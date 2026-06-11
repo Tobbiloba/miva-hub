@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { paystackService } from "@/lib/payment/paystack-service";
-import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
 import { pgDb as db } from "@/lib/db/pg/db.pg";
+import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
 import { UserSchema, UserSubscriptionSchema } from "@/lib/db/pg/schema.pg";
-import { eq } from "drizzle-orm";
 import { sendEmail } from "@/lib/email/smtp-service";
+import { paystackService } from "@/lib/payment/paystack-service";
+import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     }
 
     const event = JSON.parse(body);
-    
+
     const webhookEvent = await subscriptionRepository.logWebhookEvent({
       eventType: event.event,
       paystackEventId: event.data?.id?.toString(),
@@ -34,26 +34,29 @@ export async function POST(req: NextRequest) {
 
     try {
       await processWebhookEvent(event);
-      
+
       await subscriptionRepository.markWebhookProcessed(webhookEvent.id, true);
-      
+
       return NextResponse.json({ status: "success" });
     } catch (error) {
       console.error("Webhook processing error:", error);
-      
+
       await subscriptionRepository.markWebhookProcessed(
         webhookEvent.id,
         false,
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
-      
-      return NextResponse.json({ status: "error", message: "Processing failed" }, { status: 500 });
+
+      return NextResponse.json(
+        { status: "error", message: "Processing failed" },
+        { status: 500 },
+      );
     }
   } catch (error) {
     console.error("Webhook error:", error);
     return NextResponse.json(
       { error: "Webhook processing failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -108,7 +111,10 @@ async function handleSubscriptionCreate(data: any) {
     .limit(1);
 
   if (!user) {
-    console.error("Webhook subscription.create: no user for email", customerEmail);
+    console.error(
+      "Webhook subscription.create: no user for email",
+      customerEmail,
+    );
     return;
   }
 
@@ -133,16 +139,37 @@ async function handleSubscriptionCreate(data: any) {
 
   // Check if subscription already exists (idempotency)
   const [existing] = await db
-    .select({ id: UserSubscriptionSchema.id })
+    .select({
+      id: UserSubscriptionSchema.id,
+      paystackEmailToken: UserSubscriptionSchema.paystackEmailToken,
+    })
     .from(UserSubscriptionSchema)
-    .where(eq(UserSubscriptionSchema.paystackSubscriptionCode, data.subscription_code))
+    .where(
+      eq(
+        UserSubscriptionSchema.paystackSubscriptionCode,
+        data.subscription_code,
+      ),
+    )
     .limit(1);
 
-  if (existing) return;
+  if (existing) {
+    // Backfill the email token if it was created without one
+    // (e.g. via charge.success). Required to disable subscriptions later.
+    if (!existing.paystackEmailToken && data.email_token) {
+      await subscriptionRepository.updateSubscription(existing.id, {
+        paystackEmailToken: data.email_token,
+      });
+      console.log(`Backfilled email token for subscription ${existing.id}`);
+    }
+    return;
+  }
 
   const now = new Date();
-  const nextPayment = data.next_payment_date ? new Date(data.next_payment_date) : null;
-  const periodEnd = nextPayment ?? new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const nextPayment = data.next_payment_date
+    ? new Date(data.next_payment_date)
+    : null;
+  const periodEnd =
+    nextPayment ?? new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
   await subscriptionRepository.createSubscription({
     userId: user.id,
@@ -150,6 +177,7 @@ async function handleSubscriptionCreate(data: any) {
     paystackSubscriptionCode: data.subscription_code,
     paystackCustomerCode: data.customer?.customer_code ?? "",
     paystackAuthorizationCode: data.authorization?.authorization_code ?? "",
+    paystackEmailToken: data.email_token ?? null,
     currentPeriodStart: now,
     currentPeriodEnd: periodEnd,
     nextPaymentDate: periodEnd,
@@ -169,11 +197,16 @@ async function handleSubscriptionCreate(data: any) {
 
 async function handleSubscriptionDisable(data: any) {
   console.log("Subscription disabled:", data.subscription_code);
-  
+
   const [subscription] = await db
     .select()
     .from(UserSubscriptionSchema)
-    .where(eq(UserSubscriptionSchema.paystackSubscriptionCode, data.subscription_code))
+    .where(
+      eq(
+        UserSubscriptionSchema.paystackSubscriptionCode,
+        data.subscription_code,
+      ),
+    )
     .limit(1);
 
   if (subscription) {
@@ -202,11 +235,16 @@ async function handleSubscriptionDisable(data: any) {
 
 async function handleSubscriptionNotRenew(data: any) {
   console.log("Subscription will not renew:", data.subscription_code);
-  
+
   const [subscription] = await db
     .select()
     .from(UserSubscriptionSchema)
-    .where(eq(UserSubscriptionSchema.paystackSubscriptionCode, data.subscription_code))
+    .where(
+      eq(
+        UserSubscriptionSchema.paystackSubscriptionCode,
+        data.subscription_code,
+      ),
+    )
     .limit(1);
 
   if (subscription) {
@@ -222,14 +260,14 @@ async function sendPaymentReceiptEmail(
   planName: string,
   amount: number,
   transactionId: string,
-  billingPeriod: string
+  billingPeriod: string,
 ) {
   try {
     const fs = await import("fs");
     const path = await import("path");
     const receiptTemplate = fs.readFileSync(
       path.join(process.cwd(), "src/lib/email/templates/payment-receipt.html"),
-      "utf-8"
+      "utf-8",
     );
 
     const amountNgn = `₦${amount.toLocaleString()}`;
@@ -258,12 +296,15 @@ async function sendPaymentReceiptEmail(
           year: "numeric",
           month: "long",
           day: "numeric",
-        })
+        }),
       )
       .replace("{{feature1}}", features[0])
       .replace("{{feature2}}", features[1])
       .replace("{{feature3}}", features[2])
-      .replace(/{{appUrl}}/g, process.env.NEXT_PUBLIC_APP_URL || "https://miva-hub.com");
+      .replace(
+        /{{appUrl}}/g,
+        process.env.NEXT_PUBLIC_APP_URL || "https://miva-hub.com",
+      );
 
     await sendEmail({
       to: userEmail,
@@ -305,7 +346,8 @@ async function handleChargeSuccess(data: any) {
 
       if (user) {
         // Check if subscription.create already handled this
-        const existingSub = await subscriptionRepository.getUserActiveSubscription(user.id);
+        const existingSub =
+          await subscriptionRepository.getUserActiveSubscription(user.id);
         if (existingSub) {
           // Already have an active sub — just update the transaction
           await subscriptionRepository.updateTransaction(data.reference, {
@@ -314,11 +356,15 @@ async function handleChargeSuccess(data: any) {
             paystackTransactionId: data.id?.toString(),
             subscriptionId: existingSub.id,
           });
-          console.log(`charge.success: subscription already exists for user ${user.id}, updated transaction only`);
+          console.log(
+            `charge.success: subscription already exists for user ${user.id}, updated transaction only`,
+          );
           return;
         }
 
-        const { SubscriptionPlanSchema } = await import("@/lib/db/pg/schema.pg");
+        const { SubscriptionPlanSchema } = await import(
+          "@/lib/db/pg/schema.pg"
+        );
         const planCode = data.plan_object?.plan_code || data.plan;
         let planId: string | undefined;
 
@@ -333,7 +379,9 @@ async function handleChargeSuccess(data: any) {
 
         // Also try from transaction metadata
         if (!planId) {
-          const txn = await subscriptionRepository.getTransactionByReference(data.reference);
+          const txn = await subscriptionRepository.getTransactionByReference(
+            data.reference,
+          );
           if (txn?.metadata) {
             planId = (txn.metadata as any)?.planId;
           }
@@ -342,16 +390,18 @@ async function handleChargeSuccess(data: any) {
         if (planId) {
           const now = new Date();
           const interval = data.plan_object?.interval;
-          const periodEnd = interval === "annually"
-            ? new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000)
-            : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          const periodEnd =
+            interval === "annually"
+              ? new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000)
+              : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
           subscription = await subscriptionRepository.createSubscription({
             userId: user.id,
             planId,
             paystackSubscriptionCode: subCode || `charge_${data.reference}`,
             paystackCustomerCode: data.customer.customer_code || "",
-            paystackAuthorizationCode: data.authorization?.authorization_code || "",
+            paystackAuthorizationCode:
+              data.authorization?.authorization_code || "",
             currentPeriodStart: now,
             currentPeriodEnd: periodEnd,
             nextPaymentDate: periodEnd,
@@ -366,7 +416,9 @@ async function handleChargeSuccess(data: any) {
             })
             .where(eq(UserSchema.id, user.id));
 
-          console.log(`Subscription created from charge.success for user ${user.id}`);
+          console.log(
+            `Subscription created from charge.success for user ${user.id}`,
+          );
         }
       }
     }
@@ -395,7 +447,7 @@ async function handleChargeSuccess(data: any) {
           subscription.planName || "PRO",
           data.amount / 100, // Convert from kobo to naira
           data.reference,
-          "Monthly"
+          "Monthly",
         );
       }
 
@@ -406,7 +458,7 @@ async function handleChargeSuccess(data: any) {
 
 async function handlePaymentFailed(data: any) {
   console.error("Payment failed:", data);
-  
+
   if (data.subscription) {
     const [subscription] = await db
       .select()
@@ -414,8 +466,8 @@ async function handlePaymentFailed(data: any) {
       .where(
         eq(
           UserSubscriptionSchema.paystackSubscriptionCode,
-          data.subscription.subscription_code
-        )
+          data.subscription.subscription_code,
+        ),
       )
       .limit(1);
 
@@ -434,7 +486,9 @@ async function handlePaymentFailed(data: any) {
         description: "Failed subscription renewal",
       });
 
-      console.log(`Payment failed for user ${subscription.userId}, status → past_due`);
+      console.log(
+        `Payment failed for user ${subscription.userId}, status → past_due`,
+      );
     }
   }
 }
