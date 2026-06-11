@@ -50,6 +50,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Resolve tenant from the email domain (active universities only).
+    // For now MIVA is the only tenant; Phase 2 hard-gates signup on this.
+    const { resolveUniversityFromEmail } = await import("lib/tenant");
+    const university = await resolveUniversityFromEmail(email);
+
     // Get active academic session for semester/year context
     const activeSession = await pgAcademicRepository.getActiveAcademicSession();
     if (!activeSession) {
@@ -98,6 +103,7 @@ export async function POST(request: NextRequest) {
     await pgDb
       .update(UserSchema)
       .set({
+        universityId: university?.id ?? null,
         role: "student",
         programId,
         currentLevel: Number(level),

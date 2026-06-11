@@ -123,6 +123,13 @@ export const auth = betterAuth({
         input: false,
       },
       isVerified: { type: "boolean", defaultValue: false, input: false },
+      // Tenant scoping — resolved server-side from email domain at signup.
+      universityId: {
+        type: "string",
+        nullable: true,
+        defaultValue: null,
+        input: false,
+      },
     },
   },
   session: {
