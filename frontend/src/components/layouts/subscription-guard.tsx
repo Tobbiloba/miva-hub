@@ -1,6 +1,7 @@
+import { isAdmin } from "@/lib/auth/admin";
 import { auth } from "@/lib/auth/server";
-import { headers } from "next/headers";
 import { hasActiveSubscription } from "@/lib/payment/check-subscription";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import React from "react";
 
@@ -19,8 +20,8 @@ export async function SubscriptionGuard({
     });
 
     if (session?.user) {
-      // Admins bypass payment requirement
-      if (session.user.role !== "admin") {
+      // Admins and platform super_admins bypass payment requirement
+      if (!isAdmin(session.user)) {
         const hasSubscription = await hasActiveSubscription(session.user.id);
 
         // Redirect unpaid users to pricing page
