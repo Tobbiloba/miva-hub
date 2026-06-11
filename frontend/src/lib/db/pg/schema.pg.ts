@@ -28,7 +28,7 @@ import { ChatMetadata } from "app-types/chat";
 // ENUM DEFINITIONS
 // ===============================
 
-export const userRoleEnum = pgEnum('user_role_enum', ['admin', 'faculty', 'student']);
+export const userRoleEnum = pgEnum('user_role_enum', ['admin', 'faculty', 'student', 'super_admin']);
 export const semesterEnum = pgEnum('semester_enum', ['first', 'second']);
 export const academicSessionStatusEnum = pgEnum('academic_session_status_enum', ['upcoming', 'active', 'closed']);
 export const ingestionSourceEnum = pgEnum('ingestion_source_enum', ['manual', 'volunteer_extension', 'scraper', 'seed']);
@@ -106,8 +106,38 @@ export const McpServerSchema = pgTable("mcp_server", {
   updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// ===============================
+// MULTI-TENANCY: UNIVERSITIES
+// ===============================
+
+// Each tenant (university/institution) on the platform.
+// All academic data is scoped to a university via universityId.
+export const UniversitySchema = pgTable(
+  "university",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    name: text("name").notNull(), // e.g. "MIVA Open University"
+    slug: text("slug").notNull().unique(), // e.g. "miva" (subdomain/path key)
+    // Email domains allowed for student/faculty self-signup, e.g. ["miva.edu.ng"]
+    emailDomains: json("email_domains").notNull().default([]).$type<string[]>(),
+    logoUrl: text("logo_url"),
+    primaryColor: varchar("primary_color", { length: 20 }),
+    supportEmail: text("support_email"),
+    status: varchar("status", {
+      enum: ["pending", "active", "suspended"],
+    })
+      .notNull()
+      .default("pending"),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("university_status_idx").on(table.status)],
+);
+
 export const UserSchema = pgTable("user", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
+  // Nullable: platform super_admins belong to no university
+  universityId: uuid("university_id").references(() => UniversitySchema.id),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
@@ -362,24 +392,37 @@ export const McpOAuthSessionSchema = pgTable(
 // ===============================
 
 // Departments table
-export const DepartmentSchema = pgTable("department", {
-  id: uuid("id").primaryKey().notNull().defaultRandom(),
-  code: text("code").notNull().unique(), // e.g., "CS", "MATH", "ENG"
-  name: text("name").notNull(), // e.g., "Computer Science", "Mathematics"
-  description: text("description"),
-  facultyHeadId: uuid("faculty_head_id").references(() => UserSchema.id),
-  contactEmail: text("contact_email"),
-  contactPhone: text("contact_phone"),
-  officeLocation: text("office_location"),
-  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-});
+export const DepartmentSchema = pgTable(
+  "department",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    universityId: uuid("university_id")
+      .notNull()
+      .references(() => UniversitySchema.id),
+    code: text("code").notNull(), // e.g., "CS", "MATH", "ENG" — unique per university
+    name: text("name").notNull(), // e.g., "Computer Science", "Mathematics"
+    description: text("description"),
+    facultyHeadId: uuid("faculty_head_id").references(() => UserSchema.id),
+    contactEmail: text("contact_email"),
+    contactPhone: text("contact_phone"),
+    officeLocation: text("office_location"),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    unique("department_university_code_unique").on(table.universityId, table.code),
+    index("department_university_idx").on(table.universityId),
+  ],
+);
 
 // Program/Major table
 export const ProgramSchema = pgTable(
   "program",
   {
     id: uuid("id").primaryKey().notNull().defaultRandom(),
+    universityId: uuid("university_id")
+      .notNull()
+      .references(() => UniversitySchema.id),
     code: text("code").notNull(), // e.g., "CS", "CYB", "BUA", "ECO"
     name: text("name").notNull(), // e.g., "Computer Science", "Cybersecurity"
     description: text("description"),
@@ -395,6 +438,7 @@ export const ProgramSchema = pgTable(
   (table) => [
     index("program_department_idx").on(table.departmentId),
     index("program_code_idx").on(table.code),
+    index("program_university_idx").on(table.universityId),
   ],
 );
 
@@ -403,7 +447,10 @@ export const CourseSchema = pgTable(
   "course",
   {
     id: uuid("id").primaryKey().notNull().defaultRandom(),
-    courseCode: text("course_code").notNull().unique(), // e.g., "CS101", "MATH201"
+    universityId: uuid("university_id")
+      .notNull()
+      .references(() => UniversitySchema.id),
+    courseCode: text("course_code").notNull(), // e.g., "CS101" — unique per university
     title: text("title").notNull(),
     description: text("description"),
     credits: integer("credits").notNull().default(3),
@@ -424,9 +471,11 @@ export const CourseSchema = pgTable(
     updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
+    unique("course_university_code_unique").on(table.universityId, table.courseCode),
     index("course_department_idx").on(table.departmentId),
     index("course_code_idx").on(table.courseCode),
     index("course_level_idx").on(table.level),
+    index("course_university_idx").on(table.universityId),
   ],
 );
 
@@ -482,7 +531,10 @@ export const AcademicSessionSchema = pgTable(
   "academic_session",
   {
     id: uuid("id").primaryKey().notNull().defaultRandom(),
-    sessionName: text("session_name").notNull().unique(), // e.g. '2025/2026'
+    universityId: uuid("university_id")
+      .notNull()
+      .references(() => UniversitySchema.id),
+    sessionName: text("session_name").notNull(), // e.g. '2025/2026' — unique per university
     currentSemester: semesterEnum("current_semester").notNull(),
     isCurrent: boolean("is_current").notNull().default(false),
     firstSemStart: date("first_sem_start"),
@@ -494,7 +546,12 @@ export const AcademicSessionSchema = pgTable(
     updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
+    unique("academic_session_university_name_unique").on(
+      table.universityId,
+      table.sessionName,
+    ),
     index("academic_session_status_idx").on(table.status),
+    index("academic_session_university_idx").on(table.universityId),
     // Note: partial unique index on is_current WHERE is_current = true
     // must be added via raw SQL in migration (drizzle doesn't support partial unique indexes natively)
   ],
@@ -976,6 +1033,8 @@ export const SystemSettingsSchema = pgTable(
   "system_settings",
   {
     id: uuid("id").primaryKey().notNull().defaultRandom(),
+    // Nullable: NULL = platform-wide setting, set = university-scoped
+    universityId: uuid("university_id").references(() => UniversitySchema.id),
     category: varchar("category", { length: 50 }).notNull(), // university, academic, email, security, features, system
     key: varchar("key", { length: 100 }).notNull(),
     value: text("value"),
@@ -989,7 +1048,11 @@ export const SystemSettingsSchema = pgTable(
     updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
-    unique().on(table.category, table.key),
+    unique("system_settings_university_category_key_unique").on(
+      table.universityId,
+      table.category,
+      table.key,
+    ),
     index("settings_category_idx").on(table.category),
     index("settings_key_idx").on(table.key),
   ],
