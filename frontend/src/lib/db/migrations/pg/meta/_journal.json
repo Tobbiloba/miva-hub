@@ -246,6 +246,13 @@
       "when": 1781211766667,
       "tag": "0034_brown_onslaught",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1781214006031,
+      "tag": "0035_special_hairball",
+      "breakpoints": true
     }
   ]
 }

@@ -1274,6 +1274,49 @@ export const UserSubscriptionSchema = pgTable("user_subscription", {
   updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Org-level (university) subscription: prepaid per-seat coverage for students.
+// One-time Paystack charges extend currentPeriodEnd; no recurring plan codes.
+export const UniversitySubscriptionSchema = pgTable(
+  "university_subscription",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    universityId: uuid("university_id")
+      .notNull()
+      .references(() => UniversitySchema.id, { onDelete: "cascade" }),
+
+    seatLimit: integer("seat_limit").notNull(),
+    pricePerSeatNgn: integer("price_per_seat_ngn").notNull(),
+    interval: varchar("interval", { enum: ["monthly", "yearly"] })
+      .notNull()
+      .default("monthly"),
+
+    status: varchar("status", {
+      enum: ["pending", "active", "past_due", "cancelled", "expired"],
+    })
+      .notNull()
+      .default("pending"),
+    currentPeriodStart: timestamp("current_period_start"),
+    currentPeriodEnd: timestamp("current_period_end"),
+    cancelledAt: timestamp("cancelled_at"),
+
+    paystackReference: text("paystack_reference"),
+    amountPaidNgn: integer("amount_paid_ngn"),
+    lastPaymentDate: timestamp("last_payment_date"),
+
+    // Set when a super admin comps/grants the subscription (sales-led deals)
+    grantedBy: uuid("granted_by").references(() => UserSchema.id),
+    notes: text("notes"),
+    metadata: json("metadata").default({}).$type<Record<string, any>>(),
+
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("university_subscription_university_idx").on(table.universityId),
+    index("university_subscription_status_idx").on(table.status),
+  ],
+);
+
 export const UsageTrackingSchema = pgTable("usage_tracking", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   userId: uuid("user_id")
