@@ -57,6 +57,8 @@ export async function middleware(request: NextRequest) {
     !pathname.startsWith("/terms") &&
     !pathname.startsWith("/reset-password") &&
     !pathname.startsWith("/university/register") &&
+    !pathname.startsWith("/invite/") &&
+    !pathname.startsWith("/api/invite/") &&
     !pathname.startsWith("/api/university/resolve") &&
     !pathname.startsWith("/api/university/register")
   ) {
