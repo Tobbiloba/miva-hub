@@ -96,6 +96,12 @@ export default async function FacultyManagementPage() {
         </div>
         
         <div className="flex gap-2">
+          <Button variant="outline" className="flex items-center gap-2" asChild>
+            <Link href="/admin/faculty/invites">
+              <Mail className="h-4 w-4" />
+              Invites
+            </Link>
+          </Button>
           <Button className="flex items-center gap-2" asChild>
             <Link href="/admin/faculty/create">
               <Plus className="h-4 w-4" />
