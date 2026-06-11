@@ -1,7 +1,12 @@
-import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -10,29 +15,37 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Plus,
-  GraduationCap,
-  Mail,
-  Calendar,
-  BookOpen,
-  MapPin,
-  UserCheck,
-  Building
-} from "lucide-react";
-import { getSession } from "@/lib/auth/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { UserSchema, FacultySchema, CourseSchema, DepartmentSchema } from "@/lib/db/pg/schema.pg";
-import { eq, and, sql } from "drizzle-orm";
+import {
+  CourseSchema,
+  DepartmentSchema,
+  FacultySchema,
+  UserSchema,
+} from "@/lib/db/pg/schema.pg";
+import { getUserUniversity } from "@/lib/tenant";
+import { and, eq, sql } from "drizzle-orm";
+import {
+  BookOpen,
+  Building,
+  Calendar,
+  GraduationCap,
+  Mail,
+  MapPin,
+  Plus,
+  UserCheck,
+} from "lucide-react";
+import Link from "next/link";
 
 export default async function FacultyManagementPage() {
-  const session = await getSession();
   const adminAccess = await requireAdmin();
 
   if (adminAccess instanceof Response) {
     return <div>Access denied. Admin privileges required.</div>;
   }
+
+  // Tenant scope: admins only see their own university's faculty
+  const university = await getUserUniversity(adminAccess.user.id);
 
   // Fetch faculty and their data
   const facultyData = await pgDb
@@ -40,46 +53,68 @@ export default async function FacultyManagementPage() {
       user: UserSchema,
       faculty: FacultySchema,
       department: DepartmentSchema,
-      courseCount: sql<number>`count(${CourseSchema.id})`.as('courseCount'),
+      courseCount: sql<number>`count(${CourseSchema.id})`.as("courseCount"),
     })
     .from(UserSchema)
     .leftJoin(FacultySchema, eq(UserSchema.id, FacultySchema.userId))
-    .leftJoin(DepartmentSchema, eq(FacultySchema.departmentId, DepartmentSchema.id))
+    .leftJoin(
+      DepartmentSchema,
+      eq(FacultySchema.departmentId, DepartmentSchema.id),
+    )
     .leftJoin(CourseSchema, eq(FacultySchema.id, CourseSchema.instructorId))
-    .where(eq(UserSchema.role, 'faculty'))
+    .where(
+      university
+        ? and(
+            eq(UserSchema.role, "faculty"),
+            eq(UserSchema.universityId, university.id),
+          )
+        : eq(UserSchema.role, "faculty"),
+    )
     .groupBy(UserSchema.id, FacultySchema.id, DepartmentSchema.id)
     .orderBy(UserSchema.createdAt);
 
   // Get detailed faculty information
-  const facultyWithDetails = facultyData.map(({ user, faculty, department, courseCount }) => ({
-    ...user,
-    faculty: faculty ? {
-      id: faculty.id,
-      position: faculty.position,
-      departmentId: faculty.departmentId,
-      office: faculty.office,
-      officeHours: faculty.officeHours,
-      bio: faculty.bio,
-      qualifications: faculty.qualifications || [],
-      researchInterests: faculty.researchInterests || [],
-      isActive: faculty.isActive,
-    } : null,
-    department: department ? {
-      id: department.id,
-      name: department.name,
-      code: department.code,
-    } : null,
-    courseCount: Number(courseCount) || 0,
-    // Remove password from client-side data
-    password: undefined,
-  }));
+  const facultyWithDetails = facultyData.map(
+    ({ user, faculty, department, courseCount }) => ({
+      ...user,
+      faculty: faculty
+        ? {
+            id: faculty.id,
+            position: faculty.position,
+            departmentId: faculty.departmentId,
+            office: faculty.office,
+            officeHours: faculty.officeHours,
+            bio: faculty.bio,
+            qualifications: faculty.qualifications || [],
+            researchInterests: faculty.researchInterests || [],
+            isActive: faculty.isActive,
+          }
+        : null,
+      department: department
+        ? {
+            id: department.id,
+            name: department.name,
+            code: department.code,
+          }
+        : null,
+      courseCount: Number(courseCount) || 0,
+      // Remove password from client-side data
+      password: undefined,
+    }),
+  );
 
   // Calculate statistics
-  const activeFaculty = facultyWithDetails.filter(f => f.faculty?.isActive).length;
-  const totalCourses = facultyWithDetails.reduce((sum, f) => sum + f.courseCount, 0);
-  const averageCoursesPerFaculty = facultyWithDetails.length > 0 
-    ? totalCourses / facultyWithDetails.length 
-    : 0;
+  const activeFaculty = facultyWithDetails.filter(
+    (f) => f.faculty?.isActive,
+  ).length;
+  const totalCourses = facultyWithDetails.reduce(
+    (sum, f) => sum + f.courseCount,
+    0,
+  );
+  const averageCoursesPerFaculty =
+    facultyWithDetails.length > 0
+      ? totalCourses / facultyWithDetails.length
+      : 0;
 
   return (
     <div className="space-y-6 p-6">
@@ -94,7 +129,7 @@ export default async function FacultyManagementPage() {
             Manage faculty members, their profiles, and course assignments
           </p>
         </div>
-        
+
         <div className="flex gap-2">
           <Button variant="outline" className="flex items-center gap-2" asChild>
             <Link href="/admin/faculty/invites">
@@ -118,13 +153,15 @@ export default async function FacultyManagementPage() {
             <div className="flex items-center gap-2">
               <GraduationCap className="h-5 w-5 text-purple-600" />
               <div>
-                <p className="text-2xl font-bold">{facultyWithDetails.length}</p>
+                <p className="text-2xl font-bold">
+                  {facultyWithDetails.length}
+                </p>
                 <p className="text-xs text-muted-foreground">Total Faculty</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -136,7 +173,7 @@ export default async function FacultyManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -148,14 +185,18 @@ export default async function FacultyManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <Building className="h-5 w-5 text-orange-600" />
               <div>
-                <p className="text-2xl font-bold">{averageCoursesPerFaculty.toFixed(1)}</p>
-                <p className="text-xs text-muted-foreground">Avg Courses/Faculty</p>
+                <p className="text-2xl font-bold">
+                  {averageCoursesPerFaculty.toFixed(1)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Avg Courses/Faculty
+                </p>
               </div>
             </div>
           </CardContent>
@@ -167,7 +208,8 @@ export default async function FacultyManagementPage() {
         <CardHeader>
           <CardTitle>Faculty Directory</CardTitle>
           <CardDescription>
-            Complete list of faculty members with their profiles and course assignments
+            Complete list of faculty members with their profiles and course
+            assignments
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -202,24 +244,28 @@ export default async function FacultyManagementPage() {
                           </div>
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <Badge variant="outline">
                           {faculty.faculty?.position || "Not Set"}
                         </Badge>
                       </TableCell>
-                      
+
                       <TableCell>
                         {faculty.department ? (
                           <div className="flex items-center gap-1">
                             <Building className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">{faculty.department.name}</span>
+                            <span className="text-sm">
+                              {faculty.department.name}
+                            </span>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground text-sm">No Department</span>
+                          <span className="text-muted-foreground text-sm">
+                            No Department
+                          </span>
                         )}
                       </TableCell>
-                      
+
                       <TableCell>
                         {faculty.faculty?.office ? (
                           <div className="flex items-center gap-1 text-sm">
@@ -227,37 +273,40 @@ export default async function FacultyManagementPage() {
                             <span>{faculty.faculty.office}</span>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground text-sm">Not Set</span>
+                          <span className="text-muted-foreground text-sm">
+                            Not Set
+                          </span>
                         )}
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <BookOpen className="h-4 w-4 text-muted-foreground" />
                           <span>{faculty.courseCount}</span>
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
-                        <Badge 
-                          variant={faculty.faculty?.isActive ? "default" : "secondary"}
+                        <Badge
+                          variant={
+                            faculty.faculty?.isActive ? "default" : "secondary"
+                          }
                           className={
-                            faculty.faculty?.isActive 
-                              ? "bg-green-100 text-green-800 border-green-200" 
+                            faculty.faculty?.isActive
+                              ? "bg-green-100 text-green-800 border-green-200"
                               : ""
                           }
                         >
                           {faculty.faculty?.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Calendar className="h-3 w-3" />
                           {new Date(faculty.createdAt).toLocaleDateString()}
                         </div>
                       </TableCell>
-                      
                     </TableRow>
                   ))}
                 </TableBody>

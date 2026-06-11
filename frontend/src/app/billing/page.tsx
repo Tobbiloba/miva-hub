@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  CheckCircle,
+  Clock,
+  CreditCard,
+  GraduationCap,
+  Loader2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Button } from "ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "ui/card";
-import { Badge } from "ui/badge";
-import { CreditCard, Clock, CheckCircle, LogOut, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +20,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "ui/alert-dialog";
+import { Badge } from "ui/badge";
+import { Button } from "ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "ui/card";
 
 interface BillingStatus {
   in_trial: boolean;
@@ -28,6 +40,7 @@ interface BillingStatus {
     current_period_end: string;
     cancel_at_period_end: boolean;
   } | null;
+  covered_by_university: boolean;
   paywalled: boolean;
 }
 
@@ -74,7 +87,9 @@ export default function BillingPage() {
       const data = await res.json();
       if (res.ok) {
         // Refresh status
-        const updated = await fetch("/api/billing/status").then((r) => r.json());
+        const updated = await fetch("/api/billing/status").then((r) =>
+          r.json(),
+        );
         setStatus(updated);
       } else {
         alert(data.error || "Failed to cancel");
@@ -101,8 +116,52 @@ export default function BillingPage() {
   if (!status) return null;
 
   const isPaywalled = status.paywalled;
-  const hasActiveSub = !!status.subscription && status.subscription.status === "active";
+  const hasActiveSub =
+    !!status.subscription && status.subscription.status === "active";
   const isCanceled = status.subscription?.cancel_at_period_end;
+
+  // ─── Covered by university: no personal payment needed ───
+  if (status.covered_by_university) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="w-full max-w-2xl space-y-8">
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight">Your Plan</h1>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5 text-green-500" />
+                    Covered by your university
+                  </CardTitle>
+                  <CardDescription>
+                    {status.subscription?.current_period_end
+                      ? `Your university's subscription covers you until ${formatDate(status.subscription.current_period_end)}.`
+                      : "Your university's subscription covers your access."}{" "}
+                    No payment is needed from you.
+                  </CardDescription>
+                </div>
+                <Badge>Active</Badge>
+              </div>
+            </CardHeader>
+          </Card>
+
+          <div className="text-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push("/student")}
+            >
+              Back to dashboard
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ─── Paywalled state: trial expired, no subscription ───
   if (isPaywalled) {
@@ -110,7 +169,9 @@ export default function BillingPage() {
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <div className="w-full max-w-2xl space-y-8">
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Your trial has ended</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Your trial has ended
+            </h1>
             <p className="text-muted-foreground text-lg">
               Choose a plan to continue using Askly.
             </p>
@@ -168,8 +229,20 @@ export default function BillingPage() {
                       : `Next charge on ${formatDate(status.subscription!.current_period_end)}`}
                 </CardDescription>
               </div>
-              <Badge variant={status.in_trial ? "secondary" : isCanceled ? "destructive" : "default"}>
-                {status.in_trial ? "Trial" : isCanceled ? "Canceling" : "Active"}
+              <Badge
+                variant={
+                  status.in_trial
+                    ? "secondary"
+                    : isCanceled
+                      ? "destructive"
+                      : "default"
+                }
+              >
+                {status.in_trial
+                  ? "Trial"
+                  : isCanceled
+                    ? "Canceling"
+                    : "Active"}
               </Badge>
             </div>
           </CardHeader>
@@ -208,7 +281,8 @@ export default function BillingPage() {
           {isCanceled && (
             <CardContent>
               <p className="text-sm text-muted-foreground mb-3">
-                Your subscription ends on {formatDate(status.subscription!.current_period_end)}.
+                Your subscription ends on{" "}
+                {formatDate(status.subscription!.current_period_end)}.
                 Re-subscribe to keep access.
               </p>
               <PlanCards
@@ -236,7 +310,11 @@ export default function BillingPage() {
         )}
 
         <div className="text-center">
-          <Button variant="ghost" size="sm" onClick={() => router.push("/student")}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/student")}
+          >
             Back to dashboard
           </Button>
         </div>
@@ -257,10 +335,14 @@ function PlanCards({
   compact?: boolean;
 }) {
   return (
-    <div className={`grid gap-4 ${compact ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-2"}`}>
+    <div
+      className={`grid gap-4 ${compact ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-2"}`}
+    >
       <Card className={compact ? "" : "border-2"}>
         <CardHeader className={compact ? "pb-2" : ""}>
-          <CardTitle className={compact ? "text-base" : "text-xl"}>Monthly</CardTitle>
+          <CardTitle className={compact ? "text-base" : "text-xl"}>
+            Monthly
+          </CardTitle>
           <CardDescription>
             <span className="text-2xl font-bold text-foreground">₦3,000</span>
             <span className="text-muted-foreground">/month</span>
@@ -270,13 +352,16 @@ function PlanCards({
           {!compact && (
             <ul className="space-y-2 text-sm text-muted-foreground mb-4">
               <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" /> Full AI chat access
+                <CheckCircle className="h-4 w-4 text-green-500" /> Full AI chat
+                access
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" /> All course materials
+                <CheckCircle className="h-4 w-4 text-green-500" /> All course
+                materials
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" /> Flashcards & quizzes
+                <CheckCircle className="h-4 w-4 text-green-500" /> Flashcards &
+                quizzes
               </li>
             </ul>
           )}
@@ -296,8 +381,12 @@ function PlanCards({
       <Card className={compact ? "" : "border-2 border-primary"}>
         <CardHeader className={compact ? "pb-2" : ""}>
           <div className="flex items-center justify-between">
-            <CardTitle className={compact ? "text-base" : "text-xl"}>Yearly</CardTitle>
-            <Badge variant="secondary" className="text-xs">Save ₦6,000</Badge>
+            <CardTitle className={compact ? "text-base" : "text-xl"}>
+              Yearly
+            </CardTitle>
+            <Badge variant="secondary" className="text-xs">
+              Save ₦6,000
+            </Badge>
           </div>
           <CardDescription>
             <span className="text-2xl font-bold text-foreground">₦30,000</span>
@@ -308,10 +397,12 @@ function PlanCards({
           {!compact && (
             <ul className="space-y-2 text-sm text-muted-foreground mb-4">
               <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" /> Everything in Monthly
+                <CheckCircle className="h-4 w-4 text-green-500" /> Everything in
+                Monthly
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" /> Effective ₦2,500/month
+                <CheckCircle className="h-4 w-4 text-green-500" /> Effective
+                ₦2,500/month
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" /> Best value
@@ -339,8 +430,10 @@ function PlanCards({
 
 function getPlanDisplayName(plan?: string): string {
   if (!plan) return "Askly";
-  if (plan.includes("MONTHLY") || plan.includes("monthly")) return "Monthly - ₦3,000/mo";
-  if (plan.includes("YEARLY") || plan.includes("yearly")) return "Yearly - ₦30,000/yr";
+  if (plan.includes("MONTHLY") || plan.includes("monthly"))
+    return "Monthly - ₦3,000/mo";
+  if (plan.includes("YEARLY") || plan.includes("yearly"))
+    return "Yearly - ₦30,000/yr";
   return plan;
 }
 
