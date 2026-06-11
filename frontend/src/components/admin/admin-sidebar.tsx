@@ -22,6 +22,7 @@ import {
   Building2,
   Calendar,
   Clock,
+  CreditCard,
   Database,
   FileText,
   GraduationCap,
@@ -103,6 +104,11 @@ const adminRoutes = [
       },
       { title: "Reports Center", href: "/admin/reports", icon: FileText },
     ],
+  },
+  {
+    title: "Billing",
+    href: "/admin/billing",
+    icon: CreditCard,
   },
   {
     title: "System Settings",
