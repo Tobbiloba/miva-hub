@@ -39,21 +39,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate matric number format if provided
-    if (
-      matricNumber &&
-      !/^MIVA\/[A-Z]{2,4}\/\d{4}\/\d{3}$/.test(matricNumber)
-    ) {
+    // Validate matric number format if provided (loose check — formats
+    // vary per university, e.g. MIVA/CS/2024/001)
+    if (matricNumber && !/^[A-Za-z0-9/\-_.]{3,40}$/.test(matricNumber)) {
       return NextResponse.json(
-        { error: "Invalid matric number format. Expected: MIVA/DEPT/YEAR/NNN" },
+        { error: "Invalid matric number format" },
         { status: 400 },
       );
     }
 
     // Resolve tenant from the email domain (active universities only).
-    // For now MIVA is the only tenant; Phase 2 hard-gates signup on this.
+    // Signup is hard-gated: only emails on a registered university's
+    // domain list may create student accounts.
     const { resolveUniversityFromEmail } = await import("lib/tenant");
     const university = await resolveUniversityFromEmail(email);
+    if (!university) {
+      return NextResponse.json(
+        {
+          error:
+            "Your email domain isn't registered with any university on Askly. Use your school email address, or ask your university to join the platform.",
+          code: "UNKNOWN_EMAIL_DOMAIN",
+        },
+        { status: 403 },
+      );
+    }
 
     // Get active academic session for semester/year context
     const activeSession = await pgAcademicRepository.getActiveAcademicSession();
@@ -103,7 +112,7 @@ export async function POST(request: NextRequest) {
     await pgDb
       .update(UserSchema)
       .set({
-        universityId: university?.id ?? null,
+        universityId: university.id,
         role: "student",
         programId,
         currentLevel: Number(level),

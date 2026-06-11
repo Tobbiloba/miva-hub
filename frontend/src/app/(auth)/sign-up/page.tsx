@@ -1,11 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { existsByEmailAction } from "@/app/api/auth/actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -13,6 +9,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -20,10 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronLeft, Loader, AlertCircle, Info } from "lucide-react";
+import { AlertCircle, ChevronLeft, Info, Loader } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { existsByEmailAction } from "@/app/api/auth/actions";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -67,6 +67,7 @@ export default function SignUpPage() {
 
   // Validation state
   const [emailWarning, setEmailWarning] = useState("");
+  const [universityName, setUniversityName] = useState<string | null>(null);
   const [matricError, setMatricError] = useState("");
 
   // Fetch programs and session on mount
@@ -86,28 +87,44 @@ export default function SignUpPage() {
       .catch(() => {});
   }, []);
 
-  // Email domain check (soft warning)
+  // Resolve the university from the email domain (debounced).
+  // Signup is only allowed for domains registered to a university.
   useEffect(() => {
-    if (email && !email.toLowerCase().endsWith("@miva.edu.ng")) {
-      setEmailWarning("We recommend using your MIVA email (@miva.edu.ng)");
-    } else {
-      setEmailWarning("");
-    }
+    setUniversityName(null);
+    setEmailWarning("");
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+
+    const timer = setTimeout(() => {
+      fetch(`/api/university/resolve?email=${encodeURIComponent(email)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.found) {
+            setUniversityName(data.university.name);
+            setEmailWarning("");
+          } else {
+            setEmailWarning(
+              "This email domain isn't registered with any university on Askly. Use your school email address.",
+            );
+          }
+        })
+        .catch(() => {});
+    }, 500);
+    return () => clearTimeout(timer);
   }, [email]);
 
-  // Matric number format validation
+  // Matric number format validation (loose — formats vary per university)
   useEffect(() => {
-    if (matricNumber && !/^MIVA\/[A-Z]{2,4}\/\d{4}\/\d{3}$/.test(matricNumber)) {
-      setMatricError("Format: MIVA/DEPT/YEAR/NNN (e.g. MIVA/CS/2025/001)");
+    if (matricNumber && !/^[A-Za-z0-9/\-_.]{3,40}$/.test(matricNumber)) {
+      setMatricError(
+        "Letters, numbers, and / - _ . only (e.g. MIVA/CS/2025/001)",
+      );
     } else {
       setMatricError("");
     }
   }, [matricNumber]);
 
   const passwordStrong =
-    password.length >= 8 &&
-    /[A-Z]/.test(password) &&
-    /[0-9]/.test(password);
+    password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password);
 
   // ── Step 1 validation ──────────────────────────────────────────────────────
 
@@ -118,6 +135,12 @@ export default function SignUpPage() {
     }
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       toast.error("Please enter a valid email address");
+      return false;
+    }
+    if (!universityName) {
+      toast.error(
+        "Use your school email address — this domain isn't registered with any university on Askly",
+      );
       return false;
     }
     if (!passwordStrong) {
@@ -200,7 +223,7 @@ export default function SignUpPage() {
         enrolledCount > 0
           ? `Welcome! You're enrolled in ${enrolledCount} courses for ${semesterLabel} ${data.academicYear}. Check your email to verify your account.`
           : `Account created! Check your email to verify your account, then sign in.`,
-        { duration: 8000 }
+        { duration: 8000 },
       );
 
       // Brief delay so the user sees the success toast
@@ -236,7 +259,7 @@ export default function SignUpPage() {
       <Card className="w-full md:max-w-lg bg-background border-none mx-auto gap-0 shadow-none">
         <CardHeader>
           <CardTitle className="text-2xl text-center">
-            Join MIVA University
+            {universityName ? `Join ${universityName}` : "Create your account"}
           </CardTitle>
           <CardDescription className="py-6">
             <div className="flex flex-col gap-2">
@@ -275,11 +298,17 @@ export default function SignUpPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="you@miva.edu.ng"
+                    placeholder="you@youruniversity.edu"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isLoading}
                   />
+                  {universityName && (
+                    <p className="text-xs text-green-600 flex items-center gap-1">
+                      <Info className="size-3 shrink-0" />
+                      Signing up for {universityName}
+                    </p>
+                  )}
                   {emailWarning && (
                     <p className="text-xs text-amber-500 flex items-center gap-1">
                       <Info className="size-3 shrink-0" />
@@ -409,9 +438,11 @@ export default function SignUpPage() {
                   </Label>
                   <Input
                     id="matric"
-                    placeholder="MIVA/CS/2025/001"
+                    placeholder="e.g. MIVA/CS/2025/001"
                     value={matricNumber}
-                    onChange={(e) => setMatricNumber(e.target.value.toUpperCase())}
+                    onChange={(e) =>
+                      setMatricNumber(e.target.value.toUpperCase())
+                    }
                     disabled={isLoading}
                   />
                   {matricError && (

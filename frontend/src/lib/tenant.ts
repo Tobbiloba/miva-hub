@@ -43,3 +43,30 @@ export async function getUniversityById(
   if (!universityId) return undefined;
   return pgUniversityRepository.findById(universityId);
 }
+
+/** Does an email's domain belong to this university's domain list? */
+export function emailMatchesUniversity(
+  email: string,
+  university: Pick<University, "emailDomains">,
+): boolean {
+  const domain = emailDomain(email);
+  return (
+    !!domain && university.emailDomains.some((d) => d.toLowerCase() === domain)
+  );
+}
+
+/** Load a user's university by joining through the user row (DB-backed,
+ * works even when the session payload lacks universityId). */
+export async function getUserUniversity(
+  userId: string,
+): Promise<University | undefined> {
+  const { pgDb } = await import("lib/db/pg/db.pg");
+  const { UserSchema } = await import("lib/db/pg/schema.pg");
+  const { eq } = await import("drizzle-orm");
+  const [row] = await pgDb
+    .select({ universityId: UserSchema.universityId })
+    .from(UserSchema)
+    .where(eq(UserSchema.id, userId))
+    .limit(1);
+  return getUniversityById(row?.universityId);
+}

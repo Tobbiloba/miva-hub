@@ -1,11 +1,11 @@
-import { McpServerCustomizationsPrompt, MCPToolInfo } from "app-types/mcp";
+import { MCPToolInfo, McpServerCustomizationsPrompt } from "app-types/mcp";
 
+import { Agent } from "app-types/agent";
 import { UserPreferences } from "app-types/user";
 import { User } from "better-auth";
-import { createMCPToolId } from "./mcp/mcp-tool-id";
 import { format } from "date-fns";
-import { Agent } from "app-types/agent";
 import { UserAcademicContext } from "lib/user/user-context";
+import { createMCPToolId } from "./mcp/mcp-tool-id";
 
 export const CREATE_THREAD_TITLE_PROMPT = `
 You are a chat title generation expert.
@@ -59,10 +59,10 @@ export const buildAcademicSystemPrompt = (
     agent?.name || userPreferences?.botName || "MIVA Academic Assistant";
   const currentTime = format(new Date(), "EEEE, MMMM d, yyyy 'at' h:mm:ss a");
 
-  let prompt = `You are ${assistantName}, an intelligent academic assistant for MIVA University students. The current date and time is ${currentTime}.`;
+  let prompt = `You are ${assistantName}, an intelligent academic assistant for university students. The current date and time is ${currentTime}.`;
 
-  // Academic context section (highest priority for MIVA students)
-  if (academicContext?.studentId && user?.email?.endsWith('@miva.edu.ng')) {
+  // Academic context section (highest priority for enrolled students)
+  if (academicContext?.studentId) {
     prompt += `
 
 <academic_context>
@@ -70,7 +70,6 @@ Student Information:
 - Student ID: ${academicContext.studentId}
 - Name: ${academicContext.firstName} ${academicContext.lastName}
 - Email: ${academicContext.email}
-- Institution: MIVA University, Nigeria
 
 Academic Capabilities:
 - Access to course materials, assignments, and schedules
@@ -203,8 +202,7 @@ export const buildUserSystemPrompt = (
   userPreferences?: UserPreferences,
   agent?: Agent,
 ) => {
-  const assistantName =
-    agent?.name || userPreferences?.botName || "miva-hub";
+  const assistantName = agent?.name || userPreferences?.botName || "miva-hub";
   const currentTime = format(new Date(), "EEEE, MMMM d, yyyy 'at' h:mm:ss a");
 
   let prompt = `You are ${assistantName}`;

@@ -154,8 +154,8 @@ export async function POST(request: Request) {
             // Auto-enable MIVA Academic MCP server for MIVA students
             let effectiveAllowedMcpServers = allowedMcpServers;
             if (
-              userAcademicContext?.studentId &&
-              session?.user?.email?.endsWith("@miva.edu.ng")
+              // Academic context implies an enrolled university student
+              userAcademicContext?.studentId
             ) {
               logger.info(
                 `Auto-enabling MIVA Academic MCP server for student ${userAcademicContext.studentId}`,
@@ -241,16 +241,14 @@ export async function POST(request: Request) {
           .orElse({});
 
         // Use academic system prompt for MIVA students, otherwise use regular prompt
-        const baseSystemPrompt =
-          userAcademicContext?.studentId &&
-          session?.user?.email?.endsWith("@miva.edu.ng")
-            ? buildAcademicSystemPrompt(
-                session.user,
-                userPreferences,
-                agent,
-                userAcademicContext,
-              )
-            : buildUserSystemPrompt(session.user, userPreferences, agent);
+        const baseSystemPrompt = userAcademicContext?.studentId
+          ? buildAcademicSystemPrompt(
+              session.user,
+              userPreferences,
+              agent,
+              userAcademicContext,
+            )
+          : buildUserSystemPrompt(session.user, userPreferences, agent);
 
         // Add conversation context for academic students
         let conversationContext = "";
@@ -350,10 +348,7 @@ export async function POST(request: Request) {
         }
 
         // Record academic conversation for memory and context building
-        if (
-          userAcademicContext?.studentId &&
-          session?.user?.email?.endsWith("@miva.edu.ng")
-        ) {
+        if (userAcademicContext?.studentId) {
           try {
             // Extract conversation details for memory
             const userText =
