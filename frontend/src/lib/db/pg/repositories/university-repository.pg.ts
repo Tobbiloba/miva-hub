@@ -38,6 +38,24 @@ export const pgUniversityRepository = {
     return university;
   },
 
+  /**
+   * Check whether any of the given domains is already claimed by an
+   * existing university (any status — pending/suspended tenants still
+   * own their domains). Returns the first claimed domain, if any.
+   */
+  async findClaimedDomain(domains: string[]): Promise<string | undefined> {
+    for (const domain of domains) {
+      const normalized = domain.toLowerCase().trim();
+      const [existing] = await db
+        .select({ id: UniversitySchema.id })
+        .from(UniversitySchema)
+        .where(sql`${UniversitySchema.emailDomains}::jsonb ? ${normalized}`)
+        .limit(1);
+      if (existing) return normalized;
+    }
+    return undefined;
+  },
+
   async create(
     data: Omit<UniversityInsert, "id" | "createdAt" | "updatedAt">,
   ): Promise<University> {

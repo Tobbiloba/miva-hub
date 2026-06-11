@@ -1,5 +1,5 @@
-import { NextResponse, type NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -24,7 +24,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // Protected routes that require authentication
-  if (pathname.startsWith("/admin") || pathname.startsWith("/student") || pathname.startsWith("/faculty")) {
+  if (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/student") ||
+    pathname.startsWith("/faculty")
+  ) {
     if (!sessionCookie) {
       return NextResponse.redirect(new URL("/sign-in", request.url));
     }
@@ -51,7 +55,10 @@ export async function middleware(request: NextRequest) {
     !pathname.startsWith("/unauthorized") &&
     !pathname.startsWith("/privacy") &&
     !pathname.startsWith("/terms") &&
-    !pathname.startsWith("/reset-password")
+    !pathname.startsWith("/reset-password") &&
+    !pathname.startsWith("/university/register") &&
+    !pathname.startsWith("/api/university/resolve") &&
+    !pathname.startsWith("/api/university/register")
   ) {
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }

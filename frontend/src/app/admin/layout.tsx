@@ -1,8 +1,8 @@
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
-import { getSession } from "@/lib/auth/server";
-import { checkIsAdmin } from "@/lib/auth/admin";
-import { redirect } from "next/navigation";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { checkIsAdmin, checkIsSuperAdmin } from "@/lib/auth/admin";
+import { getSession } from "@/lib/auth/server";
+import { redirect } from "next/navigation";
 
 export default async function AdminLayout({
   children,
@@ -10,7 +10,7 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   let session;
-  
+
   try {
     session = await getSession();
   } catch {
@@ -22,15 +22,15 @@ export default async function AdminLayout({
     redirect("/unauthorized");
   }
 
+  const isSuperAdmin = await checkIsSuperAdmin(session.user.id);
+
   return (
     <SidebarProvider>
       <div className="flex h-screen bg-background w-screen">
-        <AdminSidebar session={session} />
+        <AdminSidebar session={session} isSuperAdmin={isSuperAdmin} />
         <main className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto">
-            <div className="container mx-auto p-6 flex-1">
-              {children}
-            </div>
+            <div className="container mx-auto p-6 flex-1">{children}</div>
           </div>
         </main>
       </div>

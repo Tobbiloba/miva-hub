@@ -1,47 +1,46 @@
 "use client";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarGroup,
-  SidebarGroupContent,
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import Link from "next/link";
+import { Session, User } from "better-auth";
+import {
+  BarChart3,
+  BookOpen,
+  Building2,
+  Calendar,
+  Clock,
+  Database,
+  FileText,
+  GraduationCap,
+  Megaphone,
+  PanelLeft,
+  Plus,
+  Settings,
+  Shield,
+  ShieldCheck,
+  TrendingUp,
+  Upload,
+  UserCheck,
+  Users,
+  Zap,
+} from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
-import {
-  Building2,
-  Users,
-  BookOpen,
-  Calendar,
-  Settings,
-  Upload,
-  BarChart3,
-  GraduationCap,
-  UserCheck,
-  Database,
-  Plus,
-  PanelLeft,
-  Shield,
-  UsersIcon,
-  Megaphone,
-  FileText,
-  TrendingUp,
-  Zap,
-  Clock,
-  ShieldCheck,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Session, User } from "better-auth";
 
 const adminRoutes = [
   {
@@ -53,7 +52,11 @@ const adminRoutes = [
     title: "Academic Management",
     icon: BookOpen,
     children: [
-      { title: "Academic Sessions", href: "/admin/academic", icon: GraduationCap },
+      {
+        title: "Academic Sessions",
+        href: "/admin/academic",
+        icon: GraduationCap,
+      },
       { title: "Departments", href: "/admin/departments", icon: Building2 },
       { title: "Programs", href: "/admin/programs", icon: FileText },
       { title: "Courses", href: "/admin/courses", icon: BookOpen },
@@ -75,9 +78,17 @@ const adminRoutes = [
     icon: Upload,
     children: [
       { title: "Upload Content", href: "/admin/content/upload", icon: Plus },
-      { title: "Manage Content", href: "/admin/content/manage", icon: Database },
+      {
+        title: "Manage Content",
+        href: "/admin/content/manage",
+        icon: Database,
+      },
       { title: "AI Processing", href: "/admin/processing", icon: Zap },
-      { title: "Moderation Queue", href: "/admin/content/moderation", icon: ShieldCheck },
+      {
+        title: "Moderation Queue",
+        href: "/admin/content/moderation",
+        icon: ShieldCheck,
+      },
       { title: "Announcements", href: "/admin/announcements", icon: Megaphone },
     ],
   },
@@ -85,7 +96,11 @@ const adminRoutes = [
     title: "Analytics & Reports",
     icon: BarChart3,
     children: [
-      { title: "Analytics Dashboard", href: "/admin/analytics", icon: TrendingUp },
+      {
+        title: "Analytics Dashboard",
+        href: "/admin/analytics",
+        icon: TrendingUp,
+      },
       { title: "Reports Center", href: "/admin/reports", icon: FileText },
     ],
   },
@@ -98,7 +113,8 @@ const adminRoutes = [
 
 export function AdminSidebar({
   session,
-}: { session?: { session: Session; user: User } }) {
+  isSuperAdmin = false,
+}: { session?: { session: Session; user: User }; isSuperAdmin?: boolean }) {
   const { setOpenMobile } = useSidebar();
   const router = useRouter();
   const pathname = usePathname();
@@ -108,13 +124,26 @@ export function AdminSidebar({
     setExpandedMenus((prev) =>
       prev.includes(title)
         ? prev.filter((item) => item !== title)
-        : [...prev, title]
+        : [...prev, title],
     );
   }, []);
 
   const isActiveRoute = (href: string) => {
     return pathname === href || pathname.startsWith(href + "/");
   };
+
+  // Platform-level entries shown only to super admins
+  const routes = isSuperAdmin
+    ? [
+        adminRoutes[0],
+        {
+          title: "Universities",
+          href: "/admin/universities",
+          icon: Building2,
+        },
+        ...adminRoutes.slice(1),
+      ]
+    : adminRoutes;
 
   return (
     <Sidebar
@@ -162,14 +191,16 @@ export function AdminSidebar({
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {adminRoutes.map((route) => (
+                {routes.map((route) => (
                   <SidebarMenuItem key={route.title}>
                     {route.children ? (
                       <>
                         <SidebarMenuButton
                           onClick={() => toggleMenu(route.title)}
                           className={`font-semibold ${
-                            expandedMenus.includes(route.title) ? "bg-accent" : ""
+                            expandedMenus.includes(route.title)
+                              ? "bg-accent"
+                              : ""
                           }`}
                         >
                           <route.icon className="size-4" />
