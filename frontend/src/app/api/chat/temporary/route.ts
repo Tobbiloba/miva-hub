@@ -1,16 +1,17 @@
-import { redirect } from "next/navigation";
-import { getSession } from "auth/server";
 import {
   UIMessage,
   convertToModelMessages,
   smoothStream,
   streamText,
 } from "ai";
+import { getSession } from "auth/server";
+import { colorize } from "consola/utils";
 import { customModelProvider } from "lib/ai/models";
-import globalLogger from "logger";
 import { buildUserSystemPrompt } from "lib/ai/prompts";
 import { userRepository } from "lib/db/repository";
-import { colorize } from "consola/utils";
+import { checkRateLimit, rateLimitResponse } from "lib/rate-limit";
+import globalLogger from "logger";
+import { redirect } from "next/navigation";
 
 const logger = globalLogger.withDefaults({
   message: colorize("blackBright", `Temporary Chat API: `),
@@ -24,6 +25,12 @@ export async function POST(request: Request) {
 
     if (!session?.user.id) {
       return redirect("/sign-in");
+    }
+
+    // Per-user rate limit: caps LLM spend abuse (20 messages/min/user)
+    const rateLimit = checkRateLimit(`chat:${session.user.id}`, 20, 60);
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit);
     }
 
     const { messages, chatModel, instructions } = json as {

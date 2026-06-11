@@ -1,23 +1,18 @@
 import "server-only";
+import { sendEmail } from "@/lib/email/smtp-service";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { pgDb } from "lib/db/pg/db.pg";
-import { headers } from "next/headers";
-import { toast } from "sonner";
-import { eq } from "drizzle-orm";
 import {
   AccountSchema,
   SessionSchema,
   UserSchema,
   VerificationSchema,
 } from "lib/db/pg/schema.pg";
+import { headers } from "next/headers";
+import { toast } from "sonner";
 import { getAuthConfig } from "./config";
-import {
-  validateSchoolEmail,
-  prepareUserRegistrationData
-} from "lib/utils/email-validation";
-import { sendEmail } from "@/lib/email/smtp-service";
 
 import logger from "logger";
 import { redirect } from "next/navigation";
@@ -44,69 +39,90 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: emailAndPasswordEnabled,
     disableSignUp: !signUpEnabled,
-    requireEmailVerification: false,
-    onSignUp: async ({ user }) => {
-      try {
-        // Prepare academic user data
-        const userData = prepareUserRegistrationData({
-          email: user.email,
-          name: user.name,
-        });
-
-        // Update the user record with academic fields
-        await pgDb
-          .update(UserSchema)
-          .set({
-            studentId: userData.studentId,
-            role: userData.role,
-            academicYear: userData.academicYear,
-            enrollmentStatus: userData.enrollmentStatus,
-          })
-          .where(eq(UserSchema.id, user.id));
-
-        logger.info(`User ${user.id} registered with academic fields:`, {
-          role: userData.role,
-          academicYear: userData.academicYear,
-          studentId: userData.studentId,
-        });
-      } catch (error) {
-        logger.error("Failed to set academic fields for user:", error);
-        // Don't throw here as the user is already created
-      }
+    requireEmailVerification: true,
+  },
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 100,
+    customRules: {
+      "/sign-in/email": { window: 60, max: 5 },
+      "/sign-up/email": { window: 60, max: 3 },
+      "/forget-password": { window: 60, max: 3 },
+      "/request-password-reset": { window: 60, max: 3 },
     },
-    sendVerificationEmail: async ({ email, url }) => {
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    expiresIn: 60 * 60 * 24, // 24 hours
+    sendVerificationEmail: async ({ user, url }) => {
       try {
-        const verificationUrl = `${process.env.NEXT_PUBLIC_BASE_URL}${url}`;
         await sendEmail({
-          to: email,
-          subject: "Verify your MIVA University email",
+          to: user.email,
+          subject: "Verify your email address",
           html: `
-            <h2>Welcome to MIVA University Study Hub!</h2>
+            <h2>Welcome to Askly!</h2>
             <p>Please verify your email address to complete your registration.</p>
-            <p><a href="${verificationUrl}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
+            <p><a href="${url}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
             <p>Or copy and paste this link in your browser:</p>
-            <p>${verificationUrl}</p>
+            <p>${url}</p>
             <p>This link will expire in 24 hours.</p>
             <p>If you didn't create this account, please ignore this email.</p>
           `,
-          text: `Verify your email: ${verificationUrl}`,
+          text: `Verify your email: ${url}`,
         });
-        logger.info(`Verification email sent to ${email}`);
+        logger.info(`Verification email sent to ${user.email}`);
       } catch (error) {
-        logger.error(`Failed to send verification email to ${email}:`, error);
+        logger.error(
+          `Failed to send verification email to ${user.email}:`,
+          error,
+        );
         throw error;
       }
     },
   },
   user: {
     additionalFields: {
-      role: { type: "string", nullable: true, defaultValue: null },
-      enrollmentStatus: { type: "string", nullable: true, defaultValue: null },
-      studentId: { type: "string", nullable: true, defaultValue: null },
-      academicYear: { type: "string", nullable: true, defaultValue: null },
-      year: { type: "string", nullable: true, defaultValue: null },
-      major: { type: "string", nullable: true, defaultValue: null },
-      isVerified: { type: "boolean", defaultValue: false },
+      // input: false — these are set server-side only; never accepted from
+      // client signup/update payloads (prevents role self-escalation).
+      role: {
+        type: "string",
+        nullable: true,
+        defaultValue: null,
+        input: false,
+      },
+      enrollmentStatus: {
+        type: "string",
+        nullable: true,
+        defaultValue: null,
+        input: false,
+      },
+      studentId: {
+        type: "string",
+        nullable: true,
+        defaultValue: null,
+        input: false,
+      },
+      academicYear: {
+        type: "string",
+        nullable: true,
+        defaultValue: null,
+        input: false,
+      },
+      year: {
+        type: "string",
+        nullable: true,
+        defaultValue: null,
+        input: false,
+      },
+      major: {
+        type: "string",
+        nullable: true,
+        defaultValue: null,
+        input: false,
+      },
+      isVerified: { type: "boolean", defaultValue: false, input: false },
     },
   },
   session: {

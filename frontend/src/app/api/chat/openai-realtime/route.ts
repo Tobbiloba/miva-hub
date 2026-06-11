@@ -1,25 +1,26 @@
-import { NextRequest } from "next/server";
-import { getSession } from "auth/server";
 import { AllowedMCPServer, VercelAIMcpTool } from "app-types/mcp";
-import { userRepository } from "lib/db/repository";
-import {
-  filterMcpServerCustomizations,
-  filterMCPToolsByAllowedMCPServers,
-  mergeSystemPrompt,
-} from "../shared.chat";
+import { getSession } from "auth/server";
+import { colorize } from "consola/utils";
+import { mcpClientsManager } from "lib/ai/mcp/mcp-manager";
 import {
   buildMcpServerCustomizationsSystemPrompt,
   buildSpeechSystemPrompt,
 } from "lib/ai/prompts";
-import { mcpClientsManager } from "lib/ai/mcp/mcp-manager";
-import { safe } from "ts-safe";
 import { DEFAULT_VOICE_TOOLS } from "lib/ai/speech";
+import { userRepository } from "lib/db/repository";
+import globalLogger from "lib/logger";
+import { checkRateLimit, rateLimitResponse } from "lib/rate-limit";
+import { NextRequest } from "next/server";
+import { safe } from "ts-safe";
 import {
   rememberAgentAction,
   rememberMcpServerCustomizationsAction,
 } from "../actions";
-import globalLogger from "lib/logger";
-import { colorize } from "consola/utils";
+import {
+  filterMCPToolsByAllowedMCPServers,
+  filterMcpServerCustomizations,
+  mergeSystemPrompt,
+} from "../shared.chat";
 
 const logger = globalLogger.withDefaults({
   message: colorize("blackBright", `OpenAI Realtime API: `),
@@ -40,6 +41,12 @@ export async function POST(request: NextRequest) {
 
     if (!session?.user.id) {
       return new Response("Unauthorized", { status: 401 });
+    }
+
+    // Realtime voice sessions are expensive: 5 new sessions/min/user
+    const rateLimit = checkRateLimit(`realtime:${session.user.id}`, 5, 60);
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit);
     }
 
     const { voice, allowedMcpServers, agentId } = (await request.json()) as {

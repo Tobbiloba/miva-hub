@@ -198,12 +198,13 @@ export default function SignUpPage() {
 
       toast.success(
         enrolledCount > 0
-          ? `Welcome! You're enrolled in ${enrolledCount} courses for ${semesterLabel} ${data.academicYear}`
-          : `Account created! Visit your dashboard to get started.`
+          ? `Welcome! You're enrolled in ${enrolledCount} courses for ${semesterLabel} ${data.academicYear}. Check your email to verify your account.`
+          : `Account created! Check your email to verify your account, then sign in.`,
+        { duration: 8000 }
       );
 
       // Brief delay so the user sees the success toast
-      setTimeout(() => router.push("/student/dashboard"), 1500);
+      setTimeout(() => router.push("/sign-in"), 2500);
     } catch (error: any) {
       toast.error(error.message || "Registration failed. Please try again.");
     } finally {

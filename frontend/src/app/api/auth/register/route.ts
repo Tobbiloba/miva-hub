@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "lib/auth/server";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { sendEmail } from "@/lib/email/smtp-service";
 import { buildWelcomeEmail } from "@/lib/email/templates/welcome";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { auth } from "lib/auth/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,29 +21,32 @@ export async function POST(request: NextRequest) {
     if (!email || !name || !password || !programId || !level) {
       return NextResponse.json(
         { error: "Name, email, password, program, and level are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!termsAccepted) {
       return NextResponse.json(
         { error: "You must agree to the Terms of Service and Privacy Policy" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (password.length < 8) {
       return NextResponse.json(
         { error: "Password must be at least 8 characters" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Validate matric number format if provided
-    if (matricNumber && !/^MIVA\/[A-Z]{2,4}\/\d{4}\/\d{3}$/.test(matricNumber)) {
+    if (
+      matricNumber &&
+      !/^MIVA\/[A-Z]{2,4}\/\d{4}\/\d{3}$/.test(matricNumber)
+    ) {
       return NextResponse.json(
         { error: "Invalid matric number format. Expected: MIVA/DEPT/YEAR/NNN" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -52,7 +55,7 @@ export async function POST(request: NextRequest) {
     if (!activeSession) {
       return NextResponse.json(
         { error: "No active academic session. Contact admin." },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -62,20 +65,23 @@ export async function POST(request: NextRequest) {
     // Build enrollment semester string: "first" + "2025/2026" → "2025-fall"
     const [startYear, endYear] = activeSession.sessionName.split("/");
     const enrollmentSemester =
-      currentSemester === "first"
-        ? `${startYear}-fall`
-        : `${endYear}-spring`;
+      currentSemester === "first" ? `${startYear}-fall` : `${endYear}-spring`;
 
     // 1. Create user via Better Auth
     const signUpResponse = await auth.api.signUpEmail({
-      body: { email: email.toLowerCase().trim(), name: name.trim(), password },
+      body: {
+        email: email.toLowerCase().trim(),
+        name: name.trim(),
+        password,
+        callbackURL: "/student/dashboard",
+      },
       headers: request.headers,
     });
 
     if (!signUpResponse?.user) {
       return NextResponse.json(
         { error: "Failed to create account" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -98,7 +104,6 @@ export async function POST(request: NextRequest) {
         currentSemester,
         academicYear,
         enrollmentStatus: "active",
-        emailVerified: true,
         isVerified: false,
         studentId: matricNumber || null,
         year: String(level),
@@ -119,7 +124,7 @@ export async function POST(request: NextRequest) {
         Number(level),
         currentSemester as "first" | "second",
         academicYear,
-        enrollmentSemester
+        enrollmentSemester,
       );
     } catch (enrollError) {
       console.error("Auto-enrollment error (non-fatal):", enrollError);
@@ -130,7 +135,9 @@ export async function POST(request: NextRequest) {
     if (enrolledCount > 0) {
       import("@/lib/onboarding/generate-starter-content")
         .then(({ generateStarterContent }) => generateStarterContent(userId))
-        .catch((e) => console.warn("Starter content init error (non-fatal):", e));
+        .catch((e) =>
+          console.warn("Starter content init error (non-fatal):", e),
+        );
     }
 
     // 5. Send welcome email (best-effort)
@@ -169,14 +176,17 @@ export async function POST(request: NextRequest) {
 
     if (error.message?.includes("User already exists")) {
       return NextResponse.json(
-        { error: "An account with this email already exists", code: "USER_EXISTS" },
-        { status: 409 }
+        {
+          error: "An account with this email already exists",
+          code: "USER_EXISTS",
+        },
+        { status: 409 },
       );
     }
 
     return NextResponse.json(
       { error: error.message || "Registration failed. Please try again." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
