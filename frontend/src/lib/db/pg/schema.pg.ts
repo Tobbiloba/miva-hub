@@ -713,6 +713,50 @@ export const FacultySchema = pgTable(
   ],
 );
 
+// Tokened email invitations for faculty onboarding (tenant-scoped)
+export const FacultyInviteSchema = pgTable(
+  "faculty_invite",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    universityId: uuid("university_id")
+      .notNull()
+      .references(() => UniversitySchema.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    name: text("name"),
+    position: varchar("position", {
+      enum: [
+        "professor",
+        "associate_professor",
+        "assistant_professor",
+        "lecturer",
+        "instructor",
+        "visiting_professor",
+      ],
+    }).notNull(),
+    departmentId: uuid("department_id")
+      .notNull()
+      .references(() => DepartmentSchema.id),
+    token: text("token").notNull().unique(),
+    invitedBy: uuid("invited_by")
+      .notNull()
+      .references(() => UserSchema.id),
+    status: varchar("status", {
+      enum: ["pending", "accepted", "revoked", "expired"],
+    })
+      .notNull()
+      .default("pending"),
+    expiresAt: timestamp("expires_at").notNull(),
+    acceptedAt: timestamp("accepted_at"),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("faculty_invite_university_idx").on(table.universityId),
+    index("faculty_invite_email_idx").on(table.email),
+    index("faculty_invite_status_idx").on(table.status),
+  ],
+);
+
 // Course instructors junction table
 export const CourseInstructorSchema = pgTable(
   "course_instructor",

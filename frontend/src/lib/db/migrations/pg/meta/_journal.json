@@ -239,6 +239,13 @@
       "when": 1781207255140,
       "tag": "0033_bright_bloodscream",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1781211766667,
+      "tag": "0034_brown_onslaught",
+      "breakpoints": true
     }
   ]
 }
