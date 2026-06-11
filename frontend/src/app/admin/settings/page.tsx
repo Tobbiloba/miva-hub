@@ -1,14 +1,16 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SystemSettingsClient } from "@/components/admin/system-settings-client";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -16,29 +18,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  Settings,
-  Database,
-  Mail,
-  Shield,
-  Calendar,
-  Users,
-  BookOpen,
+  AlertTriangle,
   Bell,
-  Key,
-  Server,
+  BookOpen,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Database,
   Download,
-  Upload,
+  Globe,
+  Key,
+  Loader2,
+  Mail,
   RefreshCw,
   Save,
-  AlertTriangle,
-  CheckCircle,
-  Globe,
-  Clock,
+  Server,
+  Settings,
+  Shield,
+  Upload,
+  Users,
   Zap,
-  Loader2
 } from "lucide-react";
-import { SystemSettingsClient } from "@/components/admin/system-settings-client";
+import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 interface Setting {
@@ -65,23 +71,23 @@ export default function SystemSettingsPage() {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch('/api/admin/settings');
-      
+
+      const response = await fetch("/api/admin/settings");
+
       if (!response.ok) {
-        throw new Error('Failed to fetch settings');
+        throw new Error("Failed to fetch settings");
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setSettings(data.data);
       } else {
-        throw new Error(data.message || 'Failed to fetch settings');
+        throw new Error(data.message || "Failed to fetch settings");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      toast.error('Failed to load settings');
+      setError(err instanceof Error ? err.message : "An error occurred");
+      toast.error("Failed to load settings");
     } finally {
       setLoading(false);
     }
@@ -92,32 +98,41 @@ export default function SystemSettingsPage() {
   }, []);
 
   // Convert grouped settings to the format expected by the UI
-  const getSettingValue = (category: string, key: string, defaultValue: any = '') => {
+  const getSettingValue = (
+    category: string,
+    key: string,
+    defaultValue: any = "",
+  ) => {
     const categorySettings = settings[category];
     if (!categorySettings) return defaultValue;
-    
-    const setting = categorySettings.find(s => s.key === key);
+
+    const setting = categorySettings.find((s) => s.key === key);
     return setting ? setting.value : defaultValue;
   };
 
   const getSettingId = (category: string, key: string) => {
     const categorySettings = settings[category];
-    if (!categorySettings) return '';
-    
-    const setting = categorySettings.find(s => s.key === key);
-    return setting ? setting.id : '';
+    if (!categorySettings) return "";
+
+    const setting = categorySettings.find((s) => s.key === key);
+    return setting ? setting.id : "";
   };
 
   // Helper function to create properly named inputs
-  const createSettingInput = (category: string, key: string, type: string = 'text', defaultValue: any = '') => {
+  const createSettingInput = (
+    category: string,
+    key: string,
+    type: string = "text",
+    defaultValue: any = "",
+  ) => {
     const settingId = getSettingId(category, key);
     const value = getSettingValue(category, key, defaultValue);
-    
+
     return {
       id: settingId,
       name: `setting-${settingId}`,
       value: value || defaultValue,
-      defaultValue: value || defaultValue
+      defaultValue: value || defaultValue,
     };
   };
 
@@ -157,10 +172,11 @@ export default function SystemSettingsPage() {
             System Settings
           </h1>
           <p className="text-muted-foreground mt-1">
-            Configure university information, academic policies, and system features
+            Configure university information, academic policies, and system
+            features
           </p>
         </div>
-        
+
         <div className="flex gap-2">
           <Button variant="outline" size="sm">
             <Download className="mr-2 h-4 w-4" />
@@ -181,43 +197,51 @@ export default function SystemSettingsPage() {
               <CheckCircle className="h-5 w-5 text-green-600" />
               <div>
                 <p className="text-sm font-medium">System Status</p>
-                <p className="text-xs text-muted-foreground">All systems operational</p>
+                <p className="text-xs text-muted-foreground">
+                  All systems operational
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <Database className="h-5 w-5 text-blue-600" />
               <div>
                 <p className="text-sm font-medium">Database</p>
-                <p className="text-xs text-muted-foreground">Connected • 45ms</p>
+                <p className="text-xs text-muted-foreground">
+                  Connected • 45ms
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <Mail className="h-5 w-5 text-purple-600" />
               <div>
                 <p className="text-sm font-medium">Email Service</p>
-                <p className="text-xs text-muted-foreground">Active • 156 sent today</p>
+                <p className="text-xs text-muted-foreground">
+                  Active • 156 sent today
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-orange-600" />
               <div>
                 <p className="text-sm font-medium">AI Services</p>
-                <p className="text-xs text-muted-foreground">Running • 23 queries/min</p>
+                <p className="text-xs text-muted-foreground">
+                  Running • 23 queries/min
+                </p>
               </div>
             </div>
           </CardContent>
@@ -259,53 +283,87 @@ export default function SystemSettingsPage() {
             <CardHeader>
               <CardTitle>University Information</CardTitle>
               <CardDescription>
-                Basic information about the university that appears throughout the system
+                Basic information about the university that appears throughout
+                the system
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <SystemSettingsClient category="university" currentSettings={settings.university || []}>
+              <SystemSettingsClient
+                category="university"
+                currentSettings={settings.university || []}
+              >
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="universityName">University Name</Label>
-                    <Input 
-                      id="universityName" 
-                      {...createSettingInput('university', 'name', 'text', 'MIVA University')} 
+                    <Input
+                      id="universityName"
+                      {...createSettingInput(
+                        "university",
+                        "name",
+                        "text",
+                        "Your University",
+                      )}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="shortName">Short Name</Label>
-                    <Input 
-                      id="shortName" 
-                      {...createSettingInput('university', 'shortName', 'text', 'MIVA')} 
+                    <Input
+                      id="shortName"
+                      {...createSettingInput(
+                        "university",
+                        "shortName",
+                        "text",
+                        "Acronym",
+                      )}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="address">Address</Label>
-                    <Input 
-                      id="address" 
-                      {...createSettingInput('university', 'address', 'text', 'Lagos, Nigeria')} 
+                    <Input
+                      id="address"
+                      {...createSettingInput(
+                        "university",
+                        "address",
+                        "text",
+                        "Lagos, Nigeria",
+                      )}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone</Label>
-                    <Input 
-                      id="phone" 
-                      {...createSettingInput('university', 'phone', 'text', '+234-xxx-xxx-xxxx')} 
+                    <Input
+                      id="phone"
+                      {...createSettingInput(
+                        "university",
+                        "phone",
+                        "text",
+                        "+234-xxx-xxx-xxxx",
+                      )}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      {...createSettingInput('university', 'email', 'email', 'admin@miva.edu.ng')} 
+                    <Input
+                      id="email"
+                      type="email"
+                      {...createSettingInput(
+                        "university",
+                        "email",
+                        "email",
+                        "admin@youruniversity.edu",
+                      )}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="website">Website</Label>
-                    <Input 
-                      id="website" 
-                      {...createSettingInput('university', 'website', 'text', 'https://miva.edu.ng')} 
+                    <Input
+                      id="website"
+                      {...createSettingInput(
+                        "university",
+                        "website",
+                        "text",
+                        "https://youruniversity.edu",
+                      )}
                     />
                   </div>
                 </div>
@@ -320,15 +378,21 @@ export default function SystemSettingsPage() {
             <CardHeader>
               <CardTitle>Academic Settings</CardTitle>
               <CardDescription>
-                Configure academic calendar, grading scale, and enrollment policies
+                Configure academic calendar, grading scale, and enrollment
+                policies
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <SystemSettingsClient category="academic" currentSettings={currentSettings.academic}>
+              <SystemSettingsClient
+                category="academic"
+                currentSettings={currentSettings.academic}
+              >
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="currentSemester">Current Semester</Label>
-                    <Select defaultValue={currentSettings.academic.currentSemester}>
+                    <Select
+                      defaultValue={currentSettings.academic.currentSemester}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -354,19 +418,35 @@ export default function SystemSettingsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="passingGrade">Minimum Passing Grade</Label>
-                    <Input id="passingGrade" defaultValue={currentSettings.academic.passingGrade} />
+                    <Input
+                      id="passingGrade"
+                      defaultValue={currentSettings.academic.passingGrade}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="maxCredits">Max Credits per Semester</Label>
-                    <Input id="maxCredits" defaultValue={currentSettings.academic.maxCreditsPerSemester} />
+                    <Input
+                      id="maxCredits"
+                      defaultValue={
+                        currentSettings.academic.maxCreditsPerSemester
+                      }
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="semesterStart">Semester Start Date</Label>
-                    <Input id="semesterStart" type="date" defaultValue={currentSettings.academic.semesterStartDate} />
+                    <Input
+                      id="semesterStart"
+                      type="date"
+                      defaultValue={currentSettings.academic.semesterStartDate}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="semesterEnd">Semester End Date</Label>
-                    <Input id="semesterEnd" type="date" defaultValue={currentSettings.academic.semesterEndDate} />
+                    <Input
+                      id="semesterEnd"
+                      type="date"
+                      defaultValue={currentSettings.academic.semesterEndDate}
+                    />
                   </div>
                 </div>
                 <Button className="mt-4">
@@ -397,9 +477,9 @@ export default function SystemSettingsPage() {
                 </div>
                 <Switch defaultChecked={currentSettings.email.enabled} />
               </div>
-              
+
               <Separator />
-              
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>SMTP Host</Label>
@@ -418,12 +498,12 @@ export default function SystemSettingsPage() {
                   <Input type="password" placeholder="••••••••" />
                 </div>
               </div>
-              
+
               <Separator />
-              
+
               <div className="space-y-4">
                 <h4 className="font-medium">Notification Settings</h4>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Welcome Emails</Label>
@@ -431,9 +511,11 @@ export default function SystemSettingsPage() {
                       Send welcome emails to new users
                     </p>
                   </div>
-                  <Switch defaultChecked={currentSettings.email.enableWelcomeEmails} />
+                  <Switch
+                    defaultChecked={currentSettings.email.enableWelcomeEmails}
+                  />
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Grade Notifications</Label>
@@ -441,10 +523,14 @@ export default function SystemSettingsPage() {
                       Notify students when grades are posted
                     </p>
                   </div>
-                  <Switch defaultChecked={currentSettings.email.enableGradeNotifications} />
+                  <Switch
+                    defaultChecked={
+                      currentSettings.email.enableGradeNotifications
+                    }
+                  />
                 </div>
               </div>
-              
+
               <Button className="mt-4">
                 <Save className="mr-2 h-4 w-4" />
                 Save Email Settings
@@ -466,24 +552,32 @@ export default function SystemSettingsPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Session Timeout (minutes)</Label>
-                  <Input defaultValue={currentSettings.security.sessionTimeout} />
+                  <Input
+                    defaultValue={currentSettings.security.sessionTimeout}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Password Min Length</Label>
-                  <Input defaultValue={currentSettings.security.passwordMinLength} />
+                  <Input
+                    defaultValue={currentSettings.security.passwordMinLength}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Max Login Attempts</Label>
-                  <Input defaultValue={currentSettings.security.maxLoginAttempts} />
+                  <Input
+                    defaultValue={currentSettings.security.maxLoginAttempts}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Lockout Duration (minutes)</Label>
-                  <Input defaultValue={currentSettings.security.lockoutDuration} />
+                  <Input
+                    defaultValue={currentSettings.security.lockoutDuration}
+                  />
                 </div>
               </div>
-              
+
               <Separator />
-              
+
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
@@ -492,9 +586,13 @@ export default function SystemSettingsPage() {
                       Users must verify their email before accessing the system
                     </p>
                   </div>
-                  <Switch defaultChecked={currentSettings.security.requireEmailVerification} />
+                  <Switch
+                    defaultChecked={
+                      currentSettings.security.requireEmailVerification
+                    }
+                  />
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Two-Factor Authentication</Label>
@@ -502,10 +600,12 @@ export default function SystemSettingsPage() {
                       Enable 2FA for all user accounts
                     </p>
                   </div>
-                  <Switch defaultChecked={currentSettings.security.enableTwoFactor} />
+                  <Switch
+                    defaultChecked={currentSettings.security.enableTwoFactor}
+                  />
                 </div>
               </div>
-              
+
               <Button className="mt-4">
                 <Save className="mr-2 h-4 w-4" />
                 Save Security Settings
@@ -532,9 +632,11 @@ export default function SystemSettingsPage() {
                       Academic assistant and study buddy
                     </p>
                   </div>
-                  <Switch defaultChecked={currentSettings.features.enableChatbot} />
+                  <Switch
+                    defaultChecked={currentSettings.features.enableChatbot}
+                  />
                 </div>
-                
+
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="space-y-0.5">
                     <Label>Analytics Dashboard</Label>
@@ -542,9 +644,11 @@ export default function SystemSettingsPage() {
                       Performance metrics and insights
                     </p>
                   </div>
-                  <Switch defaultChecked={currentSettings.features.enableAnalytics} />
+                  <Switch
+                    defaultChecked={currentSettings.features.enableAnalytics}
+                  />
                 </div>
-                
+
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="space-y-0.5">
                     <Label>Content Upload</Label>
@@ -552,9 +656,13 @@ export default function SystemSettingsPage() {
                       Faculty can upload course materials
                     </p>
                   </div>
-                  <Switch defaultChecked={currentSettings.features.enableContentUpload} />
+                  <Switch
+                    defaultChecked={
+                      currentSettings.features.enableContentUpload
+                    }
+                  />
                 </div>
-                
+
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="space-y-0.5">
                     <Label>Student Portal</Label>
@@ -562,9 +670,13 @@ export default function SystemSettingsPage() {
                       Student dashboard and features
                     </p>
                   </div>
-                  <Switch defaultChecked={currentSettings.features.enableStudentPortal} />
+                  <Switch
+                    defaultChecked={
+                      currentSettings.features.enableStudentPortal
+                    }
+                  />
                 </div>
-                
+
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="space-y-0.5">
                     <Label>Faculty Portal</Label>
@@ -572,9 +684,13 @@ export default function SystemSettingsPage() {
                       Faculty dashboard and tools
                     </p>
                   </div>
-                  <Switch defaultChecked={currentSettings.features.enableFacultyPortal} />
+                  <Switch
+                    defaultChecked={
+                      currentSettings.features.enableFacultyPortal
+                    }
+                  />
                 </div>
-                
+
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="space-y-0.5">
                     <Label>Mobile App</Label>
@@ -582,10 +698,12 @@ export default function SystemSettingsPage() {
                       Mobile application access
                     </p>
                   </div>
-                  <Switch defaultChecked={currentSettings.features.enableMobileApp} />
+                  <Switch
+                    defaultChecked={currentSettings.features.enableMobileApp}
+                  />
                 </div>
               </div>
-              
+
               <Button className="mt-4">
                 <Save className="mr-2 h-4 w-4" />
                 Save Feature Settings
@@ -614,11 +732,13 @@ export default function SystemSettingsPage() {
                     </p>
                   </div>
                 </div>
-                <Switch defaultChecked={currentSettings.system.maintenanceMode} />
+                <Switch
+                  defaultChecked={currentSettings.system.maintenanceMode}
+                />
               </div>
-              
+
               <Separator />
-              
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Log Level</Label>
@@ -634,7 +754,7 @@ export default function SystemSettingsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Backup Frequency</Label>
                   <Select defaultValue={currentSettings.system.backupFrequency}>
@@ -648,18 +768,20 @@ export default function SystemSettingsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Max File Size (MB)</Label>
                   <Input defaultValue={currentSettings.system.maxFileSize} />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Allowed File Types</Label>
-                  <Input defaultValue={currentSettings.system.allowedFileTypes} />
+                  <Input
+                    defaultValue={currentSettings.system.allowedFileTypes}
+                  />
                 </div>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Debug Mode</Label>
@@ -669,7 +791,7 @@ export default function SystemSettingsPage() {
                 </div>
                 <Switch defaultChecked={currentSettings.system.debugMode} />
               </div>
-              
+
               <Button className="mt-4">
                 <Save className="mr-2 h-4 w-4" />
                 Save System Settings

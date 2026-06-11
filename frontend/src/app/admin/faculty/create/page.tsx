@@ -1,19 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -22,9 +16,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, UserCheck, Save, Loader2, AlertCircle, Copy, Check, KeyRound } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Check,
+  Copy,
+  KeyRound,
+  Loader2,
+  Save,
+  UserCheck,
+} from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface Department {
   id: string;
@@ -66,7 +81,9 @@ export default function CreateFacultyPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(true);
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
+    {},
+  );
   const [tempPasswordModal, setTempPasswordModal] = useState(false);
   const [tempPassword, setTempPassword] = useState("");
   const [createdName, setCreatedName] = useState("");
@@ -82,11 +99,19 @@ export default function CreateFacultyPage() {
         if (data.success) {
           setDepartments(data.data);
         } else {
-          toast({ title: "Error", description: "Failed to load departments", variant: "destructive" });
+          toast({
+            title: "Error",
+            description: "Failed to load departments",
+            variant: "destructive",
+          });
         }
       } catch (error) {
         console.error("Error fetching departments:", error);
-        toast({ title: "Error", description: "Failed to load departments", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: "Failed to load departments",
+          variant: "destructive",
+        });
       } finally {
         setIsLoadingDepartments(false);
       }
@@ -107,8 +132,6 @@ export default function CreateFacultyPage() {
       newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Invalid email format";
-    } else if (!formData.email.endsWith("@miva.edu.ng")) {
-      newErrors.email = "Email must end with @miva.edu.ng";
     }
 
     if (!formData.position) {
@@ -161,7 +184,11 @@ export default function CreateFacultyPage() {
     e.preventDefault();
 
     if (!validateForm()) {
-      toast({ title: "Validation Error", description: "Please fix the errors in the form", variant: "destructive" });
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors in the form",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -194,12 +221,21 @@ export default function CreateFacultyPage() {
         setCreatedName(formData.name);
         setTempPasswordModal(true);
       } else {
-        const errorMsg = data.message || data.error || "Failed to create faculty member";
-        toast({ title: "Error", description: errorMsg, variant: "destructive" });
+        const errorMsg =
+          data.message || data.error || "Failed to create faculty member";
+        toast({
+          title: "Error",
+          description: errorMsg,
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error creating faculty:", error);
-      toast({ title: "Error", description: "Failed to create faculty member. Please try again.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to create faculty member. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -240,7 +276,8 @@ export default function CreateFacultyPage() {
           <CardHeader>
             <CardTitle>Faculty Information</CardTitle>
             <CardDescription>
-              A temporary password will be generated automatically. You must share it with the faculty member securely.
+              A temporary password will be generated automatically. You must
+              share it with the faculty member securely.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -268,7 +305,7 @@ export default function CreateFacultyPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="e.g., jane.smith@miva.edu.ng"
+                    placeholder="e.g., jane.smith@youruniversity.edu"
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
                   />
@@ -287,7 +324,9 @@ export default function CreateFacultyPage() {
                   <Label htmlFor="position">Position *</Label>
                   <Select
                     value={formData.position}
-                    onValueChange={(value) => handleInputChange("position", value)}
+                    onValueChange={(value) =>
+                      handleInputChange("position", value)
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select position" />
@@ -312,7 +351,9 @@ export default function CreateFacultyPage() {
                   <Label htmlFor="department">Department *</Label>
                   <Select
                     value={formData.departmentId}
-                    onValueChange={(value) => handleInputChange("departmentId", value)}
+                    onValueChange={(value) =>
+                      handleInputChange("departmentId", value)
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select department" />
@@ -342,7 +383,9 @@ export default function CreateFacultyPage() {
                     id="office"
                     placeholder="e.g., Room A-204"
                     value={formData.office}
-                    onChange={(e) => handleInputChange("office", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("office", e.target.value)
+                    }
                   />
                 </div>
 
@@ -352,7 +395,9 @@ export default function CreateFacultyPage() {
                     id="officeHours"
                     placeholder="e.g., Mon/Wed 2-4pm"
                     value={formData.officeHours}
-                    onChange={(e) => handleInputChange("officeHours", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("officeHours", e.target.value)
+                    }
                   />
                 </div>
               </div>
@@ -407,15 +452,19 @@ export default function CreateFacultyPage() {
 
       {/* Temporary Password Modal */}
       <Dialog open={tempPasswordModal} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+        <DialogContent
+          className="sm:max-w-md"
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <KeyRound className="h-5 w-5 text-amber-500" />
               Temporary Password Created
             </DialogTitle>
             <DialogDescription>
-              A temporary password has been generated for <strong>{createdName}</strong>.
-              Share this securely with the faculty member. They should change it on first login.
+              A temporary password has been generated for{" "}
+              <strong>{createdName}</strong>. Share this securely with the
+              faculty member. They should change it on first login.
             </DialogDescription>
           </DialogHeader>
 
@@ -443,7 +492,8 @@ export default function CreateFacultyPage() {
 
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950">
               <p className="text-sm text-amber-800 dark:text-amber-200">
-                This password will not be shown again. Make sure to copy it before closing this dialog.
+                This password will not be shown again. Make sure to copy it
+                before closing this dialog.
               </p>
             </div>
           </div>

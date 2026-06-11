@@ -1,7 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -11,17 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Users, Mail, GraduationCap, Hash } from "lucide-react";
+import { GraduationCap, Hash, Loader2, Mail, Plus, Users } from "lucide-react";
+import React, { useState } from "react";
 
 interface StudentFormData {
   name: string;
@@ -35,7 +35,9 @@ interface StudentManagementClientProps {
   children: React.ReactNode;
 }
 
-export function StudentManagementClient({ children }: StudentManagementClientProps) {
+export function StudentManagementClient({
+  children,
+}: StudentManagementClientProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<StudentFormData>({
@@ -52,11 +54,7 @@ export function StudentManagementClient({ children }: StudentManagementClientPro
     setIsLoading(true);
 
     try {
-      // Validate email format
-      if (!formData.email.endsWith('@miva.edu.ng')) {
-        throw new Error('Email must be a valid MIVA University email (@miva.edu.ng)');
-      }
-
+      // Domain validation happens server-side against the admin's university
       const response = await fetch("/api/admin/students", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -70,7 +68,7 @@ export function StudentManagementClient({ children }: StudentManagementClientPro
           title: "Student Added",
           description: `${formData.name} has been successfully registered.`,
         });
-        
+
         setIsOpen(false);
         setFormData({
           name: "",
@@ -79,7 +77,7 @@ export function StudentManagementClient({ children }: StudentManagementClientPro
           academicYear: "100",
           enrollmentStatus: "active",
         });
-        
+
         // Refresh the page to show updated data
         window.location.reload();
       } else {
@@ -88,7 +86,8 @@ export function StudentManagementClient({ children }: StudentManagementClientPro
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description:
+          error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     } finally {
@@ -97,22 +96,22 @@ export function StudentManagementClient({ children }: StudentManagementClientPro
   };
 
   const handleInputChange = (field: keyof StudentFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const generateStudentId = () => {
     // Generate MIVA student ID format: MIVA/2024/0001
     const year = new Date().getFullYear();
-    const randomNum = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
+    const randomNum = Math.floor(Math.random() * 9999)
+      .toString()
+      .padStart(4, "0");
     const studentId = `MIVA/${year}/${randomNum}`;
-    setFormData(prev => ({ ...prev, studentId }));
+    setFormData((prev) => ({ ...prev, studentId }));
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -120,7 +119,7 @@ export function StudentManagementClient({ children }: StudentManagementClientPro
             Add New Student
           </DialogTitle>
           <DialogDescription>
-            Register a new student in the MIVA University system.
+            Register a new student in your university&apos;s system.
           </DialogDescription>
         </DialogHeader>
 
@@ -145,18 +144,18 @@ export function StudentManagementClient({ children }: StudentManagementClientPro
             <div className="space-y-2">
               <Label htmlFor="email" className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
-                MIVA Email *
+                University Email *
               </Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
-                placeholder="john.adebayo@miva.edu.ng"
+                placeholder="john.adebayo@youruniversity.edu"
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Must be a valid MIVA University email address
+                Must use one of your university&apos;s email domains
               </p>
             </div>
 
@@ -170,13 +169,15 @@ export function StudentManagementClient({ children }: StudentManagementClientPro
                 <Input
                   id="studentId"
                   value={formData.studentId}
-                  onChange={(e) => handleInputChange("studentId", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("studentId", e.target.value)
+                  }
                   placeholder="MIVA/2024/0001"
                   required
                 />
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={generateStudentId}
                   className="shrink-0"
                 >
@@ -194,7 +195,12 @@ export function StudentManagementClient({ children }: StudentManagementClientPro
                 <GraduationCap className="h-4 w-4" />
                 Academic Year *
               </Label>
-              <Select value={formData.academicYear} onValueChange={(value) => handleInputChange("academicYear", value)}>
+              <Select
+                value={formData.academicYear}
+                onValueChange={(value) =>
+                  handleInputChange("academicYear", value)
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select academic year" />
                 </SelectTrigger>
@@ -210,7 +216,12 @@ export function StudentManagementClient({ children }: StudentManagementClientPro
             {/* Enrollment Status */}
             <div className="space-y-2">
               <Label htmlFor="enrollmentStatus">Enrollment Status *</Label>
-              <Select value={formData.enrollmentStatus} onValueChange={(value) => handleInputChange("enrollmentStatus", value)}>
+              <Select
+                value={formData.enrollmentStatus}
+                onValueChange={(value) =>
+                  handleInputChange("enrollmentStatus", value)
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select enrollment status" />
                 </SelectTrigger>
@@ -226,9 +237,9 @@ export function StudentManagementClient({ children }: StudentManagementClientPro
           </div>
 
           <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => setIsOpen(false)}
               disabled={isLoading}
             >

@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -14,8 +18,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Users, Save, Loader2, AlertCircle, Eye, EyeOff, Check, X } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Check,
+  Eye,
+  EyeOff,
+  Loader2,
+  Save,
+  Users,
+  X,
+} from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 interface FormData {
   name: string;
@@ -76,7 +92,9 @@ function PasswordStrength({ password }: { password: string }) {
           ) : (
             <X className="h-3 w-3 text-red-500" />
           )}
-          <span className={check.met ? "text-green-600" : "text-muted-foreground"}>
+          <span
+            className={check.met ? "text-green-600" : "text-muted-foreground"}
+          >
             {check.label}
           </span>
         </div>
@@ -88,7 +106,9 @@ function PasswordStrength({ password }: { password: string }) {
 export default function CreateUserPage() {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
+    {},
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const { toast } = useToast();
@@ -107,8 +127,6 @@ export default function CreateUserPage() {
       newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Invalid email format";
-    } else if (!formData.email.endsWith("@miva.edu.ng")) {
-      newErrors.email = "Email must end with @miva.edu.ng";
     }
 
     if (!formData.role) {
@@ -144,7 +162,11 @@ export default function CreateUserPage() {
     e.preventDefault();
 
     if (!validateForm()) {
-      toast({ title: "Validation Error", description: "Please fix the errors in the form", variant: "destructive" });
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors in the form",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -152,7 +174,8 @@ export default function CreateUserPage() {
     if (formData.role === "faculty") {
       toast({
         title: "Redirecting",
-        description: "Faculty members have their own creation flow with department and position details",
+        description:
+          "Faculty members have their own creation flow with department and position details",
       });
       router.push("/admin/faculty/create");
       return;
@@ -171,7 +194,8 @@ export default function CreateUserPage() {
       if (formData.role === "student") {
         body.studentId = formData.studentId;
         if (formData.year) body.year = formData.year;
-        if (formData.currentSemester) body.currentSemester = formData.currentSemester;
+        if (formData.currentSemester)
+          body.currentSemester = formData.currentSemester;
       }
 
       const response = await fetch("/api/admin/users", {
@@ -186,11 +210,19 @@ export default function CreateUserPage() {
         toast({ title: "Success", description: data.message });
         router.push("/admin/users");
       } else {
-        toast({ title: "Error", description: data.message || "Failed to create user", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: data.message || "Failed to create user",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error creating user:", error);
-      toast({ title: "Error", description: "Failed to create user. Please try again.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to create user. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -264,7 +296,8 @@ export default function CreateUserPage() {
                 </Select>
                 {formData.role === "faculty" && (
                   <p className="text-xs text-amber-600">
-                    Faculty users should be created via the dedicated Faculty form for full profile setup.
+                    Faculty users should be created via the dedicated Faculty
+                    form for full profile setup.
                   </p>
                 )}
               </div>
@@ -276,7 +309,7 @@ export default function CreateUserPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="e.g., john.doe@miva.edu.ng"
+                placeholder="e.g., john.doe@youruniversity.edu"
                 value={formData.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
               />
@@ -298,7 +331,9 @@ export default function CreateUserPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Minimum 8 characters"
                     value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("password", e.target.value)
+                    }
                   />
                   <Button
                     type="button"
@@ -307,7 +342,11 @@ export default function CreateUserPage() {
                     className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
                 {errors.password && (
@@ -327,7 +366,9 @@ export default function CreateUserPage() {
                     type={showConfirm ? "text" : "password"}
                     placeholder="Re-enter password"
                     value={formData.passwordConfirm}
-                    onChange={(e) => handleInputChange("passwordConfirm", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("passwordConfirm", e.target.value)
+                    }
                   />
                   <Button
                     type="button"
@@ -336,7 +377,11 @@ export default function CreateUserPage() {
                     className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                     onClick={() => setShowConfirm(!showConfirm)}
                   >
-                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showConfirm ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
                 {errors.passwordConfirm && (
@@ -352,7 +397,9 @@ export default function CreateUserPage() {
             {formData.role === "student" && (
               <>
                 <div className="border-t pt-4">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-4">Student Details</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-4">
+                    Student Details
+                  </h3>
                   <div className="grid gap-4 md:grid-cols-3">
                     <div className="space-y-2">
                       <Label htmlFor="studentId">Student ID *</Label>
@@ -360,7 +407,9 @@ export default function CreateUserPage() {
                         id="studentId"
                         placeholder="e.g., STU/2025/001"
                         value={formData.studentId}
-                        onChange={(e) => handleInputChange("studentId", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("studentId", e.target.value)
+                        }
                       />
                       {errors.studentId && (
                         <p className="text-sm text-red-500 flex items-center gap-1">
@@ -374,7 +423,9 @@ export default function CreateUserPage() {
                       <Label htmlFor="year">Level</Label>
                       <Select
                         value={formData.year}
-                        onValueChange={(value) => handleInputChange("year", value)}
+                        onValueChange={(value) =>
+                          handleInputChange("year", value)
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select level" />
@@ -393,7 +444,9 @@ export default function CreateUserPage() {
                       <Label htmlFor="currentSemester">Semester</Label>
                       <Select
                         value={formData.currentSemester}
-                        onValueChange={(value) => handleInputChange("currentSemester", value)}
+                        onValueChange={(value) =>
+                          handleInputChange("currentSemester", value)
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select semester" />
