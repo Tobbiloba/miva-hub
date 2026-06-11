@@ -28,7 +28,7 @@ function wrapInLayout(title: string, bodyContent: string, ctaUrl: string, ctaLab
         </tr>
         <tr>
           <td style="padding:14px 24px;border-top:1px solid #e5e7eb;text-align:center;">
-            <p style="margin:0;font-size:11px;color:#9ca3af;">Askly &mdash; MIVA University</p>
+            <p style="margin:0;font-size:11px;color:#9ca3af;">Askly</p>
           </td>
         </tr>
       </table>
@@ -62,7 +62,7 @@ export function buildNewContentEmail(params: {
 
 View materials: ${ctaUrl}
 
-Askly — MIVA University`;
+Askly`;
 
   return { subject, html, text };
 }
@@ -96,7 +96,7 @@ ${bodyText}
 
 Check your progress: ${ctaUrl}
 
-Askly — MIVA University`;
+Askly`;
 
   return { subject, html, text };
 }

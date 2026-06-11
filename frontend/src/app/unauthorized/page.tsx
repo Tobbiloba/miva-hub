@@ -15,7 +15,7 @@ export default function UnauthorizedPage() {
         </CardHeader>
         <CardContent className="text-center space-y-4">
           <p className="text-muted-foreground">
-            You don&apos;t have permission to access this area. Only authorized MIVA University administrators can access the admin panel.
+            You don&apos;t have permission to access this area. Only authorized administrators can access the admin panel.
           </p>
           <div className="flex flex-col gap-2">
             <Button asChild>

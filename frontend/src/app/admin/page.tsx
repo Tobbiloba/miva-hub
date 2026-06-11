@@ -25,7 +25,7 @@ export default async function AdminDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">MIVA University Admin Dashboard</h1>
+          <h1 className="text-3xl font-bold">University Admin Dashboard</h1>
           <p className="text-muted-foreground mt-1">
             Manage your academic institution efficiently
           </p>

@@ -51,7 +51,7 @@ export default async function PricingPage({
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Unlock your academic potential with AI-powered study tools designed
-            for MIVA University students
+            for university students
           </p>
         </div>
 

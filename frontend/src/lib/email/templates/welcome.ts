@@ -55,7 +55,7 @@ export function buildWelcomeEmail({
         <tr>
           <td style="padding:16px 24px;border-top:1px solid #e5e7eb;text-align:center;">
             <p style="margin:0;font-size:11px;color:#9ca3af;">
-              Askly &mdash; MIVA University
+              Askly
             </p>
           </td>
         </tr>
@@ -73,7 +73,7 @@ Open your dashboard: ${ctaUrl}
 
 Questions? Reply to this email.
 
-Askly — MIVA University`;
+Askly`;
 
   return { subject, html, text };
 }

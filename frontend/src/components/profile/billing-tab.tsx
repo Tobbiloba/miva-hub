@@ -102,7 +102,7 @@ function NoSubscriptionState() {
           <div>
             <p className="text-lg font-medium">You don&apos;t have an active subscription</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Choose a plan to get started with MIVA University
+              Choose a plan to get started with Askly
             </p>
           </div>
           <Button onClick={() => window.location.href = "/pricing"}>

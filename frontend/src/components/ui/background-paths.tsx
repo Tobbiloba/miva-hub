@@ -148,7 +148,7 @@ function ElegantShape({
 }
 
 export default function ShapeHero({
-  title1 = "MIVA Hub",
+  title1 = "Askly",
   title2 = "Your AI-Powered Hub",
 }: {
   title1?: string;
