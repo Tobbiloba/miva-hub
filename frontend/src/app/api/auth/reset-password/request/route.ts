@@ -1,20 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
-import { pgDb as db } from "@/lib/db/pg/db.pg";
-import { UserSchema } from "@/lib/db/pg/schema.pg";
-import { eq } from "drizzle-orm";
-import { sendEmail } from "@/lib/email/smtp-service";
 import { randomBytes } from "crypto";
 import { storeResetToken } from "@/lib/auth/reset-token-store";
+import { pgDb as db } from "@/lib/db/pg/db.pg";
+import { UserSchema } from "@/lib/db/pg/schema.pg";
+import { sendEmail } from "@/lib/email/smtp-service";
+import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json();
 
     if (!email) {
-      return NextResponse.json(
-        { error: "Email is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
     // Check if user exists
@@ -31,7 +28,7 @@ export async function POST(request: NextRequest) {
           message:
             "If an account exists with this email, you will receive a password reset link shortly.",
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -41,9 +38,7 @@ export async function POST(request: NextRequest) {
     // Store reset token in memory (1 hour expiry)
     storeResetToken(resetToken, email);
 
-    console.log(
-      `Password reset requested for ${email} - Token: ${resetToken}`
-    );
+    console.log(`Password reset requested for ${email} - Token: ${resetToken}`);
 
     // Send password reset email
     try {
@@ -51,10 +46,10 @@ export async function POST(request: NextRequest) {
       const path = await import("path");
       const resetTemplate = fs.readFileSync(
         path.join(process.cwd(), "src/lib/email/templates/password-reset.html"),
-        "utf-8"
+        "utf-8",
       );
 
-      const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || "https://miva-hub.com"}/reset-password/confirm?token=${resetToken}&email=${encodeURIComponent(email)}`;
+      const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:4001"}/reset-password/confirm?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
       const resetHtml = resetTemplate
         .replace("{{userName}}", user.name || "User")
@@ -63,7 +58,7 @@ export async function POST(request: NextRequest) {
 
       await sendEmail({
         to: user.email,
-        subject: "Reset Your MIVA Hub Password",
+        subject: "Reset Your Askly Password",
         html: resetHtml,
       });
 
@@ -78,13 +73,13 @@ export async function POST(request: NextRequest) {
         message:
           "If an account exists with this email, you will receive a password reset link shortly.",
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Password reset request error:", error);
     return NextResponse.json(
       { error: "An error occurred while processing your request" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

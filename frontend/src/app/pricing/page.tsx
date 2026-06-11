@@ -1,12 +1,12 @@
-import { auth } from "@/lib/auth/server";
-import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
+import { PaymentRequiredBanner } from "@/components/payment-required-banner";
 import { PricingCards } from "@/components/pricing/pricing-cards";
 import { Card, CardContent } from "@/components/ui/card";
+import { auth } from "@/lib/auth/server";
+import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
 import { CheckCircle2, Zap } from "lucide-react";
-import { PaymentRequiredBanner } from "@/components/payment-required-banner";
 
 export const metadata = {
-  title: "Pricing - MIVA University",
+  title: "Pricing - Askly",
   description: "Choose the perfect plan for your learning journey",
 };
 
@@ -22,16 +22,15 @@ export default async function PricingPage({
   }>;
 }) {
   const params = await searchParams;
-  
+
   const session = await auth.api.getSession({
     headers: await Promise.resolve(new Headers()),
   });
 
   let currentSubscription: any = null;
   if (session?.user) {
-    currentSubscription = await subscriptionRepository.getUserActiveSubscription(
-      session.user.id
-    );
+    currentSubscription =
+      await subscriptionRepository.getUserActiveSubscription(session.user.id);
   }
 
   const plans = (await subscriptionRepository.getAllPlans()) as any[];
@@ -51,7 +50,8 @@ export default async function PricingPage({
             Choose Your Learning Plan
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Unlock your academic potential with AI-powered study tools designed for MIVA University students
+            Unlock your academic potential with AI-powered study tools designed
+            for MIVA University students
           </p>
         </div>
 
@@ -61,7 +61,8 @@ export default async function PricingPage({
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
                 <p className="text-sm font-medium text-green-600">
-                  Payment successful! Your subscription is now active. Check your profile for details.
+                  Payment successful! Your subscription is now active. Check
+                  your profile for details.
                 </p>
               </div>
             </CardContent>

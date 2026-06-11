@@ -5,9 +5,9 @@ import {
   ThemeProvider,
   ThemeStyleProvider,
 } from "@/components/layouts/theme-provider";
-import { Toaster } from "sonner";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
+import { Toaster } from "sonner";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -18,9 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "miva-hub",
-  description:
-    "Miva Hub is a chatbot that uses the Tools to answer questions.",
+  title: "Askly",
+  description: "Askly is a chatbot that uses the Tools to answer questions.",
 };
 
 // const themes = BASE_THEMES.flatMap((t) => [t, `${t}-dark`]);

@@ -102,16 +102,28 @@ export async function GET(
 }
 
 /**
- * Get user role based on email and database lookup
+ * Get user role based on the user's role in the database
  */
 async function getUserRole(
   userEmail: string | null,
 ): Promise<"student" | "faculty" | "admin"> {
   if (!userEmail) return "student";
 
-  // Admin check - hardcoded admin email
-  if (userEmail === "oluwatobi.salau@miva.edu.ng") {
-    return "admin";
+  // Admin check - based on the role stored on the user row
+  try {
+    const { pgDb } = await import("@/lib/db/pg/db.pg");
+    const { UserSchema } = await import("@/lib/db/pg/schema.pg");
+    const { eq } = await import("drizzle-orm");
+    const [user] = await pgDb
+      .select({ role: UserSchema.role })
+      .from(UserSchema)
+      .where(eq(UserSchema.email, userEmail))
+      .limit(1);
+    if (user?.role === "admin" || user?.role === "super_admin") {
+      return "admin";
+    }
+  } catch (error) {
+    console.log("Error checking admin status:", error);
   }
 
   // Faculty check - look up in faculty table
@@ -124,7 +136,7 @@ async function getUserRole(
     console.log("Error checking faculty status:", error);
   }
 
-  // Default to student for MIVA emails
+  // Default to student
   return "student";
 }
 

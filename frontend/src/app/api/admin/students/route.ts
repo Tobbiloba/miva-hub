@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate a temporary password (student should change this on first login)
-    const tempPassword = `miva${validatedData.academicYear}${Math.random().toString(36).slice(-4)}`;
+    const tempPassword = `student${validatedData.academicYear}${Math.random().toString(36).slice(-4)}`;
     const hashedPassword = await hash(tempPassword, 12);
 
     // Create the student user
