@@ -1,6 +1,7 @@
+import { getActiveUniversitySubscription } from "@/lib/billing/org";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { UserSchema, UserSubscriptionSchema } from "@/lib/db/pg/schema.pg";
-import { eq, and, gte } from "drizzle-orm";
+import { and, eq, gte } from "drizzle-orm";
 
 export interface BillingStatus {
   in_trial: boolean;
@@ -12,6 +13,8 @@ export interface BillingStatus {
     current_period_end: string;
     cancel_at_period_end: boolean;
   } | null;
+  /** True when the student's university has an active org subscription. */
+  covered_by_university: boolean;
   paywalled: boolean;
 }
 
@@ -26,6 +29,7 @@ export async function getBillingStatus(userId: string): Promise<BillingStatus> {
       trialStartedAt: UserSchema.trialStartedAt,
       trialEndsAt: UserSchema.trialEndsAt,
       role: UserSchema.role,
+      universityId: UserSchema.universityId,
     })
     .from(UserSchema)
     .where(eq(UserSchema.id, userId))
@@ -37,6 +41,7 @@ export async function getBillingStatus(userId: string): Promise<BillingStatus> {
       trial_ends_at: null,
       days_left_in_trial: 0,
       subscription: null,
+      covered_by_university: false,
       paywalled: true,
     };
   }
@@ -48,15 +53,43 @@ export async function getBillingStatus(userId: string): Promise<BillingStatus> {
       trial_ends_at: null,
       days_left_in_trial: 0,
       subscription: null,
+      covered_by_university: false,
       paywalled: false,
     };
+  }
+
+  // Org coverage: an active university subscription covers all its students
+  // (seat limits are soft in v1 — overage is surfaced to the admin, not
+  // enforced by locking out arbitrary students)
+  if (user.universityId) {
+    const orgSub = await getActiveUniversitySubscription(user.universityId);
+    if (orgSub) {
+      return {
+        in_trial: false,
+        trial_ends_at: null,
+        days_left_in_trial: 0,
+        subscription: {
+          status: "active",
+          plan: "university",
+          current_period_end: orgSub.currentPeriodEnd!.toISOString(),
+          cancel_at_period_end: false,
+        },
+        covered_by_university: true,
+        paywalled: false,
+      };
+    }
   }
 
   const now = new Date();
   const trialEndsAt = user.trialEndsAt;
   const inTrial = !!trialEndsAt && trialEndsAt > now;
   const daysLeft = trialEndsAt
-    ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+    ? Math.max(
+        0,
+        Math.ceil(
+          (trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+        ),
+      )
     : 0;
 
   // Fetch active subscription
@@ -76,7 +109,8 @@ export async function getBillingStatus(userId: string): Promise<BillingStatus> {
     )
     .limit(1);
 
-  const hasActiveSub = !!sub && (sub.status === "active" || sub.status === "trialing");
+  const hasActiveSub =
+    !!sub && (sub.status === "active" || sub.status === "trialing");
 
   // Determine plan name from planId
   let planName = "";
@@ -104,6 +138,7 @@ export async function getBillingStatus(userId: string): Promise<BillingStatus> {
           cancel_at_period_end: sub.cancelAtPeriodEnd ?? false,
         }
       : null,
+    covered_by_university: false,
     paywalled,
   };
 }
