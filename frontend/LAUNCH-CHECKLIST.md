@@ -34,6 +34,9 @@ enforced/warned automatically by `src/lib/env-check.ts` at boot.
   admins see a warning on `/admin/billing`. Revisit if enforcement is needed.
 - **Invite expiry is lazy** — invites are marked expired when viewed, not by cron.
 - **No error monitoring** — consider Sentry (or Vercel observability) before launch.
+- **Comp seat grants are API-only** — no UI; super admin grants seats via
+  `POST /api/super-admin/universities/<id>/subscription` with
+  `{"seatLimit": n, "months": n, "notes": "..."}`.
 - Pre-existing `tsc` baseline (~425 errors) — does not block builds but worth
   burning down (notably `src/app/admin/faculty/page.tsx` schema drift).
 
