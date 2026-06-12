@@ -66,7 +66,7 @@ export default async function AnalyticsPage() {
             Academic Analytics
           </h1>
           <p className="text-muted-foreground mt-1">
-            Comprehensive insights into your university's academic performance
+            Comprehensive insights into your university&apos;s academic performance
           </p>
         </div>
       </div>

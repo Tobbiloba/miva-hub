@@ -76,7 +76,7 @@ export default function BillingCallbackPage() {
         {state === "success" && (
           <>
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
-            <h1 className="text-2xl font-bold">You're all set!</h1>
+            <h1 className="text-2xl font-bold">You&apos;re all set!</h1>
             <p className="text-muted-foreground">{message}</p>
             <Button onClick={() => router.push("/student")} className="mt-4">
               Go to Dashboard

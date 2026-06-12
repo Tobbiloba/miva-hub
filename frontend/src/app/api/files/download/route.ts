@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSession } from '@/lib/auth/server';
 import { s3Service } from 'lib/aws/s3-service';
+
+const ALLOWED_BUCKET = process.env.AWS_S3_BUCKET || 'miva-university-content';
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const s3Url = searchParams.get('url');
     
@@ -17,13 +28,15 @@ export async function GET(request: NextRequest) {
     }
 
     const [, bucket, key] = urlMatch;
-    
+
+    // Only serve downloads from the app's own content bucket
+    if (bucket !== ALLOWED_BUCKET) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
     try {
       // Get signed URL for download
       const signedUrl = await s3Service.getSignedUrl(bucket, key, 3600);
-      
-      // Get file metadata for proper filename
-      const metadata = await s3Service.getFileMetadata(bucket, key);
       
       // Extract filename from key (last part after last slash)
       const filename = key.split('/').pop() || 'download';

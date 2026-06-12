@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@/lib/auth/server";
 import { paystackService } from "@/lib/payment/paystack-service";
 import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
 import { pgDb as db } from "@/lib/db/pg/db.pg";
@@ -7,6 +8,11 @@ import { eq } from "drizzle-orm";
 
 export async function GET(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session?.user?.id) {
+      return NextResponse.redirect(new URL("/sign-in", req.url));
+    }
+
     const searchParams = req.nextUrl.searchParams;
     const reference = searchParams.get("reference");
 
@@ -31,6 +37,13 @@ export async function GET(req: NextRequest) {
     const transaction = await subscriptionRepository.getTransactionByReference(reference);
 
     if (!transaction) {
+      return NextResponse.redirect(
+        new URL("/pricing?error=transaction_not_found", req.url)
+      );
+    }
+
+    // The browser completing checkout must be the user who initiated it
+    if (transaction.userId !== session.user.id) {
       return NextResponse.redirect(
         new URL("/pricing?error=transaction_not_found", req.url)
       );
