@@ -95,7 +95,7 @@ export default async function PricingPage({
         />
 
         <div className="mt-16 text-center space-y-4">
-          <h3 className="text-2xl font-bold">Why MIVA Students Choose Us</h3>
+          <h3 className="text-2xl font-bold">Why Students Choose Us</h3>
           <div className="grid gap-6 md:grid-cols-3 max-w-4xl mx-auto mt-8">
             <Card className="bg-card border-border/40">
               <CardContent className="pt-6 text-center space-y-2">

@@ -40,7 +40,7 @@ export default function Error({
         )}
 
         <p className="text-muted-foreground mt-12">
-          Need help? <a href="mailto:support@miva-hub.com" className="text-primary hover:underline">Contact support</a>
+          Need help? <a href="mailto:support@askly.com" className="text-primary hover:underline">Contact support</a>
         </p>
       </div>
     </div>
