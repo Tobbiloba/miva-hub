@@ -153,6 +153,57 @@ export default function SystemSettingsPage() {
     );
   }
 
+  // Bridge the flat `settings` store into the nested shape the tab fields read.
+  // `s` coerces to a non-null string (for Input/Select); `b` coerces the stored
+  // "true"/"false" string into a boolean (for Switch).
+  const s = (category: string, key: string, fallback: string) =>
+    String(getSettingValue(category, key, fallback) ?? fallback);
+  const b = (category: string, key: string, fallback: boolean) =>
+    getSettingValue(category, key, fallback ? "true" : "false") === "true";
+
+  const currentSettings = {
+    academic: {
+      currentSemester: s("academic", "currentSemester", "2024-fall"),
+      gradeScale: s("academic", "gradeScale", "4.0"),
+      passingGrade: s("academic", "passingGrade", "50"),
+      maxCreditsPerSemester: s("academic", "maxCreditsPerSemester", "24"),
+      semesterStartDate: s("academic", "semesterStartDate", ""),
+      semesterEndDate: s("academic", "semesterEndDate", ""),
+    },
+    email: {
+      enabled: b("email", "enabled", true),
+      smtpHost: s("email", "smtpHost", ""),
+      smtpPort: s("email", "smtpPort", "587"),
+      smtpUser: s("email", "smtpUser", ""),
+      enableWelcomeEmails: b("email", "enableWelcomeEmails", true),
+      enableGradeNotifications: b("email", "enableGradeNotifications", true),
+    },
+    security: {
+      sessionTimeout: s("security", "sessionTimeout", "60"),
+      passwordMinLength: s("security", "passwordMinLength", "8"),
+      maxLoginAttempts: s("security", "maxLoginAttempts", "5"),
+      lockoutDuration: s("security", "lockoutDuration", "15"),
+      requireEmailVerification: b("security", "requireEmailVerification", true),
+      enableTwoFactor: b("security", "enableTwoFactor", false),
+    },
+    features: {
+      enableChatbot: b("features", "enableChatbot", true),
+      enableAnalytics: b("features", "enableAnalytics", true),
+      enableContentUpload: b("features", "enableContentUpload", true),
+      enableStudentPortal: b("features", "enableStudentPortal", true),
+      enableFacultyPortal: b("features", "enableFacultyPortal", true),
+      enableMobileApp: b("features", "enableMobileApp", false),
+    },
+    system: {
+      maintenanceMode: b("system", "maintenanceMode", false),
+      logLevel: s("system", "logLevel", "info"),
+      backupFrequency: s("system", "backupFrequency", "daily"),
+      maxFileSize: s("system", "maxFileSize", "10"),
+      allowedFileTypes: s("system", "allowedFileTypes", ".pdf,.docx,.pptx"),
+      debugMode: b("system", "debugMode", false),
+    },
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -376,7 +427,7 @@ export default function SystemSettingsPage() {
             <CardContent className="space-y-4">
               <SystemSettingsClient
                 category="academic"
-                currentSettings={currentSettings.academic}
+                currentSettings={settings.academic || []}
               >
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
