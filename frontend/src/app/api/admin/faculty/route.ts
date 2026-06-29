@@ -11,10 +11,14 @@ const createFacultySchema = z.object({
   name: z.string().min(1, "Faculty name is required").max(100, "Name too long"),
   // Domain is validated per-tenant in the handler (admin's university)
   email: z.string().email("Invalid email format"),
-  position: z
-    .string()
-    .min(1, "Position is required")
-    .max(50, "Position too long"),
+  position: z.enum([
+    "professor",
+    "associate_professor",
+    "assistant_professor",
+    "lecturer",
+    "instructor",
+    "visiting_professor",
+  ]),
   departmentId: z.string().uuid("Invalid department ID"),
   office: z.string().optional(),
   officeHours: z.string().optional(),
@@ -22,9 +26,6 @@ const createFacultySchema = z.object({
   qualifications: z.array(z.string()).optional(),
   researchInterests: z.array(z.string()).optional(),
 });
-
-// Validation schema for faculty updates
-const updateFacultySchema = createFacultySchema.partial().omit({ email: true });
 
 export async function GET(request: NextRequest) {
   try {
@@ -102,7 +103,7 @@ export async function GET(request: NextRequest) {
             id: item.faculty.id,
             position: item.faculty.position,
             departmentId: item.faculty.departmentId,
-            office: item.faculty.office,
+            office: item.faculty.officeLocation,
             officeHours: item.faculty.officeHours,
             bio: item.faculty.bio,
             qualifications: item.faculty.qualifications,
@@ -209,19 +210,20 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    // Create faculty profile
+    // Create faculty profile. employee ID generated (editable later);
+    // matches the invite-onboarding path's format.
+    const employeeId = `FAC-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(-4).toUpperCase()}`;
     const newFaculty = await pgDb
       .insert(FacultySchema)
       .values({
         id: crypto.randomUUID(),
         userId: userId,
+        employeeId,
         position: validatedData.position,
         departmentId: validatedData.departmentId,
-        office: validatedData.office || null,
+        officeLocation: validatedData.office || null,
         officeHours: validatedData.officeHours || null,
         bio: validatedData.bio || null,
-        qualifications: validatedData.qualifications || [],
-        researchInterests: validatedData.researchInterests || [],
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -252,7 +254,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: "Validation failed",
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 },
       );

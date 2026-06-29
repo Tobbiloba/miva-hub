@@ -690,11 +690,9 @@ export const FacultySchema = pgTable(
     }).notNull(),
     specializations: json("specializations").$type<string[]>().default([]),
     officeLocation: text("office_location"),
-    officeHours: json("office_hours").$type<{
-      day: string;
-      startTime: string;
-      endTime: string;
-    }[]>().default([]),
+    // Free-text office hours as collected by the admin UI (e.g. "Mon/Wed 2-4pm").
+    officeHours: text("office_hours"),
+    bio: text("bio"),
     contactPhone: text("contact_phone"),
     researchInterests: text("research_interests"),
     qualifications: json("qualifications").$type<{

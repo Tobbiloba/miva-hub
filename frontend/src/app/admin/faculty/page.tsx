@@ -18,7 +18,7 @@ import {
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
-  CourseSchema,
+  CourseInstructorSchema,
   DepartmentSchema,
   FacultySchema,
   UserSchema,
@@ -53,7 +53,7 @@ export default async function FacultyManagementPage() {
       user: UserSchema,
       faculty: FacultySchema,
       department: DepartmentSchema,
-      courseCount: sql<number>`count(${CourseSchema.id})`.as("courseCount"),
+      courseCount: sql<number>`count(${CourseInstructorSchema.courseId})`.as("courseCount"),
     })
     .from(UserSchema)
     .leftJoin(FacultySchema, eq(UserSchema.id, FacultySchema.userId))
@@ -61,7 +61,10 @@ export default async function FacultyManagementPage() {
       DepartmentSchema,
       eq(FacultySchema.departmentId, DepartmentSchema.id),
     )
-    .leftJoin(CourseSchema, eq(FacultySchema.id, CourseSchema.instructorId))
+    .leftJoin(
+      CourseInstructorSchema,
+      eq(FacultySchema.id, CourseInstructorSchema.facultyId),
+    )
     .where(
       university
         ? and(
@@ -82,7 +85,7 @@ export default async function FacultyManagementPage() {
             id: faculty.id,
             position: faculty.position,
             departmentId: faculty.departmentId,
-            office: faculty.office,
+            office: faculty.officeLocation,
             officeHours: faculty.officeHours,
             bio: faculty.bio,
             qualifications: faculty.qualifications || [],

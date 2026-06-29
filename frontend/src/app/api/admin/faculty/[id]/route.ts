@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { UserSchema, FacultySchema, CourseSchema } from "@/lib/db/pg/schema.pg";
+import {
+  UserSchema,
+  FacultySchema,
+  CourseSchema,
+  CourseInstructorSchema,
+} from "@/lib/db/pg/schema.pg";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 
@@ -55,11 +60,23 @@ export async function GET(
 
     const { user, faculty } = facultyData[0];
 
-    // Get faculty's courses
+    // Get faculty's courses via the course_instructor join table
     const courses = faculty ? await pgDb
-      .select()
-      .from(CourseSchema)
-      .where(eq(CourseSchema.instructorId, faculty.id)) : [];
+      .select({
+        id: CourseSchema.id,
+        courseCode: CourseSchema.courseCode,
+        title: CourseSchema.title,
+        credits: CourseSchema.credits,
+        semester: CourseInstructorSchema.semester,
+        semesterOffered: CourseSchema.semesterOffered,
+        isActive: CourseSchema.isActive,
+      })
+      .from(CourseInstructorSchema)
+      .innerJoin(
+        CourseSchema,
+        eq(CourseInstructorSchema.courseId, CourseSchema.id)
+      )
+      .where(eq(CourseInstructorSchema.facultyId, faculty.id)) : [];
 
     // Remove password from response
     const { password: _, ...userData } = user;
@@ -70,7 +87,7 @@ export async function GET(
         id: faculty.id,
         position: faculty.position,
         departmentId: faculty.departmentId,
-        office: faculty.office,
+        office: faculty.officeLocation,
         officeHours: faculty.officeHours,
         bio: faculty.bio,
         qualifications: faculty.qualifications,
@@ -85,15 +102,12 @@ export async function GET(
         title: course.title,
         credits: course.credits,
         semester: course.semester,
-        year: course.year,
         isActive: course.isActive
       })),
       statistics: {
         totalCourses: courses.length,
         activeCourses: courses.filter(c => c.isActive).length,
-        currentSemesterCourses: courses.filter(c => 
-          c.isActive && c.semester === 'fall' && c.year === new Date().getFullYear()
-        ).length
+        currentSemesterCourses: courses.filter(c => c.isActive).length
       }
     };
 
@@ -164,7 +178,7 @@ export async function PUT(
     // Faculty table updates
     if (validatedData.position !== undefined) facultyUpdates.position = validatedData.position;
     if (validatedData.departmentId !== undefined) facultyUpdates.departmentId = validatedData.departmentId;
-    if (validatedData.office !== undefined) facultyUpdates.office = validatedData.office;
+    if (validatedData.office !== undefined) facultyUpdates.officeLocation = validatedData.office;
     if (validatedData.officeHours !== undefined) facultyUpdates.officeHours = validatedData.officeHours;
     if (validatedData.bio !== undefined) facultyUpdates.bio = validatedData.bio;
     if (validatedData.qualifications !== undefined) facultyUpdates.qualifications = validatedData.qualifications;
@@ -208,7 +222,7 @@ export async function PUT(
         id: updatedFaculty.id,
         position: updatedFaculty.position,
         departmentId: updatedFaculty.departmentId,
-        office: updatedFaculty.office,
+        office: updatedFaculty.officeLocation,
         officeHours: updatedFaculty.officeHours,
         bio: updatedFaculty.bio,
         qualifications: updatedFaculty.qualifications,
@@ -230,7 +244,7 @@ export async function PUT(
       return NextResponse.json({
         success: false,
         error: 'Validation failed',
-        details: error.errors
+        details: error.issues
       }, { status: 400 });
     }
     
@@ -278,12 +292,16 @@ export async function DELETE(
 
     const { user, faculty } = existingFaculty[0];
 
-    // Check for active courses before deletion
+    // Check for active courses before deletion (via course_instructor join)
     const activeCourses = faculty ? await pgDb
-      .select()
-      .from(CourseSchema)
+      .select({ id: CourseSchema.id })
+      .from(CourseInstructorSchema)
+      .innerJoin(
+        CourseSchema,
+        eq(CourseInstructorSchema.courseId, CourseSchema.id)
+      )
       .where(and(
-        eq(CourseSchema.instructorId, faculty.id),
+        eq(CourseInstructorSchema.facultyId, faculty.id),
         eq(CourseSchema.isActive, true)
       )) : [];
 
