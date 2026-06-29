@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, inArray, sql } from "drizzle-orm";
 import { pgDb as db } from "../db.pg";
 import {
   type AIProcessedContentEntity,
@@ -40,11 +40,12 @@ export const pgAcademicRepository = {
   getDepartments: async (
     universityId?: string,
   ): Promise<DepartmentEntity[]> => {
-    const base = db.select().from(DepartmentSchema);
-    const scoped = universityId
-      ? base.where(eq(DepartmentSchema.universityId, universityId))
-      : base;
-    return scoped.orderBy(asc(DepartmentSchema.name));
+    const rows = await db
+      .select()
+      .from(DepartmentSchema)
+      .where(universityId ? eq(DepartmentSchema.universityId, universityId) : undefined)
+      .orderBy(asc(DepartmentSchema.name));
+    return rows as DepartmentEntity[];
   },
 
   getDepartmentByCode: async (
@@ -54,7 +55,7 @@ export const pgAcademicRepository = {
       .select()
       .from(DepartmentSchema)
       .where(eq(DepartmentSchema.code, code));
-    return result ?? null;
+    return (result as DepartmentEntity | undefined) ?? null;
   },
 
   getDepartmentById: async (
@@ -64,7 +65,7 @@ export const pgAcademicRepository = {
       .select()
       .from(DepartmentSchema)
       .where(eq(DepartmentSchema.id, departmentId));
-    return result ?? null;
+    return (result as DepartmentEntity | undefined) ?? null;
   },
 
   createDepartment: async (
@@ -73,15 +74,15 @@ export const pgAcademicRepository = {
       "id" | "createdAt" | "updatedAt"
     >,
   ): Promise<DepartmentEntity> => {
-    const [insertedDepartment] = await db
+    const inserted = (await db
       .insert(DepartmentSchema)
       .values({
         ...departmentData,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
-      .returning();
-    return insertedDepartment;
+      .returning()) as DepartmentEntity[];
+    return inserted[0];
   },
 
   updateDepartment: async (
@@ -96,14 +97,14 @@ export const pgAcademicRepository = {
       })
       .where(eq(DepartmentSchema.id, departmentId))
       .returning();
-    return updatedDepartment ?? null;
+    return (updatedDepartment as DepartmentEntity | undefined) ?? null;
   },
 
   deleteDepartment: async (departmentId: string): Promise<boolean> => {
     const result = await db
       .delete(DepartmentSchema)
       .where(eq(DepartmentSchema.id, departmentId));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   },
 
   // Course operations
@@ -117,11 +118,11 @@ export const pgAcademicRepository = {
     ];
 
     if (filters?.level) {
-      conditions.push(eq(CourseSchema.level, filters.level));
+      conditions.push(eq(CourseSchema.level, filters.level as CourseEntity["level"]));
     }
 
     if (filters?.semester) {
-      conditions.push(eq(CourseSchema.semesterOffered, filters.semester));
+      conditions.push(eq(CourseSchema.semesterOffered, filters.semester as CourseEntity["semesterOffered"]));
     }
 
     return db
@@ -146,11 +147,11 @@ export const pgAcademicRepository = {
     const conditions = [eq(CourseSchema.isActive, true)];
 
     if (filters?.level) {
-      conditions.push(eq(CourseSchema.level, filters.level));
+      conditions.push(eq(CourseSchema.level, filters.level as CourseEntity["level"]));
     }
 
     if (filters?.semester) {
-      conditions.push(eq(CourseSchema.semesterOffered, filters.semester));
+      conditions.push(eq(CourseSchema.semesterOffered, filters.semester as CourseEntity["semesterOffered"]));
     }
 
     return db
@@ -204,7 +205,7 @@ export const pgAcademicRepository = {
     const result = await db
       .delete(CourseSchema)
       .where(eq(CourseSchema.id, courseId));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   },
 
   getAllCourses: async (universityId?: string): Promise<CourseEntity[]> => {
@@ -302,7 +303,7 @@ export const pgAcademicRepository = {
       .delete(CourseMaterialSchema)
       .where(eq(CourseMaterialSchema.id, materialId));
 
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   },
 
   getCourseMaterialsByWeek: async (
@@ -318,7 +319,7 @@ export const pgAcademicRepository = {
           eq(CourseMaterialSchema.weekNumber, weekNumber),
         ),
       )
-      .orderBy(desc(CourseMaterialSchema.uploadedAt));
+      .orderBy(desc(CourseMaterialSchema.createdAt));
   },
 
   // AI Processing operations
@@ -443,10 +444,15 @@ export const pgAcademicRepository = {
   // Faculty operations
   getFacultyByDepartment: async (
     departmentId: string,
-  ): Promise<FacultyEntity[]> => {
+  ): Promise<(FacultyEntity & { name: string | null; email: string })[]> => {
     return db
-      .select()
+      .select({
+        ...getTableColumns(FacultySchema),
+        name: UserSchema.name,
+        email: UserSchema.email,
+      })
       .from(FacultySchema)
+      .innerJoin(UserSchema, eq(FacultySchema.userId, UserSchema.id))
       .where(
         and(
           eq(FacultySchema.departmentId, departmentId),
@@ -1799,15 +1805,15 @@ export const pgAcademicRepository = {
           assignment: AssignmentSchema,
           course: CourseSchema,
           submissionStats: {
-            totalSubmissions: sql`count(${AssignmentSubmissionSchema.id})`.as(
+            totalSubmissions: sql<number>`count(${AssignmentSubmissionSchema.id})`.as(
               "totalSubmissions",
             ),
             gradedSubmissions:
-              sql`count(case when ${AssignmentSubmissionSchema.grade} is not null then 1 end)`.as(
+              sql<number>`count(case when ${AssignmentSubmissionSchema.grade} is not null then 1 end)`.as(
                 "gradedSubmissions",
               ),
             pendingSubmissions:
-              sql`count(case when ${AssignmentSubmissionSchema.grade} is null then 1 end)`.as(
+              sql<number>`count(case when ${AssignmentSubmissionSchema.grade} is null then 1 end)`.as(
                 "pendingSubmissions",
               ),
           },
@@ -1914,7 +1920,7 @@ export const pgAcademicRepository = {
       .delete(CourseWeekSchema)
       .where(eq(CourseWeekSchema.id, weekId));
 
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   },
 
   // Get course weeks with content counts
@@ -2082,7 +2088,7 @@ export const pgAcademicRepository = {
   ): Promise<(CourseWeekEntity & { contentCount: number })[]> => {
     const weeks = await db
       .select({
-        ...CourseWeekSchema,
+        ...getTableColumns(CourseWeekSchema),
         contentCount: sql<number>`COALESCE(
           (SELECT COUNT(*) FROM ${CourseMaterialSchema} 
            WHERE ${CourseMaterialSchema.courseId} = ${CourseWeekSchema.courseId} 

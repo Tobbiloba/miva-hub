@@ -11,9 +11,7 @@ import {
   Users,
   Activity,
   Bell,
-  Clock,
-  MapPin,
-  Calendar
+  Clock
 } from "lucide-react";
 
 interface ProfileData {
@@ -376,7 +374,7 @@ export function ProfileOverview({ userRole, profileData }: ProfileOverviewProps)
           <CardContent>
             <div className="grid gap-3 md:grid-cols-2">
               {students.slice(0, 6).map((studentData, index) => {
-                const { student, enrollment, course } = studentData;
+                const { student, course } = studentData;
                 return (
                   <div key={index} className="flex items-center gap-3 p-3 border border-border/40 rounded-lg bg-muted/20">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">

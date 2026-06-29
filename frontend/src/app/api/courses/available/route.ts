@@ -10,8 +10,8 @@ export async function GET(request: NextRequest) {
 
     // Get active courses - filtered by department, level, and semester if provided
     const courses = departmentId
-      ? await pgAcademicRepository.getCoursesByDepartment(departmentId, { level, semester })
-      : await pgAcademicRepository.getActiveCourses({ level, semester });
+      ? await pgAcademicRepository.getCoursesByDepartment(departmentId, { level: level ?? undefined, semester: semester ?? undefined })
+      : await pgAcademicRepository.getActiveCourses({ level: level ?? undefined, semester: semester ?? undefined });
     
     // Get current semester info
     const currentSemester = await pgAcademicRepository.getActiveAcademicCalendar();

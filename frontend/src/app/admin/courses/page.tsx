@@ -41,17 +41,12 @@ import {
 import {
   BookOpen,
   Search,
-  Filter,
   Plus,
   Edit,
   Trash2,
   Eye,
-  Users,
   MoreHorizontal,
-  Calendar,
-  User,
   GraduationCap,
-  Clock,
   Building2,
   Award,
   Loader2
@@ -228,7 +223,6 @@ export default function CoursesManagePage() {
   const totalCourses = courses.length;
   const activeCourses = courses.filter(course => course.isActive).length;
   const totalCredits = courses.reduce((sum, course) => sum + course.credits, 0);
-  const averageCredits = totalCourses > 0 ? Math.round(totalCredits / totalCourses * 10) / 10 : 0;
 
   if (isLoading) {
     return (

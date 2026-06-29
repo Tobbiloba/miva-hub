@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { UserSchema, FacultySchema, DepartmentSchema } from "@/lib/db/pg/schema.pg";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export async function GET(
   request: NextRequest,

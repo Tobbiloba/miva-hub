@@ -146,7 +146,7 @@ The back should be a clear, concise answer.`;
   const { text } = await generateText({
     model: openai("gpt-4o-mini"),
     prompt,
-    maxTokens: 1000,
+    maxOutputTokens: 1000,
   });
 
   // Parse cards

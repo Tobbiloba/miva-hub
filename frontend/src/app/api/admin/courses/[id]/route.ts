@@ -1,28 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-import { z } from "zod";
 
-// Validation schemas
-const updateCourseSchema = z.object({
-  courseCode: z.string().min(1, "Course code is required").max(20, "Course code too long").optional(),
-  title: z.string().min(1, "Course title is required").max(200, "Title too long").optional(),
-  description: z.string().optional(),
-  credits: z.number().int().min(1, "Credits must be at least 1").max(6, "Credits cannot exceed 6").optional(),
-  departmentId: z.string().uuid("Invalid department ID").optional(),
-  level: z.enum(["100L", "200L", "300L", "400L", "graduate", "doctoral"]).optional(),
-  semesterOffered: z.enum(["fall", "spring", "summer", "both"]).optional(),
-  isActive: z.boolean().optional(),
-  totalWeeks: z.number().int().min(1, "Total weeks must be at least 1").max(52, "Total weeks cannot exceed 52").optional(),
-  startDate: z.string().optional().refine((date) => {
-    if (!date) return true;
-    return !isNaN(Date.parse(date));
-  }, "Invalid start date format"),
-  endDate: z.string().optional().refine((date) => {
-    if (!date) return true;
-    return !isNaN(Date.parse(date));
-  }, "Invalid end date format")
-});
 
 export async function GET(
   request: NextRequest,

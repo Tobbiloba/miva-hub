@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,13 +27,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Edit, Trash2 } from "lucide-react";
+import { Loader2, Plus, Edit } from "lucide-react";
 
 interface Department {
   id: string;
   name: string;
   code: string;
-  description?: string;
+  description?: string | null;
 }
 
 interface DepartmentFormData {
@@ -52,6 +53,7 @@ export function DepartmentManagementClient({
   department, 
   mode = "add" 
 }: DepartmentManagementClientProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<DepartmentFormData>({
@@ -92,9 +94,9 @@ export function DepartmentManagementClient({
         if (mode === "add") {
           setFormData({ name: "", code: "", description: "" });
         }
-        
-        // Refresh the page to show updated data
-        window.location.reload();
+
+        // Re-fetch the server component data without a full page reload
+        router.refresh();
       } else {
         throw new Error(result.error || "Operation failed");
       }
@@ -126,9 +128,9 @@ export function DepartmentManagementClient({
           title: "Department Deleted",
           description: `${department.name} has been deleted successfully.`,
         });
-        
-        // Refresh the page to show updated data
-        window.location.reload();
+
+        // Re-fetch the server component data without a full page reload
+        router.refresh();
       } else {
         throw new Error(result.error || "Delete failed");
       }

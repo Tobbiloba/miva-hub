@@ -23,15 +23,11 @@ const createCourseSchema = z
       .max(6, "Credits cannot exceed 6"),
     departmentId: z.string().uuid("Invalid department ID"),
     level: z.enum(["100L", "200L", "300L", "400L", "graduate", "doctoral"], {
-      errorMap: () => ({
-        message: "Level must be 100L, 200L, 300L, 400L, graduate, or doctoral",
-      }),
+      error: "Level must be 100L, 200L, 300L, 400L, graduate, or doctoral",
     }),
     semesterOffered: z
       .enum(["fall", "spring", "summer", "both"], {
-        errorMap: () => ({
-          message: "Semester must be fall, spring, summer, or both",
-        }),
+        error: "Semester must be fall, spring, summer, or both",
       })
       .default("both"),
     isActive: z.boolean().default(true),
@@ -197,9 +193,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Tenant scope: course belongs to the admin's university
+    const university = await getUserUniversity(adminAccess.user.id);
+    if (!university) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "University not found",
+          message: "Unable to determine your university context",
+        },
+        { status: 400 },
+      );
+    }
+
     // Create course using repository
     const createdCourse = await pgAcademicRepository.createCourse({
       ...validatedData,
+      universityId: university.id,
       courseCode: validatedData.courseCode.toUpperCase(),
       startDate: validatedData.startDate
         ? new Date(validatedData.startDate)
@@ -233,7 +243,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: "Validation failed",
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 },
       );

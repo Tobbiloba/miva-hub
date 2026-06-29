@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireFaculty, checkCourseInstructorAccess } from "@/lib/auth/faculty";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import {
-  AssignmentSchema,
-  CourseSchema,
-  CourseInstructorSchema,
-  FacultySchema,
-} from "@/lib/db/pg/schema.pg";
+import { AssignmentSchema } from "@/lib/db/pg/schema.pg";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-import { eq, and, desc, sql } from "drizzle-orm";
 import { z } from "zod";
 
 const createAssignmentSchema = z.object({
@@ -94,7 +88,7 @@ export async function POST(request: NextRequest) {
         description: validated.description,
         instructions: validated.instructions,
         assignmentType: validated.assignmentType,
-        totalPoints: validated.totalPoints,
+        totalPoints: validated.totalPoints.toString(),
         dueDate,
         submissionType: validated.submissionType,
         allowLateSubmission: validated.allowLateSubmission,
@@ -113,7 +107,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Validation failed", details: error.errors },
+        { error: "Validation failed", details: error.issues },
         { status: 400 }
       );
     }

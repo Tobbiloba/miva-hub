@@ -4,7 +4,6 @@
  */
 
 import { safe } from "ts-safe";
-import { pgAcademicRepository } from "lib/db/pg/repositories/academic-repository.pg";
 
 interface AcademicConversationContext {
   studentId: string;
@@ -231,12 +230,10 @@ class AcademicConversationMemoryService {
 
   // Private helper methods
 
-  private async getCurrentEnrolledCourses(studentId: string) {
+  private async getCurrentEnrolledCourses(
+    studentId: string,
+  ): Promise<{ courseCode: string }[]> {
     try {
-      // Get current semester courses for the student
-      const { getCurrentSemester } = await import("lib/utils/semester");
-      const currentSemester = await getCurrentSemester();
-      
       // This would need to be implemented in the academic repository
       // For now, return empty array
       return [];
@@ -246,7 +243,9 @@ class AcademicConversationMemoryService {
     }
   }
 
-  private async getUpcomingAssignments(studentId: string) {
+  private async getUpcomingAssignments(
+    studentId: string,
+  ): Promise<{ title: string }[]> {
     try {
       // Get upcoming assignments for the student
       // This would need to be implemented in the academic repository

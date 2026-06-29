@@ -5,17 +5,14 @@ import { MaterialCard } from './MaterialCard';
 import { Button } from 'ui/button';
 import { cn } from 'lib/utils';
 import { 
-  BookOpen, 
-  Calendar, 
-  Clock, 
-  GraduationCap, 
-  AlertCircle,
+  BookOpen,
+  Calendar,
+  Clock,
+  GraduationCap,
   Target,
   TrendingUp,
   Users,
-  FileText,
-  Video,
-  Music
+  FileText
 } from 'lucide-react';
 
 interface ContentRendererProps {
@@ -25,7 +22,7 @@ interface ContentRendererProps {
 }
 
 export function ContentRenderer({ content, type, onToolCall }: ContentRendererProps) {
-  const [materialViewer, setMaterialViewer] = useState<any>(null);
+  const [, setMaterialViewer] = useState<any>(null);
 
   const handleViewMaterial = (material: any) => {
     setMaterialViewer(material);
@@ -305,7 +302,7 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
   };
 
   const renderAssignments = (data: any) => {
-    const { assignments, total_count, student_id } = data;
+    const { assignments, total_count } = data;
     
     if (!assignments || assignments.length === 0) {
       return (

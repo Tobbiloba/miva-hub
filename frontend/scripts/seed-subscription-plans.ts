@@ -151,7 +151,7 @@ async function seedSubscriptionPlans() {
               priceNgn: planData.priceNgn,
               priceUsd: planData.priceUsd,
               features: planData.features,
-              limits: planData.limits,
+              limits: planData.limits as Record<string, number>,
               paystackPlanCode: planData.paystackPlanCode,
               isActive: true,
             })
@@ -169,7 +169,7 @@ async function seedSubscriptionPlans() {
               priceUsd: planData.priceUsd,
               interval: planData.interval,
               features: planData.features,
-              limits: planData.limits,
+              limits: planData.limits as Record<string, number>,
               paystackPlanCode: planData.paystackPlanCode,
               isActive: true,
             });
@@ -190,7 +190,7 @@ async function seedSubscriptionPlans() {
             priceUsd: plan.priceUsd,
             interval: plan.interval,
             features: plan.features,
-            limits: plan.limits,
+            limits: plan.limits as Record<string, number>,
             paystackPlanCode: plan.paystackPlanCode,
             isActive: true,
           }))

@@ -20,10 +20,11 @@ import { notFound } from "next/navigation";
 import SubmitForm from "./submit-form";
 
 interface PageProps {
-  params: { assignmentId: string };
+  params: Promise<{ assignmentId: string }>;
 }
 
 export default async function AssignmentSubmissionPage({ params }: PageProps) {
+  const { assignmentId } = await params;
   const session = await getSession();
   
   if (!session?.user) {
@@ -33,7 +34,7 @@ export default async function AssignmentSubmissionPage({ params }: PageProps) {
   const userId = session.user.id;
 
   // Get assignment details and verify student is enrolled in its course
-  const assignmentData = await pgAcademicRepository.getStudentAssignmentById(userId, params.assignmentId);
+  const assignmentData = await pgAcademicRepository.getStudentAssignmentById(userId, assignmentId);
 
   if (!assignmentData) {
     return notFound();

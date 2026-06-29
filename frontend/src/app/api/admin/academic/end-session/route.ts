@@ -6,6 +6,7 @@ import {
   UserSchema,
   ProgramSchema,
 } from "@/lib/db/pg/schema.pg";
+import { getUserUniversity } from "@/lib/tenant";
 import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
 
@@ -13,15 +14,9 @@ const endSessionSchema = z.object({
   dryRun: z.boolean().default(false),
   nextSessionName: z
     .string()
+    .trim()
     .min(1, "Next session name is required")
-    .regex(
-      /^\d{4}\/\d{4}$/,
-      "Session name must be in format YYYY/YYYY (e.g. 2026/2027)"
-    )
-    .refine((val) => {
-      const [start, end] = val.split("/").map(Number);
-      return end === start + 1;
-    }, "Second year must be exactly one year after the first"),
+    .max(50, "Session name too long"),
 });
 
 // Graduation threshold: current_level >= program.duration_years * 100
@@ -39,11 +34,30 @@ export async function POST(request: NextRequest) {
     const validatedData = endSessionSchema.parse(body);
     const { dryRun, nextSessionName } = validatedData;
 
-    // Get current active session
+    // Tenant scope: end-session only affects the admin's own university.
+    const university = await getUserUniversity(adminAccess.user.id);
+    if (!university) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No university associated with your account",
+          message:
+            "Ending an academic session requires a university-scoped admin. Super admins must act within a specific university.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // Get current active session for this university
     const [currentSession] = await pgDb
       .select()
       .from(AcademicSessionSchema)
-      .where(eq(AcademicSessionSchema.isCurrent, true))
+      .where(
+        and(
+          eq(AcademicSessionSchema.isCurrent, true),
+          eq(AcademicSessionSchema.universityId, university.id)
+        )
+      )
       .limit(1);
 
     if (!currentSession) {
@@ -67,6 +81,7 @@ export async function POST(request: NextRequest) {
       .leftJoin(ProgramSchema, eq(UserSchema.programId, ProgramSchema.id))
       .where(
         and(
+          eq(UserSchema.universityId, university.id),
           eq(UserSchema.enrollmentStatus, "active"),
           eq(UserSchema.role, "student"),
           sql`${UserSchema.currentLevel} >= ${gradLevelExpr}`
@@ -90,6 +105,7 @@ export async function POST(request: NextRequest) {
       .leftJoin(ProgramSchema, eq(UserSchema.programId, ProgramSchema.id))
       .where(
         and(
+          eq(UserSchema.universityId, university.id),
           eq(UserSchema.enrollmentStatus, "active"),
           eq(UserSchema.role, "student"),
           sql`${UserSchema.currentLevel} < ${gradLevelExpr}`
@@ -117,6 +133,7 @@ export async function POST(request: NextRequest) {
       .from(UserSchema)
       .where(
         and(
+          eq(UserSchema.universityId, university.id),
           eq(UserSchema.enrollmentStatus, "active"),
           eq(UserSchema.role, "student")
         )
@@ -159,6 +176,7 @@ export async function POST(request: NextRequest) {
         })
         .where(
           and(
+            eq(UserSchema.universityId, university.id),
             eq(UserSchema.enrollmentStatus, "active"),
             eq(UserSchema.role, "student"),
             sql`${UserSchema.currentLevel} >= COALESCE((SELECT p.duration_years * 100 FROM program p WHERE p.id = ${UserSchema.programId}), ${DEFAULT_GRADUATION_LEVEL})`
@@ -177,6 +195,7 @@ export async function POST(request: NextRequest) {
         })
         .where(
           and(
+            eq(UserSchema.universityId, university.id),
             eq(UserSchema.enrollmentStatus, "active"),
             eq(UserSchema.role, "student")
           )
@@ -191,14 +210,24 @@ export async function POST(request: NextRequest) {
           status: "closed",
           updatedAt: new Date(),
         })
-        .where(eq(AcademicSessionSchema.isCurrent, true));
+        .where(
+          and(
+            eq(AcademicSessionSchema.isCurrent, true),
+            eq(AcademicSessionSchema.universityId, university.id)
+          )
+        );
 
       // Step 4: Create or activate next session
-      // Check if it already exists
+      // Check if it already exists within this university
       const [existingNext] = await tx
         .select()
         .from(AcademicSessionSchema)
-        .where(eq(AcademicSessionSchema.sessionName, nextSessionName))
+        .where(
+          and(
+            eq(AcademicSessionSchema.sessionName, nextSessionName),
+            eq(AcademicSessionSchema.universityId, university.id)
+          )
+        )
         .limit(1);
 
       if (existingNext) {
@@ -213,6 +242,7 @@ export async function POST(request: NextRequest) {
           .where(eq(AcademicSessionSchema.id, existingNext.id));
       } else {
         await tx.insert(AcademicSessionSchema).values({
+          universityId: university.id,
           sessionName: nextSessionName,
           currentSemester: "first",
           isCurrent: true,
@@ -243,7 +273,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: "Validation failed", details: error.errors },
+        { success: false, error: "Validation failed", details: error.issues },
         { status: 400 }
       );
     }

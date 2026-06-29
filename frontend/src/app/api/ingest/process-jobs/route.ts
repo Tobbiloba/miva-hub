@@ -5,10 +5,8 @@ import {
   UserSchema,
   IngestionJobSchema,
   CourseMaterialSchema,
-  CourseSchema,
-  DepartmentSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { s3Service } from "@/lib/aws/s3-service";
 import { headers } from "next/headers";
 import { extractTranscriptForMaterial } from "@/lib/extraction/transcript-extractor";
@@ -67,26 +65,6 @@ export async function POST(_request: NextRequest) {
           .update(IngestionJobSchema)
           .set({ status: "downloading", updatedAt: new Date() })
           .where(eq(IngestionJobSchema.id, job.id));
-
-        // Look up course details for S3 key generation
-        const [course] = await pgDb
-          .select({
-            courseCode: CourseSchema.courseCode,
-            departmentId: CourseSchema.departmentId,
-          })
-          .from(CourseSchema)
-          .where(eq(CourseSchema.id, job.courseId))
-          .limit(1);
-
-        let deptCode = "UNKNOWN";
-        if (course?.departmentId) {
-          const [dept] = await pgDb
-            .select({ code: DepartmentSchema.code })
-            .from(DepartmentSchema)
-            .where(eq(DepartmentSchema.id, course.departmentId))
-            .limit(1);
-          deptCode = dept?.code ?? "UNKNOWN";
-        }
 
         const payload = job.payload as Record<string, any>;
         const slug = job.lessonTitle

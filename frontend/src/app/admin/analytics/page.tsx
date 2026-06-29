@@ -1,6 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Users,
   BookOpen,
@@ -9,7 +7,6 @@ import {
   FileText,
   BarChart3
 } from "lucide-react";
-import { getSession } from "@/lib/auth/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import {
   getSystemOverview,
@@ -22,7 +19,6 @@ import {
 import { AnalyticsDashboard } from "@/components/admin/analytics-dashboard";
 
 export default async function AnalyticsPage() {
-  const session = await getSession();
   const adminAccess = await requireAdmin();
 
   if (adminAccess instanceof Response) {

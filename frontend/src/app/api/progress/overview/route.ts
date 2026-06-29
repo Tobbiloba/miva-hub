@@ -7,7 +7,7 @@ import {
   CourseSchema,
   CourseMaterialSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and, desc, sql, count, countDistinct } from "drizzle-orm";
+import { eq, and, desc, sql, count } from "drizzle-orm";
 
 export async function GET() {
   try {

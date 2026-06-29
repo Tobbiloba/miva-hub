@@ -11,7 +11,7 @@
 import "load-env";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { CourseMaterialSchema } from "@/lib/db/pg/schema.pg";
-import { eq, or, isNull, sql } from "drizzle-orm";
+import { eq, or, isNull } from "drizzle-orm";
 import { extractTranscriptForMaterial } from "@/lib/extraction/transcript-extractor";
 
 async function main() {

@@ -32,7 +32,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
     }
 
     // Get processed content if completed
-    let processedContent = null;
+    let processedContent: Awaited<
+      ReturnType<typeof pgAcademicRepository.getAIProcessedContent>
+    > = null;
     if (processingJob.status === "completed") {
       processedContent = await pgAcademicRepository.getAIProcessedContent(
         processingJob.courseMaterialId

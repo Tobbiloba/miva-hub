@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { requireAdmin } from "@/lib/auth/admin";
-import { eq, desc, and, count } from "drizzle-orm";
+import { eq, desc, and, count, type SQL } from "drizzle-orm";
 import { pgDb as db } from "@/lib/db/pg/db.pg";
 import { AIProcessingJobSchema, CourseMaterialSchema } from "@/lib/db/pg/schema.pg";
 
@@ -19,7 +18,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
 
     // Build query conditions
-    const conditions = [];
+    const conditions: SQL[] = [];
     if (status && status !== 'all') {
       conditions.push(eq(AIProcessingJobSchema.status, status as any));
     }

@@ -1,11 +1,5 @@
 import { pgDb } from "@/lib/db/pg/db.pg";
-import {
-  FlashcardSchema,
-  FlashcardDeckSchema,
-  StudyActivitySchema,
-  CourseSchema,
-} from "@/lib/db/pg/schema.pg";
-import { eq, and, lte, sql, count } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { existsTodayForStudent, createNotification } from "./helpers";
 
 export async function generateFlashcardsDueNotifications(): Promise<number> {

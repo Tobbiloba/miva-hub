@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { getSession } from "@/lib/auth/server";
-import Link from "next/link";
 
 export default async function StudentCoursesPage() {
   const session = await getSession();

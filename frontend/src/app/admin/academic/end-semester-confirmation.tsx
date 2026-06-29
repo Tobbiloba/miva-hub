@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +30,7 @@ interface DryRunData {
 }
 
 export function EndSemesterConfirmation() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [executing, setExecuting] = useState(false);
@@ -75,7 +77,7 @@ export function EndSemesterConfirmation() {
       }
       toast.success(data.message);
       setOpen(false);
-      window.location.reload();
+      router.refresh();
     } catch {
       toast.error("Failed to end semester");
     } finally {

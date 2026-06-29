@@ -1,7 +1,6 @@
 import "load-env";
 import { pgDb as db } from "lib/db/pg/db.pg";
 import { DepartmentSchema, ProgramSchema } from "lib/db/pg/schema.pg";
-import { eq } from "drizzle-orm";
 
 console.log("🎓 Starting Programs/Majors Seeding...");
 
@@ -106,7 +105,7 @@ async function seedPrograms() {
     console.log(`📍 Found ${departments.length} departments`);
 
     // Insert programs
-    const programs = await db
+    const programs = (await db
       .insert(ProgramSchema)
       .values(
         programsData.map((prog) => ({
@@ -116,7 +115,7 @@ async function seedPrograms() {
           departmentId: deptMap[prog.deptCode],
         }))
       )
-      .returning();
+      .returning()) as (typeof ProgramSchema.$inferSelect)[];
 
     console.log(`✅ Created ${programs.length} programs/majors`);
 

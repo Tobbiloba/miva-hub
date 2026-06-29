@@ -5,8 +5,7 @@ import {
   StudentEnrollmentSchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   try {

@@ -1,11 +1,10 @@
-import { eq, and, desc, asc, sql, gte, lte, between } from "drizzle-orm";
+import { eq, and, desc, asc, gte, lte } from "drizzle-orm";
 import { pgDb as db } from "../db.pg";
 import {
   PerformanceHistorySchema,
   ConceptMasterySchema,
   StudentStudySessionsSchema,
   GradePredictionsSchema,
-  CourseSchema,
   type PerformanceHistoryEntity,
   type ConceptMasteryEntity,
   type StudentStudySessionsEntity,
@@ -132,8 +131,8 @@ export const performanceRepository = {
 
     if (existing.length > 0) {
       const current = existing[0];
-      const newCorrectAttempts = current.correctAttempts + (wasCorrect ? 1 : 0);
-      const newTotalAttempts = current.totalAttempts + 1;
+      const newCorrectAttempts = (current.correctAttempts ?? 0) + (wasCorrect ? 1 : 0);
+      const newTotalAttempts = (current.totalAttempts ?? 0) + 1;
       const newMasteryLevel = (newCorrectAttempts / newTotalAttempts).toFixed(2);
 
       const [updated] = await db
@@ -193,13 +192,13 @@ export const performanceRepository = {
     }
     
     if (options?.sessionType) {
-      conditions.push(eq(StudentStudySessionsSchema.sessionType, options.sessionType));
+      conditions.push(eq(StudentStudySessionsSchema.sessionType, options.sessionType as StudentStudySessionsEntity["sessionType"]));
     }
-    
+
     if (options?.startDate) {
       conditions.push(gte(StudentStudySessionsSchema.startedAt, options.startDate));
     }
-    
+
     if (options?.endDate) {
       conditions.push(lte(StudentStudySessionsSchema.endedAt, options.endDate));
     }
@@ -208,7 +207,8 @@ export const performanceRepository = {
       .select()
       .from(StudentStudySessionsSchema)
       .where(and(...conditions))
-      .orderBy(desc(StudentStudySessionsSchema.startedAt));
+      .orderBy(desc(StudentStudySessionsSchema.startedAt))
+      .$dynamic();
 
     if (options?.limit) {
       query = query.limit(options.limit);
@@ -397,12 +397,12 @@ export const performanceRepository = {
     const studyTimeByWeek = history
       .map((h) => ({
         week: h.weekNumber,
-        minutes: h.studyTimeMinutes,
+        minutes: h.studyTimeMinutes ?? 0,
       }))
       .sort((a, b) => a.week - b.week);
 
-    const totalCompleted = history.reduce((sum, h) => sum + h.assignmentsCompleted, 0);
-    const totalAssignments = history.reduce((sum, h) => sum + h.assignmentsTotal, 0);
+    const totalCompleted = history.reduce((sum, h) => sum + (h.assignmentsCompleted ?? 0), 0);
+    const totalAssignments = history.reduce((sum, h) => sum + (h.assignmentsTotal ?? 0), 0);
     const completionRate = totalAssignments > 0 ? (totalCompleted / totalAssignments) * 100 : 0;
 
     let trend: "improving" | "declining" | "stable" = "stable";

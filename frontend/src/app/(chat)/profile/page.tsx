@@ -179,8 +179,14 @@ async function getCompleteProfileData(userId: string, userRole: string | null): 
 
 // Helper function to get recent activity
 async function getRecentActivity(userId: string, userRole: string | null) {
-  const activities = [];
-  
+  const activities: Array<{
+    type: string;
+    message: string;
+    course?: string;
+    time: string;
+    icon: string;
+  }> = [];
+
   try {
     if (userRole === 'student') {
       // Get recent assignment submissions (without grades)
@@ -344,7 +350,7 @@ function ProfilePageContent({ profileData, userRole }: ProfilePageContentProps) 
               <p className="text-muted-foreground mt-1 text-sm md:text-base">{profileData.email}</p>
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-3">
                 <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
-                  {profileData.role?.charAt(0).toUpperCase() + profileData.role?.slice(1)}
+                  {(profileData.role?.charAt(0)?.toUpperCase() ?? "") + (profileData.role?.slice(1) ?? "")}
                 </Badge>
                 {profileData.studentId && (
                   <Badge variant="outline" className="border-border/60 text-xs">
@@ -461,7 +467,7 @@ function ProfilePageContent({ profileData, userRole }: ProfilePageContentProps) 
                     <div>
                       <label className="text-sm font-medium text-foreground">Role</label>
                       <div className="mt-1 p-3 bg-muted/30 border border-border/40 rounded-md text-sm">
-                        {profileData.role?.charAt(0).toUpperCase() + profileData.role?.slice(1) || "Not specified"}
+                        {(profileData.role?.charAt(0)?.toUpperCase() ?? "") + (profileData.role?.slice(1) ?? "") || "Not specified"}
                       </div>
                     </div>
                     {profileData.studentId && (
@@ -484,7 +490,7 @@ function ProfilePageContent({ profileData, userRole }: ProfilePageContentProps) 
                       <label className="text-sm font-medium text-foreground">Enrollment Status</label>
                       <div className="mt-1 p-3 bg-muted/30 border border-border/40 rounded-md text-sm">
                         <Badge variant={profileData.enrollmentStatus === 'active' ? 'default' : 'secondary'} className="text-xs">
-                          {profileData.enrollmentStatus?.charAt(0).toUpperCase() + profileData.enrollmentStatus?.slice(1)}
+                          {(profileData.enrollmentStatus?.charAt(0)?.toUpperCase() ?? "") + (profileData.enrollmentStatus?.slice(1) ?? "")}
                         </Badge>
                       </div>
                     </div>

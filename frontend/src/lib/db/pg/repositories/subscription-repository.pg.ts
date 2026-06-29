@@ -9,6 +9,14 @@ import {
   WebhookEventSchema,
 } from "../schema.pg";
 
+export interface UsageStatus {
+  allowed: boolean;
+  current?: number;
+  limit?: number;
+  remaining?: number;
+  resets_at?: string;
+}
+
 export class SubscriptionRepository {
   async getAllPlans() {
     return await db
@@ -107,11 +115,11 @@ export class SubscriptionRepository {
     userId: string,
     usageType: string,
     periodType: "daily" | "weekly" | "monthly" = "daily",
-  ) {
+  ): Promise<UsageStatus> {
     const result = await db.execute(sql`
       SELECT check_usage_limit(${userId}, ${usageType}, ${periodType}) as usage_status
     `);
-    return result.rows[0]?.usage_status;
+    return result.rows[0]?.usage_status as UsageStatus;
   }
 
   async incrementUsage(
@@ -119,11 +127,11 @@ export class SubscriptionRepository {
     usageType: string,
     periodType: "daily" | "weekly" | "monthly" = "daily",
     increment = 1,
-  ) {
+  ): Promise<boolean> {
     const result = await db.execute(sql`
       SELECT increment_usage(${userId}, ${usageType}, ${periodType}, ${increment}) as success
     `);
-    return result.rows[0]?.success;
+    return Boolean(result.rows[0]?.success);
   }
 
   async getUserUsage(userId: string, usageType: string, periodType: string) {

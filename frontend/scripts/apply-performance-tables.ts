@@ -18,7 +18,7 @@ async function applyTables() {
     );
 
     console.log("🚀 Executing SQL...");
-    const result = await pool.query(sql);
+    await pool.query(sql);
 
     console.log("\n✅ Tables created successfully!");
     console.log("\nVerification:");

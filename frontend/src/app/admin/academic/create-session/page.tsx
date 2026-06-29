@@ -28,15 +28,9 @@ import { z } from "zod";
 const createSessionSchema = z.object({
   sessionName: z
     .string()
+    .trim()
     .min(1, "Session name is required")
-    .regex(
-      /^\d{4}\/\d{4}$/,
-      "Session name must be in format YYYY/YYYY (e.g. 2025/2026)"
-    )
-    .refine((val) => {
-      const [start, end] = val.split("/").map(Number);
-      return end === start + 1;
-    }, "Second year must be exactly one year after the first"),
+    .max(50, "Session name too long"),
   currentSemester: z.enum(["first", "second"]),
   firstSemStart: z.string().optional(),
   firstSemEnd: z.string().optional(),
@@ -151,7 +145,7 @@ export default function CreateSessionPage() {
         <CardHeader>
           <CardTitle>Session Details</CardTitle>
           <CardDescription>
-            Enter the session name in YYYY/YYYY format (e.g. 2025/2026)
+            Enter a session name (e.g. 2025/2026, 2023 Cohort, or Fall 2025)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -165,7 +159,7 @@ export default function CreateSessionPage() {
                 id="sessionName"
                 value={form.sessionName}
                 onChange={(e) => updateField("sessionName", e.target.value)}
-                placeholder="2025/2026"
+                placeholder="2023 Cohort"
                 autoComplete="off"
               />
               {errors.sessionName && (

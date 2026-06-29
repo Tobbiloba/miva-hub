@@ -2,18 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { AcademicSessionSchema } from "@/lib/db/pg/schema.pg";
-import { eq, desc } from "drizzle-orm";
+import { getUserUniversity } from "@/lib/tenant";
+import { and, eq, desc } from "drizzle-orm";
 import { z } from "zod";
 
 const createSessionSchema = z.object({
   sessionName: z
     .string()
+    .trim()
     .min(1, "Session name is required")
-    .regex(/^\d{4}\/\d{4}$/, "Session name must be in format YYYY/YYYY (e.g. 2025/2026)")
-    .refine((val) => {
-      const [start, end] = val.split("/").map(Number);
-      return end === start + 1;
-    }, "Second year must be exactly one year after the first (e.g. 2025/2026)"),
+    .max(50, "Session name too long"),
   currentSemester: z.enum(["first", "second"]).default("first"),
   firstSemStart: z.string().optional(),
   firstSemEnd: z.string().optional(),
@@ -58,11 +56,30 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createSessionSchema.parse(body);
 
-    // Check if session name already exists
+    // Tenant scope: a session belongs to the admin's university.
+    const university = await getUserUniversity(adminAccess.user.id);
+    if (!university) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No university associated with your account",
+          message:
+            "Academic session creation requires a university-scoped admin. Super admins must act within a specific university.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // Check if session name already exists for this university
     const existing = await pgDb
       .select()
       .from(AcademicSessionSchema)
-      .where(eq(AcademicSessionSchema.sessionName, validatedData.sessionName))
+      .where(
+        and(
+          eq(AcademicSessionSchema.sessionName, validatedData.sessionName),
+          eq(AcademicSessionSchema.universityId, university.id)
+        )
+      )
       .limit(1);
 
     if (existing.length > 0) {
@@ -79,11 +96,17 @@ export async function POST(request: NextRequest) {
         await tx
           .update(AcademicSessionSchema)
           .set({ isCurrent: false, updatedAt: new Date() })
-          .where(eq(AcademicSessionSchema.isCurrent, true));
+          .where(
+            and(
+              eq(AcademicSessionSchema.isCurrent, true),
+              eq(AcademicSessionSchema.universityId, university.id)
+            )
+          );
 
         return tx
           .insert(AcademicSessionSchema)
           .values({
+            universityId: university.id,
             sessionName: validatedData.sessionName,
             currentSemester: validatedData.currentSemester,
             isCurrent: true,
@@ -107,6 +130,7 @@ export async function POST(request: NextRequest) {
     const [newSession] = await pgDb
       .insert(AcademicSessionSchema)
       .values({
+        universityId: university.id,
         sessionName: validatedData.sessionName,
         currentSemester: validatedData.currentSemester,
         isCurrent: false,
@@ -127,7 +151,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: "Validation failed", details: error.errors },
+        { success: false, error: "Validation failed", details: error.issues },
         { status: 400 }
       );
     }

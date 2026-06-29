@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { AnnouncementSchema, UserSchema, CourseSchema, DepartmentSchema, FacultySchema, StudentEnrollmentSchema } from "@/lib/db/pg/schema.pg";
-import { eq, and, sql, desc, ilike, or, isNull, inArray } from "drizzle-orm";
+import { AnnouncementSchema, UserSchema, CourseSchema, DepartmentSchema, FacultySchema, StudentEnrollmentSchema, type AnnouncementEntity } from "@/lib/db/pg/schema.pg";
+import { eq, and, sql, desc, ilike, or, inArray, type SQL } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,24 +18,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    // Build query
-    let query = pgDb
-      .select({
-        announcement: AnnouncementSchema,
-        author: UserSchema,
-        course: CourseSchema,
-        department: DepartmentSchema,
-      })
-      .from(AnnouncementSchema)
-      .leftJoin(UserSchema, eq(AnnouncementSchema.createdById, UserSchema.id))
-      .leftJoin(CourseSchema, eq(AnnouncementSchema.courseId, CourseSchema.id))
-      .leftJoin(DepartmentSchema, eq(AnnouncementSchema.departmentId, DepartmentSchema.id))
-      .orderBy(desc(AnnouncementSchema.createdAt))
-      .limit(limit)
-      .offset(offset);
-
     // Apply filters
-    const conditions = [];
+    const conditions: (SQL | undefined)[] = [];
 
     if (search) {
       conditions.push(
@@ -47,11 +31,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (audience && audience !== 'all') {
-      conditions.push(eq(AnnouncementSchema.targetAudience, audience));
+      conditions.push(eq(AnnouncementSchema.targetAudience, audience as AnnouncementEntity["targetAudience"]));
     }
 
     if (priority && priority !== 'all') {
-      conditions.push(eq(AnnouncementSchema.priority, priority));
+      conditions.push(eq(AnnouncementSchema.priority, priority as AnnouncementEntity["priority"]));
     }
 
     if (status && status !== 'all') {
@@ -69,11 +53,22 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-
-    const announcements = await query;
+    // Build query
+    const announcements = await pgDb
+      .select({
+        announcement: AnnouncementSchema,
+        author: UserSchema,
+        course: CourseSchema,
+        department: DepartmentSchema,
+      })
+      .from(AnnouncementSchema)
+      .leftJoin(UserSchema, eq(AnnouncementSchema.createdById, UserSchema.id))
+      .leftJoin(CourseSchema, eq(AnnouncementSchema.courseId, CourseSchema.id))
+      .leftJoin(DepartmentSchema, eq(AnnouncementSchema.departmentId, DepartmentSchema.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(AnnouncementSchema.createdAt))
+      .limit(limit)
+      .offset(offset);
 
     // Compute real audience counts for totalTargeted
     const [totalUsersResult, studentCountResult, activeFacultyResult] = await Promise.all([

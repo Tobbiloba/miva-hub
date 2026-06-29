@@ -23,7 +23,6 @@ import { ToolSelectDropdown } from "./tool-select-dropdown";
 import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
 import { useTranslations } from "next-intl";
 import { Editor } from "@tiptap/react";
-import { WorkflowSummary } from "app-types/workflow";
 import { Avatar, AvatarFallback, AvatarImage } from "ui/avatar";
 import equal from "lib/equal";
 import { MCPIcon } from "ui/mcp-icon";
@@ -143,19 +142,6 @@ export default function PromptInput({
       });
     },
     [mentions, threadId],
-  );
-
-  const onSelectWorkflow = useCallback(
-    (workflow: WorkflowSummary) => {
-      addMention({
-        type: "workflow",
-        name: workflow.name,
-        icon: workflow.icon,
-        workflowId: workflow.id,
-        description: workflow.description,
-      });
-    },
-    [addMention],
   );
 
   const onSelectAgent = useCallback(
@@ -334,7 +320,6 @@ export default function PromptInput({
                       className="mx-1"
                       align="start"
                       side="top"
-                      onSelectWorkflow={onSelectWorkflow}
                       onSelectAgent={onSelectAgent}
                       mentions={mentions}
                     />

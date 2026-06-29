@@ -71,9 +71,9 @@ export async function GET(
         id: enrollment.id,
         courseId: enrollment.courseId,
         semester: enrollment.semester,
-        year: enrollment.year,
+        year: enrollment.academicYear,
         status: enrollment.status,
-        enrolledAt: enrollment.enrolledAt,
+        enrolledAt: enrollment.enrollmentDate,
       })),
       statistics: {
         totalEnrollments: enrollments.length,
@@ -234,7 +234,7 @@ export async function PUT(
         {
           success: false,
           error: "Validation failed",
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 },
       );

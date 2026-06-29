@@ -17,8 +17,6 @@ const createDepartmentSchema = z.object({
   description: z.string().optional(),
 });
 
-const updateDepartmentSchema = createDepartmentSchema.partial();
-
 export async function GET(request: NextRequest) {
   try {
     // Check admin access
@@ -110,6 +108,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createDepartmentSchema.parse(body);
 
+    // Tenant scope: a department must belong to the admin's university.
+    const university = await getUserUniversity(adminAccess.user.id);
+    if (!university) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No university associated with your account",
+          message:
+            "Department creation requires a university-scoped admin account. Super admins must act within a specific university.",
+        },
+        { status: 403 },
+      );
+    }
+
     // Check for duplicate department code
     const existingDepartment = await pgAcademicRepository.getDepartmentByCode(
       validatedData.code,
@@ -125,21 +137,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create department (this would need to be implemented in the repository)
-    // For now, we'll simulate the creation
-    const newDepartment = {
-      id: crypto.randomUUID(),
-      name: validatedData.name,
-      code: validatedData.code.toUpperCase(),
-      description: validatedData.description || null,
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
     // Create department using repository
-    const createdDepartment =
-      await pgAcademicRepository.createDepartment(validatedData);
+    const createdDepartment = await pgAcademicRepository.createDepartment({
+      ...validatedData,
+      code: validatedData.code.toUpperCase(),
+      universityId: university.id,
+    });
 
     return NextResponse.json(
       {
@@ -157,7 +160,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: "Validation failed",
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 },
       );

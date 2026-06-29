@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { NotificationSchema } from "@/lib/db/pg/schema.pg";
-import { eq, and, desc, sql, count } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   try {

@@ -10,7 +10,6 @@ import {
   Maximize2, 
   SkipBack, 
   SkipForward,
-  Settings,
   Download
 } from 'lucide-react';
 
@@ -32,7 +31,7 @@ export function VideoPlayer({ url, src, title }: VideoPlayerProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showControls, setShowControls] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [, setIsFullscreen] = useState(false);
   const [resolvedUrl, setResolvedUrl] = useState<string>('');
   const [isLoadingUrl, setIsLoadingUrl] = useState(true);
 

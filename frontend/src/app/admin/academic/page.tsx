@@ -22,6 +22,8 @@ import {
   BookOpen,
   Plus,
   AlertCircle,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/admin";
@@ -33,6 +35,7 @@ import {
 import { eq, and, sql, desc } from "drizzle-orm";
 import { EndSemesterConfirmation } from "./end-semester-confirmation";
 import { EndSessionConfirmation } from "./end-session-confirmation";
+import { SessionManagementClient } from "@/components/admin/session-management-client";
 
 export default async function AcademicManagementPage() {
   const adminAccess = await requireAdmin();
@@ -266,6 +269,7 @@ export default async function AcademicManagementPage() {
                   <TableHead>Second Sem Start</TableHead>
                   <TableHead>Second Sem End</TableHead>
                   <TableHead>Current</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -290,6 +294,24 @@ export default async function AcademicManagementPage() {
                       {session.isCurrent && (
                         <Badge variant="default">Active</Badge>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <SessionManagementClient session={session} mode="edit">
+                          <Button variant="ghost" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </SessionManagementClient>
+                        <SessionManagementClient session={session} mode="delete">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </SessionManagementClient>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -33,7 +33,10 @@ export async function SubscriptionGuard({
   } catch (error) {
     // Next.js redirect() throws a special error with a digest
     // We need to re-throw it so the redirect works properly
-    if (error instanceof Error && error.digest?.includes("NEXT_REDIRECT")) {
+    if (
+      error instanceof Error &&
+      (error as Error & { digest?: string }).digest?.includes("NEXT_REDIRECT")
+    ) {
       throw error;
     }
 

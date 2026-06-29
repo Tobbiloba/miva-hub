@@ -67,11 +67,7 @@ function MediaViewer({ mediaItem }: { mediaItem: MediaItem }) {
     case 'pdf':
       return (
         <div className="w-full h-96 border rounded-lg overflow-hidden">
-          <PDFViewer
-            url={mediaItem.url}
-            onClose={() => {}}
-            showCloseButton={false}
-          />
+          <PDFViewer url={mediaItem.url} />
         </div>
       );
       

@@ -45,7 +45,7 @@ export default async function StudentMaterialsPage() {
 
   const userId = session.user.id;
 
-  const [courses, materials] = await Promise.all([
+  const [, materials] = await Promise.all([
     pgAcademicRepository.getStudentCourses(userId),
     pgAcademicRepository.getStudentMaterials(userId),
   ]);

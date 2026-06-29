@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -106,44 +106,42 @@ export function WeeklyContentBuilder({
   const { toast } = useToast();
 
   // Load existing content for this week
-  useEffect(() => {
-    const loadWeekContent = async () => {
-      try {
-        const response = await fetch(`/api/admin/course-materials?courseId=${courseId}&weekNumber=${weekData.weekNumber}`);
-        const data = await response.json();
-        
-        if (data.success) {
-          const items: ContentItem[] = data.data.map((material: CourseMaterialEntity) => ({
-            id: material.id,
-            title: material.title,
-            type: getContentType(material.materialType, material.fileName),
-            fileName: material.fileName || "Unknown file",
-            fileSize: material.fileSize || 0,
-            uploadedAt: new Date(material.uploadedAt),
-            isProcessed: material.isProcessed || false,
-            s3Key: material.s3Key,
-            s3Url: material.contentUrl,
-            cloudFrontUrl: material.cloudFrontUrl,
-            publicUrl: material.publicUrl
-          }));
-          setContentItems(items);
-        }
-      } catch (error) {
-        console.error('Error loading week content:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load week content",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoadingContent(false);
-      }
-    };
+  const loadWeekContent = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/admin/course-materials?courseId=${courseId}&weekNumber=${weekData.weekNumber}`);
+      const data = await response.json();
 
-    loadWeekContent();
+      if (data.success) {
+        const items: ContentItem[] = data.data.map((material: CourseMaterialEntity) => ({
+          id: material.id,
+          title: material.title,
+          type: getContentType(material.materialType, material.fileName),
+          fileName: material.fileName || "Unknown file",
+          fileSize: material.fileSize || 0,
+          uploadedAt: new Date(material.createdAt),
+          isProcessed: material.isPublished,
+          s3Url: material.contentUrl,
+          publicUrl: material.publicUrl
+        }));
+        setContentItems(items);
+      }
+    } catch (error) {
+      console.error('Error loading week content:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load week content",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingContent(false);
+    }
   }, [courseId, weekData.weekNumber]);
 
-  const getContentType = (materialType: string, fileName: string): ContentItem['type'] => {
+  useEffect(() => {
+    loadWeekContent();
+  }, [loadWeekContent]);
+
+  const getContentType = (materialType: string, fileName: string | null): ContentItem['type'] => {
     if (materialType === 'assignment') return 'assignment';
     if (materialType === 'quiz') return 'quiz';
     
@@ -282,9 +280,9 @@ export function WeeklyContentBuilder({
           description: `${successfulUploads} file(s) uploaded successfully to AWS S3`
         });
 
-        // Refresh content list
+        // Re-fetch the content list in place, no full page reload
         setTimeout(() => {
-          window.location.reload();
+          loadWeekContent();
         }, 2000);
       }
     } catch (error) {
@@ -682,7 +680,10 @@ export function WeeklyContentBuilder({
                     
                     <div className="flex items-center gap-2">
                       {item.isProcessed ? (
-                        <Badge variant="success">
+                        <Badge
+                          variant="default"
+                          className="bg-green-100 text-green-800 border-green-200"
+                        >
                           <CheckCircle className="h-3 w-3 mr-1" />
                           Processed
                         </Badge>

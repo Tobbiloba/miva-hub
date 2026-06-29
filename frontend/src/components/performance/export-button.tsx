@@ -22,7 +22,7 @@ interface ExportButtonProps {
 
 export function ExportButton({ data, variant = "default", size = "default" }: ExportButtonProps) {
   const [isExporting, setIsExporting] = useState(false);
-  const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(null);
+  const [, setExportingFormat] = useState<ExportFormat | null>(null);
 
   const handleExport = async (format: ExportFormat) => {
     setIsExporting(true);

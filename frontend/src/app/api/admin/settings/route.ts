@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { SystemSettingsSchema } from "@/lib/db/pg/schema.pg";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,16 +14,15 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category');
 
     // Build query
-    let query = pgDb
+    const settings = await pgDb
       .select()
       .from(SystemSettingsSchema)
+      .where(
+        category && category !== 'all'
+          ? eq(SystemSettingsSchema.category, category)
+          : undefined,
+      )
       .orderBy(SystemSettingsSchema.category, SystemSettingsSchema.key);
-
-    if (category && category !== 'all') {
-      query = query.where(eq(SystemSettingsSchema.category, category));
-    }
-
-    const settings = await query;
 
     // Group settings by category
     const groupedSettings = settings.reduce((acc, setting) => {

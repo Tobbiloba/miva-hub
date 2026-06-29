@@ -7,7 +7,7 @@ import {
   CourseSchema,
   ProgramSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import {
   calculateCumulativeGPA,
@@ -209,7 +209,7 @@ export async function PUT(
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: "Validation failed", details: error.errors },
+        { success: false, error: "Validation failed", details: error.issues },
         { status: 400 }
       );
     }

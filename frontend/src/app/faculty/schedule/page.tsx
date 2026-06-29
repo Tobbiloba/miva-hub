@@ -16,10 +16,8 @@ import { pgDb } from "@/lib/db/pg/db.pg";
 import {
   ClassScheduleSchema,
   CourseSchema,
-  CourseInstructorSchema,
-  FacultySchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and, asc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 const DAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
@@ -61,7 +59,7 @@ export default async function FacultySchedulePage() {
     dayOfWeek: string;
     startTime: string;
     endTime: string;
-    roomLocation: string;
+    roomLocation: string | null;
     buildingName: string | null;
     classType: string;
   }[] = [];

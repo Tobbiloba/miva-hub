@@ -1,6 +1,5 @@
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { StudyActivitySchema } from "@/lib/db/pg/schema.pg";
-import { eq, sql, and, gte } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { existsTodayForStudent, createNotification } from "./helpers";
 
 export async function generateStreakAtRiskNotifications(): Promise<number> {

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { ClassScheduleSchema, CourseSchema } from "@/lib/db/pg/schema.pg";
-import { eq, and, desc } from "drizzle-orm";
+import { ClassScheduleSchema, CourseSchema, type ClassScheduleEntity } from "@/lib/db/pg/schema.pg";
+import { eq, and, desc, type SQL } from "drizzle-orm";
 import { z } from "zod";
 
 const createScheduleSchema = z.object({
@@ -39,10 +39,10 @@ export async function GET(request: NextRequest) {
     const courseId = searchParams.get("courseId");
     const dayOfWeek = searchParams.get("dayOfWeek");
 
-    const conditions = [];
+    const conditions: (SQL | undefined)[] = [];
     if (courseId) conditions.push(eq(ClassScheduleSchema.courseId, courseId));
     if (dayOfWeek)
-      conditions.push(eq(ClassScheduleSchema.dayOfWeek, dayOfWeek));
+      conditions.push(eq(ClassScheduleSchema.dayOfWeek, dayOfWeek as ClassScheduleEntity["dayOfWeek"]));
 
     const schedules = await pgDb
       .select({
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: "Validation failed", details: error.errors },
+        { success: false, error: "Validation failed", details: error.issues },
         { status: 400 }
       );
     }

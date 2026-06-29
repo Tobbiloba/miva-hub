@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -14,39 +13,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  BarChart3,
   TrendingUp,
   TrendingDown,
   RefreshCw,
   Download,
   Users,
-  BookOpen,
   GraduationCap,
-  Building2,
   FileText,
   Activity,
-  Target,
   Award,
   AlertTriangle,
-  Clock,
   Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface AnalyticsDashboardProps {
   initialData: any;
-}
-
-interface RealTimeStats {
-  totalStudents: number;
-  totalCourses: number;
-  totalFaculty: number;
-  todaysActivity: {
-    newSubmissions: number;
-    gradesPosted: number;
-    newEnrollments: number;
-    activeUsers: number;
-  };
 }
 
 export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {

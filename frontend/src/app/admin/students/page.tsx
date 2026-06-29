@@ -25,7 +25,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { requireAdmin } from "@/lib/auth/admin";
-import { getSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import {
@@ -36,7 +35,6 @@ import {
 import { getUserUniversity } from "@/lib/tenant";
 import { and, eq, sql } from "drizzle-orm";
 import {
-  AlertCircle,
   BookOpen,
   Calendar,
   CheckCircle,
@@ -53,7 +51,6 @@ import {
 import Link from "next/link";
 
 export default async function StudentManagementPage() {
-  const session = await getSession();
   const adminAccess = await requireAdmin();
 
   if (adminAccess instanceof Response) {
@@ -64,7 +61,7 @@ export default async function StudentManagementPage() {
   const university = await getUserUniversity(adminAccess.user.id);
 
   // Fetch students and their academic data
-  const [students, systemStats, departments] = await Promise.all([
+  const [students] = await Promise.all([
     // Get all students with their enrollment information
     pgDb
       .select({

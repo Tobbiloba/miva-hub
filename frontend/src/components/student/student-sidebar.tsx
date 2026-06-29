@@ -20,7 +20,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import {
   BookOpen,
-  GraduationCap,
   Home,
   FileText,
   BarChart3,
@@ -36,12 +35,20 @@ import {
   Layers,
   TrendingUp,
   CreditCard,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Session, User as AuthUser } from "better-auth";
 import { getStudentId, getAcademicYear } from "@/lib/auth/user-utils";
 
-const studentRoutes = [
+type StudentRoute = {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+  children?: { title: string; href: string; icon: LucideIcon }[];
+};
+
+const studentRoutes: StudentRoute[] = [
   {
     title: "Dashboard",
     href: "/student",

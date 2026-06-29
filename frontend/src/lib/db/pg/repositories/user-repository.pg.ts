@@ -1,6 +1,6 @@
 import { User, UserPreferences, UserRepository } from "app-types/user";
 import { pgDb as db } from "../db.pg";
-import { UserSchema } from "../schema.pg";
+import { UserSchema, type UserEntity } from "../schema.pg";
 import { eq } from "drizzle-orm";
 
 export const pgUserRepository: UserRepository = {
@@ -24,9 +24,10 @@ export const pgUserRepository: UserRepository = {
       })
       .where(eq(UserSchema.id, id))
       .returning();
+    const row = result as UserEntity;
     return {
-      ...result,
-      preferences: result.preferences ?? undefined,
+      ...row,
+      preferences: row.preferences ?? undefined,
     };
   },
   updatePreferences: async (
@@ -41,9 +42,10 @@ export const pgUserRepository: UserRepository = {
       })
       .where(eq(UserSchema.id, userId))
       .returning();
+    const row = result as UserEntity;
     return {
-      ...result,
-      preferences: result.preferences ?? undefined,
+      ...row,
+      preferences: row.preferences ?? undefined,
     };
   },
   getPreferences: async (userId: string) => {

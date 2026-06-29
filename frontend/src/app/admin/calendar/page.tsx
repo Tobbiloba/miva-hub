@@ -39,13 +39,10 @@ import {
   Eye,
   Clock,
   MoreHorizontal,
-  BookOpen,
-  GraduationCap,
   AlertTriangle,
   CheckCircle,
   CalendarDays,
   Users,
-  FileText,
   Bell,
   Loader2
 } from "lucide-react";

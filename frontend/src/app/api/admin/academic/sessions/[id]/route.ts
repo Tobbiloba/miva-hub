@@ -1,9 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { AcademicSessionSchema, StudentEnrollmentSchema } from "@/lib/db/pg/schema.pg";
-import { eq, sql } from "drizzle-orm";
+import {
+  AcademicSessionSchema,
+  StudentEnrollmentSchema,
+  UserSchema,
+} from "@/lib/db/pg/schema.pg";
+import { getUserUniversity } from "@/lib/tenant";
+import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
+
+function noUniversityResponse() {
+  return NextResponse.json(
+    {
+      success: false,
+      error: "No university associated with your account",
+      message:
+        "Academic session management requires a university-scoped admin. Super admins must act within a specific university.",
+    },
+    { status: 403 }
+  );
+}
 
 const updateSessionSchema = z.object({
   currentSemester: z.enum(["first", "second"]).optional(),
@@ -27,10 +44,20 @@ export async function GET(
 
     const { id } = await params;
 
+    const university = await getUserUniversity(adminAccess.user.id);
+    if (!university) {
+      return noUniversityResponse();
+    }
+
     const [session] = await pgDb
       .select()
       .from(AcademicSessionSchema)
-      .where(eq(AcademicSessionSchema.id, id))
+      .where(
+        and(
+          eq(AcademicSessionSchema.id, id),
+          eq(AcademicSessionSchema.universityId, university.id)
+        )
+      )
       .limit(1);
 
     if (!session) {
@@ -67,11 +94,21 @@ export async function PUT(
     const body = await request.json();
     const validatedData = updateSessionSchema.parse(body);
 
-    // Check session exists
+    const university = await getUserUniversity(adminAccess.user.id);
+    if (!university) {
+      return noUniversityResponse();
+    }
+
+    // Check session exists within this university
     const [existing] = await pgDb
       .select()
       .from(AcademicSessionSchema)
-      .where(eq(AcademicSessionSchema.id, id))
+      .where(
+        and(
+          eq(AcademicSessionSchema.id, id),
+          eq(AcademicSessionSchema.universityId, university.id)
+        )
+      )
       .limit(1);
 
     if (!existing) {
@@ -81,18 +118,28 @@ export async function PUT(
       );
     }
 
-    // If setting as current, enforce single-active invariant
+    // If setting as current, enforce single-active invariant (within tenant)
     if (validatedData.isCurrent === true) {
       const [updated] = await pgDb.transaction(async (tx) => {
         await tx
           .update(AcademicSessionSchema)
           .set({ isCurrent: false, updatedAt: new Date() })
-          .where(eq(AcademicSessionSchema.isCurrent, true));
+          .where(
+            and(
+              eq(AcademicSessionSchema.isCurrent, true),
+              eq(AcademicSessionSchema.universityId, university.id)
+            )
+          );
 
         return tx
           .update(AcademicSessionSchema)
           .set({ ...validatedData, updatedAt: new Date() })
-          .where(eq(AcademicSessionSchema.id, id))
+          .where(
+            and(
+              eq(AcademicSessionSchema.id, id),
+              eq(AcademicSessionSchema.universityId, university.id)
+            )
+          )
           .returning();
       });
 
@@ -106,7 +153,12 @@ export async function PUT(
     const [updated] = await pgDb
       .update(AcademicSessionSchema)
       .set({ ...validatedData, updatedAt: new Date() })
-      .where(eq(AcademicSessionSchema.id, id))
+      .where(
+        and(
+          eq(AcademicSessionSchema.id, id),
+          eq(AcademicSessionSchema.universityId, university.id)
+        )
+      )
       .returning();
 
     return NextResponse.json({
@@ -117,7 +169,7 @@ export async function PUT(
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: "Validation failed", details: error.errors },
+        { success: false, error: "Validation failed", details: error.issues },
         { status: 400 }
       );
     }
@@ -144,10 +196,20 @@ export async function DELETE(
 
     const { id } = await params;
 
+    const university = await getUserUniversity(adminAccess.user.id);
+    if (!university) {
+      return noUniversityResponse();
+    }
+
     const [session] = await pgDb
       .select()
       .from(AcademicSessionSchema)
-      .where(eq(AcademicSessionSchema.id, id))
+      .where(
+        and(
+          eq(AcademicSessionSchema.id, id),
+          eq(AcademicSessionSchema.universityId, university.id)
+        )
+      )
       .limit(1);
 
     if (!session) {
@@ -159,11 +221,21 @@ export async function DELETE(
 
     // Only allow deletion of upcoming sessions or sessions with no enrollments
     if (session.status !== "upcoming") {
-      // Check for enrollments referencing this session
+      // Count enrollments referencing this session, scoped to this tenant's
+      // students (enrollments have no universityId, so join through the user).
       const [enrollmentCount] = await pgDb
         .select({ count: sql<number>`count(*)` })
         .from(StudentEnrollmentSchema)
-        .where(eq(StudentEnrollmentSchema.academicYear, session.sessionName));
+        .innerJoin(
+          UserSchema,
+          eq(StudentEnrollmentSchema.studentId, UserSchema.id)
+        )
+        .where(
+          and(
+            eq(StudentEnrollmentSchema.academicYear, session.sessionName),
+            eq(UserSchema.universityId, university.id)
+          )
+        );
 
       if (Number(enrollmentCount.count) > 0) {
         return NextResponse.json(
@@ -186,7 +258,12 @@ export async function DELETE(
 
     await pgDb
       .delete(AcademicSessionSchema)
-      .where(eq(AcademicSessionSchema.id, id));
+      .where(
+        and(
+          eq(AcademicSessionSchema.id, id),
+          eq(AcademicSessionSchema.universityId, university.id)
+        )
+      );
 
     return NextResponse.json({
       success: true,

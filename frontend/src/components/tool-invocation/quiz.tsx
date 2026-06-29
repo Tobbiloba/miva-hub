@@ -42,7 +42,7 @@ export function Quiz(props: QuizProps) {
   
   const { progress: savedProgress } = useLoadQuizProgress(props.quiz_id, studentId || undefined);
   
-  const { saveStatus, forceSave } = useQuizProgress({
+  const { saveStatus } = useQuizProgress({
     quizId: props.quiz_id,
     studentId: studentId || undefined,
     data: { answers, currentQuestion, mode },

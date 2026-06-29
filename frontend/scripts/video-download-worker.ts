@@ -22,7 +22,7 @@ import {
   CourseMaterialSchema,
   IngestionJobSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and, isNull, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { s3Service } from "@/lib/aws/s3-service";
 import { extractTranscriptForMaterial } from "@/lib/extraction/transcript-extractor";
 

@@ -8,7 +8,7 @@ import {
   IngestionJobSchema,
   CourseMaterialSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and, or, isNull, ilike, sql } from "drizzle-orm";
+import { eq, and, isNull, ilike, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 
 export async function POST(request: NextRequest) {

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { CalendarEventSchema, UserSchema, CourseSchema, DepartmentSchema } from "@/lib/db/pg/schema.pg";
-import { eq, and, sql, desc, ilike, or, gte, lte, between } from "drizzle-orm";
+import { CalendarEventSchema, UserSchema, CourseSchema, DepartmentSchema, type CalendarEventEntity } from "@/lib/db/pg/schema.pg";
+import { eq, and, sql, desc, ilike, or, gte, lte, type SQL } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,24 +20,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    // Build query
-    let query = pgDb
-      .select({
-        event: CalendarEventSchema,
-        creator: UserSchema,
-        course: CourseSchema,
-        department: DepartmentSchema,
-      })
-      .from(CalendarEventSchema)
-      .leftJoin(UserSchema, eq(CalendarEventSchema.createdById, UserSchema.id))
-      .leftJoin(CourseSchema, eq(CalendarEventSchema.courseId, CourseSchema.id))
-      .leftJoin(DepartmentSchema, eq(CalendarEventSchema.departmentId, DepartmentSchema.id))
-      .orderBy(desc(CalendarEventSchema.startDate))
-      .limit(limit)
-      .offset(offset);
-
     // Apply filters
-    const conditions = [];
+    const conditions: (SQL | undefined)[] = [];
 
     if (search) {
       conditions.push(
@@ -49,15 +33,15 @@ export async function GET(request: NextRequest) {
     }
 
     if (eventType && eventType !== 'all') {
-      conditions.push(eq(CalendarEventSchema.eventType, eventType));
+      conditions.push(eq(CalendarEventSchema.eventType, eventType as CalendarEventEntity["eventType"]));
     }
 
     if (status && status !== 'all') {
-      conditions.push(eq(CalendarEventSchema.status, status));
+      conditions.push(eq(CalendarEventSchema.status, status as CalendarEventEntity["status"]));
     }
 
     if (priority && priority !== 'all') {
-      conditions.push(eq(CalendarEventSchema.priority, priority));
+      conditions.push(eq(CalendarEventSchema.priority, priority as CalendarEventEntity["priority"]));
     }
 
     if (startDate) {
@@ -68,11 +52,22 @@ export async function GET(request: NextRequest) {
       conditions.push(lte(CalendarEventSchema.endDate, endDate));
     }
 
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-
-    const events = await query;
+    // Build query
+    const events = await pgDb
+      .select({
+        event: CalendarEventSchema,
+        creator: UserSchema,
+        course: CourseSchema,
+        department: DepartmentSchema,
+      })
+      .from(CalendarEventSchema)
+      .leftJoin(UserSchema, eq(CalendarEventSchema.createdById, UserSchema.id))
+      .leftJoin(CourseSchema, eq(CalendarEventSchema.courseId, CourseSchema.id))
+      .leftJoin(DepartmentSchema, eq(CalendarEventSchema.departmentId, DepartmentSchema.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(CalendarEventSchema.startDate))
+      .limit(limit)
+      .offset(offset);
 
     // Transform data to match frontend interface
     const transformedEvents = events.map(({ event, creator, course, department }) => ({
@@ -80,9 +75,9 @@ export async function GET(request: NextRequest) {
       title: event.title,
       description: event.description || '',
       type: event.eventType,
-      date: event.startDate.toISOString().split('T')[0],
+      date: event.startDate,
       time: event.startTime || (event.isAllDay ? 'All Day' : '09:00'),
-      endDate: event.endDate.toISOString().split('T')[0],
+      endDate: event.endDate,
       endTime: event.endTime || event.startTime,
       location: event.location || '',
       priority: event.priority,
@@ -187,8 +182,8 @@ export async function POST(request: NextRequest) {
         title,
         description,
         eventType,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate,
+        endDate,
         startTime,
         endTime,
         isAllDay: isAllDay === true,

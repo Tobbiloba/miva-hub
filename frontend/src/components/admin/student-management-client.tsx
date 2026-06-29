@@ -22,6 +22,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { GraduationCap, Hash, Loader2, Mail, Plus, Users } from "lucide-react";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface StudentFormData {
   name: string;
@@ -38,6 +39,7 @@ interface StudentManagementClientProps {
 export function StudentManagementClient({
   children,
 }: StudentManagementClientProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<StudentFormData>({
@@ -78,8 +80,8 @@ export function StudentManagementClient({
           enrollmentStatus: "active",
         });
 
-        // Refresh the page to show updated data
-        window.location.reload();
+        // Re-fetch the server component data without a full page reload
+        router.refresh();
       } else {
         throw new Error(result.error || "Failed to add student");
       }

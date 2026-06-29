@@ -16,14 +16,12 @@ const createStudentSchema = z.object({
     .min(1, "Student ID is required")
     .max(20, "Student ID too long"),
   academicYear: z.enum(["100", "200", "300", "400"], {
-    errorMap: () => ({
-      message: "Academic year must be 100, 200, 300, or 400",
-    }),
+    error: "Academic year must be 100, 200, 300, or 400",
   }),
   enrollmentStatus: z.enum(
     ["active", "inactive", "suspended", "graduated", "transferred"],
     {
-      errorMap: () => ({ message: "Invalid enrollment status" }),
+      error: "Invalid enrollment status",
     },
   ),
 });
@@ -238,7 +236,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: "Validation failed",
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 },
       );

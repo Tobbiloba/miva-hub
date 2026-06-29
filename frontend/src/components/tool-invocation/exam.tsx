@@ -46,7 +46,7 @@ export function Exam(props: ExamProps) {
   
   const { progress: savedProgress } = useLoadExamProgress(props.exam_id, studentId || undefined);
   
-  const { saveStatus, forceSave } = useExamProgress({
+  const { saveStatus } = useExamProgress({
     examId: props.exam_id,
     studentId: studentId || undefined,
     data: { answers, currentQuestion, timeRemaining, mode },
@@ -151,8 +151,7 @@ export function Exam(props: ExamProps) {
     if (s1 === s2) return 1.0;
     
     const longer = s1.length > s2.length ? s1 : s2;
-    const shorter = s1.length > s2.length ? s2 : s1;
-    
+
     if (longer.length === 0) return 1.0;
     
     const editDistance = getEditDistance(s1, s2);

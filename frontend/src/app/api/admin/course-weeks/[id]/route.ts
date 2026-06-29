@@ -93,7 +93,7 @@ export async function PATCH(
         { 
           success: false, 
           message: "Validation failed",
-          details: error.errors
+          details: error.issues
         },
         { status: 400 }
       );

@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import "load-env";
 import { pgDb as db } from "lib/db/pg/db.pg";
 import {
@@ -12,7 +11,7 @@ async function seedAcademicData() {
   try {
     // 1. Create Departments (4 Schools)
     console.log("📚 Creating 4 departments...");
-    const departments = await db
+    const departments = (await db
       .insert(DepartmentSchema)
       .values([
         {
@@ -48,7 +47,7 @@ async function seedAcademicData() {
           officeLocation: "Health Sciences Block",
         },
       ])
-      .returning();
+      .returning()) as (typeof DepartmentSchema.$inferSelect)[];
 
     console.log(`✅ Created ${departments.length} departments`);
 

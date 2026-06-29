@@ -39,7 +39,7 @@ export default function FacultyStudentsPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState("");
   const [students, setStudents] = useState<Student[]>([]);
-  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [, setLoadingCourses] = useState(true);
   const [loadingStudents, setLoadingStudents] = useState(false);
 
   useEffect(() => {

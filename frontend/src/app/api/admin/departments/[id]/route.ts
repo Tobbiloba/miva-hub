@@ -125,6 +125,14 @@ export async function PUT(
       code: validatedData.code?.toUpperCase() || existingDepartment.code
     });
 
+    if (!updatedDepartment) {
+      return NextResponse.json({
+        success: false,
+        error: 'Department not found',
+        message: `Department with ID "${id}" could not be updated`
+      }, { status: 404 });
+    }
+
     return NextResponse.json({
       success: true,
       data: updatedDepartment,
@@ -138,7 +146,7 @@ export async function PUT(
       return NextResponse.json({
         success: false,
         error: 'Validation failed',
-        details: error.errors
+        details: error.issues
       }, { status: 400 });
     }
     

@@ -2,19 +2,8 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, TestTube, AlertCircle, CheckCircle } from "lucide-react";
+import { Loader2, Save, TestTube } from "lucide-react";
 
 interface SystemSettingsClientProps {
   category: string;

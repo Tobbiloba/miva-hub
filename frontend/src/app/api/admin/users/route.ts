@@ -27,22 +27,6 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get("offset") || "0");
 
     // Build base query
-    let query = pgDb
-      .select({
-        user: UserSchema,
-        faculty: FacultySchema,
-        department: DepartmentSchema,
-      })
-      .from(UserSchema)
-      .leftJoin(FacultySchema, eq(UserSchema.id, FacultySchema.userId))
-      .leftJoin(
-        DepartmentSchema,
-        eq(FacultySchema.departmentId, DepartmentSchema.id),
-      )
-      .orderBy(desc(UserSchema.createdAt))
-      .limit(limit)
-      .offset(offset);
-
     // Apply filters
     const conditions: (SQL<unknown> | undefined)[] = [];
 
@@ -72,12 +56,22 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(FacultySchema.departmentId, department));
     }
 
-    // Apply conditions if any
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-
-    const users = await query;
+    const users = await pgDb
+      .select({
+        user: UserSchema,
+        faculty: FacultySchema,
+        department: DepartmentSchema,
+      })
+      .from(UserSchema)
+      .leftJoin(FacultySchema, eq(UserSchema.id, FacultySchema.userId))
+      .leftJoin(
+        DepartmentSchema,
+        eq(FacultySchema.departmentId, DepartmentSchema.id),
+      )
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(UserSchema.createdAt))
+      .limit(limit)
+      .offset(offset);
 
     // Transform data to match the frontend interface
     const transformedUsers = users.map(({ user, faculty, department }) => ({

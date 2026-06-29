@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { UserSchema, FacultySchema, DepartmentSchema } from "@/lib/db/pg/schema.pg";
+import { UserSchema, FacultySchema, type UserEntity } from "@/lib/db/pg/schema.pg";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const userData = user[0];
+    const userData = user[0] as UserEntity;
     const userRole = getUserRole(userData);
 
     // Remove sensitive information
@@ -76,7 +76,9 @@ export async function GET(request: NextRequest) {
           pgAcademicRepository.getFacultyGradingQueue(facultyRecord.id, 5).catch(() => [])
         ]);
 
-        let departmentData = null;
+        let departmentData: Awaited<
+          ReturnType<typeof pgAcademicRepository.getDepartmentById>
+        > = null;
         if (facultyRecord.departmentId) {
           departmentData = await pgAcademicRepository.getDepartmentById(facultyRecord.departmentId);
         }
@@ -162,7 +164,13 @@ export async function GET(request: NextRequest) {
 
 // Helper function to get recent activity
 async function getRecentActivity(userId: string, userRole: string | null) {
-  const activities = [];
+  const activities: Array<{
+    type: string;
+    message: string;
+    course?: string;
+    time: string;
+    icon: string;
+  }> = [];
   
   try {
     if (userRole === 'student') {
@@ -340,7 +348,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({
         success: false,
         error: 'Validation failed',
-        details: error.errors
+        details: error.issues
       }, { status: 400 });
     }
     

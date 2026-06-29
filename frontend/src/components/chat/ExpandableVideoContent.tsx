@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { Button } from 'ui/button';
 import { ChevronDown, ChevronUp, Video } from 'lucide-react';
 import { cn } from 'lib/utils';
 import { VideoPlayer } from '../media/VideoPlayer';

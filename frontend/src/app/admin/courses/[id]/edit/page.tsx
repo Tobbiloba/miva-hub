@@ -85,7 +85,7 @@ export default function EditCoursePage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [errors, setErrors] = useState<Partial<CourseFormData>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof CourseFormData, string>>>({});
   const { toast } = useToast();
   const router = useRouter();
   const params = useParams();
@@ -157,7 +157,7 @@ export default function EditCoursePage() {
   }, [courseId]); // Remove toast and router from dependencies to prevent infinite loop
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<CourseFormData> = {};
+    const newErrors: Partial<Record<keyof CourseFormData, string>> = {};
 
     if (!formData.courseCode.trim()) {
       newErrors.courseCode = "Course code is required";

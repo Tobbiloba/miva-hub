@@ -19,7 +19,6 @@ import { safe } from "ts-safe";
 import { authClient } from "auth/client";
 import { toast } from "sonner";
 import { GithubIcon } from "ui/github-icon";
-import { GoogleIcon } from "ui/google-icon";
 import { useTranslations } from "next-intl";
 import { MicrosoftIcon } from "ui/microsoft-icon";
 import { SocialAuthenticationProvider } from "app-types/authentication";

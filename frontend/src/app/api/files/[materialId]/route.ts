@@ -9,10 +9,10 @@ interface Params {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Params },
+  { params }: { params: Promise<Params> },
 ) {
   try {
-    const { materialId } = params;
+    const { materialId } = await params;
 
     // Validate materialId format
     if (!materialId || materialId.length < 10) {
@@ -122,18 +122,11 @@ async function getUserRole(
     if (user?.role === "admin" || user?.role === "super_admin") {
       return "admin";
     }
-  } catch (error) {
-    console.log("Error checking admin status:", error);
-  }
-
-  // Faculty check - look up in faculty table
-  try {
-    const faculty = await pgAcademicRepository.getFacultyByEmail(userEmail);
-    if (faculty) {
+    if (user?.role === "faculty") {
       return "faculty";
     }
   } catch (error) {
-    console.log("Error checking faculty status:", error);
+    console.log("Error checking user role:", error);
   }
 
   // Default to student
@@ -193,7 +186,7 @@ async function checkUserAccess(
     // Faculty users have access to courses they teach
     if (userRole === "faculty" && userEmail) {
       // Check if faculty is assigned to teach this course
-      const faculty = await pgAcademicRepository.getFacultyByEmail(userEmail);
+      const faculty = await pgAcademicRepository.getFacultyByUserId(userId);
       if (faculty) {
         // TODO: Check course instructor assignments
         // For now, allow faculty access to all courses
@@ -203,11 +196,9 @@ async function checkUserAccess(
 
     // Students can only access courses they're enrolled in (FERPA compliance)
     if (userRole === "student") {
-      const enrollment = await pgAcademicRepository.getStudentEnrollment(
-        userId,
-        courseId,
-      );
-      return !!enrollment;
+      const enrollments =
+        await pgAcademicRepository.getStudentEnrollments(userId);
+      return enrollments.some((e) => e.courseId === courseId);
     }
 
     // Deny access by default

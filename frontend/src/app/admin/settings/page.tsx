@@ -1,6 +1,5 @@
 "use client";
 import { SystemSettingsClient } from "@/components/admin/system-settings-client";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,18 +20,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import {
   AlertTriangle,
-  Bell,
   BookOpen,
-  Calendar,
   CheckCircle,
-  Clock,
   Database,
   Download,
   Globe,
-  Key,
   Loader2,
   Mail,
   RefreshCw,
@@ -40,8 +34,6 @@ import {
   Server,
   Settings,
   Shield,
-  Upload,
-  Users,
   Zap,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
@@ -129,7 +121,6 @@ export default function SystemSettingsPage() {
     const value = getSettingValue(category, key, defaultValue);
 
     return {
-      id: settingId,
       name: `setting-${settingId}`,
       value: value || defaultValue,
       defaultValue: value || defaultValue,

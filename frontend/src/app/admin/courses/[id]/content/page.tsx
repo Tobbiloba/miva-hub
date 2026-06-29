@@ -1,18 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WeeklyContentBuilder } from "@/components/admin/weekly-content-builder";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
   BookOpen,
   Calendar,
-  Plus,
   Settings,
   CheckCircle,
   Clock,
@@ -20,7 +17,6 @@ import {
   List,
   Grid,
   Loader2,
-  FileText,
   Users,
   BarChart3
 } from "lucide-react";
@@ -37,7 +33,6 @@ interface CourseWithDepartment extends CourseEntity {
 
 export default function CourseContentManagementPage() {
   const params = useParams();
-  const router = useRouter();
   const courseId = params.id as string;
   const [course, setCourse] = useState<CourseWithDepartment | null>(null);
   const [courseWeeks, setCourseWeeks] = useState<CourseWeekEntity[]>([]);

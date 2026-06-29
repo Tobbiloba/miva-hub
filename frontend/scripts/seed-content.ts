@@ -50,21 +50,6 @@ const COURSES = {
   COS307: "14ae95ed-55b6-45da-86d1-31c00b9eaaea",
 };
 
-// Course → primary instructor mapping
-const INSTRUCTOR = {
-  COS201: USERS.adebayo,
-  COS203: USERS.kemi,
-  COS205: USERS.adebayo,
-  MTH201: USERS.funke,
-  GST112: USERS.funke,
-  COS101: USERS.adebayo,
-  MTH101: USERS.funke,
-  COS301: USERS.kemi,
-  COS303: USERS.tunde,
-  COS305: USERS.adebayo,
-  COS307: USERS.tunde,
-};
-
 // ──────────────────────────────────────────────
 // Helpers
 // ──────────────────────────────────────────────
@@ -90,7 +75,7 @@ async function upsert(
   client: pg.PoolClient,
   table: string,
   uniqueCheck: { column: string; value: string }[],
-  row: Record<string, unknown>,
+  row: object,
 ): Promise<string | null> {
   // Check existence
   const whereClauses = uniqueCheck.map((c, i) => `"${c.column}" = $${i + 1}`).join(" AND ");

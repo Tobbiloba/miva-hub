@@ -59,7 +59,7 @@ export async function fetchVimeoVtt(
   const html = await res.text();
 
   // Extract playerConfig JSON from the HTML
-  const configMatch = html.match(/window\.playerConfig\s*=\s*({.+?});?\s*(?:<\/script>|$)/s);
+  const configMatch = html.match(/window\.playerConfig\s*=\s*({[\s\S]+?});?\s*(?:<\/script>|$)/);
   if (!configMatch) {
     console.warn("[transcript] Could not find playerConfig in Vimeo HTML");
     return null;

@@ -1,6 +1,6 @@
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { StudyActivitySchema, UserSchema } from "@/lib/db/pg/schema.pg";
-import { eq, sql } from "drizzle-orm";
+import { StudyActivitySchema } from "@/lib/db/pg/schema.pg";
+import { sql } from "drizzle-orm";
 import { existsTodayForStudent, createNotification } from "./helpers";
 
 const MILESTONES = [3, 7, 14, 30, 60];

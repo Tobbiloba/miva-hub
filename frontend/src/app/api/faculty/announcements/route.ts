@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireFaculty, checkCourseInstructorAccess } from "@/lib/auth/faculty";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { AnnouncementSchema, CourseSchema } from "@/lib/db/pg/schema.pg";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 
 const createAnnouncementSchema = z.object({
@@ -86,7 +85,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Validation failed", details: error.errors },
+        { error: "Validation failed", details: error.issues },
         { status: 400 }
       );
     }

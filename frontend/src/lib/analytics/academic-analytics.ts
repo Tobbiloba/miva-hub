@@ -132,9 +132,9 @@ class AcademicAnalyticsService {
 
         const courseAnalytics = await Promise.all(
           courses.map(async (course) => {
-            const [stats, faculty] = await Promise.all([
+            const [stats, instructors] = await Promise.all([
               pgAcademicRepository.getCourseStatistics(course.id, currentSemester),
-              pgAcademicRepository.getCourseInstructor(course.id, currentSemester)
+              pgAcademicRepository.getCourseInstructors(course.id, currentSemester)
             ]);
 
             return {
@@ -146,7 +146,7 @@ class AcademicAnalyticsService {
               averageGrade: stats.averageGrade,
               submissionRate: stats.submissionRate,
               departmentName: course.departmentId, // Would need to join with department
-              facultyName: faculty?.instructor?.name || 'TBA'
+              facultyName: instructors?.[0]?.user?.name || 'TBA'
             };
           })
         );
@@ -186,8 +186,6 @@ class AcademicAnalyticsService {
     
     return this.cached(cacheKey, async () => {
       try {
-        const currentSemester = await getCurrentSemester();
-        
         // Get faculty members
         const faculty = departmentId
           ? await pgAcademicRepository.getFacultyByDepartment(departmentId)
@@ -196,17 +194,19 @@ class AcademicAnalyticsService {
         const facultyAnalytics = await Promise.all(
           faculty.map(async (member) => {
             const assignments = await pgAcademicRepository.getFacultyAssignmentsWithStatistics(member.id);
-            
+
             // Calculate metrics
             const coursesTeaching = [...new Set(assignments.map(a => a.assignment.courseId))].length;
-            const totalStudents = assignments.reduce((sum, a) => sum + (a.submissionStats?.enrolledStudents || 0), 0);
+            // Enrollment counts are not returned by getFacultyAssignmentsWithStatistics;
+            // computing this requires a dedicated enrollment query (not yet implemented).
+            const totalStudents = 0;
             const assignmentsCreated = assignments.length;
             const gradingWorkload = assignments.reduce((sum, a) => sum + (a.submissionStats?.pendingSubmissions || 0), 0);
 
             return {
               facultyId: member.id,
-              facultyName: member.name,
-              department: member.departmentId, // Would need to join with department name
+              facultyName: member.name || 'Unknown',
+              department: member.departmentId || 'Unknown', // Would need to join with department name
               coursesTeaching,
               totalStudents,
               assignmentsCreated,

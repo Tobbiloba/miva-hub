@@ -77,10 +77,10 @@ async function seedMajorsAndCourses() {
 
     // Step 1: Create departments (14 majors)
     console.log("📚 Creating 14 majors as departments...");
-    const departments = await db
+    const departments = (await db
       .insert(DepartmentSchema)
       .values(majors)
-      .returning();
+      .returning()) as (typeof DepartmentSchema.$inferSelect)[];
 
     console.log(`✅ Created ${departments.length} majors`);
 

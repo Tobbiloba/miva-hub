@@ -26,15 +26,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 interface CoursePageProps {
-  params: {
+  params: Promise<{
     courseId: string;
-  };
-  searchParams: {
+  }>;
+  searchParams: Promise<{
     semester?: string;
-  };
+  }>;
 }
 
 export default async function CourseManagementPage({ params, searchParams }: CoursePageProps) {
+  const { courseId } = await params;
+  const { semester: semesterParam } = await searchParams;
   const session = await getSession();
   const facultyInfo = getFacultyInfo(session);
   
@@ -43,7 +45,7 @@ export default async function CourseManagementPage({ params, searchParams }: Cou
   }
 
   // Verify faculty can access this course
-  const sessionOrError = await requireCourseInstructor(params.courseId, searchParams.semester);
+  const sessionOrError = await requireCourseInstructor(courseId, semesterParam);
   if (!sessionOrError || typeof sessionOrError !== 'object') {
     return <div>Error: Access denied to this course</div>;
   }
@@ -51,16 +53,16 @@ export default async function CourseManagementPage({ params, searchParams }: Cou
   // Get current semester dynamically for fallback
   const { getCurrentSemester } = await import("@/lib/utils/semester");
   const currentSemester = await getCurrentSemester();
-  const semester = searchParams.semester || currentSemester;
+  const semester = semesterParam || currentSemester;
 
   // Get course details
   const [courseDetails, courseStats, courseSchedule, courseMaterials, courseStudents, courseAssignments] = await Promise.all([
-    pgAcademicRepository.getCourseWithInstructor(params.courseId, semester),
-    pgAcademicRepository.getCourseStatistics(params.courseId, semester),
-    pgAcademicRepository.getCourseSchedule(params.courseId, semester),
-    pgAcademicRepository.getCourseMaterials(params.courseId),
-    pgAcademicRepository.getCourseEnrollments(params.courseId, semester),
-    pgAcademicRepository.getFacultyAssignments((await pgAcademicRepository.getFacultyByUserId(facultyInfo.id))!.id, params.courseId)
+    pgAcademicRepository.getCourseWithInstructor(courseId, semester),
+    pgAcademicRepository.getCourseStatistics(courseId, semester),
+    pgAcademicRepository.getCourseSchedule(courseId, semester),
+    pgAcademicRepository.getCourseMaterials(courseId),
+    pgAcademicRepository.getCourseEnrollments(courseId, semester),
+    pgAcademicRepository.getFacultyAssignments((await pgAcademicRepository.getFacultyByUserId(facultyInfo.id))!.id, courseId)
   ]);
 
   if (!courseDetails || courseDetails.length === 0) {
@@ -187,19 +189,19 @@ export default async function CourseManagementPage({ params, searchParams }: Cou
         </TabsContent>
 
         <TabsContent value="assignments" className="space-y-4">
-          <CourseAssignments assignments={courseAssignments} courseId={params.courseId} />
+          <CourseAssignments assignments={courseAssignments} courseId={courseId} />
         </TabsContent>
 
         <TabsContent value="materials" className="space-y-4">
-          <CourseMaterials materials={courseMaterials} courseId={params.courseId} />
+          <CourseMaterials materials={courseMaterials} courseId={courseId} />
         </TabsContent>
 
         <TabsContent value="grades" className="space-y-4">
-          <CourseGrades courseId={params.courseId} />
+          <CourseGrades courseId={courseId} />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4">
-          <CourseAnalytics courseId={params.courseId} stats={courseStats} />
+          <CourseAnalytics courseId={courseId} stats={courseStats} />
         </TabsContent>
       </Tabs>
     </div>

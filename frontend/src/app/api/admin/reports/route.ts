@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { ReportConfigSchema, ReportInstanceSchema, UserSchema } from "@/lib/db/pg/schema.pg";
-import { eq, and, sql, desc, ilike, or } from "drizzle-orm";
+import { ReportConfigSchema, ReportInstanceSchema, UserSchema, type ReportConfigEntity } from "@/lib/db/pg/schema.pg";
+import { eq, and, sql, desc, ilike, or, type SQL } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,36 +19,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    // Build query for report configs with latest instance info
-    let query = pgDb
-      .select({
-        config: ReportConfigSchema,
-        creator: UserSchema,
-        latestInstance: ReportInstanceSchema,
-      })
-      .from(ReportConfigSchema)
-      .leftJoin(UserSchema, eq(ReportConfigSchema.createdById, UserSchema.id))
-      .leftJoin(
-        ReportInstanceSchema, 
-        and(
-          eq(ReportConfigSchema.id, ReportInstanceSchema.reportConfigId),
-          eq(ReportInstanceSchema.id, 
-            pgDb.select({
-              id: ReportInstanceSchema.id
-            })
-            .from(ReportInstanceSchema)
-            .where(eq(ReportInstanceSchema.reportConfigId, ReportConfigSchema.id))
-            .orderBy(desc(ReportInstanceSchema.generatedAt))
-            .limit(1)
-          )
-        )
-      )
-      .orderBy(desc(ReportConfigSchema.createdAt))
-      .limit(limit)
-      .offset(offset);
-
     // Apply filters
-    const conditions = [];
+    const conditions: (SQL | undefined)[] = [];
 
     if (search) {
       conditions.push(
@@ -60,11 +32,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (category && category !== 'all') {
-      conditions.push(eq(ReportConfigSchema.category, category));
+      conditions.push(eq(ReportConfigSchema.category, category as ReportConfigEntity["category"]));
     }
 
     if (reportType && reportType !== 'all') {
-      conditions.push(eq(ReportConfigSchema.reportType, reportType));
+      conditions.push(eq(ReportConfigSchema.reportType, reportType as ReportConfigEntity["reportType"]));
     }
 
     if (status && status !== 'all') {
@@ -76,14 +48,37 @@ export async function GET(request: NextRequest) {
     }
 
     if (schedule && schedule !== 'all') {
-      conditions.push(eq(ReportConfigSchema.schedule, schedule));
+      conditions.push(eq(ReportConfigSchema.schedule, schedule as ReportConfigEntity["schedule"]));
     }
 
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-
-    const reports = await query;
+    // Build query for report configs with latest instance info
+    const reports = await pgDb
+      .select({
+        config: ReportConfigSchema,
+        creator: UserSchema,
+        latestInstance: ReportInstanceSchema,
+      })
+      .from(ReportConfigSchema)
+      .leftJoin(UserSchema, eq(ReportConfigSchema.createdById, UserSchema.id))
+      .leftJoin(
+        ReportInstanceSchema,
+        and(
+          eq(ReportConfigSchema.id, ReportInstanceSchema.reportConfigId),
+          eq(ReportInstanceSchema.id,
+            pgDb.select({
+              id: ReportInstanceSchema.id
+            })
+            .from(ReportInstanceSchema)
+            .where(eq(ReportInstanceSchema.reportConfigId, ReportConfigSchema.id))
+            .orderBy(desc(ReportInstanceSchema.generatedAt))
+            .limit(1)
+          )
+        )
+      )
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(ReportConfigSchema.createdAt))
+      .limit(limit)
+      .offset(offset);
 
     // Transform data to match frontend interface
     const transformedReports = reports.map(({ config, creator, latestInstance }) => ({

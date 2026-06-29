@@ -30,10 +30,11 @@ import {
 } from "@/components/ui/select";
 
 interface PageProps {
-  searchParams: { courseId?: string; semester?: string };
+  searchParams: Promise<{ courseId?: string; semester?: string }>;
 }
 
 export default async function FacultyGradesPage({ searchParams }: PageProps) {
+  const { courseId } = await searchParams;
   const session = await getSession();
   const facultyInfo = getFacultyInfo(session);
   
@@ -57,11 +58,11 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
   let gradebookData: Awaited<ReturnType<typeof pgAcademicRepository.getCourseGradebook>> | null = null;
   let selectedCourse: typeof facultyCourses[0] | null = null;
   
-  if (searchParams.courseId) {
-    selectedCourse = facultyCourses.find(fc => fc.course.id === searchParams.courseId) || null;
+  if (courseId) {
+    selectedCourse = facultyCourses.find(fc => fc.course.id === courseId) || null;
     if (selectedCourse) {
       gradebookData = await pgAcademicRepository.getCourseGradebook(
-        searchParams.courseId, 
+        courseId, 
         facultyRecord.id
       );
     }
@@ -164,7 +165,7 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
               </div>
             </div>
             
-            <Select value={searchParams.courseId || "all"}>
+            <Select value={courseId || "all"}>
               <SelectTrigger className="w-[280px]">
                 <SelectValue placeholder="Select course" />
               </SelectTrigger>
@@ -221,7 +222,7 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
         <TabsContent value="analytics" className="space-y-4">
           <GradeAnalytics 
             courses={facultyCourses} 
-            selectedCourseId={searchParams.courseId}
+            selectedCourseId={courseId}
           />
         </TabsContent>
       </Tabs>

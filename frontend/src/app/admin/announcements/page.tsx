@@ -39,7 +39,6 @@ import {
   Send,
   Clock,
   MoreHorizontal,
-  Calendar,
   Users,
   AlertTriangle,
   CheckCircle,

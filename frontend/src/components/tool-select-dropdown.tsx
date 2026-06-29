@@ -9,14 +9,11 @@ import {
   CodeIcon,
   GlobeIcon,
   HardDriveUploadIcon,
-  InfoIcon,
   Loader,
   MessageCircle,
-  MousePointer2,
   Package,
   Plus,
   ShieldAlertIcon,
-  Waypoints,
   Wrench,
   WrenchIcon,
   X,
@@ -64,7 +61,6 @@ import { CountAnimation } from "ui/count-animation";
 import { Separator } from "ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
 import { AgentSummary } from "app-types/agent";
-import { authClient } from "auth/client";
 
 import { Alert, AlertDescription, AlertTitle } from "ui/alert";
 import { safe } from "ts-safe";

@@ -13,10 +13,9 @@ import { FolderOpen, Plus, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { getSession } from "@/lib/auth/server";
 import { getFacultyInfo } from "@/lib/auth/faculty";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { CourseMaterialSchema, CourseSchema, CourseInstructorSchema, FacultySchema } from "@/lib/db/pg/schema.pg";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { CourseMaterialSchema, CourseSchema } from "@/lib/db/pg/schema.pg";
+import { eq, desc } from "drizzle-orm";
 
 export default async function FacultyMaterialsPage() {
   const session = await getSession();

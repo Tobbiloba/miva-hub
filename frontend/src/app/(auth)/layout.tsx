@@ -1,8 +1,6 @@
-import { Think } from "ui/think";
 import { getTranslations } from "next-intl/server";
 import { FlipWords } from "ui/flip-words";
-import ShapeHero, { BackgroundPaths } from "ui/background-paths";
-import ShimmerText from "./sign-in/_components/text";
+import ShapeHero from "ui/background-paths";
 
 export default async function AuthLayout({
   children,

@@ -1,10 +1,5 @@
 import { pgDb } from "@/lib/db/pg/db.pg";
-import {
-  StudentEnrollmentSchema,
-  StudyActivitySchema,
-  CourseSchema,
-} from "@/lib/db/pg/schema.pg";
-import { eq, and, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { existsTodayForStudent, createNotification } from "./helpers";
 
 export async function generateCourseNeglectedNotifications(): Promise<number> {

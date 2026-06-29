@@ -27,7 +27,6 @@ import { errorIf, safe } from "ts-safe";
 import { getSession } from "auth/server";
 import { colorize } from "consola/utils";
 import {
-  academicConversationMemory,
   getAcademicConversationContext,
   recordAcademicConversation,
 } from "lib/ai/academic-conversation-memory";

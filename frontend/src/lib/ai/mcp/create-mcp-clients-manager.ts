@@ -273,8 +273,8 @@ export class MCPClientsManager {
         if (!client) throw new Error(`Client ${id} not found`);
         console.log(`🔧 [MCP DEBUG] Client found:`, {
           clientId: id,
-          clientStatus: client.status,
-          toolInfo: client.toolInfo?.length || 0
+          clientStatus: client.client.status,
+          toolInfo: client.client.toolInfo?.length || 0
         });
         return client.client;
       })
