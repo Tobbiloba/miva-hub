@@ -39,13 +39,14 @@ async function main() {
   // ─── Step 2: Program ─────────────────────────────────────────────────────
   let program = (await db.select().from(ProgramSchema).where(eq(ProgramSchema.code, "CS")).limit(1))[0];
   if (!program) {
-    [program] = await db.insert(ProgramSchema).values({
+    [program] = (await db.insert(ProgramSchema).values({
       code: "CS",
       name: "B.Sc Computer Science",
       description: "Bachelor of Science in Computer Science. 4-year program covering theoretical foundations, software development, data structures, algorithms, and applied computing.",
       departmentId: csDept.id,
+      universityId: csDept.universityId,
       isActive: true,
-    }).returning();
+    }).returning()) as (typeof ProgramSchema.$inferSelect)[];
     console.log(`✅ Step 2: Program created — ${program.name} (${program.id})`);
   } else {
     console.log(`✅ Step 2: Program already exists — ${program.name} (${program.id})`);
@@ -152,6 +153,7 @@ async function main() {
     await db.update(AcademicSessionSchema).set({ isCurrent: false }).where(eq(AcademicSessionSchema.isCurrent, true));
 
     [session] = await db.insert(AcademicSessionSchema).values({
+      universityId: csDept.universityId,
       sessionName: "2025/2026",
       currentSemester: "first",
       isCurrent: true,
@@ -222,6 +224,7 @@ async function main() {
     const [created] = await db.insert(CourseSchema).values({
       ...course,
       departmentId: csDept.id,
+      universityId: csDept.universityId,
       isActive: true,
       totalWeeks: 16,
     }).returning();

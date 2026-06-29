@@ -1,11 +1,25 @@
 import "load-env";
 import { pgDb as db } from "lib/db/pg/db.pg";
-import { DepartmentSchema, CourseSchema } from "lib/db/pg/schema.pg";
+import { DepartmentSchema, CourseSchema, UniversitySchema } from "lib/db/pg/schema.pg";
+import { eq } from "drizzle-orm";
 
 console.log("🎓 Seeding MIVA University - 14 Majors with All Courses");
 
 async function seedMajorsAndCourses() {
   try {
+    // Resolve the MIVA university so all academic data is tenant-scoped.
+    const [university] = await db
+      .select()
+      .from(UniversitySchema)
+      .where(eq(UniversitySchema.slug, "miva"));
+
+    if (!university) {
+      console.error(
+        "❌ MIVA university not found. Seed the university (slug 'miva') before majors and courses.",
+      );
+      return false;
+    }
+
     // 14 Majors treated as departments
     const majors = [
       {
@@ -79,7 +93,7 @@ async function seedMajorsAndCourses() {
     console.log("📚 Creating 14 majors as departments...");
     const departments = (await db
       .insert(DepartmentSchema)
-      .values(majors)
+      .values(majors.map((m) => ({ ...m, universityId: university.id })))
       .returning()) as (typeof DepartmentSchema.$inferSelect)[];
 
     console.log(`✅ Created ${departments.length} majors`);
@@ -631,7 +645,7 @@ async function seedMajorsAndCourses() {
       { courseCode: "PHS413", title: "Research Methods in Public Health II", level: "400L", semester: "fall", major: "PHS" },
       { courseCode: "PHS414", title: "Human Health and Climate change", level: "400L", semester: "spring", major: "PHS" },
       { courseCode: "PHS415", title: "Epidemiology, Disease Control & Surveillance", level: "400L", semester: "fall", major: "PHS" },
-    ];
+    ] as const;
 
     const createdCourses = await db
       .insert(CourseSchema)
@@ -641,6 +655,7 @@ async function seedMajorsAndCourses() {
           title: course.title,
           credits: 3,
           departmentId: deptMap[course.major],
+          universityId: university.id,
           level: course.level,
           semesterOffered: course.semester,
         }))

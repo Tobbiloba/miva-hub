@@ -48,7 +48,7 @@ async function add400LCybersecurityAndSoftwareEngCourses() {
       { courseCode: "CYB411", title: "Final Year Project II", level: "400L", semester: "spring" },
       { courseCode: "CYB412", title: "Steganography: Access Methods and Data Hiding", level: "400L", semester: "spring" },
       { courseCode: "CYB413", title: "Cloud Computing Security", level: "400L", semester: "spring" },
-    ];
+    ] as const;
 
     // 400L Software Engineering courses
     const sen400LCourses = [
@@ -68,7 +68,7 @@ async function add400LCybersecurityAndSoftwareEngCourses() {
       { courseCode: "SEN412", title: "Compiler Construction", level: "400L", semester: "spring" },
       { courseCode: "SEN413", title: "Machine Learning", level: "400L", semester: "spring" },
       { courseCode: "SEN414", title: "Cloud Computing Security", level: "400L", semester: "spring" },
-    ];
+    ] as const;
 
     // Add Cybersecurity courses
     console.log("\n🔒 Adding Cybersecurity 400L courses...");
@@ -80,6 +80,7 @@ async function add400LCybersecurityAndSoftwareEngCourses() {
           title: course.title,
           credits: 3,
           departmentId: cybDept.id,
+          universityId: cybDept.universityId,
           level: course.level,
           semesterOffered: course.semester,
           isActive: true,
@@ -99,6 +100,7 @@ async function add400LCybersecurityAndSoftwareEngCourses() {
           title: course.title,
           credits: 3,
           departmentId: senDept.id,
+          universityId: senDept.universityId,
           level: course.level,
           semesterOffered: course.semester,
           isActive: true,

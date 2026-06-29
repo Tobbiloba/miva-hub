@@ -34,7 +34,7 @@ async function add400LCSCourses() {
       { courseCode: "CSC410", title: "Final Year Project II", level: "400L", semester: "spring" },
       { courseCode: "CSC411", title: "Compiler Construction", level: "400L", semester: "spring" },
       { courseCode: "CSC412", title: "Cloud Computing Security", level: "400L", semester: "spring" },
-    ];
+    ] as const;
 
     // Add courses to database
     const createdCourses = await db
@@ -45,6 +45,7 @@ async function add400LCSCourses() {
           title: course.title,
           credits: 3,
           departmentId: csDept.id,
+          universityId: csDept.universityId,
           level: course.level,
           semesterOffered: course.semester,
           isActive: true,

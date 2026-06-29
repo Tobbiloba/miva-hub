@@ -3,12 +3,27 @@ import { pgDb as db } from "lib/db/pg/db.pg";
 import {
   DepartmentSchema,
   CourseSchema,
+  UniversitySchema,
 } from "lib/db/pg/schema.pg";
+import { eq } from "drizzle-orm";
 
 console.log("🌱 Starting MIVA University Academic Data Seeding...");
 
 async function seedAcademicData() {
   try {
+    // Resolve the MIVA university so all academic data is tenant-scoped.
+    const [university] = await db
+      .select()
+      .from(UniversitySchema)
+      .where(eq(UniversitySchema.slug, "miva"));
+
+    if (!university) {
+      console.error(
+        "❌ MIVA university not found. Seed the university (slug 'miva') before academic data.",
+      );
+      return false;
+    }
+
     // 1. Create Departments (4 Schools)
     console.log("📚 Creating 4 departments...");
     const departments = (await db
@@ -21,6 +36,7 @@ async function seedAcademicData() {
           contactEmail: "computing@miva.edu.ng",
           contactPhone: "+234-xxx-xxx-xxxx",
           officeLocation: "Computing Block",
+          universityId: university.id,
         },
         {
           code: "MGMT",
@@ -29,6 +45,7 @@ async function seedAcademicData() {
           contactEmail: "management@miva.edu.ng",
           contactPhone: "+234-xxx-xxx-xxxx",
           officeLocation: "Management Block",
+          universityId: university.id,
         },
         {
           code: "COMM",
@@ -37,6 +54,7 @@ async function seedAcademicData() {
           contactEmail: "communication@miva.edu.ng",
           contactPhone: "+234-xxx-xxx-xxxx",
           officeLocation: "Communication Block",
+          universityId: university.id,
         },
         {
           code: "HLTH",
@@ -45,6 +63,7 @@ async function seedAcademicData() {
           contactEmail: "health@miva.edu.ng",
           contactPhone: "+234-xxx-xxx-xxxx",
           officeLocation: "Health Sciences Block",
+          universityId: university.id,
         },
       ])
       .returning()) as (typeof DepartmentSchema.$inferSelect)[];
@@ -556,11 +575,11 @@ async function seedAcademicData() {
       { courseCode: "SEN311", title: "Web Application Development", credits: 3, departmentId: deptMap["COMP"], level: "300L", semesterOffered: "fall" },
       { courseCode: "STA111", title: "Descriptive Statistics", credits: 3, departmentId: deptMap["COMP"], level: "100L", semesterOffered: "fall" },
       { courseCode: "STA112", title: "Introduction to Statistics II", credits: 3, departmentId: deptMap["MGMT"], level: "100L", semesterOffered: "spring" },
-    ];
+    ] as const;
 
     const createdCourses = await db
       .insert(CourseSchema)
-      .values(allCourses)
+      .values(allCourses.map((c) => ({ ...c, universityId: university.id })))
       .returning();
 
     console.log(`✅ Created ${createdCourses.length} unique courses`);

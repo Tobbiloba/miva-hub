@@ -1,11 +1,28 @@
 import "load-env";
 import { pgDb as db } from "lib/db/pg/db.pg";
-import { DepartmentSchema, ProgramSchema } from "lib/db/pg/schema.pg";
+import {
+  DepartmentSchema,
+  ProgramSchema,
+  UniversitySchema,
+} from "lib/db/pg/schema.pg";
+import { eq } from "drizzle-orm";
 
 console.log("🎓 Starting Programs/Majors Seeding...");
 
 async function seedPrograms() {
   try {
+    const [university] = await db
+      .select()
+      .from(UniversitySchema)
+      .where(eq(UniversitySchema.slug, "miva"));
+
+    if (!university) {
+      console.error(
+        "❌ MIVA university not found. Seed the university (slug 'miva') before programs.",
+      );
+      return false;
+    }
+
     // Programs organized by department
     const programsData = [
       // School of Computing (COMP)
@@ -113,6 +130,7 @@ async function seedPrograms() {
           name: prog.name,
           description: prog.description,
           departmentId: deptMap[prog.deptCode],
+          universityId: university.id,
         }))
       )
       .returning()) as (typeof ProgramSchema.$inferSelect)[];
