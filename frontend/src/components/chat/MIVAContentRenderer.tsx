@@ -1,10 +1,7 @@
 "use client";
 
-import { useState } from 'react';
 import { ContentRenderer } from './ContentRenderer';
-import { MaterialViewer } from './MaterialViewer';
-import { appStore } from '@/app/store';
-import { useShallow } from 'zustand/shallow';
+import { callMcpToolByServerNameAction } from '@/app/api/mcp/actions';
 
 interface MIVAContentRendererProps {
   toolName: string;
@@ -12,13 +9,6 @@ interface MIVAContentRendererProps {
 }
 
 export function MIVAContentRenderer({ toolName, result }: MIVAContentRendererProps) {
-  const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
-  const [showMaterialViewer, setShowMaterialViewer] = useState(false);
-
-  const [mcpClientsManager] = appStore(
-    useShallow((state) => [state.mcpClientsManager])
-  );
-
   // Extract content from result structure
   const getContent = () => {
     // Handle different result structures
@@ -68,24 +58,10 @@ export function MIVAContentRenderer({ toolName, result }: MIVAContentRendererPro
   // Handle tool calls from the content renderer
   const handleToolCall = async (toolName: string, params: any) => {
     try {
-      if (mcpClientsManager) {
-        await mcpClientsManager.toolCallByServerName('miva-academic', toolName, params);
-      }
+      await callMcpToolByServerNameAction('miva-academic', toolName, params);
     } catch (error) {
       console.error('Tool call failed:', error);
     }
-  };
-
-  // Handle material viewing
-  const handleViewMaterial = (material: any) => {
-    setSelectedMaterial(material);
-    setShowMaterialViewer(true);
-  };
-
-  // Handle material download
-  const handleDownloadMaterial = (material: any) => {
-    const downloadUrl = `/api/files/stream?url=${encodeURIComponent(material.file_url)}`;
-    window.open(downloadUrl, '_blank');
   };
 
   const content = getContent();
@@ -115,47 +91,6 @@ export function MIVAContentRenderer({ toolName, result }: MIVAContentRendererPro
   }
 
   // Render special content types with enhanced UI
-  if (contentType === 'course_materials' && content.materials) {
-    return (
-      <div className="space-y-4">
-        <ContentRenderer 
-          content={content} 
-          type={contentType} 
-          onToolCall={handleToolCall}
-        />
-        
-        {/* Material Viewer Modal */}
-        <MaterialViewer
-          material={selectedMaterial}
-          isOpen={showMaterialViewer}
-          onClose={() => setShowMaterialViewer(false)}
-          onGenerateStudyGuide={() => {
-            handleToolCall('generate_study_guide', {
-              course_id: content.course_code,
-              difficulty_level: 'medium'
-            });
-            setShowMaterialViewer(false);
-          }}
-          onCreateFlashcards={() => {
-            handleToolCall('create_flashcards', {
-              course_id: content.course_code,
-              topic: selectedMaterial?.title || 'general',
-              count: 10
-            });
-            setShowMaterialViewer(false);
-          }}
-          onAskQuestion={() => {
-            handleToolCall('ask_study_question', {
-              question: `Tell me more about ${selectedMaterial?.title}`,
-              course_id: content.course_code
-            });
-            setShowMaterialViewer(false);
-          }}
-        />
-      </div>
-    );
-  }
-
   if (contentType === 'study_guide' && typeof content === 'string') {
     return (
       <div className="space-y-4">
@@ -186,11 +121,25 @@ export function MIVAContentRenderer({ toolName, result }: MIVAContentRendererPro
     );
   }
 
-  // Use ContentRenderer for other academic content types
+  // Use ContentRenderer for other academic content types. getContentType may
+  // produce richer types (e.g. course_info, syllabus) than ContentRenderer
+  // accepts; those fall back to its 'default' rendering.
+  const rendererTypes = [
+    'course_materials',
+    'enrollments',
+    'assignments',
+    'study_guide',
+    'announcements',
+    'schedule',
+  ] as const;
+  const rendererType = (rendererTypes as readonly string[]).includes(contentType)
+    ? (contentType as (typeof rendererTypes)[number])
+    : 'default';
+
   return (
-    <ContentRenderer 
-      content={content} 
-      type={contentType} 
+    <ContentRenderer
+      content={content}
+      type={rendererType}
       onToolCall={handleToolCall}
     />
   );
