@@ -423,8 +423,6 @@ export default function TestPage() {
                 instructor: "Dr. Smith",
                 status: "enrolled",
                 enrollment_date: "2024-08-20",
-                schedule: "Mon/Wed 9:00 AM - 10:30 AM",
-                location: "Room 301",
               },
               {
                 course_code: "CS305",
@@ -433,8 +431,6 @@ export default function TestPage() {
                 instructor: "Prof. Davis",
                 status: "enrolled",
                 enrollment_date: "2024-08-20",
-                schedule: "Tue 10:00 AM - 11:30 AM",
-                location: "Lab 101",
               },
               {
                 course_code: "MATH301",
@@ -443,8 +439,6 @@ export default function TestPage() {
                 instructor: "Dr. Johnson",
                 status: "enrolled",
                 enrollment_date: "2024-08-20",
-                schedule: "Mon/Thu 2:00 PM - 3:30 PM",
-                location: "Room 205",
               },
               {
                 course_code: "CS401",
@@ -453,8 +447,6 @@ export default function TestPage() {
                 instructor: "Prof. Williams",
                 status: "enrolled",
                 enrollment_date: "2024-08-20",
-                schedule: "Wed 1:00 PM - 2:30 PM, Fri 11:00 AM - 12:30 PM",
-                location: "Room 402",
               },
             ]}
           />
@@ -509,11 +501,11 @@ export default function TestPage() {
           <PieChart
             title="Student Grade Distribution"
             data={[
-              { name: "A", value: 25 },
-              { name: "B", value: 35 },
-              { name: "C", value: 20 },
-              { name: "D", value: 15 },
-              { name: "F", value: 5 },
+              { label: "A", value: 25 },
+              { label: "B", value: 35 },
+              { label: "C", value: 20 },
+              { label: "D", value: 15 },
+              { label: "F", value: 5 },
             ]}
           />
         </TabsContent>
@@ -522,12 +514,12 @@ export default function TestPage() {
           <BarChart
             title="Monthly Sales Performance"
             data={[
-              { name: "Jan", value: 4000 },
-              { name: "Feb", value: 3000 },
-              { name: "Mar", value: 5000 },
-              { name: "Apr", value: 4500 },
-              { name: "May", value: 6000 },
-              { name: "Jun", value: 5500 },
+              { xAxisLabel: "Jan", series: [{ seriesName: "Sales", value: 4000 }] },
+              { xAxisLabel: "Feb", series: [{ seriesName: "Sales", value: 3000 }] },
+              { xAxisLabel: "Mar", series: [{ seriesName: "Sales", value: 5000 }] },
+              { xAxisLabel: "Apr", series: [{ seriesName: "Sales", value: 4500 }] },
+              { xAxisLabel: "May", series: [{ seriesName: "Sales", value: 6000 }] },
+              { xAxisLabel: "Jun", series: [{ seriesName: "Sales", value: 5500 }] },
             ]}
           />
         </TabsContent>
@@ -536,12 +528,12 @@ export default function TestPage() {
           <LineChart
             title="Website Traffic Trend"
             data={[
-              { name: "Week 1", value: 1200 },
-              { name: "Week 2", value: 1900 },
-              { name: "Week 3", value: 1500 },
-              { name: "Week 4", value: 2200 },
-              { name: "Week 5", value: 2800 },
-              { name: "Week 6", value: 3200 },
+              { xAxisLabel: "Week 1", series: [{ seriesName: "Traffic", value: 1200 }] },
+              { xAxisLabel: "Week 2", series: [{ seriesName: "Traffic", value: 1900 }] },
+              { xAxisLabel: "Week 3", series: [{ seriesName: "Traffic", value: 1500 }] },
+              { xAxisLabel: "Week 4", series: [{ seriesName: "Traffic", value: 2200 }] },
+              { xAxisLabel: "Week 5", series: [{ seriesName: "Traffic", value: 2800 }] },
+              { xAxisLabel: "Week 6", series: [{ seriesName: "Traffic", value: 3200 }] },
             ]}
           />
         </TabsContent>
@@ -549,13 +541,19 @@ export default function TestPage() {
         <TabsContent value="table" className="mt-6">
           <InteractiveTable
             title="Course Enrollment Data"
-            headers={["Course Code", "Course Name", "Enrolled", "Capacity", "Status"]}
-            rows={[
-              ["CS101", "Intro to Programming", "45", "50", "Open"],
-              ["CS201", "Data Structures", "50", "50", "Full"],
-              ["CS301", "Algorithms", "38", "45", "Open"],
-              ["MATH301", "Calculus III", "42", "50", "Open"],
-              ["CS401", "Software Engineering", "35", "40", "Open"],
+            columns={[
+              { key: "course_code", label: "Course Code" },
+              { key: "course_name", label: "Course Name" },
+              { key: "enrolled", label: "Enrolled", type: "number" },
+              { key: "capacity", label: "Capacity", type: "number" },
+              { key: "status", label: "Status" },
+            ]}
+            data={[
+              { course_code: "CS101", course_name: "Intro to Programming", enrolled: 45, capacity: 50, status: "Open" },
+              { course_code: "CS201", course_name: "Data Structures", enrolled: 50, capacity: 50, status: "Full" },
+              { course_code: "CS301", course_name: "Algorithms", enrolled: 38, capacity: 45, status: "Open" },
+              { course_code: "MATH301", course_name: "Calculus III", enrolled: 42, capacity: 50, status: "Open" },
+              { course_code: "CS401", course_name: "Software Engineering", enrolled: 35, capacity: 40, status: "Open" },
             ]}
           />
         </TabsContent>
