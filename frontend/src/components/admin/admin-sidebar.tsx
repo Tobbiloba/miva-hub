@@ -19,6 +19,7 @@ import { Session, User } from "better-auth";
 import {
   BarChart3,
   BookOpen,
+  Bot,
   Building2,
   Calendar,
   Clock,
@@ -103,6 +104,7 @@ const adminRoutes = [
         icon: TrendingUp,
       },
       { title: "Reports Center", href: "/admin/reports", icon: FileText },
+      { title: "AI Operations", href: "/admin/ai-operations", icon: Bot },
     ],
   },
   {

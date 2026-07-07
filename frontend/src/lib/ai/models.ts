@@ -149,7 +149,8 @@ const {
   unsupportedModels: openaiCompatibleUnsupportedModels,
 } = createOpenAICompatibleModels(openaiCompatibleProviders);
 
-const fallbackModel = staticModels.openai["gpt-4.1"];
+// XPRIZE compliance + cost: Gemini is the default brain for all chat flows.
+const fallbackModel = staticModels.google["gemini-2.5-flash"];
 
 // Create models info with async API key checking
 async function createModelsInfo() {

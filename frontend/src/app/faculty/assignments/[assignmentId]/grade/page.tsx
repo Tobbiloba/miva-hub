@@ -325,6 +325,14 @@ export default async function AssignmentGradingPage({ params, searchParams }: Pa
                 ? `/faculty/assignments/${assignmentId}/grade?submissionId=${nextSubmission.submission.id}`
                 : undefined
             }
+            canAiGrade={
+              !!submission.submissionText?.trim() ||
+              (!!submission.fileUrl &&
+                !!submission.mimeType &&
+                /^(image\/(jpeg|png|webp|gif)|application\/pdf)$/.test(
+                  submission.mimeType,
+                ))
+            }
           />
 
           {/* Grading History */}

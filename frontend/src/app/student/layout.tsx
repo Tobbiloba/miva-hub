@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth/server";
 import { isActiveStudent } from "@/lib/auth/student";
 import { redirect } from "next/navigation";
 import { StudentLayoutShell } from "@/components/student/student-layout-shell";
+import { SupportWidget } from "@/components/support/support-widget";
 import { getBillingStatus } from "@/lib/billing/status";
 
 export default async function StudentLayout({
@@ -34,6 +35,7 @@ export default async function StudentLayout({
   return (
     <StudentLayoutShell session={session}>
       {children}
+      <SupportWidget />
     </StudentLayoutShell>
   );
 }

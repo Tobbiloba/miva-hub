@@ -1736,3 +1736,63 @@ export type NotificationEntity = typeof NotificationSchema.$inferSelect;
 export type AcademicSessionEntity = typeof AcademicSessionSchema.$inferSelect;
 export type ProgramEntity = typeof ProgramSchema.$inferSelect;
 export type ProgramCurriculumEntity = typeof ProgramCurriculumSchema.$inferSelect;
+
+// ===============================
+// AI DECISION LEDGER
+// ===============================
+// Every autonomous decision made by an AI agent on the platform is recorded
+// here: what decided, on what, with what confidence, and whether a human
+// reviewed/overrode it. Serves governance, debugging, and audit evidence.
+
+export const AIDecisionSchema = pgTable(
+  "ai_decision",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    // Tenant scope — nullable only for platform-level ops decisions
+    universityId: uuid("university_id").references(() => UniversitySchema.id, {
+      onDelete: "cascade",
+    }),
+    decisionType: varchar("decision_type", {
+      enum: [
+        "grading",
+        "support",
+        "admissions",
+        "tutoring",
+        "content",
+        "operations",
+      ],
+    }).notNull(),
+    // Which agent made the decision, e.g. "grading-agent", "support-agent"
+    actor: text("actor").notNull(),
+    // What entity the decision concerns, e.g. "assignment_submission" + its id
+    subjectType: text("subject_type"),
+    subjectId: uuid("subject_id"),
+    // The user affected by the decision (student, applicant), if any
+    userId: uuid("user_id").references(() => UserSchema.id, {
+      onDelete: "set null",
+    }),
+    model: text("model").notNull(),
+    inputSummary: text("input_summary"),
+    // The decision outcome, e.g. "grade: 78/100" or "ticket resolved"
+    decision: text("decision").notNull(),
+    reasoning: text("reasoning"),
+    confidence: real("confidence"),
+    status: varchar("status", {
+      enum: ["executed", "pending_review", "approved", "overridden", "rejected"],
+    })
+      .notNull()
+      .default("executed"),
+    reviewedById: uuid("reviewed_by_id").references(() => UserSchema.id),
+    reviewedAt: timestamp("reviewed_at"),
+    metadata: json("metadata").default({}),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("ai_decision_university_idx").on(table.universityId, table.createdAt),
+    index("ai_decision_type_idx").on(table.decisionType, table.createdAt),
+    index("ai_decision_status_idx").on(table.status),
+    index("ai_decision_subject_idx").on(table.subjectType, table.subjectId),
+  ],
+);
+
+export type AIDecisionEntity = typeof AIDecisionSchema.$inferSelect;
