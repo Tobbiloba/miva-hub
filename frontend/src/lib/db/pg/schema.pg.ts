@@ -33,7 +33,7 @@ export const semesterEnum = pgEnum('semester_enum', ['first', 'second']);
 export const academicSessionStatusEnum = pgEnum('academic_session_status_enum', ['upcoming', 'active', 'closed']);
 export const ingestionSourceEnum = pgEnum('ingestion_source_enum', ['manual', 'volunteer_extension', 'scraper', 'seed']);
 export const ingestionJobStatusEnum = pgEnum('ingestion_job_status_enum', ['queued', 'downloading', 'completed', 'failed']);
-export const transcriptSourceEnum = pgEnum('transcript_source_enum', ['pdfjs', 'vimeo_vtt', 'manual']);
+export const transcriptSourceEnum = pgEnum('transcript_source_enum', ['pdfjs', 'vimeo_vtt', 'manual', 'gemini']);
 export const transcriptStatusEnum = pgEnum('transcript_status_enum', ['pending', 'extracting', 'extracted', 'failed', 'skipped']);
 export const ytDlpStatusEnum = pgEnum('yt_dlp_status_enum', ['pending', 'downloading', 'completed', 'failed', 'skipped']);
 
