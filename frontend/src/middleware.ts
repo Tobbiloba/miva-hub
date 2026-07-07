@@ -64,6 +64,10 @@ export async function middleware(request: NextRequest) {
     !pathname.startsWith("/api/university/resolve") &&
     !pathname.startsWith("/api/university/register")
   ) {
+    // API callers get machine-readable 401 JSON — never a 307 to /sign-in
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 
