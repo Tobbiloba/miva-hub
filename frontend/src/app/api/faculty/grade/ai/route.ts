@@ -171,9 +171,12 @@ export async function POST(request: NextRequest) {
 
     const messages: ModelMessage[] = [{ role: "user", content: userContent }];
 
+    // gemini-2.5-flash: multimodal (reads handwritten PDFs/images) and available
+    // on all API tiers — 2.5-pro has no free-tier quota and hard-fails there.
+    const GRADING_MODEL = "gemini-2.5-flash";
     const model = await customModelProvider.getModel({
       provider: "google",
-      model: "gemini-2.5-pro",
+      model: GRADING_MODEL,
     });
 
     const { object: suggestion } = await generateObject({
@@ -205,7 +208,7 @@ export async function POST(request: NextRequest) {
       subjectType: "assignment_submission",
       subjectId: submission.id,
       userId: student.id,
-      model: "gemini-2.5-pro",
+      model: GRADING_MODEL,
       inputSummary: [
         `Assignment "${assignment.title}" (${assignment.assignmentType}, ${totalPoints} pts)`,
         hasText ? "text submission" : null,

@@ -94,7 +94,8 @@ export async function reviewAIDecision(params: {
         reviewedAt: new Date(),
         ...(params.metadata
           ? {
-              metadata: sql`${AIDecisionSchema.metadata} || ${JSON.stringify(params.metadata)}::jsonb`,
+              // metadata column is json (not jsonb) — cast both sides to merge
+              metadata: sql`((${AIDecisionSchema.metadata})::jsonb || ${JSON.stringify(params.metadata)}::jsonb)::json`,
             }
           : {}),
       })
