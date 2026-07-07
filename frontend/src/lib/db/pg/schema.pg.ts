@@ -1,41 +1,76 @@
+import { UIMessage } from "ai";
 import { Agent } from "app-types/agent";
-import { UserPreferences } from "app-types/user";
+import { ChatMetadata } from "app-types/chat";
 import { MCPServerConfig } from "app-types/mcp";
+import { UserPreferences } from "app-types/user";
+import { DBEdge, DBNode, DBWorkflow } from "app-types/workflow";
 import { sql } from "drizzle-orm";
+import { isNotNull } from "drizzle-orm";
 import {
-  pgTable,
-  pgEnum,
-  text,
-  timestamp,
-  json,
-  jsonb,
-  uuid,
   boolean,
-  unique,
-  varchar,
+  date,
+  decimal,
   index,
   integer,
-  decimal,
-  date,
+  json,
+  jsonb,
+  pgEnum,
+  pgTable,
   real,
+  text,
+  timestamp,
+  unique,
+  uuid,
+  varchar,
 } from "drizzle-orm/pg-core";
-import { isNotNull } from "drizzle-orm";
-import { DBWorkflow, DBEdge, DBNode } from "app-types/workflow";
-import { UIMessage } from "ai";
-import { ChatMetadata } from "app-types/chat";
 
 // ===============================
 // ENUM DEFINITIONS
 // ===============================
 
-export const userRoleEnum = pgEnum('user_role_enum', ['admin', 'faculty', 'student', 'super_admin']);
-export const semesterEnum = pgEnum('semester_enum', ['first', 'second']);
-export const academicSessionStatusEnum = pgEnum('academic_session_status_enum', ['upcoming', 'active', 'closed']);
-export const ingestionSourceEnum = pgEnum('ingestion_source_enum', ['manual', 'volunteer_extension', 'scraper', 'seed']);
-export const ingestionJobStatusEnum = pgEnum('ingestion_job_status_enum', ['queued', 'downloading', 'completed', 'failed']);
-export const transcriptSourceEnum = pgEnum('transcript_source_enum', ['pdfjs', 'vimeo_vtt', 'manual', 'gemini']);
-export const transcriptStatusEnum = pgEnum('transcript_status_enum', ['pending', 'extracting', 'extracted', 'failed', 'skipped']);
-export const ytDlpStatusEnum = pgEnum('yt_dlp_status_enum', ['pending', 'downloading', 'completed', 'failed', 'skipped']);
+export const userRoleEnum = pgEnum("user_role_enum", [
+  "admin",
+  "faculty",
+  "student",
+  "super_admin",
+]);
+export const semesterEnum = pgEnum("semester_enum", ["first", "second"]);
+export const academicSessionStatusEnum = pgEnum(
+  "academic_session_status_enum",
+  ["upcoming", "active", "closed"],
+);
+export const ingestionSourceEnum = pgEnum("ingestion_source_enum", [
+  "manual",
+  "volunteer_extension",
+  "scraper",
+  "seed",
+]);
+export const ingestionJobStatusEnum = pgEnum("ingestion_job_status_enum", [
+  "queued",
+  "downloading",
+  "completed",
+  "failed",
+]);
+export const transcriptSourceEnum = pgEnum("transcript_source_enum", [
+  "pdfjs",
+  "vimeo_vtt",
+  "manual",
+  "gemini",
+]);
+export const transcriptStatusEnum = pgEnum("transcript_status_enum", [
+  "pending",
+  "extracting",
+  "extracted",
+  "failed",
+  "skipped",
+]);
+export const ytDlpStatusEnum = pgEnum("yt_dlp_status_enum", [
+  "pending",
+  "downloading",
+  "completed",
+  "failed",
+  "skipped",
+]);
 
 export const ChatThreadSchema = pgTable("chat_thread", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
@@ -128,8 +163,12 @@ export const UniversitySchema = pgTable(
     })
       .notNull()
       .default("pending"),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [index("university_status_idx").on(table.status)],
 );
@@ -144,7 +183,7 @@ export const UserSchema = pgTable("user", {
   password: text("password"),
   image: text("image"),
   preferences: json("preferences").default({}).$type<UserPreferences>(),
-  
+
   // Academic/Student fields
   studentId: text("student_id").unique(),
   major: text("major"),
@@ -157,10 +196,12 @@ export const UserSchema = pgTable("user", {
 
   // Sprint 1: Academic progression fields
   currentLevel: integer("current_level"), // 100, 200, 300, 400, 500
-  programId: uuid("program_id").references(() => ProgramSchema.id, { onDelete: "set null" }),
+  programId: uuid("program_id").references(() => ProgramSchema.id, {
+    onDelete: "set null",
+  }),
   admissionSession: text("admission_session"), // e.g. '2023/2024'
   admissionLevel: integer("admission_level").default(100),
-  
+
   // Verification flag (admin-toggled; gates nothing in v1)
   isVerified: boolean("is_verified").notNull().default(false),
 
@@ -406,11 +447,18 @@ export const DepartmentSchema = pgTable(
     contactEmail: text("contact_email"),
     contactPhone: text("contact_phone"),
     officeLocation: text("office_location"),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
-    unique("department_university_code_unique").on(table.universityId, table.code),
+    unique("department_university_code_unique").on(
+      table.universityId,
+      table.code,
+    ),
     index("department_university_idx").on(table.universityId),
   ],
 );
@@ -432,8 +480,12 @@ export const ProgramSchema = pgTable(
     durationYears: integer("duration_years").notNull().default(4),
     requiredCredits: integer("required_credits").notNull().default(120),
     isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("program_department_idx").on(table.departmentId),
@@ -457,21 +509,32 @@ export const CourseSchema = pgTable(
     departmentId: uuid("department_id")
       .notNull()
       .references(() => DepartmentSchema.id),
-    level: varchar("level", { enum: ["100L", "200L", "300L", "400L", "graduate", "doctoral"] })
+    level: varchar("level", {
+      enum: ["100L", "200L", "300L", "400L", "graduate", "doctoral"],
+    })
       .notNull()
       .default("100L"),
-    semesterOffered: varchar("semester_offered", { 
-      enum: ["fall", "spring", "summer", "both"] 
-    }).notNull().default("both"),
+    semesterOffered: varchar("semester_offered", {
+      enum: ["fall", "spring", "summer", "both"],
+    })
+      .notNull()
+      .default("both"),
     isActive: boolean("is_active").notNull().default(true),
     totalWeeks: integer("total_weeks").default(16), // Total weeks for the course
     startDate: timestamp("start_date"), // Course start date
     endDate: timestamp("end_date"), // Course end date
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
-    unique("course_university_code_unique").on(table.universityId, table.courseCode),
+    unique("course_university_code_unique").on(
+      table.universityId,
+      table.courseCode,
+    ),
     index("course_department_idx").on(table.departmentId),
     index("course_code_idx").on(table.courseCode),
     index("course_level_idx").on(table.level),
@@ -495,8 +558,12 @@ export const CourseWeekSchema = pgTable(
     isPublished: boolean("is_published").notNull().default(false),
     plannedStartDate: timestamp("planned_start_date"), // When this week should start
     plannedEndDate: timestamp("planned_end_date"), // When this week should end
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     unique().on(table.courseId, table.weekNumber),
@@ -518,7 +585,9 @@ export const CoursePrerequisiteSchema = pgTable(
       .references(() => CourseSchema.id, { onDelete: "cascade" }),
     isRequired: boolean("is_required").notNull().default(true),
     minGrade: text("min_grade"), // Minimum letter grade required (default: pass = D)
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     unique().on(table.courseId, table.prerequisiteCourseId),
@@ -542,8 +611,12 @@ export const AcademicSessionSchema = pgTable(
     secondSemStart: date("second_sem_start"),
     secondSemEnd: date("second_sem_end"),
     status: academicSessionStatusEnum("status").notNull().default("upcoming"),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     unique("academic_session_university_name_unique").on(
@@ -572,11 +645,17 @@ export const ProgramCurriculumSchema = pgTable(
     semester: semesterEnum("semester").notNull(),
     isCompulsory: boolean("is_compulsory").notNull().default(true),
     orderInSemester: integer("order_in_semester"),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     unique().on(table.programId, table.courseId, table.level, table.semester),
-    index("program_curriculum_lookup_idx").on(table.programId, table.level, table.semester),
+    index("program_curriculum_lookup_idx").on(
+      table.programId,
+      table.level,
+      table.semester,
+    ),
   ],
 );
 
@@ -589,7 +668,16 @@ export const CourseMaterialSchema = pgTable(
       .notNull()
       .references(() => CourseSchema.id, { onDelete: "cascade" }),
     materialType: varchar("material_type", {
-      enum: ["syllabus", "lecture", "assignment", "resource", "reading", "exam", "quiz", "assignment_external"],
+      enum: [
+        "syllabus",
+        "lecture",
+        "assignment",
+        "resource",
+        "reading",
+        "exam",
+        "quiz",
+        "assignment_external",
+      ],
     }).notNull(),
     title: text("title").notNull(),
     description: text("description"),
@@ -605,16 +693,23 @@ export const CourseMaterialSchema = pgTable(
     uploadedById: uuid("uploaded_by_id")
       .notNull()
       .references(() => UserSchema.id),
-    sessionId: uuid("session_id").references(() => AcademicSessionSchema.id, { onDelete: "set null" }),
-    ingestionSource: ingestionSourceEnum("ingestion_source").notNull().default("manual"),
-    volunteerId: uuid("volunteer_id").references(() => UserSchema.id, { onDelete: "set null" }),
+    sessionId: uuid("session_id").references(() => AcademicSessionSchema.id, {
+      onDelete: "set null",
+    }),
+    ingestionSource: ingestionSourceEnum("ingestion_source")
+      .notNull()
+      .default("manual"),
+    volunteerId: uuid("volunteer_id").references(() => UserSchema.id, {
+      onDelete: "set null",
+    }),
     deletedAt: timestamp("deleted_at"), // soft delete for rejected content
     // Transcript / text extraction fields
     transcriptText: text("transcript_text"),
     transcriptSource: transcriptSourceEnum("transcript_source"),
     transcriptExtractedAt: timestamp("transcript_extracted_at"),
     transcriptWordCount: integer("transcript_word_count"),
-    transcriptStatus: transcriptStatusEnum("transcript_status").default("pending"),
+    transcriptStatus:
+      transcriptStatusEnum("transcript_status").default("pending"),
     transcriptErrorMessage: text("transcript_error_message"),
     // Quiz/assignment metadata (loose schema JSONB)
     externalMetadata: jsonb("external_metadata").$type<Record<string, any>>(),
@@ -623,8 +718,12 @@ export const CourseMaterialSchema = pgTable(
     // yt-dlp video download fields
     ytDlpStatus: ytDlpStatusEnum("yt_dlp_status"),
     ytDlpErrorMessage: text("yt_dlp_error_message"),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("material_course_idx").on(table.courseId),
@@ -636,7 +735,10 @@ export const CourseMaterialSchema = pgTable(
     index("material_volunteer_idx").on(table.volunteerId),
     index("material_transcript_status_idx").on(table.transcriptStatus),
     index("material_yt_dlp_status_idx").on(table.ytDlpStatus),
-    index("material_transcript_text_gin_idx").using("gin", sql`to_tsvector('english', ${table.transcriptText})`),
+    index("material_transcript_text_gin_idx").using(
+      "gin",
+      sql`to_tsvector('english', ${table.transcriptText})`,
+    ),
   ],
 );
 
@@ -653,15 +755,26 @@ export const StudentEnrollmentSchema = pgTable(
       .references(() => CourseSchema.id, { onDelete: "cascade" }),
     semester: text("semester").notNull(), // e.g., "2024-fall", "2025-spring"
     academicYear: text("academic_year").notNull(), // e.g., "2024-2025"
-    enrollmentDate: timestamp("enrollment_date").notNull().default(sql`CURRENT_TIMESTAMP`),
+    enrollmentDate: timestamp("enrollment_date")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
     status: varchar("status", {
       enum: ["enrolled", "dropped", "completed", "failed", "withdrawn"],
-    }).notNull().default("enrolled"),
+    })
+      .notNull()
+      .default("enrolled"),
     finalGrade: text("final_grade"), // A, B, C, D, F, I, W
     gradePoints: decimal("grade_points", { precision: 3, scale: 2 }), // GPA points
-    attendancePercentage: decimal("attendance_percentage", { precision: 5, scale: 2 }),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    attendancePercentage: decimal("attendance_percentage", {
+      precision: 5,
+      scale: 2,
+    }),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     unique().on(table.studentId, table.courseId, table.semester),
@@ -686,7 +799,14 @@ export const FacultySchema = pgTable(
       .notNull()
       .references(() => DepartmentSchema.id),
     position: varchar("position", {
-      enum: ["professor", "associate_professor", "assistant_professor", "lecturer", "instructor", "visiting_professor"],
+      enum: [
+        "professor",
+        "associate_professor",
+        "assistant_professor",
+        "lecturer",
+        "instructor",
+        "visiting_professor",
+      ],
     }).notNull(),
     specializations: json("specializations").$type<string[]>().default([]),
     officeLocation: text("office_location"),
@@ -695,14 +815,22 @@ export const FacultySchema = pgTable(
     bio: text("bio"),
     contactPhone: text("contact_phone"),
     researchInterests: text("research_interests"),
-    qualifications: json("qualifications").$type<{
-      degree: string;
-      institution: string;
-      year: number;
-    }[]>().default([]),
+    qualifications: json("qualifications")
+      .$type<
+        {
+          degree: string;
+          institution: string;
+          year: number;
+        }[]
+      >()
+      .default([]),
     isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("faculty_user_idx").on(table.userId),
@@ -745,8 +873,12 @@ export const FacultyInviteSchema = pgTable(
       .default("pending"),
     expiresAt: timestamp("expires_at").notNull(),
     acceptedAt: timestamp("accepted_at"),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("faculty_invite_university_idx").on(table.universityId),
@@ -769,8 +901,12 @@ export const CourseInstructorSchema = pgTable(
     semester: text("semester").notNull(),
     role: varchar("role", {
       enum: ["primary", "assistant", "lab_instructor", "grader"],
-    }).notNull().default("primary"),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    })
+      .notNull()
+      .default("primary"),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     unique().on(table.courseId, table.facultyId, table.semester),
@@ -790,7 +926,15 @@ export const ClassScheduleSchema = pgTable(
       .references(() => CourseSchema.id, { onDelete: "cascade" }),
     semester: text("semester").notNull(),
     dayOfWeek: varchar("day_of_week", {
-      enum: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+      enum: [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+      ],
     }).notNull(),
     startTime: text("start_time").notNull(), // HH:MM format
     endTime: text("end_time").notNull(), // HH:MM format
@@ -798,9 +942,15 @@ export const ClassScheduleSchema = pgTable(
     buildingName: text("building_name"),
     classType: varchar("class_type", {
       enum: ["lecture", "lab", "tutorial", "seminar"],
-    }).notNull().default("lecture"),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    })
+      .notNull()
+      .default("lecture"),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("schedule_course_idx").on(table.courseId),
@@ -828,8 +978,12 @@ export const AcademicCalendarSchema = pgTable(
     finalsEndDate: date("finals_end_date"),
     graduationDate: date("graduation_date"),
     isActive: boolean("is_active").notNull().default(false),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("calendar_semester_idx").on(table.semester),
@@ -845,21 +999,39 @@ export const AnnouncementSchema = pgTable(
     id: uuid("id").primaryKey().notNull().defaultRandom(),
     title: text("title").notNull(),
     content: text("content").notNull(),
-    courseId: uuid("course_id").references(() => CourseSchema.id, { onDelete: "cascade" }),
-    departmentId: uuid("department_id").references(() => DepartmentSchema.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id").references(() => CourseSchema.id, {
+      onDelete: "cascade",
+    }),
+    departmentId: uuid("department_id").references(() => DepartmentSchema.id, {
+      onDelete: "cascade",
+    }),
     createdById: uuid("created_by_id")
       .notNull()
       .references(() => UserSchema.id),
     targetAudience: varchar("target_audience", {
-      enum: ["all", "students", "faculty", "course_specific", "department_specific"],
-    }).notNull().default("all"),
+      enum: [
+        "all",
+        "students",
+        "faculty",
+        "course_specific",
+        "department_specific",
+      ],
+    })
+      .notNull()
+      .default("all"),
     priority: varchar("priority", {
       enum: ["low", "medium", "high", "urgent"],
-    }).notNull().default("medium"),
+    })
+      .notNull()
+      .default("medium"),
     isActive: boolean("is_active").notNull().default(true),
     expiresAt: timestamp("expires_at"),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("announcement_course_idx").on(table.courseId),
@@ -883,23 +1055,42 @@ export const AssignmentSchema = pgTable(
     description: text("description"),
     instructions: text("instructions"),
     assignmentType: varchar("assignment_type", {
-      enum: ["homework", "project", "quiz", "exam", "presentation", "lab", "essay"],
+      enum: [
+        "homework",
+        "project",
+        "quiz",
+        "exam",
+        "presentation",
+        "lab",
+        "essay",
+      ],
     }).notNull(),
     totalPoints: decimal("total_points", { precision: 6, scale: 2 }).notNull(),
     dueDate: timestamp("due_date").notNull(),
     submissionType: varchar("submission_type", {
       enum: ["file_upload", "text_entry", "online_test", "in_person"],
-    }).notNull().default("file_upload"),
-    allowLateSubmission: boolean("allow_late_submission").notNull().default(false),
-    lateSubmissionPenalty: decimal("late_submission_penalty", { precision: 5, scale: 2 }), // percentage
+    })
+      .notNull()
+      .default("file_upload"),
+    allowLateSubmission: boolean("allow_late_submission")
+      .notNull()
+      .default(false),
+    lateSubmissionPenalty: decimal("late_submission_penalty", {
+      precision: 5,
+      scale: 2,
+    }), // percentage
     weekNumber: integer("week_number"),
     moduleNumber: integer("module_number"),
     isPublished: boolean("is_published").notNull().default(false),
     createdById: uuid("created_by_id")
       .notNull()
       .references(() => UserSchema.id),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("assignment_course_idx").on(table.courseId),
@@ -929,11 +1120,17 @@ export const AssignmentSubmissionSchema = pgTable(
     grade: decimal("grade", { precision: 6, scale: 2 }),
     feedback: text("feedback"),
     isLateSubmission: boolean("is_late_submission").notNull().default(false),
-    submittedAt: timestamp("submitted_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    submittedAt: timestamp("submitted_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
     gradedAt: timestamp("graded_at"),
     gradedById: uuid("graded_by_id").references(() => UserSchema.id),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     unique().on(table.assignmentId, table.studentId),
@@ -954,17 +1151,28 @@ export const AIProcessingJobSchema = pgTable(
       .notNull()
       .references(() => CourseMaterialSchema.id, { onDelete: "cascade" }),
     jobType: varchar("job_type", {
-      enum: ["pdf_processing", "video_transcription", "interactive_parsing", "text_analysis"],
+      enum: [
+        "pdf_processing",
+        "video_transcription",
+        "interactive_parsing",
+        "text_analysis",
+      ],
     }).notNull(),
     status: varchar("status", {
       enum: ["pending", "processing", "completed", "failed"],
-    }).notNull().default("pending"),
+    })
+      .notNull()
+      .default("pending"),
     startedAt: timestamp("started_at"),
     completedAt: timestamp("completed_at"),
     errorMessage: text("error_message"),
     metadata: json("metadata").default({}),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("ai_job_material_idx").on(table.courseMaterialId),
@@ -989,11 +1197,17 @@ export const AIProcessedContentSchema = pgTable(
     }),
     estimatedReadTime: integer("estimated_read_time"), // in minutes
     wordCount: integer("word_count"),
-    languageDetected: varchar("language_detected", { length: 10 }).default("en"),
+    languageDetected: varchar("language_detected", { length: 10 }).default(
+      "en",
+    ),
     processingMetadata: json("processing_metadata").default({}),
     qualityScore: decimal("quality_score", { precision: 3, scale: 2 }), // 0.00 to 1.00
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     unique().on(table.courseMaterialId), // One processed content per material
@@ -1017,10 +1231,16 @@ export const ContentEmbeddingSchema = pgTable(
     chunkIndex: integer("chunk_index").notNull(),
     chunkType: varchar("chunk_type", {
       enum: ["content", "summary", "key_concept", "question"],
-    }).notNull().default("content"),
+    })
+      .notNull()
+      .default("content"),
     embedding: text("embedding").notNull(), // JSON string of vector array
-    embeddingModel: varchar("embedding_model", { length: 100 }).default("nomic-embed-text"),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    embeddingModel: varchar("embedding_model", { length: 100 }).default(
+      "nomic-embed-text",
+    ),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("embedding_material_idx").on(table.courseMaterialId),
@@ -1048,15 +1268,24 @@ export const IngestionJobSchema = pgTable(
       .references(() => CourseSchema.id, { onDelete: "cascade" }),
     weekNumber: integer("week_number"),
     lessonTitle: text("lesson_title").notNull(),
-    sessionId: uuid("session_id").references(() => AcademicSessionSchema.id, { onDelete: "set null" }),
+    sessionId: uuid("session_id").references(() => AcademicSessionSchema.id, {
+      onDelete: "set null",
+    }),
     contentType: varchar("content_type", { enum: ["video", "pdf"] }).notNull(),
     payload: json("payload").notNull().$type<Record<string, any>>(), // vimeo or pdf details
     status: ingestionJobStatusEnum("status").notNull().default("queued"),
-    courseMaterialId: uuid("course_material_id").references(() => CourseMaterialSchema.id, { onDelete: "set null" }),
+    courseMaterialId: uuid("course_material_id").references(
+      () => CourseMaterialSchema.id,
+      { onDelete: "set null" },
+    ),
     errorMessage: text("error_message"),
     completedAt: timestamp("completed_at"),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("ingestion_job_volunteer_idx").on(table.volunteerId),
@@ -1082,12 +1311,18 @@ export const SystemSettingsSchema = pgTable(
     value: text("value"),
     valueType: varchar("value_type", {
       enum: ["string", "number", "boolean", "json"],
-    }).notNull().default("string"),
+    })
+      .notNull()
+      .default("string"),
     description: text("description"),
     isEditable: boolean("is_editable").notNull().default(true),
     isSecret: boolean("is_secret").notNull().default(false), // For sensitive values like passwords
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     unique("system_settings_university_category_key_unique").on(
@@ -1108,7 +1343,15 @@ export const CalendarEventSchema = pgTable(
     title: text("title").notNull(),
     description: text("description"),
     eventType: varchar("event_type", {
-      enum: ["academic", "registration", "exam", "holiday", "professional", "ceremony", "maintenance"],
+      enum: [
+        "academic",
+        "registration",
+        "exam",
+        "holiday",
+        "professional",
+        "ceremony",
+        "maintenance",
+      ],
     }).notNull(),
     startDate: date("start_date").notNull(),
     endDate: date("end_date").notNull(),
@@ -1118,13 +1361,19 @@ export const CalendarEventSchema = pgTable(
     location: text("location"),
     priority: varchar("priority", {
       enum: ["low", "medium", "high", "critical"],
-    }).notNull().default("medium"),
+    })
+      .notNull()
+      .default("medium"),
     status: varchar("status", {
       enum: ["scheduled", "completed", "cancelled", "postponed"],
-    }).notNull().default("scheduled"),
+    })
+      .notNull()
+      .default("scheduled"),
     affectedUsers: varchar("affected_users", {
       enum: ["all", "students", "faculty", "staff", "specific"],
-    }).notNull().default("all"),
+    })
+      .notNull()
+      .default("all"),
     courseId: uuid("course_id").references(() => CourseSchema.id),
     departmentId: uuid("department_id").references(() => DepartmentSchema.id),
     createdById: uuid("created_by_id")
@@ -1133,8 +1382,12 @@ export const CalendarEventSchema = pgTable(
     remindersEnabled: boolean("reminders_enabled").notNull().default(true),
     isRecurring: boolean("is_recurring").notNull().default(false),
     recurringPattern: json("recurring_pattern"), // For recurring events
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("calendar_event_type_idx").on(table.eventType),
@@ -1155,17 +1408,39 @@ export const ReportConfigSchema = pgTable(
     name: text("name").notNull(),
     description: text("description"),
     category: varchar("category", {
-      enum: ["academic", "enrollment", "performance", "system", "financial", "research", "engagement"],
+      enum: [
+        "academic",
+        "enrollment",
+        "performance",
+        "system",
+        "financial",
+        "research",
+        "engagement",
+      ],
     }).notNull(),
     reportType: varchar("report_type", {
       enum: ["automated", "custom", "manual"],
-    }).notNull().default("custom"),
+    })
+      .notNull()
+      .default("custom"),
     format: varchar("format", {
       enum: ["pdf", "excel", "csv", "json"],
-    }).notNull().default("pdf"),
+    })
+      .notNull()
+      .default("pdf"),
     schedule: varchar("schedule", {
-      enum: ["manual", "daily", "weekly", "monthly", "quarterly", "semester", "yearly"],
-    }).notNull().default("manual"),
+      enum: [
+        "manual",
+        "daily",
+        "weekly",
+        "monthly",
+        "quarterly",
+        "semester",
+        "yearly",
+      ],
+    })
+      .notNull()
+      .default("manual"),
     isActive: boolean("is_active").notNull().default(true),
     queryTemplate: text("query_template"), // SQL template for data extraction
     parameters: json("parameters").default({}), // Report parameters
@@ -1176,8 +1451,12 @@ export const ReportConfigSchema = pgTable(
     lastGenerated: timestamp("last_generated"),
     nextScheduled: timestamp("next_scheduled"),
     generationCount: integer("generation_count").notNull().default(0),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("report_category_idx").on(table.category),
@@ -1202,7 +1481,9 @@ export const ReportInstanceSchema = pgTable(
     format: varchar("format", {
       enum: ["pdf", "excel", "csv", "json"],
     }).notNull(),
-    generatedAt: timestamp("generated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    generatedAt: timestamp("generated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
     generatedById: uuid("generated_by_id")
       .notNull()
       .references(() => UserSchema.id),
@@ -1210,7 +1491,9 @@ export const ReportInstanceSchema = pgTable(
     isPublic: boolean("is_public").notNull().default(false),
     expiresAt: timestamp("expires_at"),
     metadata: json("metadata").default({}),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("report_instance_config_idx").on(table.reportConfigId),
@@ -1248,26 +1531,26 @@ export const UserSubscriptionSchema = pgTable("user_subscription", {
   planId: uuid("plan_id")
     .notNull()
     .references(() => SubscriptionPlanSchema.id),
-  
+
   paystackSubscriptionCode: text("paystack_subscription_code").unique(),
   paystackCustomerCode: text("paystack_customer_code"),
   paystackEmailToken: text("paystack_email_token"),
   paystackAuthorizationCode: text("paystack_authorization_code"),
-  
+
   status: text("status").notNull().default("active"),
   currentPeriodStart: timestamp("current_period_start").notNull(),
   currentPeriodEnd: timestamp("current_period_end").notNull(),
   cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
   cancelledAt: timestamp("cancelled_at"),
-  
+
   nextPaymentDate: timestamp("next_payment_date"),
   lastPaymentDate: timestamp("last_payment_date"),
   amountPaidNgn: integer("amount_paid_ngn"),
-  
+
   trialStart: timestamp("trial_start"),
   trialEnd: timestamp("trial_end"),
   metadata: json("metadata").default({}).$type<Record<string, any>>(),
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -1306,8 +1589,12 @@ export const UniversitySubscriptionSchema = pgTable(
     notes: text("notes"),
     metadata: json("metadata").default({}).$type<Record<string, any>>(),
 
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("university_subscription_university_idx").on(table.universityId),
@@ -1320,20 +1607,22 @@ export const UsageTrackingSchema = pgTable("usage_tracking", {
   userId: uuid("user_id")
     .notNull()
     .references(() => UserSchema.id, { onDelete: "cascade" }),
-  subscriptionId: uuid("subscription_id")
-    .references(() => UserSubscriptionSchema.id, { onDelete: "set null" }),
-  
+  subscriptionId: uuid("subscription_id").references(
+    () => UserSubscriptionSchema.id,
+    { onDelete: "set null" },
+  ),
+
   usageType: text("usage_type").notNull(),
   periodType: text("period_type").notNull(),
   periodStart: date("period_start").notNull(),
   periodEnd: date("period_end").notNull(),
-  
+
   currentCount: integer("current_count").default(0),
   limitCount: integer("limit_count"),
-  
+
   lastResetAt: timestamp("last_reset_at").default(sql`CURRENT_TIMESTAMP`),
   metadata: json("metadata").default({}).$type<Record<string, any>>(),
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -1343,25 +1632,27 @@ export const PaymentTransactionSchema = pgTable("payment_transaction", {
   userId: uuid("user_id")
     .notNull()
     .references(() => UserSchema.id, { onDelete: "cascade" }),
-  subscriptionId: uuid("subscription_id")
-    .references(() => UserSubscriptionSchema.id, { onDelete: "set null" }),
-  
+  subscriptionId: uuid("subscription_id").references(
+    () => UserSubscriptionSchema.id,
+    { onDelete: "set null" },
+  ),
+
   paystackReference: text("paystack_reference").notNull().unique(),
   paystackTransactionId: text("paystack_transaction_id"),
   paystackAccessCode: text("paystack_access_code"),
-  
+
   amountNgn: integer("amount_ngn").notNull(),
   currency: text("currency").default("NGN"),
   status: text("status").notNull(),
   paymentMethod: text("payment_method"),
-  
+
   customerEmail: text("customer_email"),
   customerName: text("customer_name"),
-  
+
   description: text("description"),
   metadata: json("metadata").default({}).$type<Record<string, any>>(),
   paidAt: timestamp("paid_at"),
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -1370,15 +1661,15 @@ export const WebhookEventSchema = pgTable("webhook_event", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   eventType: text("event_type").notNull(),
   paystackEventId: text("paystack_event_id").unique(),
-  
+
   payload: json("payload").notNull().$type<Record<string, any>>(),
   signature: text("signature"),
-  
+
   processed: boolean("processed").default(false),
   processedAt: timestamp("processed_at"),
   errorMessage: text("error_message"),
   retryCount: integer("retry_count").default(0),
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -1387,18 +1678,18 @@ export const SubscriptionChangeLogSchema = pgTable("subscription_change_log", {
   userId: uuid("user_id")
     .notNull()
     .references(() => UserSchema.id, { onDelete: "cascade" }),
-  subscriptionId: uuid("subscription_id")
-    .references(() => UserSubscriptionSchema.id, { onDelete: "set null" }),
-  
+  subscriptionId: uuid("subscription_id").references(
+    () => UserSubscriptionSchema.id,
+    { onDelete: "set null" },
+  ),
+
   changeType: text("change_type").notNull(),
-  fromPlanId: uuid("from_plan_id")
-    .references(() => SubscriptionPlanSchema.id),
-  toPlanId: uuid("to_plan_id")
-    .references(() => SubscriptionPlanSchema.id),
-  
+  fromPlanId: uuid("from_plan_id").references(() => SubscriptionPlanSchema.id),
+  toPlanId: uuid("to_plan_id").references(() => SubscriptionPlanSchema.id),
+
   reason: text("reason"),
   metadata: json("metadata").default({}).$type<Record<string, any>>(),
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -1424,15 +1715,24 @@ export const PerformanceHistorySchema = pgTable(
     studyTimeMinutes: integer("study_time_minutes").default(0),
     recordedAt: timestamp("recorded_at").default(sql`CURRENT_TIMESTAMP`),
     semester: text("semester").notNull(),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
-    unique().on(table.studentId, table.courseId, table.weekNumber, table.semester),
+    unique().on(
+      table.studentId,
+      table.courseId,
+      table.weekNumber,
+      table.semester,
+    ),
     index("perf_history_student_idx").on(table.studentId, table.recordedAt),
     index("perf_history_course_idx").on(table.courseId, table.semester),
     index("perf_history_week_idx").on(table.weekNumber),
-  ]
+  ],
 );
 
 export const ConceptMasterySchema = pgTable(
@@ -1446,19 +1746,26 @@ export const ConceptMasterySchema = pgTable(
       .notNull()
       .references(() => CourseSchema.id, { onDelete: "cascade" }),
     conceptName: text("concept_name").notNull(),
-    masteryLevel: decimal("mastery_level", { precision: 3, scale: 2 }).default("0.0"),
+    masteryLevel: decimal("mastery_level", { precision: 3, scale: 2 }).default(
+      "0.0",
+    ),
     correctAttempts: integer("correct_attempts").default(0),
     totalAttempts: integer("total_attempts").default(0),
     lastPracticedAt: timestamp("last_practiced_at"),
-    firstLearnedAt: timestamp("first_learned_at").default(sql`CURRENT_TIMESTAMP`),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    firstLearnedAt:
+      timestamp("first_learned_at").default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     unique().on(table.studentId, table.courseId, table.conceptName),
     index("concept_mastery_student_idx").on(table.studentId, table.courseId),
     index("concept_mastery_level_idx").on(table.masteryLevel),
-  ]
+  ],
 );
 
 export const StudentStudySessionsSchema = pgTable(
@@ -1468,22 +1775,39 @@ export const StudentStudySessionsSchema = pgTable(
     studentId: uuid("student_id")
       .notNull()
       .references(() => UserSchema.id, { onDelete: "cascade" }),
-    courseId: uuid("course_id")
-      .references(() => CourseSchema.id, { onDelete: "set null" }),
+    courseId: uuid("course_id").references(() => CourseSchema.id, {
+      onDelete: "set null",
+    }),
     sessionType: varchar("session_type", {
-      enum: ["chat", "quiz", "exam", "assignment", "study_guide", "flashcards", "reading"],
+      enum: [
+        "chat",
+        "quiz",
+        "exam",
+        "assignment",
+        "study_guide",
+        "flashcards",
+        "reading",
+      ],
     }).notNull(),
     durationMinutes: integer("duration_minutes").notNull(),
     activityData: json("activity_data").$type<Record<string, any>>(),
     startedAt: timestamp("started_at").notNull(),
     endedAt: timestamp("ended_at").notNull(),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
-    index("student_study_sessions_student_idx").on(table.studentId, table.startedAt),
-    index("student_study_sessions_course_idx").on(table.courseId, table.startedAt),
+    index("student_study_sessions_student_idx").on(
+      table.studentId,
+      table.startedAt,
+    ),
+    index("student_study_sessions_course_idx").on(
+      table.courseId,
+      table.startedAt,
+    ),
     index("student_study_sessions_type_idx").on(table.sessionType),
-  ]
+  ],
 );
 
 export const GradePredictionsSchema = pgTable(
@@ -1496,18 +1820,27 @@ export const GradePredictionsSchema = pgTable(
     courseId: uuid("course_id")
       .notNull()
       .references(() => CourseSchema.id, { onDelete: "cascade" }),
-    predictedFinalGrade: decimal("predicted_final_grade", { precision: 5, scale: 2 }),
+    predictedFinalGrade: decimal("predicted_final_grade", {
+      precision: 5,
+      scale: 2,
+    }),
     confidenceLevel: decimal("confidence_level", { precision: 3, scale: 2 }),
     predictionFactors: json("prediction_factors").$type<Record<string, any>>(),
     algorithmVersion: text("algorithm_version").default("1.0"),
     predictedAt: timestamp("predicted_at").default(sql`CURRENT_TIMESTAMP`),
     semester: text("semester").notNull(),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
-    index("grade_predictions_student_idx").on(table.studentId, table.semester, table.predictedAt),
+    index("grade_predictions_student_idx").on(
+      table.studentId,
+      table.semester,
+      table.predictedAt,
+    ),
     index("grade_predictions_course_idx").on(table.courseId, table.semester),
-  ]
+  ],
 );
 
 // ================================================
@@ -1531,13 +1864,20 @@ export const FlashcardDeckSchema = pgTable(
       .default([])
       .$type<string[]>(),
     cardCount: integer("card_count").notNull().default(0),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("flashcard_deck_student_idx").on(table.studentId),
     index("flashcard_deck_course_idx").on(table.courseId),
-    index("flashcard_deck_student_course_idx").on(table.studentId, table.courseId),
+    index("flashcard_deck_student_course_idx").on(
+      table.studentId,
+      table.courseId,
+    ),
   ],
 );
 
@@ -1555,7 +1895,9 @@ export const FlashcardSchema = pgTable(
       .references(() => FlashcardDeckSchema.id, { onDelete: "cascade" }),
     front: text("front").notNull(),
     back: text("back").notNull(),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
     // Review state (Level A — simple doubling, upgrade-ready for SM-2)
     lastReviewedAt: timestamp("last_reviewed_at"),
     nextDueAt: timestamp("next_due_at"),
@@ -1590,20 +1932,24 @@ export type BookmarkEntity = typeof BookmarkSchema.$inferSelect;
 export type DepartmentEntity = typeof DepartmentSchema.$inferSelect;
 export type CourseEntity = typeof CourseSchema.$inferSelect;
 export type CourseWeekEntity = typeof CourseWeekSchema.$inferSelect;
-export type CoursePrerequisiteEntity = typeof CoursePrerequisiteSchema.$inferSelect;
+export type CoursePrerequisiteEntity =
+  typeof CoursePrerequisiteSchema.$inferSelect;
 export type CourseMaterialEntity = typeof CourseMaterialSchema.$inferSelect;
-export type StudentEnrollmentEntity = typeof StudentEnrollmentSchema.$inferSelect;
+export type StudentEnrollmentEntity =
+  typeof StudentEnrollmentSchema.$inferSelect;
 export type FacultyEntity = typeof FacultySchema.$inferSelect;
 export type CourseInstructorEntity = typeof CourseInstructorSchema.$inferSelect;
 export type ClassScheduleEntity = typeof ClassScheduleSchema.$inferSelect;
 export type AcademicCalendarEntity = typeof AcademicCalendarSchema.$inferSelect;
 export type AnnouncementEntity = typeof AnnouncementSchema.$inferSelect;
 export type AssignmentEntity = typeof AssignmentSchema.$inferSelect;
-export type AssignmentSubmissionEntity = typeof AssignmentSubmissionSchema.$inferSelect;
+export type AssignmentSubmissionEntity =
+  typeof AssignmentSubmissionSchema.$inferSelect;
 
 // AI Processing entity types
 export type AIProcessingJobEntity = typeof AIProcessingJobSchema.$inferSelect;
-export type AIProcessedContentEntity = typeof AIProcessedContentSchema.$inferSelect;
+export type AIProcessedContentEntity =
+  typeof AIProcessedContentSchema.$inferSelect;
 export type ContentEmbeddingEntity = typeof ContentEmbeddingSchema.$inferSelect;
 
 // System Management entity types
@@ -1616,17 +1962,21 @@ export type ReportInstanceEntity = typeof ReportInstanceSchema.$inferSelect;
 export type SubscriptionPlanEntity = typeof SubscriptionPlanSchema.$inferSelect;
 export type UserSubscriptionEntity = typeof UserSubscriptionSchema.$inferSelect;
 export type UsageTrackingEntity = typeof UsageTrackingSchema.$inferSelect;
-export type PaymentTransactionEntity = typeof PaymentTransactionSchema.$inferSelect;
+export type PaymentTransactionEntity =
+  typeof PaymentTransactionSchema.$inferSelect;
 export type WebhookEventEntity = typeof WebhookEventSchema.$inferSelect;
-export type SubscriptionChangeLogEntity = typeof SubscriptionChangeLogSchema.$inferSelect;
+export type SubscriptionChangeLogEntity =
+  typeof SubscriptionChangeLogSchema.$inferSelect;
 
 // Content Ingestion entity types
 export type IngestionJobEntity = typeof IngestionJobSchema.$inferSelect;
 
 // Performance Tracking entity types
-export type PerformanceHistoryEntity = typeof PerformanceHistorySchema.$inferSelect;
+export type PerformanceHistoryEntity =
+  typeof PerformanceHistorySchema.$inferSelect;
 export type ConceptMasteryEntity = typeof ConceptMasterySchema.$inferSelect;
-export type StudentStudySessionsEntity = typeof StudentStudySessionsSchema.$inferSelect;
+export type StudentStudySessionsEntity =
+  typeof StudentStudySessionsSchema.$inferSelect;
 export type GradePredictionsEntity = typeof GradePredictionsSchema.$inferSelect;
 
 // Flashcard entity types
@@ -1660,7 +2010,9 @@ export const StudyActivitySchema = pgTable(
     activityType: studyActivityTypeEnum("activity_type").notNull(),
     entityId: uuid("entity_id"),
     entityMetadata: jsonb("entity_metadata").$type<Record<string, any>>(),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("study_activity_student_recent_idx").on(
@@ -1709,7 +2061,9 @@ export const NotificationSchema = pgTable(
     entityId: uuid("entity_id"),
     entityMetadata: jsonb("entity_metadata").$type<Record<string, any>>(),
     isRead: boolean("is_read").notNull().default(false),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
     readAt: timestamp("read_at"),
     deliveredVia: jsonb("delivered_via")
       .notNull()
@@ -1735,7 +2089,8 @@ export type NotificationEntity = typeof NotificationSchema.$inferSelect;
 // Sprint 1 entity types
 export type AcademicSessionEntity = typeof AcademicSessionSchema.$inferSelect;
 export type ProgramEntity = typeof ProgramSchema.$inferSelect;
-export type ProgramCurriculumEntity = typeof ProgramCurriculumSchema.$inferSelect;
+export type ProgramCurriculumEntity =
+  typeof ProgramCurriculumSchema.$inferSelect;
 
 // ===============================
 // AI DECISION LEDGER
@@ -1778,14 +2133,22 @@ export const AIDecisionSchema = pgTable(
     reasoning: text("reasoning"),
     confidence: real("confidence"),
     status: varchar("status", {
-      enum: ["executed", "pending_review", "approved", "overridden", "rejected"],
+      enum: [
+        "executed",
+        "pending_review",
+        "approved",
+        "overridden",
+        "rejected",
+      ],
     })
       .notNull()
       .default("executed"),
     reviewedById: uuid("reviewed_by_id").references(() => UserSchema.id),
     reviewedAt: timestamp("reviewed_at"),
     metadata: json("metadata").default({}),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("ai_decision_university_idx").on(table.universityId, table.createdAt),
@@ -1851,8 +2214,12 @@ export const AdmissionApplicationSchema = pgTable(
     ),
     reviewedById: uuid("reviewed_by_id").references(() => UserSchema.id),
     reviewedAt: timestamp("reviewed_at"),
-    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     index("admission_application_university_idx").on(
@@ -1870,3 +2237,47 @@ export const AdmissionApplicationSchema = pgTable(
 
 export type AdmissionApplicationEntity =
   typeof AdmissionApplicationSchema.$inferSelect;
+
+// ── Live Viva / Oral Exam Coach ─────────────────────────────────────────────
+// One row per real-time voice viva session. The transcript accumulates on the
+// client and is persisted at completion time together with the rubric scores.
+export const VivaSessionSchema = pgTable(
+  "viva_session",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    status: varchar("status", {
+      enum: ["active", "completed", "abandoned"],
+    })
+      .notNull()
+      .default("active"),
+    focusTopic: text("focus_topic"),
+    /** [{ role: "examiner" | "student", text: string }] in spoken order */
+    transcript: json("transcript").default([]),
+    /** Rubric scoring result from the post-session grading call */
+    rubric: json("rubric"),
+    overallScore: integer("overall_score"),
+    model: text("model"),
+    startedAt: timestamp("started_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    endedAt: timestamp("ended_at"),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("viva_session_student_idx").on(table.studentId, table.createdAt),
+    index("viva_session_course_idx").on(table.courseId),
+  ],
+);
+
+export type VivaSessionEntity = typeof VivaSessionSchema.$inferSelect;

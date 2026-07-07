@@ -1,46 +1,47 @@
 "use client";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarGroup,
-  SidebarGroupContent,
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import Link from "next/link";
+import { getAcademicYear, getStudentId } from "@/lib/auth/user-utils";
+import { User as AuthUser, Session } from "better-auth";
+import {
+  Award,
+  BarChart3,
+  Bell,
+  BookOpen,
+  Calendar,
+  CalendarDays,
+  CreditCard,
+  FileText,
+  FolderOpen,
+  GraduationCap,
+  Home,
+  Layers,
+  type LucideIcon,
+  Mic,
+  PanelLeft,
+  Settings,
+  TrendingUp,
+  User,
+  Users,
+} from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
-import {
-  BookOpen,
-  Home,
-  FileText,
-  BarChart3,
-  Award,
-  FolderOpen,
-  Calendar,
-  Bell,
-  Users,
-  CalendarDays,
-  PanelLeft,
-  User,
-  Settings,
-  Layers,
-  TrendingUp,
-  CreditCard,
-  GraduationCap,
-  type LucideIcon,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Session, User as AuthUser } from "better-auth";
-import { getStudentId, getAcademicYear } from "@/lib/auth/user-utils";
 
 type StudentRoute = {
   title: string;
@@ -64,6 +65,11 @@ const studentRoutes: StudentRoute[] = [
     title: "AI Tutor",
     href: "/student/tutor",
     icon: GraduationCap,
+  },
+  {
+    title: "Viva Coach",
+    href: "/student/viva",
+    icon: Mic,
   },
   {
     title: "Assignments",
@@ -144,7 +150,7 @@ export function StudentSidebar({
     setExpandedMenus((prev) =>
       prev.includes(title)
         ? prev.filter((item) => item !== title)
-        : [...prev, title]
+        : [...prev, title],
     );
   }, []);
 
@@ -153,12 +159,14 @@ export function StudentSidebar({
   };
 
   // Get student info
-  const studentInfo = session?.user ? {
-    name: session.user.name,
-    email: session.user.email,
-    studentId: getStudentId(session.user),
-    academicYear: getAcademicYear(session.user),
-  } : null;
+  const studentInfo = session?.user
+    ? {
+        name: session.user.name,
+        email: session.user.email,
+        studentId: getStudentId(session.user),
+        academicYear: getAcademicYear(session.user),
+      }
+    : null;
 
   return (
     <Sidebar
@@ -213,7 +221,9 @@ export function StudentSidebar({
                         <SidebarMenuButton
                           onClick={() => toggleMenu(route.title)}
                           className={`font-semibold ${
-                            expandedMenus.includes(route.title) ? "bg-accent" : ""
+                            expandedMenus.includes(route.title)
+                              ? "bg-accent"
+                              : ""
                           }`}
                         >
                           <route.icon className="size-4" />

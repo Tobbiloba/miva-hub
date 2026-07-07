@@ -66,6 +66,7 @@
     "@aws-sdk/client-s3": "^3.523.0",
     "@aws-sdk/lib-storage": "^3.523.0",
     "@aws-sdk/s3-request-presigner": "^3.523.0",
+    "@google/genai": "^2.10.0",
     "@modelcontextprotocol/sdk": "^1.18.1",
     "@openrouter/ai-sdk-provider": "^1.2.0",
     "@radix-ui/react-accordion": "^1.2.12",
