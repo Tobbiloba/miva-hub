@@ -62,7 +62,9 @@ export async function middleware(request: NextRequest) {
     !pathname.startsWith("/api/admissions/apply") &&
     !pathname.startsWith("/api/invite/") &&
     !pathname.startsWith("/api/university/resolve") &&
-    !pathname.startsWith("/api/university/register")
+    !pathname.startsWith("/api/university/register") &&
+    // Meta webhook: authenticated by WHATSAPP_VERIFY_TOKEN handshake, not session
+    !pathname.startsWith("/api/whatsapp/webhook")
   ) {
     // API callers get machine-readable 401 JSON — never a 307 to /sign-in
     if (pathname.startsWith("/api/")) {

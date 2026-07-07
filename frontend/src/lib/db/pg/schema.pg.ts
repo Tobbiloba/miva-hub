@@ -2281,3 +2281,36 @@ export const VivaSessionSchema = pgTable(
 );
 
 export type VivaSessionEntity = typeof VivaSessionSchema.$inferSelect;
+
+// ── WhatsApp learning channel ───────────────────────────────────────────────
+// Binds a WhatsApp phone number to a student account. Linking is code-based:
+// the student generates a code in the web app and sends "LINK <code>" on
+// WhatsApp — we never trust an inbound phone number without that handshake.
+export const WhatsAppLinkSchema = pgTable(
+  "whatsapp_link",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .unique()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    /** E.164 without '+', as WhatsApp sends it (e.g. "2348012345678") */
+    phoneNumber: text("phone_number").unique(),
+    verifyCode: text("verify_code"),
+    verifyCodeExpiresAt: timestamp("verify_code_expires_at"),
+    verifiedAt: timestamp("verified_at"),
+    /** Course the WhatsApp tutor currently answers about */
+    activeCourseId: uuid("active_course_id").references(() => CourseSchema.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("whatsapp_link_phone_idx").on(table.phoneNumber)],
+);
+
+export type WhatsAppLinkEntity = typeof WhatsAppLinkSchema.$inferSelect;

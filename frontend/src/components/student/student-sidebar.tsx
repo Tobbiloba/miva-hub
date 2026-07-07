@@ -31,6 +31,7 @@ import {
   Home,
   Layers,
   type LucideIcon,
+  MessageCircle,
   Mic,
   PanelLeft,
   Settings,
@@ -70,6 +71,11 @@ const studentRoutes: StudentRoute[] = [
     title: "Viva Coach",
     href: "/student/viva",
     icon: Mic,
+  },
+  {
+    title: "WhatsApp",
+    href: "/student/whatsapp",
+    icon: MessageCircle,
   },
   {
     title: "Assignments",
