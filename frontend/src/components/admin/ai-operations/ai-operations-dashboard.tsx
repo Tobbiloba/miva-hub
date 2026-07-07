@@ -2,12 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -27,14 +22,18 @@ import {
 import {
   AlertTriangle,
   Bot,
+  Check,
   ChevronLeft,
   ChevronRight,
   Download,
   Gauge,
+  LifeBuoy,
   ListChecks,
   UserCog,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 type DecisionType =
   | "grading"
@@ -177,6 +176,7 @@ export function AIOperationsDashboard() {
   const [decisionType, setDecisionType] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
   const [page, setPage] = useState(1);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -205,6 +205,27 @@ export function AIOperationsDashboard() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const reviewDecision = async (id: string, action: "approve" | "reject") => {
+    setReviewingId(id);
+    try {
+      const res = await fetch(`/api/admin/ai-operations/${id}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || "Review failed");
+      toast.success(
+        action === "approve" ? "Escalation approved" : "Escalation rejected",
+      );
+      fetchData();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Review failed");
+    } finally {
+      setReviewingId(null);
+    }
+  };
 
   const handleExportCsv = () => {
     if (!data?.decisions.length) return;
@@ -239,6 +260,17 @@ export function AIOperationsDashboard() {
           0,
         ) / confidenceWeight
       : null;
+
+  // Support escalation rate: share of support decisions the agent could NOT
+  // resolve alone (anything that entered/passed human review). Target: <10%.
+  const supportRows =
+    stats?.byType.filter((r) => r.decisionType === "support") ?? [];
+  const supportTotal = supportRows.reduce((acc, r) => acc + Number(r.count), 0);
+  const supportEscalated = supportRows
+    .filter((r) => r.status !== "executed")
+    .reduce((acc, r) => acc + Number(r.count), 0);
+  const supportEscalationRate =
+    supportTotal > 0 ? supportEscalated / supportTotal : null;
 
   const totalsByType = DECISION_TYPES.map((type) => ({
     type,
@@ -341,9 +373,9 @@ export function AIOperationsDashboard() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {loading && !data ? (
-          Array.from({ length: 4 }).map((_, i) => (
+          Array.from({ length: 5 }).map((_, i) => (
             <Card key={i}>
               <CardContent className="p-4">
                 <Skeleton className="h-5 w-5 mb-2" />
@@ -407,6 +439,23 @@ export function AIOperationsDashboard() {
                     <p className="text-2xl font-bold">{pendingReview}</p>
                     <p className="text-xs text-muted-foreground">
                       Pending Review
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <LifeBuoy className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {supportEscalationRate != null
+                        ? `${(supportEscalationRate * 100).toFixed(1)}%`
+                        : "—"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Support Escalation Rate
                     </p>
                   </div>
                 </div>
@@ -490,7 +539,7 @@ export function AIOperationsDashboard() {
                       <TableHead>Decision</TableHead>
                       <TableHead className="text-right">Confidence</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Reviewed By</TableHead>
+                      <TableHead>Review</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -517,9 +566,39 @@ export function AIOperationsDashboard() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {row.reviewedById
-                            ? `${row.reviewedById.slice(0, 8)}…`
-                            : "—"}
+                          {row.status === "pending_review" &&
+                          row.decisionType === "support" ? (
+                            <div className="flex gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2"
+                                disabled={reviewingId === row.id}
+                                onClick={() =>
+                                  reviewDecision(row.id, "approve")
+                                }
+                                aria-label="Approve escalation"
+                              >
+                                <Check className="h-3.5 w-3.5" />
+                                Approve
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2 text-destructive"
+                                disabled={reviewingId === row.id}
+                                onClick={() => reviewDecision(row.id, "reject")}
+                                aria-label="Reject escalation"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                                Reject
+                              </Button>
+                            </div>
+                          ) : row.reviewedById ? (
+                            `${row.reviewedById.slice(0, 8)}…`
+                          ) : (
+                            "—"
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
