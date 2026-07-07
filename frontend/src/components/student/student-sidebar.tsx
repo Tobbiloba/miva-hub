@@ -35,6 +35,7 @@ import {
   Layers,
   TrendingUp,
   CreditCard,
+  GraduationCap,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,11 @@ const studentRoutes: StudentRoute[] = [
     title: "My Courses",
     href: "/student/courses",
     icon: BookOpen,
+  },
+  {
+    title: "AI Tutor",
+    href: "/student/tutor",
+    icon: GraduationCap,
   },
   {
     title: "Assignments",
