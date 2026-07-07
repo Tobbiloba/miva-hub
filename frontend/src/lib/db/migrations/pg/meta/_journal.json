@@ -267,6 +267,13 @@
       "when": 1783455879623,
       "tag": "0037_workable_mordo",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1783459655220,
+      "tag": "0038_steep_energizer",
+      "breakpoints": true
     }
   ]
 }

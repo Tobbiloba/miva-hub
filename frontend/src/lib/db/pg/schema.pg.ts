@@ -1796,3 +1796,77 @@ export const AIDecisionSchema = pgTable(
 );
 
 export type AIDecisionEntity = typeof AIDecisionSchema.$inferSelect;
+
+// ===============================
+// AI ADMISSIONS
+// ===============================
+// Applications processed by the AI admissions officer. The agent verifies the
+// applicant's credentials against the program's requirements and either
+// executes a decision (admit/waitlist/reject) or escalates to a human admin.
+
+export const admissionStatusEnum = pgEnum("admission_status_enum", [
+  "under_review",
+  "admitted",
+  "waitlisted",
+  "rejected",
+  "escalated",
+]);
+
+export const AdmissionApplicationSchema = pgTable(
+  "admission_application",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    // Tenant scope — always derived server-side from the chosen program's row
+    universityId: uuid("university_id")
+      .notNull()
+      .references(() => UniversitySchema.id, { onDelete: "cascade" }),
+    programId: uuid("program_id")
+      .notNull()
+      .references(() => ProgramSchema.id, { onDelete: "cascade" }),
+    fullName: text("full_name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone"),
+    previousSchool: text("previous_school"),
+    // Pasted academic record (e.g. WAEC/NECO results, transcript lines)
+    transcriptText: text("transcript_text").notNull(),
+    personalStatement: text("personal_statement"),
+    // Name of the uploaded supporting document, if any (contents are sent to
+    // the model for verification but never persisted)
+    documentName: text("document_name"),
+    status: admissionStatusEnum("status").notNull().default("under_review"),
+    // The AI agent's output
+    aiDecision: text("ai_decision"), // admit | waitlist | reject | escalate
+    aiReasoning: text("ai_reasoning"),
+    aiConfidence: real("ai_confidence"),
+    // Credentials the agent extracted/verified, e.g. [{subject, grade}]
+    verifiedCredentials: json("verified_credentials").default([]),
+    decisionLedgerId: uuid("decision_ledger_id").references(
+      () => AIDecisionSchema.id,
+      { onDelete: "set null" },
+    ),
+    // Set when the student account is provisioned on admit
+    provisionedUserId: uuid("provisioned_user_id").references(
+      () => UserSchema.id,
+      { onDelete: "set null" },
+    ),
+    reviewedById: uuid("reviewed_by_id").references(() => UserSchema.id),
+    reviewedAt: timestamp("reviewed_at"),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("admission_application_university_idx").on(
+      table.universityId,
+      table.createdAt,
+    ),
+    index("admission_application_status_idx").on(table.status),
+    // One live application per email per program
+    unique("admission_application_email_program_unique").on(
+      table.email,
+      table.programId,
+    ),
+  ],
+);
+
+export type AdmissionApplicationEntity =
+  typeof AdmissionApplicationSchema.$inferSelect;

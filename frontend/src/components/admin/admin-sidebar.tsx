@@ -73,6 +73,7 @@ const adminRoutes = [
     children: [
       { title: "All Users", href: "/admin/users", icon: Users },
       { title: "Students", href: "/admin/students", icon: GraduationCap },
+      { title: "Admissions", href: "/admin/admissions", icon: UserCheck },
     ],
   },
   {
