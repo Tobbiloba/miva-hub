@@ -2045,6 +2045,7 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "course_neglected",
   "flashcards_due",
   "new_content",
+  "professor_outreach",
 ]);
 
 export const NotificationSchema = pgTable(
@@ -2314,3 +2315,43 @@ export const WhatsAppLinkSchema = pgTable(
 );
 
 export type WhatsAppLinkEntity = typeof WhatsAppLinkSchema.$inferSelect;
+
+// ── AI Professor ────────────────────────────────────────────────────────────
+// Each course gets a persistent AI professor: a generated persona that fronts
+// the course tutor (text office hours), holds voice office hours over the
+// Gemini Live API, and proactively reaches out to struggling students.
+export const CourseProfessorSchema = pgTable(
+  "course_professor",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    courseId: uuid("course_id")
+      .notNull()
+      .unique()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    /** e.g. "Professor Ada Obi" — generated once, stable thereafter */
+    name: text("name").notNull(),
+    title: text("title").notNull(),
+    /** Short public bio shown to students */
+    bio: text("bio").notNull(),
+    /** 2-4 personality traits, e.g. ["warm", "socratic", "story-driven"] */
+    traits: json("traits").notNull().default([]).$type<string[]>(),
+    /** First message the professor greets a new student with */
+    greeting: text("greeting").notNull(),
+    /**
+     * The persona block injected into every system prompt (chat + voice +
+     * outreach) so the professor sounds like the same person everywhere.
+     */
+    personaPrompt: text("persona_prompt").notNull(),
+    model: text("model"),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("course_professor_course_idx").on(table.courseId)],
+);
+
+export type CourseProfessorEntity = typeof CourseProfessorSchema.$inferSelect;

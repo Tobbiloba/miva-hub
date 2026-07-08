@@ -1,18 +1,19 @@
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { NotificationSchema, UserSchema } from "@/lib/db/pg/schema.pg";
-import { and, eq, gte, sql } from "drizzle-orm";
 import { sendEmail } from "@/lib/email/smtp-service";
 import {
-  buildNewContentEmail,
   buildCourseNeglectedEmail,
+  buildNewContentEmail,
 } from "@/lib/email/templates/notification-emails";
+import { and, eq, gte, sql } from "drizzle-orm";
 
 type NotificationType =
   | "streak_milestone"
   | "streak_at_risk"
   | "course_neglected"
   | "flashcards_due"
-  | "new_content";
+  | "new_content"
+  | "professor_outreach";
 
 interface CreateNotificationParams {
   studentId: string;

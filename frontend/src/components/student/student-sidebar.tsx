@@ -37,6 +37,7 @@ import {
   Settings,
   TrendingUp,
   User,
+  UserRound,
   Users,
 } from "lucide-react";
 import Image from "next/image";
@@ -66,6 +67,11 @@ const studentRoutes: StudentRoute[] = [
     title: "AI Tutor",
     href: "/student/tutor",
     icon: GraduationCap,
+  },
+  {
+    title: "My Professor",
+    href: "/student/professor",
+    icon: UserRound,
   },
   {
     title: "Viva Coach",

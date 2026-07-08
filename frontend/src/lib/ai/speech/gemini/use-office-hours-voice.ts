@@ -7,76 +7,50 @@ import {
 } from "@google/genai";
 import { useCallback, useRef, useState } from "react";
 
+import { base64ToFloat32, floatTo16BitPcmBase64 } from "./pcm";
+
 /**
- * Real-time viva voice session against the Gemini Live API.
- *
- * Transport: WebSocket via @google/genai using a server-minted ephemeral
- * token (the real API key never reaches the browser; model + examiner
- * system prompt are locked server-side in the token's constraints).
- *
- * Audio: mic → AudioContext@16kHz → PCM16 chunks → sendRealtimeInput;
- * model audio arrives as base64 PCM@24kHz and is schedule-played through
- * a second AudioContext. Transcripts for both sides stream in via
- * input/outputTranscription and accumulate into an ordered turn list.
+ * Live voice office hours with the course's AI professor.
+ * Same transport + audio pipeline as the viva hook, but conversational:
+ * no grading step, the session simply ends when the student hangs up.
  */
 
-export interface VivaTurn {
-  role: "examiner" | "student";
+export interface OfficeHoursTurn {
+  role: "professor" | "student";
   text: string;
 }
 
-export interface VivaRubricView {
-  criteria: { name: string; score: number; comment: string }[];
-  overallScore: number;
-  verdict: string;
-  strengths: string[];
-  improvements: string[];
-  summary: string;
-}
-
-export type VivaStatus =
-  | "idle"
-  | "connecting"
-  | "active"
-  | "scoring"
-  | "completed"
-  | "error";
-
-import { base64ToFloat32, floatTo16BitPcmBase64 } from "./pcm";
+export type OfficeHoursStatus = "idle" | "connecting" | "active" | "error";
 
 const INPUT_SAMPLE_RATE = 16_000;
 const OUTPUT_SAMPLE_RATE = 24_000;
 
-export function useVivaVoice() {
-  const [status, setStatus] = useState<VivaStatus>("idle");
-  const [turns, setTurns] = useState<VivaTurn[]>([]);
-  const [isExaminerSpeaking, setIsExaminerSpeaking] = useState(false);
+export function useOfficeHoursVoice() {
+  const [status, setStatus] = useState<OfficeHoursStatus>("idle");
+  const [turns, setTurns] = useState<OfficeHoursTurn[]>([]);
+  const [isProfessorSpeaking, setIsProfessorSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [rubric, setRubric] = useState<VivaRubricView | null>(null);
-  const [course, setCourse] = useState<{
-    courseCode: string;
-    title: string;
-  } | null>(null);
 
   const sessionRef = useRef<Session | null>(null);
-  const vivaIdRef = useRef<string | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
   const inputCtxRef = useRef<AudioContext | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const outputCtxRef = useRef<AudioContext | null>(null);
   const nextPlayTimeRef = useRef(0);
   const playingSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-  // Streaming transcript buffers — flushed into `turns` at turn boundaries.
   const studentBufferRef = useRef("");
-  const examinerBufferRef = useRef("");
-  const turnsRef = useRef<VivaTurn[]>([]);
+  const professorBufferRef = useRef("");
+  const turnsRef = useRef<OfficeHoursTurn[]>([]);
 
-  const pushTurn = useCallback((role: VivaTurn["role"], text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    turnsRef.current = [...turnsRef.current, { role, text: trimmed }];
-    setTurns(turnsRef.current);
-  }, []);
+  const pushTurn = useCallback(
+    (role: OfficeHoursTurn["role"], text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      turnsRef.current = [...turnsRef.current, { role, text: trimmed }];
+      setTurns(turnsRef.current);
+    },
+    [],
+  );
 
   const stopPlayback = useCallback(() => {
     for (const source of playingSourcesRef.current) {
@@ -86,7 +60,7 @@ export function useVivaVoice() {
     }
     playingSourcesRef.current.clear();
     nextPlayTimeRef.current = 0;
-    setIsExaminerSpeaking(false);
+    setIsProfessorSpeaking(false);
   }, []);
 
   const playAudioChunk = useCallback((base64: string) => {
@@ -103,10 +77,10 @@ export function useVivaVoice() {
     source.start(startAt);
     nextPlayTimeRef.current = startAt + buffer.duration;
     playingSourcesRef.current.add(source);
-    setIsExaminerSpeaking(true);
+    setIsProfessorSpeaking(true);
     source.onended = () => {
       playingSourcesRef.current.delete(source);
-      if (playingSourcesRef.current.size === 0) setIsExaminerSpeaking(false);
+      if (playingSourcesRef.current.size === 0) setIsProfessorSpeaking(false);
     };
   }, []);
 
@@ -115,7 +89,6 @@ export function useVivaVoice() {
       const content = message.serverContent;
       if (!content) return;
 
-      // The candidate's words: flush into a turn once the examiner replies.
       if (content.inputTranscription?.text) {
         studentBufferRef.current += content.inputTranscription.text;
       }
@@ -124,7 +97,7 @@ export function useVivaVoice() {
           pushTurn("student", studentBufferRef.current);
           studentBufferRef.current = "";
         }
-        examinerBufferRef.current += content.outputTranscription.text;
+        professorBufferRef.current += content.outputTranscription.text;
       }
 
       const audioData = content.modelTurn?.parts?.find(
@@ -132,17 +105,16 @@ export function useVivaVoice() {
       )?.inlineData?.data;
       if (audioData) playAudioChunk(audioData);
 
-      // The candidate spoke over the examiner — stop playback immediately.
       if (content.interrupted) {
         stopPlayback();
-        if (examinerBufferRef.current) {
-          pushTurn("examiner", examinerBufferRef.current);
-          examinerBufferRef.current = "";
+        if (professorBufferRef.current) {
+          pushTurn("professor", professorBufferRef.current);
+          professorBufferRef.current = "";
         }
       }
-      if (content.turnComplete && examinerBufferRef.current) {
-        pushTurn("examiner", examinerBufferRef.current);
-        examinerBufferRef.current = "";
+      if (content.turnComplete && professorBufferRef.current) {
+        pushTurn("professor", professorBufferRef.current);
+        professorBufferRef.current = "";
       }
     },
     [playAudioChunk, pushTurn, stopPlayback],
@@ -161,31 +133,26 @@ export function useVivaVoice() {
   }, [stopPlayback]);
 
   const start = useCallback(
-    async (courseId: string, focusTopic?: string) => {
+    async (courseId: string) => {
       setStatus("connecting");
       setError(null);
-      setRubric(null);
       turnsRef.current = [];
       setTurns([]);
       studentBufferRef.current = "";
-      examinerBufferRef.current = "";
+      professorBufferRef.current = "";
       try {
-        const res = await fetch("/api/student/viva/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ courseId, focusTopic }),
-        });
+        const res = await fetch(
+          `/api/student/professor/${courseId}/voice-token`,
+          { method: "POST" },
+        );
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          throw new Error(data.error || "Failed to start viva session");
+          throw new Error(data.error || "Failed to start office hours");
         }
-        vivaIdRef.current = data.sessionId;
-        setCourse(data.course ?? null);
 
         micStreamRef.current = await navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: true, noiseSuppression: true },
         });
-
         outputCtxRef.current = new AudioContext({
           sampleRate: OUTPUT_SAMPLE_RATE,
         });
@@ -196,8 +163,7 @@ export function useVivaVoice() {
         });
         const session = await ai.live.connect({
           model: data.model,
-          // Model, modalities and system prompt are locked in the token's
-          // constraints server-side; nothing to configure here.
+          // Model + persona are locked in the token's constraints server-side.
           config: {},
           callbacks: {
             onmessage: handleMessage,
@@ -206,14 +172,12 @@ export function useVivaVoice() {
               setStatus("error");
             },
             onclose: () => {
-              setIsExaminerSpeaking(false);
+              setIsProfessorSpeaking(false);
             },
           },
         });
         sessionRef.current = session;
 
-        // Mic → 16kHz PCM16 → Live API. ScriptProcessor is deprecated but
-        // dependency-free; the browser resamples to the context rate for us.
         const inputCtx = new AudioContext({ sampleRate: INPUT_SAMPLE_RATE });
         inputCtxRef.current = inputCtx;
         const source = inputCtx.createMediaStreamSource(micStreamRef.current);
@@ -237,77 +201,36 @@ export function useVivaVoice() {
         teardownAudio();
         sessionRef.current?.close();
         sessionRef.current = null;
-        setError(err instanceof Error ? err.message : "Failed to start viva");
+        setError(
+          err instanceof Error ? err.message : "Failed to start office hours",
+        );
         setStatus("error");
       }
     },
     [handleMessage, teardownAudio],
   );
 
-  /** End the viva: close the live session, then grade the transcript. */
-  const end = useCallback(
-    async (abandoned = false) => {
-      // Flush any partial buffers so the grader sees the full exchange.
-      if (studentBufferRef.current) {
-        pushTurn("student", studentBufferRef.current);
-        studentBufferRef.current = "";
-      }
-      if (examinerBufferRef.current) {
-        pushTurn("examiner", examinerBufferRef.current);
-        examinerBufferRef.current = "";
-      }
-      teardownAudio();
-      sessionRef.current?.close();
-      sessionRef.current = null;
-
-      const vivaId = vivaIdRef.current;
-      if (!vivaId) {
-        setStatus("idle");
-        return;
-      }
-      setStatus("scoring");
-      try {
-        const res = await fetch(`/api/student/viva/${vivaId}/complete`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ transcript: turnsRef.current, abandoned }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || "Grading failed");
-        setRubric(data.rubric ?? null);
-        setStatus(data.rubric ? "completed" : "idle");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Grading failed");
-        setStatus("error");
-      } finally {
-        vivaIdRef.current = null;
-      }
-    },
-    [pushTurn, teardownAudio],
-  );
-
-  const reset = useCallback(() => {
+  const end = useCallback(() => {
+    if (studentBufferRef.current) {
+      pushTurn("student", studentBufferRef.current);
+      studentBufferRef.current = "";
+    }
+    if (professorBufferRef.current) {
+      pushTurn("professor", professorBufferRef.current);
+      professorBufferRef.current = "";
+    }
     teardownAudio();
     sessionRef.current?.close();
     sessionRef.current = null;
-    vivaIdRef.current = null;
-    turnsRef.current = [];
-    setTurns([]);
-    setRubric(null);
-    setError(null);
-    setCourse(null);
     setStatus("idle");
-  }, [teardownAudio]);
+  }, [pushTurn, teardownAudio]);
 
   return {
     status,
     turns,
-    isExaminerSpeaking,
+    isProfessorSpeaking,
     error,
-    rubric,
-    course,
     start,
     end,
-    reset,
   };
 }
