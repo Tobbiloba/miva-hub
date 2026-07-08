@@ -1,19 +1,44 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
-  UserSchema,
-  FacultySchema,
-  CourseSchema,
   CourseInstructorSchema,
+  CourseSchema,
+  FacultySchema,
+  UserSchema,
 } from "@/lib/db/pg/schema.pg";
+import { getUserUniversity } from "@/lib/tenant";
+import { type SQL, and, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { eq, and } from "drizzle-orm";
+
+/**
+ * Tenant scope for faculty lookups: admins may only touch faculty of their
+ * own university (super admins without a university see all).
+ */
+async function facultyTenantFilter(
+  adminUserId: string,
+  facultyUserId: string,
+): Promise<SQL | undefined> {
+  const university = await getUserUniversity(adminUserId);
+  return and(
+    eq(UserSchema.id, facultyUserId),
+    eq(UserSchema.role, "faculty"),
+    ...(university ? [eq(UserSchema.universityId, university.id)] : []),
+  );
+}
 
 // Validation schema for faculty updates
 const updateFacultySchema = z.object({
-  name: z.string().min(1, "Faculty name is required").max(100, "Name too long").optional(),
-  position: z.string().min(1, "Position is required").max(50, "Position too long").optional(),
+  name: z
+    .string()
+    .min(1, "Faculty name is required")
+    .max(100, "Name too long")
+    .optional(),
+  position: z
+    .string()
+    .min(1, "Position is required")
+    .max(50, "Position too long")
+    .optional(),
   departmentId: z.string().uuid("Invalid department ID").optional(),
   office: z.string().optional(),
   officeHours: z.string().optional(),
@@ -25,8 +50,8 @@ const updateFacultySchema = z.object({
 });
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     // Check admin access
@@ -45,91 +70,97 @@ export async function GET(
       })
       .from(UserSchema)
       .leftJoin(FacultySchema, eq(UserSchema.id, FacultySchema.userId))
-      .where(and(
-        eq(UserSchema.id, id),
-        eq(UserSchema.role, 'faculty')
-      ))
+      .where(await facultyTenantFilter(adminAccess.user.id, id))
       .limit(1);
 
     if (facultyData.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: 'Faculty member not found'
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Faculty member not found",
+        },
+        { status: 404 },
+      );
     }
 
     const { user, faculty } = facultyData[0];
 
     // Get faculty's courses via the course_instructor join table
-    const courses = faculty ? await pgDb
-      .select({
-        id: CourseSchema.id,
-        courseCode: CourseSchema.courseCode,
-        title: CourseSchema.title,
-        credits: CourseSchema.credits,
-        semester: CourseInstructorSchema.semester,
-        semesterOffered: CourseSchema.semesterOffered,
-        isActive: CourseSchema.isActive,
-      })
-      .from(CourseInstructorSchema)
-      .innerJoin(
-        CourseSchema,
-        eq(CourseInstructorSchema.courseId, CourseSchema.id)
-      )
-      .where(eq(CourseInstructorSchema.facultyId, faculty.id)) : [];
+    const courses = faculty
+      ? await pgDb
+          .select({
+            id: CourseSchema.id,
+            courseCode: CourseSchema.courseCode,
+            title: CourseSchema.title,
+            credits: CourseSchema.credits,
+            semester: CourseInstructorSchema.semester,
+            semesterOffered: CourseSchema.semesterOffered,
+            isActive: CourseSchema.isActive,
+          })
+          .from(CourseInstructorSchema)
+          .innerJoin(
+            CourseSchema,
+            eq(CourseInstructorSchema.courseId, CourseSchema.id),
+          )
+          .where(eq(CourseInstructorSchema.facultyId, faculty.id))
+      : [];
 
     // Remove password from response
     const { password: _, ...userData } = user;
 
     const facultyWithDetails = {
       ...userData,
-      faculty: faculty ? {
-        id: faculty.id,
-        position: faculty.position,
-        departmentId: faculty.departmentId,
-        office: faculty.officeLocation,
-        officeHours: faculty.officeHours,
-        bio: faculty.bio,
-        qualifications: faculty.qualifications,
-        researchInterests: faculty.researchInterests,
-        isActive: faculty.isActive,
-        createdAt: faculty.createdAt,
-        updatedAt: faculty.updatedAt
-      } : null,
-      courses: courses.map(course => ({
+      faculty: faculty
+        ? {
+            id: faculty.id,
+            position: faculty.position,
+            departmentId: faculty.departmentId,
+            office: faculty.officeLocation,
+            officeHours: faculty.officeHours,
+            bio: faculty.bio,
+            qualifications: faculty.qualifications,
+            researchInterests: faculty.researchInterests,
+            isActive: faculty.isActive,
+            createdAt: faculty.createdAt,
+            updatedAt: faculty.updatedAt,
+          }
+        : null,
+      courses: courses.map((course) => ({
         id: course.id,
         courseCode: course.courseCode,
         title: course.title,
         credits: course.credits,
         semester: course.semester,
-        isActive: course.isActive
+        isActive: course.isActive,
       })),
       statistics: {
         totalCourses: courses.length,
-        activeCourses: courses.filter(c => c.isActive).length,
-        currentSemesterCourses: courses.filter(c => c.isActive).length
-      }
+        activeCourses: courses.filter((c) => c.isActive).length,
+        currentSemesterCourses: courses.filter((c) => c.isActive).length,
+      },
     };
 
     return NextResponse.json({
       success: true,
-      data: facultyWithDetails
+      data: facultyWithDetails,
     });
-
   } catch (error) {
-    console.error('[Faculty API] GET Error:', error);
-    
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to fetch faculty member',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error("[Faculty API] GET Error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch faculty member",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     // Check admin access
@@ -144,7 +175,7 @@ export async function PUT(
     const body = await request.json();
     const validatedData = updateFacultySchema.parse(body);
 
-    // Check if faculty exists
+    // Check if faculty exists — tenant-scoped (prevents cross-university IDOR)
     const existingFaculty = await pgDb
       .select({
         user: UserSchema,
@@ -152,17 +183,17 @@ export async function PUT(
       })
       .from(UserSchema)
       .leftJoin(FacultySchema, eq(UserSchema.id, FacultySchema.userId))
-      .where(and(
-        eq(UserSchema.id, id),
-        eq(UserSchema.role, 'faculty')
-      ))
+      .where(await facultyTenantFilter(adminAccess.user.id, id))
       .limit(1);
 
     if (existingFaculty.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: 'Faculty member not found'
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Faculty member not found",
+        },
+        { status: 404 },
+      );
     }
 
     const { user, faculty } = existingFaculty[0];
@@ -173,17 +204,25 @@ export async function PUT(
 
     // User table updates
     if (validatedData.name !== undefined) userUpdates.name = validatedData.name;
-    if (validatedData.isEmailVerified !== undefined) userUpdates.isEmailVerified = validatedData.isEmailVerified;
+    if (validatedData.isEmailVerified !== undefined)
+      userUpdates.isEmailVerified = validatedData.isEmailVerified;
 
     // Faculty table updates
-    if (validatedData.position !== undefined) facultyUpdates.position = validatedData.position;
-    if (validatedData.departmentId !== undefined) facultyUpdates.departmentId = validatedData.departmentId;
-    if (validatedData.office !== undefined) facultyUpdates.officeLocation = validatedData.office;
-    if (validatedData.officeHours !== undefined) facultyUpdates.officeHours = validatedData.officeHours;
+    if (validatedData.position !== undefined)
+      facultyUpdates.position = validatedData.position;
+    if (validatedData.departmentId !== undefined)
+      facultyUpdates.departmentId = validatedData.departmentId;
+    if (validatedData.office !== undefined)
+      facultyUpdates.officeLocation = validatedData.office;
+    if (validatedData.officeHours !== undefined)
+      facultyUpdates.officeHours = validatedData.officeHours;
     if (validatedData.bio !== undefined) facultyUpdates.bio = validatedData.bio;
-    if (validatedData.qualifications !== undefined) facultyUpdates.qualifications = validatedData.qualifications;
-    if (validatedData.researchInterests !== undefined) facultyUpdates.researchInterests = validatedData.researchInterests;
-    if (validatedData.isActive !== undefined) facultyUpdates.isActive = validatedData.isActive;
+    if (validatedData.qualifications !== undefined)
+      facultyUpdates.qualifications = validatedData.qualifications;
+    if (validatedData.researchInterests !== undefined)
+      facultyUpdates.researchInterests = validatedData.researchInterests;
+    if (validatedData.isActive !== undefined)
+      facultyUpdates.isActive = validatedData.isActive;
 
     // Update user record if there are user updates
     let updatedUser = user;
@@ -192,7 +231,7 @@ export async function PUT(
         .update(UserSchema)
         .set({
           ...userUpdates,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(UserSchema.id, id))
         .returning();
@@ -206,7 +245,7 @@ export async function PUT(
         .update(FacultySchema)
         .set({
           ...facultyUpdates,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(FacultySchema.userId, id))
         .returning();
@@ -218,47 +257,54 @@ export async function PUT(
 
     const responseData = {
       ...userData,
-      faculty: updatedFaculty ? {
-        id: updatedFaculty.id,
-        position: updatedFaculty.position,
-        departmentId: updatedFaculty.departmentId,
-        office: updatedFaculty.officeLocation,
-        officeHours: updatedFaculty.officeHours,
-        bio: updatedFaculty.bio,
-        qualifications: updatedFaculty.qualifications,
-        researchInterests: updatedFaculty.researchInterests,
-        isActive: updatedFaculty.isActive,
-      } : null
+      faculty: updatedFaculty
+        ? {
+            id: updatedFaculty.id,
+            position: updatedFaculty.position,
+            departmentId: updatedFaculty.departmentId,
+            office: updatedFaculty.officeLocation,
+            officeHours: updatedFaculty.officeHours,
+            bio: updatedFaculty.bio,
+            qualifications: updatedFaculty.qualifications,
+            researchInterests: updatedFaculty.researchInterests,
+            isActive: updatedFaculty.isActive,
+          }
+        : null,
     };
 
     return NextResponse.json({
       success: true,
       data: responseData,
-      message: `Faculty member "${userData.name}" updated successfully`
+      message: `Faculty member "${userData.name}" updated successfully`,
     });
-
   } catch (error) {
-    console.error('[Faculty API] PUT Error:', error);
-    
+    console.error("[Faculty API] PUT Error:", error);
+
     if (error instanceof z.ZodError) {
-      return NextResponse.json({
-        success: false,
-        error: 'Validation failed',
-        details: error.issues
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Validation failed",
+          details: error.issues,
+        },
+        { status: 400 },
+      );
     }
-    
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to update faculty member',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to update faculty member",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }
 
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     // Check admin access
@@ -269,7 +315,7 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Check if faculty exists
+    // Check if faculty exists — tenant-scoped (prevents cross-university IDOR)
     const existingFaculty = await pgDb
       .select({
         user: UserSchema,
@@ -277,43 +323,50 @@ export async function DELETE(
       })
       .from(UserSchema)
       .leftJoin(FacultySchema, eq(UserSchema.id, FacultySchema.userId))
-      .where(and(
-        eq(UserSchema.id, id),
-        eq(UserSchema.role, 'faculty')
-      ))
+      .where(await facultyTenantFilter(adminAccess.user.id, id))
       .limit(1);
 
     if (existingFaculty.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: 'Faculty member not found'
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Faculty member not found",
+        },
+        { status: 404 },
+      );
     }
 
     const { user, faculty } = existingFaculty[0];
 
     // Check for active courses before deletion (via course_instructor join)
-    const activeCourses = faculty ? await pgDb
-      .select({ id: CourseSchema.id })
-      .from(CourseInstructorSchema)
-      .innerJoin(
-        CourseSchema,
-        eq(CourseInstructorSchema.courseId, CourseSchema.id)
-      )
-      .where(and(
-        eq(CourseInstructorSchema.facultyId, faculty.id),
-        eq(CourseSchema.isActive, true)
-      )) : [];
+    const activeCourses = faculty
+      ? await pgDb
+          .select({ id: CourseSchema.id })
+          .from(CourseInstructorSchema)
+          .innerJoin(
+            CourseSchema,
+            eq(CourseInstructorSchema.courseId, CourseSchema.id),
+          )
+          .where(
+            and(
+              eq(CourseInstructorSchema.facultyId, faculty.id),
+              eq(CourseSchema.isActive, true),
+            ),
+          )
+      : [];
 
     if (activeCourses.length > 0) {
-      return NextResponse.json({
-        success: false,
-        error: 'Cannot delete faculty with active courses',
-        message: `Faculty member has ${activeCourses.length} active courses. Please reassign them first.`,
-        dependencies: {
-          activeCourses: activeCourses.length
-        }
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Cannot delete faculty with active courses",
+          message: `Faculty member has ${activeCourses.length} active courses. Please reassign them first.`,
+          dependencies: {
+            activeCourses: activeCourses.length,
+          },
+        },
+        { status: 400 },
+      );
     }
 
     // Soft delete by deactivating faculty profile instead of hard delete
@@ -322,7 +375,7 @@ export async function DELETE(
         .update(FacultySchema)
         .set({
           isActive: false,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(FacultySchema.userId, id));
     }
@@ -332,22 +385,24 @@ export async function DELETE(
       .update(UserSchema)
       .set({
         isEmailVerified: false,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(UserSchema.id, id));
 
     return NextResponse.json({
       success: true,
-      message: `Faculty member "${user.name}" deactivated successfully`
+      message: `Faculty member "${user.name}" deactivated successfully`,
     });
-
   } catch (error) {
-    console.error('[Faculty API] DELETE Error:', error);
-    
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to delete faculty member',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error("[Faculty API] DELETE Error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to delete faculty member",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }
