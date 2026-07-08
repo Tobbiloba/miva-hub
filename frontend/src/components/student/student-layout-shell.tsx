@@ -1,9 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { SidebarProvider } from "ui/sidebar";
-import { StudentSidebar } from "./student-sidebar";
+import { SidebarProvider, SidebarTrigger } from "ui/sidebar";
 import { NotificationBell } from "./notification-bell";
+import { StudentSidebar } from "./student-sidebar";
 import { TrialCountdownBanner } from "./trial-countdown-banner";
 import { WelcomeBanner } from "./welcome-banner";
 
@@ -15,7 +15,10 @@ interface StudentLayoutShellProps {
   children: React.ReactNode;
 }
 
-export function StudentLayoutShell({ session, children }: StudentLayoutShellProps) {
+export function StudentLayoutShell({
+  session,
+  children,
+}: StudentLayoutShellProps) {
   const pathname = usePathname();
   const isFullBleed = FULL_BLEED_PATHS.includes(pathname);
 
@@ -34,12 +37,16 @@ export function StudentLayoutShell({ session, children }: StudentLayoutShellProp
             firstName={(session?.user?.name || "Student").split(" ")[0]}
           />
           <TrialCountdownBanner />
-          <div className="flex items-center justify-end border-b px-6 py-2 shrink-0">
-            <NotificationBell />
+          <div className="flex items-center justify-between border-b px-4 sm:px-6 py-2 shrink-0">
+            <SidebarTrigger
+              className="md:hidden"
+              aria-label="Open navigation menu"
+            />
+            <div className="ml-auto">
+              <NotificationBell />
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-6">
-            {children}
-          </div>
+          <div className="flex-1 overflow-y-auto p-6">{children}</div>
         </main>
       </div>
     </SidebarProvider>
