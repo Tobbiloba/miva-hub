@@ -122,7 +122,7 @@ a price point (₦3,000/month) that students where we operate can actually pay
 | <3-min video | Script above | blocked on mic sessions + revenue shots |
 | 500–1,000 word narrative | §2 above | draft done; fill [N]s at submission |
 | Repo access | Invite testing@devpost.com + judging@hacker.fund | pending (user action) |
-| Agent logs | AI-ops ledger export CSV (button live on /admin/ai-operations) | working |
+| Agent logs | AI-ops ledger — Export CSV button (verified live; exports current page only) + full-table dump for submission: `psql -c "\copy ai_decision to 'ai-decisions-full.csv' csv header"` | working |
 | Gemini API records | AI Studio / Cloud console usage screenshots, weekly | ongoing |
 | Revenue evidence | Paystack + Stripe exports | blocked on live payments |
 | Expense/marketing docs | Ad receipts, Cloud invoices, ambassador payouts | collect as incurred |
