@@ -79,6 +79,11 @@ const studentRoutes: StudentRoute[] = [
     icon: Mic,
   },
   {
+    title: "Study Plan",
+    href: "/student/plan",
+    icon: CalendarDays,
+  },
+  {
     title: "WhatsApp",
     href: "/student/whatsapp",
     icon: MessageCircle,

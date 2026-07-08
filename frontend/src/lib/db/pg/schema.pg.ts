@@ -1913,6 +1913,66 @@ export const FlashcardSchema = pgTable(
   ],
 );
 
+// ================================================
+// AI PERSONALIZED STUDY PLANS
+// ================================================
+
+export interface StudyPlanTask {
+  type:
+    | "flashcards"
+    | "tutor_session"
+    | "reading"
+    | "practice_quiz"
+    | "office_hours"
+    | "assignment_prep";
+  title: string;
+  description: string;
+  concepts: string[];
+  estimatedMinutes: number;
+}
+
+export interface StudyPlanDay {
+  day: string;
+  tasks: StudyPlanTask[];
+}
+
+export const StudyPlanSchema = pgTable(
+  "study_plan",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    weeklyGoal: text("weekly_goal").notNull(),
+    rationale: text("rationale").notNull(),
+    focusConcepts: jsonb("focus_concepts")
+      .notNull()
+      .default([])
+      .$type<string[]>(),
+    days: jsonb("days").notNull().default([]).$type<StudyPlanDay[]>(),
+    signalsSummary: text("signals_summary"),
+    model: text("model").notNull(),
+    generatedAt: timestamp("generated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    unique().on(table.studentId, table.courseId),
+    index("study_plan_student_idx").on(table.studentId),
+  ],
+);
+
+export type StudyPlanEntity = typeof StudyPlanSchema.$inferSelect;
+
 export type McpServerEntity = typeof McpServerSchema.$inferSelect;
 export type ChatThreadEntity = typeof ChatThreadSchema.$inferSelect;
 export type ChatMessageEntity = typeof ChatMessageSchema.$inferSelect;
