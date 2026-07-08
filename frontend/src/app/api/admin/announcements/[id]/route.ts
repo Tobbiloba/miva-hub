@@ -1,12 +1,38 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { AnnouncementSchema } from "@/lib/db/pg/schema.pg";
-import { eq } from "drizzle-orm";
+import { AnnouncementSchema, UserSchema } from "@/lib/db/pg/schema.pg";
+import { getUserUniversity } from "@/lib/tenant";
+import { and, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * Tenant-scoped announcement lookup. Announcements carry no universityId,
+ * so ownership is derived from the creator's university: admins may only
+ * touch announcements authored within their own university (super admins
+ * without a university see all). Prevents cross-university IDOR.
+ */
+async function findTenantAnnouncement(
+  adminUserId: string,
+  announcementId: string,
+) {
+  const university = await getUserUniversity(adminUserId);
+  const rows = await pgDb
+    .select({ announcement: AnnouncementSchema })
+    .from(AnnouncementSchema)
+    .innerJoin(UserSchema, eq(AnnouncementSchema.createdById, UserSchema.id))
+    .where(
+      and(
+        eq(AnnouncementSchema.id, announcementId),
+        ...(university ? [eq(UserSchema.universityId, university.id)] : []),
+      ),
+    )
+    .limit(1);
+  return rows[0]?.announcement ?? null;
+}
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     // Check authentication and admin permissions
@@ -16,39 +42,37 @@ export async function GET(
     const { id } = await params;
     const announcementId = id;
 
-    const announcement = await pgDb
-      .select()
-      .from(AnnouncementSchema)
-      .where(eq(AnnouncementSchema.id, announcementId))
-      .limit(1);
+    const announcement = await findTenantAnnouncement(
+      sessionOrError.user.id,
+      announcementId,
+    );
 
-    if (announcement.length === 0) {
+    if (!announcement) {
       return NextResponse.json(
         { success: false, message: "Announcement not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return NextResponse.json({
       success: true,
-      data: announcement[0]
+      data: announcement,
     });
-
   } catch (error) {
     console.error("Error fetching announcement:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: "Failed to fetch announcement" 
+      {
+        success: false,
+        message: "Failed to fetch announcement",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     // Check authentication and admin permissions
@@ -58,28 +82,27 @@ export async function PUT(
     const { id } = await params;
     const announcementId = id;
     const body = await request.json();
-    const { 
-      title, 
-      content, 
+    const {
+      title,
+      content,
       targetAudience,
       priority,
       courseId,
       departmentId,
       expiresAt,
-      isActive 
+      isActive,
     } = body;
 
-    // Check if announcement exists
-    const existingAnnouncement = await pgDb
-      .select()
-      .from(AnnouncementSchema)
-      .where(eq(AnnouncementSchema.id, announcementId))
-      .limit(1);
+    // Check if announcement exists — tenant-scoped (prevents cross-university IDOR)
+    const existingAnnouncement = await findTenantAnnouncement(
+      sessionOrError.user.id,
+      announcementId,
+    );
 
-    if (existingAnnouncement.length === 0) {
+    if (!existingAnnouncement) {
       return NextResponse.json(
         { success: false, message: "Announcement not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -103,24 +126,23 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       message: "Announcement updated successfully",
-      data: updatedAnnouncement[0]
+      data: updatedAnnouncement[0],
     });
-
   } catch (error) {
     console.error("Error updating announcement:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: "Failed to update announcement" 
+      {
+        success: false,
+        message: "Failed to update announcement",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     // Check authentication and admin permissions
@@ -130,17 +152,16 @@ export async function DELETE(
     const { id } = await params;
     const announcementId = id;
 
-    // Check if announcement exists
-    const existingAnnouncement = await pgDb
-      .select()
-      .from(AnnouncementSchema)
-      .where(eq(AnnouncementSchema.id, announcementId))
-      .limit(1);
+    // Check if announcement exists — tenant-scoped (prevents cross-university IDOR)
+    const existingAnnouncement = await findTenantAnnouncement(
+      sessionOrError.user.id,
+      announcementId,
+    );
 
-    if (existingAnnouncement.length === 0) {
+    if (!existingAnnouncement) {
       return NextResponse.json(
         { success: false, message: "Announcement not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -151,17 +172,16 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: "Announcement deleted successfully"
+      message: "Announcement deleted successfully",
     });
-
   } catch (error) {
     console.error("Error deleting announcement:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: "Failed to delete announcement" 
+      {
+        success: false,
+        message: "Failed to delete announcement",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

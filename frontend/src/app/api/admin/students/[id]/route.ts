@@ -1,9 +1,26 @@
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { StudentEnrollmentSchema, UserSchema } from "@/lib/db/pg/schema.pg";
-import { and, eq } from "drizzle-orm";
+import { getUserUniversity } from "@/lib/tenant";
+import { type SQL, and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+
+/**
+ * Tenant scope for student lookups: admins may only touch students of their
+ * own university (super admins without a university see all).
+ */
+async function studentTenantFilter(
+  adminUserId: string,
+  studentUserId: string,
+): Promise<SQL | undefined> {
+  const university = await getUserUniversity(adminUserId);
+  return and(
+    eq(UserSchema.id, studentUserId),
+    eq(UserSchema.role, "student"),
+    ...(university ? [eq(UserSchema.universityId, university.id)] : []),
+  );
+}
 
 // Validation schema for student updates
 const updateStudentSchema = z.object({
@@ -27,7 +44,7 @@ const updateStudentSchema = z.object({
 });
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -43,7 +60,7 @@ export async function GET(
     const student = await pgDb
       .select()
       .from(UserSchema)
-      .where(and(eq(UserSchema.id, id), eq(UserSchema.role, "student")))
+      .where(await studentTenantFilter(adminAccess.user.id, id))
       .limit(1);
 
     if (student.length === 0) {
@@ -124,7 +141,7 @@ export async function PUT(
     const existingStudent = await pgDb
       .select()
       .from(UserSchema)
-      .where(and(eq(UserSchema.id, id), eq(UserSchema.role, "student")))
+      .where(await studentTenantFilter(adminAccess.user.id, id))
       .limit(1);
 
     if (existingStudent.length === 0) {
@@ -252,7 +269,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -268,7 +285,7 @@ export async function DELETE(
     const existingStudent = await pgDb
       .select()
       .from(UserSchema)
-      .where(and(eq(UserSchema.id, id), eq(UserSchema.role, "student")))
+      .where(await studentTenantFilter(adminAccess.user.id, id))
       .limit(1);
 
     if (existingStudent.length === 0) {

@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-
+import { isSameTenant } from "@/lib/tenant";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     // Check admin access
@@ -19,38 +19,51 @@ export async function GET(
 
     // Get course by ID
     const course = await pgAcademicRepository.getCourseById(courseId);
-    if (!course) {
-      return NextResponse.json({
-        success: false,
-        error: 'Course not found',
-        message: `Course with ID "${courseId}" does not exist`
-      }, { status: 404 });
+    // Tenant-checked (prevents cross-university IDOR)
+    if (
+      !course ||
+      !(await isSameTenant(adminAccess.user.id, course.universityId))
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Course not found",
+          message: `Course with ID "${courseId}" does not exist`,
+        },
+        { status: 404 },
+      );
     }
 
     // Get department info
-    const department = await pgAcademicRepository.getDepartmentById(course.departmentId);
-    
+    const department = await pgAcademicRepository.getDepartmentById(
+      course.departmentId,
+    );
+
     const courseWithDepartment = {
       ...course,
-      department: department ? {
-        id: department.id,
-        name: department.name,
-        code: department.code
-      } : null
+      department: department
+        ? {
+            id: department.id,
+            name: department.name,
+            code: department.code,
+          }
+        : null,
     };
 
     return NextResponse.json({
       success: true,
-      data: courseWithDepartment
+      data: courseWithDepartment,
     });
-
   } catch (error) {
-    console.error('[Course API] GET Error:', error);
-    
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to fetch course',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error("[Course API] GET Error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch course",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }

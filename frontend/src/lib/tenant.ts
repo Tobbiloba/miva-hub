@@ -55,6 +55,20 @@ export function emailMatchesUniversity(
   );
 }
 
+/**
+ * May this admin act on an entity owned by `entityUniversityId`?
+ * Tenant admins only within their own university; super admins
+ * (no university on their user row) may act on anything.
+ */
+export async function isSameTenant(
+  adminUserId: string,
+  entityUniversityId: string | null | undefined,
+): Promise<boolean> {
+  const university = await getUserUniversity(adminUserId);
+  if (!university) return true;
+  return entityUniversityId === university.id;
+}
+
 /** Load a user's university by joining through the user row (DB-backed,
  * works even when the session payload lacks universityId). */
 export async function getUserUniversity(

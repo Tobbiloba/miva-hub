@@ -1,12 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { UserSchema, FacultySchema, DepartmentSchema } from "@/lib/db/pg/schema.pg";
-import { eq } from "drizzle-orm";
+import {
+  DepartmentSchema,
+  FacultySchema,
+  UserSchema,
+} from "@/lib/db/pg/schema.pg";
+import { getUserUniversity } from "@/lib/tenant";
+import { type SQL, and, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * Tenant scope for user lookups: admins may only touch users of their own
+ * university (super admins without a university see all).
+ */
+async function userTenantFilter(
+  adminUserId: string,
+  targetUserId: string,
+): Promise<SQL | undefined> {
+  const university = await getUserUniversity(adminUserId);
+  return and(
+    eq(UserSchema.id, targetUserId),
+    ...(university ? [eq(UserSchema.universityId, university.id)] : []),
+  );
+}
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     // Check authentication and admin permissions
@@ -25,14 +45,17 @@ export async function GET(
       })
       .from(UserSchema)
       .leftJoin(FacultySchema, eq(UserSchema.id, FacultySchema.userId))
-      .leftJoin(DepartmentSchema, eq(FacultySchema.departmentId, DepartmentSchema.id))
-      .where(eq(UserSchema.id, userId))
+      .leftJoin(
+        DepartmentSchema,
+        eq(FacultySchema.departmentId, DepartmentSchema.id),
+      )
+      .where(await userTenantFilter(sessionOrError.user.id, userId))
       .limit(1);
 
     if (userResult.length === 0) {
       return NextResponse.json(
         { success: false, message: "User not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -44,8 +67,8 @@ export async function GET(
       name: user.name,
       email: user.email,
       role: user.role,
-      status: user.enrollmentStatus || 'active',
-      department: department?.name || 'Not assigned',
+      status: user.enrollmentStatus || "active",
+      department: department?.name || "Not assigned",
       studentId: user.studentId,
       level: user.year,
       joinDate: user.createdAt.toISOString(),
@@ -57,29 +80,29 @@ export async function GET(
       position: faculty?.position || null,
       officeLocation: faculty?.officeLocation || null,
       coursesTeaching: 0, // Placeholder
-      permissions: user.role === 'admin' ? ['user_management', 'system_admin'] : [],
+      permissions:
+        user.role === "admin" ? ["user_management", "system_admin"] : [],
     };
 
     return NextResponse.json({
       success: true,
-      data: transformedUser
+      data: transformedUser,
     });
-
   } catch (error) {
     console.error("Error fetching user:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: "Failed to fetch user" 
+      {
+        success: false,
+        message: "Failed to fetch user",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     // Check authentication and admin permissions
@@ -102,17 +125,25 @@ export async function PUT(
       isVerified,
     } = body;
 
-    // Check if user exists
+    // Check if user exists — tenant-scoped (prevents cross-university IDOR)
     const existingUser = await pgDb
       .select()
       .from(UserSchema)
-      .where(eq(UserSchema.id, userId))
+      .where(await userTenantFilter(sessionOrError.user.id, userId))
       .limit(1);
 
     if (existingUser.length === 0) {
       return NextResponse.json(
         { success: false, message: "User not found" },
-        { status: 404 }
+        { status: 404 },
+      );
+    }
+
+    // Admins may only assign non-privileged roles — no escalation via this route
+    if (role !== undefined && !["student", "faculty"].includes(role)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid role" },
+        { status: 400 },
       );
     }
 
@@ -122,11 +153,12 @@ export async function PUT(
     if (name !== undefined) updateData.name = name;
     if (email !== undefined) updateData.email = email;
     if (role !== undefined) updateData.role = role;
-    if (role === 'student') {
+    if (role === "student") {
       if (studentId !== undefined) updateData.studentId = studentId;
       if (major !== undefined) updateData.major = major;
       if (year !== undefined) updateData.year = year;
-      if (currentSemester !== undefined) updateData.currentSemester = currentSemester;
+      if (currentSemester !== undefined)
+        updateData.currentSemester = currentSemester;
     }
     if (enrollmentStatus !== undefined || status !== undefined) {
       updateData.enrollmentStatus = enrollmentStatus || status;
@@ -142,24 +174,23 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       message: "User updated successfully",
-      data: updatedUser[0]
+      data: updatedUser[0],
     });
-
   } catch (error) {
     console.error("Error updating user:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: "Failed to update user" 
+      {
+        success: false,
+        message: "Failed to update user",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     // Check authentication and admin permissions
@@ -169,46 +200,43 @@ export async function DELETE(
     const { id } = await params;
     const userId = id;
 
-    // Check if user exists
+    // Check if user exists — tenant-scoped (prevents cross-university IDOR)
     const existingUser = await pgDb
       .select()
       .from(UserSchema)
-      .where(eq(UserSchema.id, userId))
+      .where(await userTenantFilter(sessionOrError.user.id, userId))
       .limit(1);
 
     if (existingUser.length === 0) {
       return NextResponse.json(
         { success: false, message: "User not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Prevent deleting admin users
-    if (existingUser[0].role === 'admin') {
+    if (existingUser[0].role === "admin") {
       return NextResponse.json(
         { success: false, message: "Cannot delete admin users" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Delete user (cascading deletes will handle related records)
-    await pgDb
-      .delete(UserSchema)
-      .where(eq(UserSchema.id, userId));
+    await pgDb.delete(UserSchema).where(eq(UserSchema.id, userId));
 
     return NextResponse.json({
       success: true,
-      message: "User deleted successfully"
+      message: "User deleted successfully",
     });
-
   } catch (error) {
     console.error("Error deleting user:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: "Failed to delete user" 
+      {
+        success: false,
+        message: "Failed to delete user",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
