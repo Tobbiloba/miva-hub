@@ -1973,6 +1973,63 @@ export const StudyPlanSchema = pgTable(
 
 export type StudyPlanEntity = typeof StudyPlanSchema.$inferSelect;
 
+// ================================================
+// VERIFIABLE AI-GRADED MICRO-CREDENTIALS
+// ================================================
+
+export type CompetencyLevel = "developing" | "proficient" | "distinction";
+
+export interface CredentialCompetency {
+  name: string;
+  level: CompetencyLevel;
+  evidence: string;
+}
+
+export const MicroCredentialSchema = pgTable(
+  "micro_credential",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    summary: text("summary").notNull(),
+    overallLevel: varchar("overall_level", {
+      enum: ["developing", "proficient", "distinction"],
+    })
+      .notNull()
+      .$type<CompetencyLevel>(),
+    competencies: jsonb("competencies")
+      .notNull()
+      .default([])
+      .$type<CredentialCompetency[]>(),
+    evidenceSummary: text("evidence_summary").notNull(),
+    /** Unguessable public lookup key for /verify/[code] — never enumerable */
+    verificationCode: text("verification_code").notNull().unique(),
+    status: varchar("status", { enum: ["issued", "revoked"] })
+      .notNull()
+      .default("issued"),
+    model: text("model").notNull(),
+    issuedAt: timestamp("issued_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    unique().on(table.studentId, table.courseId),
+    index("micro_credential_student_idx").on(table.studentId),
+    index("micro_credential_code_idx").on(table.verificationCode),
+  ],
+);
+
+export type MicroCredentialEntity = typeof MicroCredentialSchema.$inferSelect;
+
 export type McpServerEntity = typeof McpServerSchema.$inferSelect;
 export type ChatThreadEntity = typeof ChatThreadSchema.$inferSelect;
 export type ChatMessageEntity = typeof ChatMessageSchema.$inferSelect;
