@@ -102,7 +102,7 @@ export default function CreateAssignmentPage() {
       if (!res.ok) throw new Error("Failed to fetch courses");
       const data = await res.json();
       setCourses(data.data || []);
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to load courses");
     }
   };

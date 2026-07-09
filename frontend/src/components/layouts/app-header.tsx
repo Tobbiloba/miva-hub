@@ -74,7 +74,7 @@ export function AppHeader() {
               variant={"ghost"}
               className="bg-secondary/40"
               onClick={() => {
-                appStoreMutate((state) => ({
+                appStoreMutate((_state) => ({
                   toolsInfoDrawer: {
                     isOpen: true,
                   },

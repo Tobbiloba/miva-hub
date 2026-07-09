@@ -235,6 +235,6 @@ export async function checkStudentAccess(
  * @param request - NextRequest object
  * @returns Session or error response
  */
-export async function validateFacultyApiAccess(request?: Request) {
+export async function validateFacultyApiAccess(_request?: Request) {
   return await requireFaculty();
 }

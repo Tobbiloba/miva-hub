@@ -3,7 +3,7 @@ import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-reposito
 import { requireStudent } from "@/lib/auth/student";
 import { getStudentId, getAcademicYear } from "@/lib/auth/user-utils";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check student authentication
     const sessionOrError = await requireStudent();

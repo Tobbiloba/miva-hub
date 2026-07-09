@@ -36,7 +36,7 @@ export function ContentRenderer({ content, type, onToolCall }: ContentRendererPr
     window.open(downloadUrl, '_blank');
   };
 
-  const handleQuickAction = (action: string, courseCode?: string, materialId?: string) => {
+  const handleQuickAction = (action: string, courseCode?: string, _materialId?: string) => {
     switch (action) {
       case 'generate_study_guide':
         onToolCall?.('generate_study_guide', {

@@ -12,7 +12,7 @@ export function ToolsInfoDrawerProvider({ children }: { children: ReactNode }) {
 
   const handleClose = useMemo(
     () => () => {
-      appStoreMutate((state) => ({
+      appStoreMutate((_state) => ({
         toolsInfoDrawer: {
           isOpen: false,
         },

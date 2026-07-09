@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
             limit: (usage as any)?.limit || 0,
             allowed: (usage as any)?.allowed !== false,
           };
-        } catch (error) {
+        } catch (_error) {
           return {
             label,
             type,

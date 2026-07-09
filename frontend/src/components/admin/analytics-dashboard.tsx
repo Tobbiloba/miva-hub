@@ -66,7 +66,7 @@ export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
       } else {
         throw new Error(result.error);
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: "Refresh Failed",
         description: "Unable to refresh analytics data. Please try again.",
@@ -120,7 +120,7 @@ export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
           description: "Analytics report has been downloaded successfully.",
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: "Export Failed",
         description: "Unable to generate analytics report.",
@@ -141,7 +141,7 @@ export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
         setAnalyticsData(result.data);
         setLastUpdated(new Date());
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: "Filter Failed",
         description: "Unable to filter by department.",

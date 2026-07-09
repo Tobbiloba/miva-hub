@@ -357,9 +357,9 @@ class S3Service {
    * Validate user access to course content (FERPA compliance)
    */
   async validateCourseAccess(
-    userId: string,
+    _userId: string,
     userRole: UserRole,
-    courseId: string
+    _courseId: string
   ): Promise<boolean> {
     // This would integrate with your existing enrollment/permission system
     // For now, implementing basic role-based access

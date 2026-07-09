@@ -8,7 +8,7 @@ interface RouteContext {
   }>;
 }
 
-export async function GET(request: NextRequest, context: RouteContext) {
+export async function GET(_request: NextRequest, context: RouteContext) {
   try {
     // Check authentication
     const session = await getSession();

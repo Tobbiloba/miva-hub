@@ -219,7 +219,7 @@ export const loadMcpTools = (opt?: {
         return Object.entries(filteredTools).reduce((acc, [toolId, tool]) => {
           acc[toolId] = {
             ...tool,
-            execute: (params: any, options: any) => {
+            execute: (params: any, _options: any) => {
               return mcpClientsManager.toolCall(
                 tool._mcpServerId,
                 tool._originToolName,

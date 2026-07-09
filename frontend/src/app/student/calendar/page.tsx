@@ -27,7 +27,7 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   maintenance: "Maintenance",
 };
 
-function formatDateRange(start: string, end: string | null, isAllDay: boolean) {
+function formatDateRange(start: string, end: string | null, _isAllDay: boolean) {
   const startDate = new Date(start + "T00:00:00");
   const opts: Intl.DateTimeFormatOptions = {
     year: "numeric",

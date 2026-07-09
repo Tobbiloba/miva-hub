@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { requireFaculty } from "@/lib/auth/faculty";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check faculty authentication
     const sessionOrError = await requireFaculty();

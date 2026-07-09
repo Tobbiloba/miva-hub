@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     const uploadDir = join(process.cwd(), 'public', 'uploads', 'avatars');
     try {
       await mkdir(uploadDir, { recursive: true });
-    } catch (error) {
+    } catch (_error) {
       // Directory might already exist, which is fine
     }
 
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE(_request: NextRequest) {
   try {
     const session = await getSession();
     

@@ -114,7 +114,7 @@ export default function SystemSettingsPage() {
   const createSettingInput = (
     category: string,
     key: string,
-    type: string = "text",
+    _type: string = "text",
     defaultValue: any = "",
   ) => {
     const settingId = getSettingId(category, key);

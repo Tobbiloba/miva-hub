@@ -286,7 +286,7 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
           title: "Upload successful",
           description: `${file.name} uploaded to week ${weekNumber}`,
         });
-      } catch (error) {
+      } catch (_error) {
         updateFileStatus(weekNumber, fileData.id, 'error', 0, {}, 'Upload failed');
         toast({
           title: "Upload failed",
