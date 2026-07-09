@@ -35,6 +35,9 @@ This document lists all the environment variables used in the MIVA Hub frontend 
 - `OPENROUTER_API_KEY` - OpenRouter API key
 - `OLLAMA_BASE_URL` - Ollama base URL (default: `http://localhost:11434/api`)
 
+### AI Governance
+- `SNAP_GRADE_CONFIDENCE_THRESHOLD` - Snap-to-Solve auto-post threshold, 0–1 (default: `0.85`). AI grades at or above it post automatically; below it they queue for faculty review.
+
 ### AWS Configuration
 - `AWS_ACCESS_KEY_ID` - AWS access key
 - `AWS_SECRET_ACCESS_KEY` - AWS secret key
