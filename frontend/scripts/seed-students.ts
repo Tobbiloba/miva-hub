@@ -10,16 +10,16 @@
  * Run: npx tsx scripts/seed-students.ts
  */
 import "load-env";
+import { hashPassword } from "better-auth/crypto";
+import { and, eq, inArray } from "drizzle-orm";
 import { pgDb as db } from "lib/db/pg/db.pg";
 import {
-  UserSchema,
-  ProgramSchema,
-  CourseSchema,
-  StudentEnrollmentSchema,
   AccountSchema,
+  CourseSchema,
+  ProgramSchema,
+  StudentEnrollmentSchema,
+  UserSchema,
 } from "lib/db/pg/schema.pg";
-import { eq, and, inArray } from "drizzle-orm";
-import { hashPassword } from "better-auth/crypto";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,21 +63,102 @@ const STUDENTS: StudentDef[] = [
     expectedActive: 5,
     enrollments: [
       // 100L First Semester (2024-2025) — all completed
-      { courseCode: "COS101", semester: "first", academicYear: "2024-2025", status: "completed", finalGrade: "B", gradePoints: "4.00" },
-      { courseCode: "MTH101", semester: "first", academicYear: "2024-2025", status: "completed", finalGrade: "A", gradePoints: "5.00" },
-      { courseCode: "GST111", semester: "first", academicYear: "2024-2025", status: "completed", finalGrade: "A", gradePoints: "5.00" },
-      { courseCode: "PHY101", semester: "first", academicYear: "2024-2025", status: "completed", finalGrade: "B", gradePoints: "4.00" },
+      {
+        courseCode: "COS101",
+        semester: "first",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "B",
+        gradePoints: "4.00",
+      },
+      {
+        courseCode: "MTH101",
+        semester: "first",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "A",
+        gradePoints: "5.00",
+      },
+      {
+        courseCode: "GST111",
+        semester: "first",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "A",
+        gradePoints: "5.00",
+      },
+      {
+        courseCode: "PHY101",
+        semester: "first",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "B",
+        gradePoints: "4.00",
+      },
       // 100L Second Semester (2024-2025) — all completed
-      { courseCode: "COS102", semester: "second", academicYear: "2024-2025", status: "completed", finalGrade: "A", gradePoints: "5.00" },
-      { courseCode: "MTH102", semester: "second", academicYear: "2024-2025", status: "completed", finalGrade: "B", gradePoints: "4.00" },
-      { courseCode: "GST122", semester: "second", academicYear: "2024-2025", status: "completed", finalGrade: "A", gradePoints: "5.00" },
-      { courseCode: "PHY102", semester: "second", academicYear: "2024-2025", status: "completed", finalGrade: "A", gradePoints: "5.00" },
+      {
+        courseCode: "COS102",
+        semester: "second",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "A",
+        gradePoints: "5.00",
+      },
+      {
+        courseCode: "MTH102",
+        semester: "second",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "B",
+        gradePoints: "4.00",
+      },
+      {
+        courseCode: "GST122",
+        semester: "second",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "A",
+        gradePoints: "5.00",
+      },
+      {
+        courseCode: "PHY102",
+        semester: "second",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "A",
+        gradePoints: "5.00",
+      },
       // 200L First Semester (2025-2026, CURRENT) — enrolled, no grades
-      { courseCode: "COS201", semester: "first", academicYear: "2025-2026", status: "enrolled" },
-      { courseCode: "COS203", semester: "first", academicYear: "2025-2026", status: "enrolled" },
-      { courseCode: "COS205", semester: "first", academicYear: "2025-2026", status: "enrolled" },
-      { courseCode: "MTH201", semester: "first", academicYear: "2025-2026", status: "enrolled" },
-      { courseCode: "GST112", semester: "first", academicYear: "2025-2026", status: "enrolled" },
+      {
+        courseCode: "COS201",
+        semester: "first",
+        academicYear: "2025-2026",
+        status: "enrolled",
+      },
+      {
+        courseCode: "COS203",
+        semester: "first",
+        academicYear: "2025-2026",
+        status: "enrolled",
+      },
+      {
+        courseCode: "COS205",
+        semester: "first",
+        academicYear: "2025-2026",
+        status: "enrolled",
+      },
+      {
+        courseCode: "MTH201",
+        semester: "first",
+        academicYear: "2025-2026",
+        status: "enrolled",
+      },
+      {
+        courseCode: "GST112",
+        semester: "first",
+        academicYear: "2025-2026",
+        status: "enrolled",
+      },
     ],
   },
 
@@ -97,32 +178,178 @@ const STUDENTS: StudentDef[] = [
     expectedActive: 4,
     enrollments: [
       // 100L First (2023-2024)
-      { courseCode: "COS101", semester: "first", academicYear: "2023-2024", status: "completed", finalGrade: "B", gradePoints: "4.00" },
-      { courseCode: "MTH101", semester: "first", academicYear: "2023-2024", status: "completed", finalGrade: "A", gradePoints: "5.00" },
-      { courseCode: "GST111", semester: "first", academicYear: "2023-2024", status: "completed", finalGrade: "B", gradePoints: "4.00" },
-      { courseCode: "PHY101", semester: "first", academicYear: "2023-2024", status: "completed", finalGrade: "C", gradePoints: "3.00" },
+      {
+        courseCode: "COS101",
+        semester: "first",
+        academicYear: "2023-2024",
+        status: "completed",
+        finalGrade: "B",
+        gradePoints: "4.00",
+      },
+      {
+        courseCode: "MTH101",
+        semester: "first",
+        academicYear: "2023-2024",
+        status: "completed",
+        finalGrade: "A",
+        gradePoints: "5.00",
+      },
+      {
+        courseCode: "GST111",
+        semester: "first",
+        academicYear: "2023-2024",
+        status: "completed",
+        finalGrade: "B",
+        gradePoints: "4.00",
+      },
+      {
+        courseCode: "PHY101",
+        semester: "first",
+        academicYear: "2023-2024",
+        status: "completed",
+        finalGrade: "C",
+        gradePoints: "3.00",
+      },
       // 100L Second (2023-2024)
-      { courseCode: "COS102", semester: "second", academicYear: "2023-2024", status: "completed", finalGrade: "A", gradePoints: "5.00" },
-      { courseCode: "MTH102", semester: "second", academicYear: "2023-2024", status: "completed", finalGrade: "B", gradePoints: "4.00" },
-      { courseCode: "GST122", semester: "second", academicYear: "2023-2024", status: "completed", finalGrade: "A", gradePoints: "5.00" },
-      { courseCode: "PHY102", semester: "second", academicYear: "2023-2024", status: "completed", finalGrade: "B", gradePoints: "4.00" },
+      {
+        courseCode: "COS102",
+        semester: "second",
+        academicYear: "2023-2024",
+        status: "completed",
+        finalGrade: "A",
+        gradePoints: "5.00",
+      },
+      {
+        courseCode: "MTH102",
+        semester: "second",
+        academicYear: "2023-2024",
+        status: "completed",
+        finalGrade: "B",
+        gradePoints: "4.00",
+      },
+      {
+        courseCode: "GST122",
+        semester: "second",
+        academicYear: "2023-2024",
+        status: "completed",
+        finalGrade: "A",
+        gradePoints: "5.00",
+      },
+      {
+        courseCode: "PHY102",
+        semester: "second",
+        academicYear: "2023-2024",
+        status: "completed",
+        finalGrade: "B",
+        gradePoints: "4.00",
+      },
       // 200L First (2024-2025)
-      { courseCode: "COS201", semester: "first", academicYear: "2024-2025", status: "completed", finalGrade: "B", gradePoints: "4.00" },
-      { courseCode: "COS203", semester: "first", academicYear: "2024-2025", status: "completed", finalGrade: "A", gradePoints: "5.00" },
-      { courseCode: "COS205", semester: "first", academicYear: "2024-2025", status: "completed", finalGrade: "C", gradePoints: "3.00" },
-      { courseCode: "MTH201", semester: "first", academicYear: "2024-2025", status: "completed", finalGrade: "B", gradePoints: "4.00" },
-      { courseCode: "GST112", semester: "first", academicYear: "2024-2025", status: "completed", finalGrade: "B", gradePoints: "4.00" },
+      {
+        courseCode: "COS201",
+        semester: "first",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "B",
+        gradePoints: "4.00",
+      },
+      {
+        courseCode: "COS203",
+        semester: "first",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "A",
+        gradePoints: "5.00",
+      },
+      {
+        courseCode: "COS205",
+        semester: "first",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "C",
+        gradePoints: "3.00",
+      },
+      {
+        courseCode: "MTH201",
+        semester: "first",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "B",
+        gradePoints: "4.00",
+      },
+      {
+        courseCode: "GST112",
+        semester: "first",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "B",
+        gradePoints: "4.00",
+      },
       // 200L Second (2024-2025)
-      { courseCode: "COS202", semester: "second", academicYear: "2024-2025", status: "completed", finalGrade: "A", gradePoints: "5.00" },
-      { courseCode: "COS204", semester: "second", academicYear: "2024-2025", status: "completed", finalGrade: "B", gradePoints: "4.00" },
-      { courseCode: "COS206", semester: "second", academicYear: "2024-2025", status: "completed", finalGrade: "B", gradePoints: "4.00" },
-      { courseCode: "MTH202", semester: "second", academicYear: "2024-2025", status: "completed", finalGrade: "A", gradePoints: "5.00" },
-      { courseCode: "GST212", semester: "second", academicYear: "2024-2025", status: "completed", finalGrade: "B", gradePoints: "4.00" },
+      {
+        courseCode: "COS202",
+        semester: "second",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "A",
+        gradePoints: "5.00",
+      },
+      {
+        courseCode: "COS204",
+        semester: "second",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "B",
+        gradePoints: "4.00",
+      },
+      {
+        courseCode: "COS206",
+        semester: "second",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "B",
+        gradePoints: "4.00",
+      },
+      {
+        courseCode: "MTH202",
+        semester: "second",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "A",
+        gradePoints: "5.00",
+      },
+      {
+        courseCode: "GST212",
+        semester: "second",
+        academicYear: "2024-2025",
+        status: "completed",
+        finalGrade: "B",
+        gradePoints: "4.00",
+      },
       // 300L First (2025-2026, CURRENT) — enrolled
-      { courseCode: "COS301", semester: "first", academicYear: "2025-2026", status: "enrolled" },
-      { courseCode: "COS303", semester: "first", academicYear: "2025-2026", status: "enrolled" },
-      { courseCode: "COS305", semester: "first", academicYear: "2025-2026", status: "enrolled" },
-      { courseCode: "COS307", semester: "first", academicYear: "2025-2026", status: "enrolled" },
+      {
+        courseCode: "COS301",
+        semester: "first",
+        academicYear: "2025-2026",
+        status: "enrolled",
+      },
+      {
+        courseCode: "COS303",
+        semester: "first",
+        academicYear: "2025-2026",
+        status: "enrolled",
+      },
+      {
+        courseCode: "COS305",
+        semester: "first",
+        academicYear: "2025-2026",
+        status: "enrolled",
+      },
+      {
+        courseCode: "COS307",
+        semester: "first",
+        academicYear: "2025-2026",
+        status: "enrolled",
+      },
     ],
   },
 
@@ -140,10 +367,30 @@ const STUDENTS: StudentDef[] = [
     expectedActive: 4,
     enrollments: [
       // 100L First (2025-2026, CURRENT) — enrolled, no grades
-      { courseCode: "COS101", semester: "first", academicYear: "2025-2026", status: "enrolled" },
-      { courseCode: "MTH101", semester: "first", academicYear: "2025-2026", status: "enrolled" },
-      { courseCode: "GST111", semester: "first", academicYear: "2025-2026", status: "enrolled" },
-      { courseCode: "PHY101", semester: "first", academicYear: "2025-2026", status: "enrolled" },
+      {
+        courseCode: "COS101",
+        semester: "first",
+        academicYear: "2025-2026",
+        status: "enrolled",
+      },
+      {
+        courseCode: "MTH101",
+        semester: "first",
+        academicYear: "2025-2026",
+        status: "enrolled",
+      },
+      {
+        courseCode: "GST111",
+        semester: "first",
+        academicYear: "2025-2026",
+        status: "enrolled",
+      },
+      {
+        courseCode: "PHY101",
+        semester: "first",
+        academicYear: "2025-2026",
+        status: "enrolled",
+      },
     ],
   },
 ];
@@ -161,13 +408,38 @@ async function main() {
     .limit(1);
 
   if (!program) {
-    console.error("❌ Program B.Sc Computer Science (code=CS) not found. Run seed-demo-data.ts first.");
+    console.error(
+      "❌ Program B.Sc Computer Science (code=CS) not found. Run seed-demo-data.ts first.",
+    );
     process.exit(1);
   }
   console.log(`✅ Program: ${program.name} (${program.id})\n`);
 
+  // ── Step 1b: Resolve tenant (MIVA) — students must be university-scoped ──
+  const { UniversitySchema } = await import("lib/db/pg/schema.pg");
+  const [university] = await db
+    .select()
+    .from(UniversitySchema)
+    .where(eq(UniversitySchema.slug, "miva"))
+    .limit(1);
+
+  if (!university) {
+    console.error(
+      "❌ University with slug 'miva' not found. Seed universities first.",
+    );
+    process.exit(1);
+  }
+  console.log(`✅ University: ${university.name} (${university.id})\n`);
+
+  // Demo students always carry a fresh 30-day trial so they never hit the
+  // paywall in demos/tests (idempotent re-runs refresh it).
+  const trialStartedAt = new Date();
+  const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
   // ── Step 2: Build course lookup ─────────────────────────────────────────
-  const allCourseCodes = [...new Set(STUDENTS.flatMap((s) => s.enrollments.map((e) => e.courseCode)))];
+  const allCourseCodes = [
+    ...new Set(STUDENTS.flatMap((s) => s.enrollments.map((e) => e.courseCode))),
+  ];
   const courses = await db
     .select()
     .from(CourseSchema)
@@ -178,7 +450,9 @@ async function main() {
   // Verify all codes resolve
   const missing = allCourseCodes.filter((code) => !courseByCode.has(code));
   if (missing.length > 0) {
-    console.error(`❌ Missing courses in DB: ${missing.join(", ")}. Run seed-demo-data.ts first.`);
+    console.error(
+      `❌ Missing courses in DB: ${missing.join(", ")}. Run seed-demo-data.ts first.`,
+    );
     process.exit(1);
   }
   console.log(`✅ All ${allCourseCodes.length} course codes resolved\n`);
@@ -216,6 +490,9 @@ async function main() {
             admissionSession: student.admissionSession,
             admissionLevel: student.admissionLevel,
             emailVerified: true,
+            universityId: university.id,
+            trialStartedAt,
+            trialEndsAt,
           })
           .where(eq(UserSchema.id, existing.id));
         userId = existing.id;
@@ -237,6 +514,9 @@ async function main() {
           admissionSession: student.admissionSession,
           admissionLevel: student.admissionLevel,
           emailVerified: true,
+          universityId: university.id,
+          trialStartedAt,
+          trialEndsAt,
         });
 
         // Create better-auth credential account
@@ -331,7 +611,9 @@ async function main() {
   console.log("═".repeat(60));
   console.log("  Students:");
   for (const s of STUDENTS) {
-    console.log(`    ${s.name} — ${s.email} — ${s.studentId} — Level ${s.currentLevel}`);
+    console.log(
+      `    ${s.name} — ${s.email} — ${s.studentId} — Level ${s.currentLevel}`,
+    );
   }
   console.log(`  Password: TestPass123! (bcrypt-hashed, same for all 3)`);
   console.log("═".repeat(60));
