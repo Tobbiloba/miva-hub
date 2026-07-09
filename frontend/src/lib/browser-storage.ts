@@ -2,7 +2,7 @@
 
 import { IS_BROWSER } from "./const";
 
-const PRE_FIX = "ChATBOT-STOREAGE";
+const PRE_FIX = "ASKLY-STORAGE";
 
 const get = <T>(
   storage: Storage,
