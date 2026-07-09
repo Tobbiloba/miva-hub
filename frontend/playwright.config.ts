@@ -16,7 +16,9 @@ export default defineConfig({
   workers: process.env.CI ? 4 : undefined,
   reporter: "list",
   use: {
-    baseURL: process.env.TEST_BASE_URL || "http://localhost:4002",
+    // Must match BETTER_AUTH_URL/NEXT_PUBLIC_APP_URL (port 4001) — better-auth
+    // rejects sign-in requests from other origins.
+    baseURL: process.env.TEST_BASE_URL || "http://localhost:4001",
     ignoreHTTPSErrors: true,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
@@ -30,8 +32,8 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: "pnpm dev --port 4002",
-    url: "http://localhost:4002",
+    command: "pnpm dev --port 4001",
+    url: "http://localhost:4001",
     reuseExistingServer: true,
     timeout: 60_000,
     stdout: "pipe",
