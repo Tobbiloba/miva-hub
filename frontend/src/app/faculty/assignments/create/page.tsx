@@ -197,8 +197,8 @@ export default function CreateAssignmentPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-4">
           <Button variant="outline" size="sm" asChild>
             <Link href="/faculty/assignments">
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -215,7 +215,7 @@ export default function CreateAssignmentPage() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             onClick={() => handleSubmit(true)}

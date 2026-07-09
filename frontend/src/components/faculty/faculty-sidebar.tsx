@@ -108,7 +108,7 @@ export function FacultySidebar({
   };
 
   return (
-    <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 border-r bg-background">
+    <div className="hidden lg:block fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 border-r bg-background">
       <div className="flex h-full flex-col">
         {/* Faculty Info Card */}
         <Card className="m-4 mb-6">

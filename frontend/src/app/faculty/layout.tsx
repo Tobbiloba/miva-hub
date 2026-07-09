@@ -52,7 +52,7 @@ export default async function FacultyLayout({
           facultyRecord={activeFacultyRecord}
         />
 
-        <main className="flex-1 p-6 ml-64">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:ml-64">
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>

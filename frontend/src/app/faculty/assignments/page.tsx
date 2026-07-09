@@ -73,7 +73,7 @@ export default async function FacultyAssignmentsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <FileText className="h-8 w-8 text-blue-600" />
@@ -278,7 +278,7 @@ function AssignmentsList({
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold">
                         {assignment.title}
@@ -287,7 +287,7 @@ function AssignmentsList({
                         {assignment.description || "No description provided"}
                       </p>
 
-                      <div className="flex items-center gap-2 mt-3">
+                      <div className="flex flex-wrap items-center gap-2 mt-3">
                         {showCourse && (
                           <Badge variant="outline" className="text-xs">
                             {course.courseCode}
@@ -318,7 +318,7 @@ function AssignmentsList({
                       </div>
                     </div>
 
-                    <div className="text-right shrink-0">
+                    <div className="sm:text-right shrink-0">
                       <p
                         className={`text-sm font-medium ${isOverdue ? "text-red-600" : isDueSoon ? "text-yellow-600" : ""}`}
                       >
@@ -340,8 +340,8 @@ function AssignmentsList({
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mt-4">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
                         <span>

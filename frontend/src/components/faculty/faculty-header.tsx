@@ -12,13 +12,20 @@ import {
 import { Input } from "@/components/ui/input";
 import {
   Bell,
+  BookOpen,
+  Calendar,
+  FileText,
+  FolderOpen,
   GraduationCap,
   Home,
+  LayoutDashboard,
   LogOut,
+  Megaphone,
   Menu,
   Search,
   Settings,
   User,
+  Users,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -39,6 +46,17 @@ interface FacultyHeaderProps {
     isActive: boolean;
   } | null;
 }
+
+const mobileNavItems = [
+  { title: "Overview", href: "/faculty", icon: LayoutDashboard },
+  { title: "My Courses", href: "/faculty/courses", icon: BookOpen },
+  { title: "Assignments", href: "/faculty/assignments", icon: FileText },
+  { title: "Grade Book", href: "/faculty/grades", icon: GraduationCap },
+  { title: "Students", href: "/faculty/students", icon: Users },
+  { title: "Announcements", href: "/faculty/announcements", icon: Megaphone },
+  { title: "Materials", href: "/faculty/materials", icon: FolderOpen },
+  { title: "Schedule", href: "/faculty/schedule", icon: Calendar },
+];
 
 export function FacultyHeader({
   facultyInfo,
@@ -61,9 +79,9 @@ export function FacultyHeader({
 
   return (
     <header className="fixed top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-16 items-center px-6">
+      <div className="flex h-16 items-center px-4 sm:px-6">
         {/* Logo and Branding */}
-        <div className="flex items-center space-x-3 mr-8">
+        <div className="flex items-center space-x-3 mr-4 sm:mr-8">
           <Link href="/faculty" className="flex items-center">
             <Image
               src="/logo.png"
@@ -80,7 +98,10 @@ export function FacultyHeader({
         </div>
 
         {/* Search Bar */}
-        <form onSubmit={handleSearch} className="flex-1 max-w-lg mr-6">
+        <form
+          onSubmit={handleSearch}
+          className="flex-1 min-w-0 max-w-lg mr-3 sm:mr-6"
+        >
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -94,7 +115,7 @@ export function FacultyHeader({
         </form>
 
         {/* Action Buttons */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-4">
           {/* Quick Actions */}
           <div className="hidden md:flex items-center space-x-2">
             <Button variant="outline" size="sm" asChild>
@@ -155,6 +176,18 @@ export function FacultyHeader({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {/* Faculty navigation — shown on small screens where the sidebar is hidden */}
+              <div className="lg:hidden">
+                {mobileNavItems.map((item) => (
+                  <DropdownMenuItem key={item.href} asChild>
+                    <Link href={item.href} className="flex items-center">
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {item.title}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+              </div>
               <DropdownMenuItem asChild>
                 <Link href="/" className="flex items-center">
                   <Home className="mr-2 h-4 w-4" />
