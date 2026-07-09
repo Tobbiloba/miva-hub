@@ -215,9 +215,12 @@ export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
         </div>
       </div>
 
-      {/* Real-Time Activity Bar */}
+      {/* Real-Time Activity Bar.
+          Opacity-based colors: the app toggles theme via .dark class, but
+          dark: utilities follow the OS media query, so light-only colors
+          rendered white-on-white in dark mode. */}
       {analyticsData.realTimeStats && (
-        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <Card className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border-blue-500/20">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -262,12 +265,11 @@ export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
       )}
 
       {/* Analytics Content */}
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+      {/* Only tabs with actual content — overview/departments/faculty had
+          no TabsContent, so the default tab rendered an empty page. */}
+      <Tabs defaultValue="courses" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="courses">Courses</TabsTrigger>
-          <TabsTrigger value="departments">Departments</TabsTrigger>
-          <TabsTrigger value="faculty">Faculty</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
         </TabsList>
 
@@ -333,10 +335,10 @@ function RealTimeMetric({
   color: string;
 }) {
   const colorClasses = {
-    green: "text-green-600 bg-green-100",
-    blue: "text-blue-600 bg-blue-100",
-    purple: "text-purple-600 bg-purple-100",
-    orange: "text-orange-600 bg-orange-100",
+    green: "text-green-600 bg-green-500/15",
+    blue: "text-blue-600 bg-blue-500/15",
+    purple: "text-purple-600 bg-purple-500/15",
+    orange: "text-orange-600 bg-orange-500/15",
   };
 
   return (
