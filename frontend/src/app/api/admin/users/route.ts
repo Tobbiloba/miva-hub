@@ -2,8 +2,11 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
   AccountSchema,
+  CourseInstructorSchema,
+  CourseSchema,
   DepartmentSchema,
   FacultySchema,
+  StudentEnrollmentSchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
 import { getAdminScope } from "@/lib/tenant";
@@ -65,11 +68,48 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(FacultySchema.departmentId, department));
     }
 
+    // Real academic aggregates — replaces the old hardcoded gpa/credits
+    // placeholders. GPA = avg of recorded grade points; credits count only
+    // completed enrollments.
+    const studentStats = pgDb
+      .select({
+        studentId: StudentEnrollmentSchema.studentId,
+        gpa: sql<string | null>`avg(${StudentEnrollmentSchema.gradePoints})`.as(
+          "gpa",
+        ),
+        creditsCompleted:
+          sql<number>`coalesce(sum(${CourseSchema.credits}) filter (where ${StudentEnrollmentSchema.status} = 'completed'), 0)`.as(
+            "credits_completed",
+          ),
+      })
+      .from(StudentEnrollmentSchema)
+      .innerJoin(
+        CourseSchema,
+        eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
+      )
+      .groupBy(StudentEnrollmentSchema.studentId)
+      .as("student_stats");
+
+    const teachingStats = pgDb
+      .select({
+        facultyId: CourseInstructorSchema.facultyId,
+        coursesTeaching:
+          sql<number>`count(distinct ${CourseInstructorSchema.courseId})`.as(
+            "courses_teaching",
+          ),
+      })
+      .from(CourseInstructorSchema)
+      .groupBy(CourseInstructorSchema.facultyId)
+      .as("teaching_stats");
+
     const users = await pgDb
       .select({
         user: UserSchema,
         faculty: FacultySchema,
         department: DepartmentSchema,
+        gpa: studentStats.gpa,
+        creditsCompleted: studentStats.creditsCompleted,
+        coursesTeaching: teachingStats.coursesTeaching,
       })
       .from(UserSchema)
       .leftJoin(FacultySchema, eq(UserSchema.id, FacultySchema.userId))
@@ -77,34 +117,44 @@ export async function GET(request: NextRequest) {
         DepartmentSchema,
         eq(FacultySchema.departmentId, DepartmentSchema.id),
       )
+      .leftJoin(studentStats, eq(studentStats.studentId, UserSchema.id))
+      .leftJoin(teachingStats, eq(teachingStats.facultyId, FacultySchema.id))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(UserSchema.createdAt))
       .limit(limit)
       .offset(offset);
 
     // Transform data to match the frontend interface
-    const transformedUsers = users.map(({ user, faculty, department }) => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      status: user.enrollmentStatus || "active",
-      isVerified: user.isVerified,
-      department: department?.name || "Not assigned",
-      studentId: user.studentId,
-      level: user.year,
-      joinDate: user.createdAt.toISOString(),
-      lastLogin: user.updatedAt.toISOString(),
-      phone: faculty?.contactPhone || null,
-      gpa: 3.2,
-      creditsCompleted: 0,
-      employeeId: faculty?.employeeId || null,
-      position: faculty?.position || null,
-      officeLocation: faculty?.officeLocation || null,
-      coursesTeaching: 0,
-      permissions:
-        user.role === "admin" ? ["user_management", "system_admin"] : [],
-    }));
+    const transformedUsers = users.map(
+      ({
+        user,
+        faculty,
+        department,
+        gpa,
+        creditsCompleted,
+        coursesTeaching,
+      }) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.enrollmentStatus || "active",
+        isVerified: user.isVerified,
+        department: department?.name || "Not assigned",
+        studentId: user.studentId,
+        level: user.year,
+        joinDate: user.createdAt.toISOString(),
+        lastLogin: user.updatedAt.toISOString(),
+        phone: faculty?.contactPhone || null,
+        // null until the student has graded enrollments — never a fake number
+        gpa: gpa != null ? Number(Number(gpa).toFixed(2)) : null,
+        creditsCompleted: Number(creditsCompleted ?? 0),
+        employeeId: faculty?.employeeId || null,
+        position: faculty?.position || null,
+        officeLocation: faculty?.officeLocation || null,
+        coursesTeaching: Number(coursesTeaching ?? 0),
+      }),
+    );
 
     // Get total count for pagination
     const totalCountBase = pgDb

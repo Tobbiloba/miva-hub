@@ -1,8 +1,11 @@
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
+  CourseInstructorSchema,
+  CourseSchema,
   DepartmentSchema,
   FacultySchema,
+  StudentEnrollmentSchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
 import { getAdminScope } from "@/lib/tenant";
@@ -65,6 +68,35 @@ export async function GET(
 
     const { user, faculty, department } = userResult[0];
 
+    // Real academic aggregates — replaces the old hardcoded gpa/credits
+    // placeholders. GPA stays null until graded enrollments exist.
+    let gpa: number | null = null;
+    let creditsCompleted = 0;
+    let coursesTeaching = 0;
+    if (user.role === "student") {
+      const [stats] = await pgDb
+        .select({
+          gpa: sql<string | null>`avg(${StudentEnrollmentSchema.gradePoints})`,
+          creditsCompleted: sql<number>`coalesce(sum(${CourseSchema.credits}) filter (where ${StudentEnrollmentSchema.status} = 'completed'), 0)`,
+        })
+        .from(StudentEnrollmentSchema)
+        .innerJoin(
+          CourseSchema,
+          eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
+        )
+        .where(eq(StudentEnrollmentSchema.studentId, user.id));
+      gpa = stats?.gpa != null ? Number(Number(stats.gpa).toFixed(2)) : null;
+      creditsCompleted = Number(stats?.creditsCompleted ?? 0);
+    } else if (faculty) {
+      const [teaching] = await pgDb
+        .select({
+          count: sql<number>`count(distinct ${CourseInstructorSchema.courseId})`,
+        })
+        .from(CourseInstructorSchema)
+        .where(eq(CourseInstructorSchema.facultyId, faculty.id));
+      coursesTeaching = Number(teaching?.count ?? 0);
+    }
+
     // Transform data
     const transformedUser = {
       id: user.id,
@@ -78,14 +110,12 @@ export async function GET(
       joinDate: user.createdAt.toISOString(),
       lastLogin: user.updatedAt.toISOString(),
       phone: faculty?.contactPhone || null,
-      gpa: 3.2, // Placeholder
-      creditsCompleted: 0, // Placeholder
+      gpa,
+      creditsCompleted,
       employeeId: faculty?.employeeId || null,
       position: faculty?.position || null,
       officeLocation: faculty?.officeLocation || null,
-      coursesTeaching: 0, // Placeholder
-      permissions:
-        user.role === "admin" ? ["user_management", "system_admin"] : [],
+      coursesTeaching,
     };
 
     return NextResponse.json({

@@ -66,13 +66,12 @@ interface User {
   joinDate: string;
   lastLogin: string;
   phone?: string;
-  gpa?: number;
+  gpa?: number | null;
   creditsCompleted?: number;
   employeeId?: string;
   position?: string;
   officeLocation?: string;
   coursesTeaching?: number;
-  permissions?: string[];
 }
 
 export default function UsersManagePage() {
@@ -561,9 +560,14 @@ export default function UsersManagePage() {
                             <div className="text-sm space-y-1">
                               {user.role === "student" && (
                                 <>
-                                  <div>GPA: {user.gpa}</div>
+                                  <div>
+                                    GPA:{" "}
+                                    {user.gpa != null
+                                      ? user.gpa.toFixed(2)
+                                      : "—"}
+                                  </div>
                                   <div className="text-xs text-muted-foreground">
-                                    Credits: {user.creditsCompleted}
+                                    Credits: {user.creditsCompleted ?? 0}
                                   </div>
                                 </>
                               )}
@@ -571,14 +575,9 @@ export default function UsersManagePage() {
                                 <>
                                   <div>Office: {user.officeLocation}</div>
                                   <div className="text-xs text-muted-foreground">
-                                    Courses: {user.coursesTeaching}
+                                    Courses: {user.coursesTeaching ?? 0}
                                   </div>
                                 </>
-                              )}
-                              {user.role === "admin" && user.permissions && (
-                                <div className="text-xs text-muted-foreground">
-                                  {user.permissions.length} permissions
-                                </div>
                               )}
                             </div>
                           </TableCell>
