@@ -1,7 +1,11 @@
-const APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL || "http://localhost:4001";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:4001";
 
-function wrapInLayout(title: string, bodyContent: string, ctaUrl: string, ctaLabel: string): string {
+function wrapInLayout(
+  title: string,
+  bodyContent: string,
+  ctaUrl: string,
+  ctaLabel: string,
+): string {
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>

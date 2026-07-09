@@ -1,55 +1,55 @@
 import "server-only";
 
-import { createOllama } from "ollama-ai-provider-v2";
-import { openai } from "@ai-sdk/openai";
-import { google } from "@ai-sdk/google";
 import { anthropic } from "@ai-sdk/anthropic";
+import { google } from "@ai-sdk/google";
+import { createGroq } from "@ai-sdk/groq";
+import { openai } from "@ai-sdk/openai";
 import { xai } from "@ai-sdk/xai";
 import { openrouter } from "@openrouter/ai-sdk-provider";
-import { createGroq } from "@ai-sdk/groq";
 import { LanguageModel } from "ai";
+import { ChatModel } from "app-types/chat";
+import { createOllama } from "ollama-ai-provider-v2";
 import {
   createOpenAICompatibleModels,
   openaiCompatibleModelsSafeParse,
 } from "./create-openai-compatiable";
-import { ChatModel } from "app-types/chat";
 
 // Helper function to construct Ollama API URL
-function getOllamaApiUrl(endpoint: string = ''): string {
+function getOllamaApiUrl(endpoint: string = ""): string {
   const baseURL = process.env.OLLAMA_BASE_URL || "http://localhost:11434/api";
   // Remove /api from the end if it exists to avoid double /api
-  const cleanBaseURL = baseURL.replace(/\/api\/?$/, '');
+  const cleanBaseURL = baseURL.replace(/\/api\/?$/, "");
   return `${cleanBaseURL}/api${endpoint}`;
 }
 
 // Dynamic Ollama model detection
 async function fetchOllamaModels(): Promise<{ [key: string]: LanguageModel }> {
   try {
-    const response = await fetch(getOllamaApiUrl('/tags'), {
-      method: 'GET',
+    const response = await fetch(getOllamaApiUrl("/tags"), {
+      method: "GET",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
     if (!response.ok) {
-      console.warn('Ollama is not available, using fallback models');
+      console.warn("Ollama is not available, using fallback models");
       return {};
     }
 
     const data = await response.json();
     const ollamaModels: { [key: string]: LanguageModel } = {};
-    
+
     if (data.models && Array.isArray(data.models)) {
       for (const model of data.models) {
         const modelName = model.name;
         ollamaModels[modelName] = ollama(modelName);
       }
     }
-    
+
     return ollamaModels;
   } catch (error) {
-    console.warn('Failed to fetch Ollama models:', error);
+    console.warn("Failed to fetch Ollama models:", error);
     return {};
   }
 }
@@ -57,16 +57,16 @@ async function fetchOllamaModels(): Promise<{ [key: string]: LanguageModel }> {
 // Check if Ollama is available
 async function checkOllamaAvailability(): Promise<boolean> {
   try {
-    const response = await fetch(getOllamaApiUrl('/tags'), {
-      method: 'GET',
+    const response = await fetch(getOllamaApiUrl("/tags"), {
+      method: "GET",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       signal: AbortSignal.timeout(5000), // 5 second timeout
     });
     return response.ok;
   } catch (error) {
-    console.warn('Ollama availability check failed:', error);
+    console.warn("Ollama availability check failed:", error);
     return false;
   }
 }
@@ -169,8 +169,10 @@ async function createModelsInfo() {
         name,
         isToolCallUnsupported: allUnsupportedModels.has(model),
       })),
-      hasAPIKey: await checkProviderAPIKey(provider as keyof typeof staticModels | 'ollama'),
-    }))
+      hasAPIKey: await checkProviderAPIKey(
+        provider as keyof typeof staticModels | "ollama",
+      ),
+    })),
   );
   return { providersWithAPIKeys, fullModels };
 }
@@ -195,7 +197,9 @@ export const customModelProvider = {
   },
 };
 
-async function checkProviderAPIKey(provider: keyof typeof staticModels | 'ollama') {
+async function checkProviderAPIKey(
+  provider: keyof typeof staticModels | "ollama",
+) {
   let key: string | undefined;
   switch (provider) {
     case "openai":

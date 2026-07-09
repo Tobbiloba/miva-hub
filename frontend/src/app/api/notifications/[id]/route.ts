@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { NotificationSchema } from "@/lib/db/pg/schema.pg";
-import { eq, and } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function DELETE(
   _request: NextRequest,

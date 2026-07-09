@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,9 +8,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -19,31 +33,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   CheckCircle2,
-  XCircle,
-  Pencil,
-  FileText,
-  Video,
   Eye,
-  Shield,
+  FileText,
+  Pencil,
   RefreshCw,
   RotateCcw,
+  Shield,
+  Video,
+  XCircle,
 } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 
 interface ModerationItem {
@@ -99,14 +99,18 @@ export default function ModerationQueuePage() {
     wordCount: number | null;
   } | null>(null);
   const [transcriptLoading, setTranscriptLoading] = useState(false);
-  const [forceRecaptureItem, setForceRecaptureItem] = useState<ModerationItem | null>(null);
+  const [forceRecaptureItem, setForceRecaptureItem] =
+    useState<ModerationItem | null>(null);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
-      const filterParam = transcriptFilter !== "all" ? `&transcriptStatus=${transcriptFilter}` : "";
+      const filterParam =
+        transcriptFilter !== "all"
+          ? `&transcriptStatus=${transcriptFilter}`
+          : "";
       const res = await fetch(
-        `/api/admin/content/moderation?page=${page}&limit=50${filterParam}`
+        `/api/admin/content/moderation?page=${page}&limit=50${filterParam}`,
       );
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
@@ -127,7 +131,7 @@ export default function ModerationQueuePage() {
   async function handleAction(
     id: string,
     action: "approve" | "reject",
-    extra?: Record<string, any>
+    extra?: Record<string, any>,
   ) {
     setActionLoading(id);
     try {
@@ -140,7 +144,7 @@ export default function ModerationQueuePage() {
       toast.success(
         action === "approve"
           ? "Content approved and published"
-          : "Content rejected"
+          : "Content rejected",
       );
       setItems((prev) => prev.filter((item) => item.id !== id));
       setTotal((prev) => prev - 1);
@@ -155,22 +159,19 @@ export default function ModerationQueuePage() {
     if (!editItem) return;
     setActionLoading(editItem.id);
     try {
-      const res = await fetch(
-        `/api/admin/content/moderation/${editItem.id}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "edit",
-            title: editForm.title,
-            description: editForm.description,
-            materialType: editForm.materialType,
-            weekNumber: editForm.weekNumber
-              ? parseInt(editForm.weekNumber)
-              : null,
-          }),
-        }
-      );
+      const res = await fetch(`/api/admin/content/moderation/${editItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "edit",
+          title: editForm.title,
+          description: editForm.description,
+          materialType: editForm.materialType,
+          weekNumber: editForm.weekNumber
+            ? parseInt(editForm.weekNumber)
+            : null,
+        }),
+      });
       if (!res.ok) throw new Error("Edit failed");
       toast.success("Content updated");
       setEditItem(null);
@@ -195,7 +196,7 @@ export default function ModerationQueuePage() {
       toast.success(
         data.transcriptStatus === "extracted"
           ? `Transcript extracted (${data.wordCount} words)`
-          : `Extraction ${data.transcriptStatus}: ${data.error || ""}`
+          : `Extraction ${data.transcriptStatus}: ${data.error || ""}`,
       );
       fetchItems();
     } catch {
@@ -235,12 +236,16 @@ export default function ModerationQueuePage() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "force-recapture" }),
-        }
+        },
       );
       if (!res.ok) throw new Error("Force re-capture failed");
-      toast.success("Existing capture removed. Volunteers can now re-capture this lesson.");
+      toast.success(
+        "Existing capture removed. Volunteers can now re-capture this lesson.",
+      );
       setForceRecaptureItem(null);
-      setItems((prev) => prev.filter((item) => item.id !== forceRecaptureItem.id));
+      setItems((prev) =>
+        prev.filter((item) => item.id !== forceRecaptureItem.id),
+      );
       setTotal((prev) => prev - 1);
     } catch {
       toast.error("Failed to force re-capture");
@@ -275,13 +280,20 @@ export default function ModerationQueuePage() {
     });
   }
 
-  function transcriptBadgeVariant(status: string | null): "default" | "secondary" | "destructive" | "outline" {
+  function transcriptBadgeVariant(
+    status: string | null,
+  ): "default" | "secondary" | "destructive" | "outline" {
     switch (status) {
-      case "extracted": return "default";
-      case "failed": return "destructive";
-      case "extracting": return "secondary";
-      case "skipped": return "outline";
-      default: return "outline";
+      case "extracted":
+        return "default";
+      case "failed":
+        return "destructive";
+      case "extracting":
+        return "secondary";
+      case "skipped":
+        return "outline";
+      default:
+        return "outline";
     }
   }
 
@@ -299,7 +311,13 @@ export default function ModerationQueuePage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={transcriptFilter} onValueChange={(v) => { setTranscriptFilter(v); setPage(1); }}>
+          <Select
+            value={transcriptFilter}
+            onValueChange={(v) => {
+              setTranscriptFilter(v);
+              setPage(1);
+            }}
+          >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Transcript filter" />
             </SelectTrigger>
@@ -400,12 +418,18 @@ export default function ModerationQueuePage() {
                                 : ""
                           }
                         >
-                          {item.materialType === "assignment_external" ? "assignment" : item.materialType}
+                          {item.materialType === "assignment_external"
+                            ? "assignment"
+                            : item.materialType}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                          <Badge variant={transcriptBadgeVariant(item.transcriptStatus)}>
+                          <Badge
+                            variant={transcriptBadgeVariant(
+                              item.transcriptStatus,
+                            )}
+                          >
                             {item.transcriptStatus || "pending"}
                           </Badge>
                           {item.transcriptWordCount && (
@@ -441,7 +465,8 @@ export default function ModerationQueuePage() {
                               <FileText className="h-4 w-4 text-green-600" />
                             </Button>
                           )}
-                          {(item.transcriptStatus === "failed" || item.transcriptStatus === "skipped") && (
+                          {(item.transcriptStatus === "failed" ||
+                            item.transcriptStatus === "skipped") && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -548,17 +573,31 @@ export default function ModerationQueuePage() {
           <DialogHeader>
             <DialogTitle>Force Re-capture</DialogTitle>
             <DialogDescription>
-              This will remove the existing capture of &ldquo;{forceRecaptureItem?.title}&rdquo;
-              and allow a new volunteer to capture it. This action cannot be undone.
+              This will remove the existing capture of &ldquo;
+              {forceRecaptureItem?.title}&rdquo; and allow a new volunteer to
+              capture it. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <div className="py-2 text-sm text-muted-foreground">
-            <p><strong>Course:</strong> {forceRecaptureItem?.courseCode}</p>
-            <p><strong>Week:</strong> {forceRecaptureItem?.weekNumber ? `Week ${forceRecaptureItem.weekNumber}` : "—"}</p>
-            <p><strong>Captured by:</strong> {forceRecaptureItem?.volunteerName || "Unknown"}</p>
+            <p>
+              <strong>Course:</strong> {forceRecaptureItem?.courseCode}
+            </p>
+            <p>
+              <strong>Week:</strong>{" "}
+              {forceRecaptureItem?.weekNumber
+                ? `Week ${forceRecaptureItem.weekNumber}`
+                : "—"}
+            </p>
+            <p>
+              <strong>Captured by:</strong>{" "}
+              {forceRecaptureItem?.volunteerName || "Unknown"}
+            </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setForceRecaptureItem(null)}>
+            <Button
+              variant="outline"
+              onClick={() => setForceRecaptureItem(null)}
+            >
               Cancel
             </Button>
             <Button

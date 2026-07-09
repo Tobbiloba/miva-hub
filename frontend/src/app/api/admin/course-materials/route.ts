@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgAcademicRepository as academicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,8 +9,8 @@ export async function GET(request: NextRequest) {
     if (sessionOrError instanceof NextResponse) return sessionOrError;
 
     const { searchParams } = new URL(request.url);
-    const courseId = searchParams.get('courseId');
-    const weekNumber = searchParams.get('weekNumber');
+    const courseId = searchParams.get("courseId");
+    const weekNumber = searchParams.get("weekNumber");
 
     let materials;
 
@@ -18,7 +18,10 @@ export async function GET(request: NextRequest) {
       // Get materials for a specific course
       if (weekNumber) {
         // Get materials for a specific week
-        materials = await academicRepository.getCourseMaterialsByWeek(courseId, parseInt(weekNumber));
+        materials = await academicRepository.getCourseMaterialsByWeek(
+          courseId,
+          parseInt(weekNumber),
+        );
       } else {
         // Get all materials for the course
         materials = await academicRepository.getCourseMaterials(courseId);
@@ -30,17 +33,16 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: materials
+      data: materials,
     });
-
   } catch (error) {
     console.error("Error fetching course materials:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: "Failed to fetch course materials" 
+      {
+        success: false,
+        message: "Failed to fetch course materials",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

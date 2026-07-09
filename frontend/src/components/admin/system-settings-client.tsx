@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save, TestTube } from "lucide-react";
+import React, { useState } from "react";
 
 interface SystemSettingsClientProps {
   category: string;
@@ -11,7 +11,11 @@ interface SystemSettingsClientProps {
   children: React.ReactNode;
 }
 
-export function SystemSettingsClient({ category, currentSettings, children }: SystemSettingsClientProps) {
+export function SystemSettingsClient({
+  category,
+  currentSettings,
+  children,
+}: SystemSettingsClientProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [testingEmail, setTestingEmail] = useState(false);
   const { toast } = useToast();
@@ -20,8 +24,10 @@ export function SystemSettingsClient({ category, currentSettings, children }: Sy
     setIsLoading(true);
     try {
       // Get form data from the children form elements
-      const form = document.querySelector(`form[data-category="${category}"]`) as HTMLFormElement;
-      
+      const form = document.querySelector(
+        `form[data-category="${category}"]`,
+      ) as HTMLFormElement;
+
       if (!form) {
         throw new Error("Form not found");
       }
@@ -32,11 +38,11 @@ export function SystemSettingsClient({ category, currentSettings, children }: Sy
       // Convert form data to API format
       formData.forEach((value, key) => {
         // Assuming the input names contain the setting ID (e.g., "setting-id-123")
-        if (key.startsWith('setting-')) {
-          const settingId = key.replace('setting-', '');
+        if (key.startsWith("setting-")) {
+          const settingId = key.replace("setting-", "");
           settingsToUpdate.push({
             id: settingId,
-            value: value.toString()
+            value: value.toString(),
           });
         }
       });
@@ -60,7 +66,8 @@ export function SystemSettingsClient({ category, currentSettings, children }: Sy
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description:
+          error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     } finally {
@@ -70,7 +77,7 @@ export function SystemSettingsClient({ category, currentSettings, children }: Sy
 
   const handleTestEmail = async () => {
     if (category !== "email") return;
-    
+
     setTestingEmail(true);
     try {
       const response = await fetch("/api/admin/settings?action=test-email", {
@@ -92,7 +99,8 @@ export function SystemSettingsClient({ category, currentSettings, children }: Sy
     } catch (error) {
       toast({
         title: "Email Test Failed",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description:
+          error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     } finally {
@@ -140,9 +148,7 @@ export function SystemSettingsClient({ category, currentSettings, children }: Sy
       </div>
 
       {/* Form content */}
-      <form data-category={category}>
-        {children}
-      </form>
+      <form data-category={category}>{children}</form>
     </div>
   );
 }

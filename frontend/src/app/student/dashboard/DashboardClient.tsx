@@ -1,22 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  Flame,
-  Clock,
-  Target,
-  BookOpen,
-  HelpCircle,
-  Lightbulb,
-  FileText,
-  LayoutGrid,
-  Bell,
-  RefreshCw,
-} from "lucide-react";
 import { AsklyComposer } from "@/components/ask/AsklyComposer";
-import { AsklyPill } from "@/components/ask/AsklyPill";
 import { AsklyGlassCard } from "@/components/ask/AsklyGlassCard";
+import { AsklyPill } from "@/components/ask/AsklyPill";
+import {
+  Bell,
+  BookOpen,
+  Clock,
+  FileText,
+  Flame,
+  HelpCircle,
+  LayoutGrid,
+  Lightbulb,
+  RefreshCw,
+  Target,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -109,7 +109,7 @@ export function DashboardClient({
   const router = useRouter();
   const [activePill, setActivePill] = useState<string>("guide");
   const [composerValue, setComposerValue] = useState(
-    modePills[0].template(courseCode)
+    modePills[0].template(courseCode),
   );
 
   const handlePillClick = (pillId: string) => {
@@ -320,8 +320,8 @@ export function DashboardClient({
                 {daysLeft === 0
                   ? "Due today"
                   : daysLeft === 1
-                  ? "Due tomorrow"
-                  : `Due in ${daysLeft} days`}
+                    ? "Due tomorrow"
+                    : `Due in ${daysLeft} days`}
               </p>
             </AsklyGlassCard>
           )}
@@ -519,11 +519,24 @@ export function DashboardClient({
         }}
       >
         {[
-          { icon: Flame, color: "var(--askly-amber-400)", value: "1", label: "day streak" },
+          {
+            icon: Flame,
+            color: "var(--askly-amber-400)",
+            value: "1",
+            label: "day streak",
+          },
           { icon: Clock, color: "#60a5fa", value: "0m", label: "today" },
-          { icon: Target, color: "#34d399", value: "0 / 5", label: "weekly goal" },
+          {
+            icon: Target,
+            color: "#34d399",
+            value: "0 / 5",
+            label: "weekly goal",
+          },
         ].map((stat, idx) => (
-          <div key={stat.label} style={{ display: "flex", alignItems: "center" }}>
+          <div
+            key={stat.label}
+            style={{ display: "flex", alignItems: "center" }}
+          >
             {idx > 0 && (
               <div
                 style={{
@@ -544,10 +557,14 @@ export function DashboardClient({
               }}
             >
               <stat.icon size={14} style={{ color: stat.color }} />
-              <span style={{ fontWeight: 600, color: "var(--askly-text-primary)" }}>
+              <span
+                style={{ fontWeight: 600, color: "var(--askly-text-primary)" }}
+              >
                 {stat.value}
               </span>
-              <span style={{ color: "var(--askly-text-muted)" }}>{stat.label}</span>
+              <span style={{ color: "var(--askly-text-muted)" }}>
+                {stat.label}
+              </span>
             </div>
           </div>
         ))}

@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     if (!email || !name) {
       return NextResponse.json(
         { message: "Email and name are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     if (!emailRegex.test(email)) {
       return NextResponse.json(
         { message: "Please provide a valid email address" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     if (waitlistEntries.some((entry) => entry.email === email)) {
       return NextResponse.json(
         { message: "This email is already on the waitlist" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -51,13 +51,13 @@ export async function POST(request: NextRequest) {
         email,
         timestamp: new Date().toISOString(),
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Waitlist error:", error);
     return NextResponse.json(
       { message: "An error occurred while joining the waitlist" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -69,6 +69,6 @@ export async function GET() {
       totalEntries: waitlistEntries.length,
       entries: waitlistEntries,
     },
-    { status: 200 }
+    { status: 200 },
   );
 }

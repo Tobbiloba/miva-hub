@@ -1,38 +1,38 @@
-import { NextRequest, NextResponse } from "next/server";
+import { join } from "path";
 import { getSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { UserSchema } from "@/lib/db/pg/schema.pg";
 import { eq } from "drizzle-orm";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
+import { mkdir, writeFile } from "fs/promises";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-    
+
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     // Parse form data
     const formData = await request.formData();
-    const photo = formData.get('photo') as File;
+    const photo = formData.get("photo") as File;
 
     if (!photo) {
       return NextResponse.json(
         { success: false, error: "No photo provided" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Validate file type
-    if (!photo.type.startsWith('image/')) {
+    if (!photo.type.startsWith("image/")) {
       return NextResponse.json(
         { success: false, error: "File must be an image" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -40,17 +40,17 @@ export async function POST(request: NextRequest) {
     if (photo.size > 2 * 1024 * 1024) {
       return NextResponse.json(
         { success: false, error: "File size must be less than 2MB" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Generate unique filename
     const timestamp = Date.now();
-    const fileExtension = photo.name.split('.').pop() || 'jpg';
+    const fileExtension = photo.name.split(".").pop() || "jpg";
     const fileName = `${session.user.id}_${timestamp}.${fileExtension}`;
-    
+
     // Create uploads directory if it doesn't exist
-    const uploadDir = join(process.cwd(), 'public', 'uploads', 'avatars');
+    const uploadDir = join(process.cwd(), "public", "uploads", "avatars");
     try {
       await mkdir(uploadDir, { recursive: true });
     } catch (_error) {
@@ -66,40 +66,42 @@ export async function POST(request: NextRequest) {
 
     // Update user avatar in database
     const avatarUrl = `/uploads/avatars/${fileName}`;
-    
+
     await pgDb
       .update(UserSchema)
       .set({
         avatar: avatarUrl,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(UserSchema.id, session.user.id));
 
     return NextResponse.json({
       success: true,
       data: { avatarUrl },
-      message: "Profile photo updated successfully"
+      message: "Profile photo updated successfully",
     });
-
   } catch (error) {
-    console.error('[Profile Photo API] Error:', error);
-    
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to upload photo',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error("[Profile Photo API] Error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to upload photo",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }
 
 export async function DELETE(_request: NextRequest) {
   try {
     const session = await getSession();
-    
+
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -108,22 +110,24 @@ export async function DELETE(_request: NextRequest) {
       .update(UserSchema)
       .set({
         avatar: null,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(UserSchema.id, session.user.id));
 
     return NextResponse.json({
       success: true,
-      message: "Profile photo removed successfully"
+      message: "Profile photo removed successfully",
     });
-
   } catch (error) {
-    console.error('[Profile Photo API] DELETE Error:', error);
-    
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to remove photo',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error("[Profile Photo API] DELETE Error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to remove photo",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { requireAdmin } from "@/lib/auth/admin";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,10 +11,10 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const departmentId = searchParams.get('departmentId');
+    const departmentId = searchParams.get("departmentId");
 
     let courses;
-    
+
     if (departmentId) {
       // Get courses for specific department
       courses = await pgAcademicRepository.getCoursesByDepartment(departmentId);
@@ -22,13 +22,13 @@ export async function GET(request: NextRequest) {
       // Get all active courses
       courses = await pgAcademicRepository.getActiveCourses();
     }
-    
+
     return NextResponse.json(courses);
   } catch (error) {
     console.error("Error fetching courses:", error);
     return NextResponse.json(
       { error: "Failed to fetch courses" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

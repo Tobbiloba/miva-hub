@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { requireFaculty } from "@/lib/auth/faculty";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(_request: NextRequest) {
   try {
@@ -12,11 +12,13 @@ export async function GET(_request: NextRequest) {
     const session = sessionOrError;
 
     // Get faculty record
-    const facultyRecord = await pgAcademicRepository.getFacultyByUserId(session.user.id);
+    const facultyRecord = await pgAcademicRepository.getFacultyByUserId(
+      session.user.id,
+    );
     if (!facultyRecord) {
       return NextResponse.json(
         { error: "Faculty record not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -26,18 +28,24 @@ export async function GET(_request: NextRequest) {
       facultyCourses,
       gradingQueue,
       facultyStudents,
-      recentAnnouncements
+      recentAnnouncements,
     ] = await Promise.all([
       pgAcademicRepository.getFacultyDashboardStats(facultyRecord.id),
       pgAcademicRepository.getFacultyCourses(facultyRecord.id),
       pgAcademicRepository.getFacultyGradingQueue(facultyRecord.id, 10),
       pgAcademicRepository.getFacultyStudents(facultyRecord.id),
-      pgAcademicRepository.getAnnouncements(undefined, facultyRecord.departmentId, 5)
+      pgAcademicRepository.getAnnouncements(
+        undefined,
+        facultyRecord.departmentId,
+        5,
+      ),
     ]);
 
     // Calculate additional metrics
     const upcomingDeadlines = await getUpcomingDeadlines(facultyRecord.id);
-    const coursePerformance = await getCoursePerformanceMetrics(facultyRecord.id);
+    const coursePerformance = await getCoursePerformanceMetrics(
+      facultyRecord.id,
+    );
 
     return NextResponse.json({
       faculty: {
@@ -65,12 +73,11 @@ export async function GET(_request: NextRequest) {
       upcomingDeadlines: upcomingDeadlines,
       coursePerformance: coursePerformance,
     });
-
   } catch (error) {
     console.error("Error fetching faculty dashboard:", error);
     return NextResponse.json(
       { error: "Failed to fetch dashboard data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -78,11 +85,12 @@ export async function GET(_request: NextRequest) {
 // Helper function to get upcoming assignment deadlines
 async function getUpcomingDeadlines(facultyId: string) {
   try {
-    const assignments = await pgAcademicRepository.getFacultyAssignments(facultyId);
-    
+    const assignments =
+      await pgAcademicRepository.getFacultyAssignments(facultyId);
+
     const now = new Date();
     const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    
+
     return assignments
       .filter(({ assignment }) => {
         const dueDate = new Date(assignment.dueDate);
@@ -98,27 +106,28 @@ async function getUpcomingDeadlines(facultyId: string) {
 // Helper function to get course performance metrics
 async function getCoursePerformanceMetrics(facultyId: string) {
   try {
-    const facultyCourses = await pgAcademicRepository.getFacultyCourses(facultyId);
-    
+    const facultyCourses =
+      await pgAcademicRepository.getFacultyCourses(facultyId);
+
     const { getCurrentSemester } = await import("@/lib/utils/semester");
     const currentSemester = await getCurrentSemester();
-    
+
     const courseMetrics = await Promise.all(
       facultyCourses.map(async ({ course }) => {
         const stats = await pgAcademicRepository.getCourseStatistics(
-          course.id, 
-          currentSemester
+          course.id,
+          currentSemester,
         );
-        
+
         return {
           courseId: course.id,
           courseCode: course.courseCode,
           courseName: course.title,
-          ...stats
+          ...stats,
         };
-      })
+      }),
     );
-    
+
     return courseMetrics;
   } catch (error) {
     console.error("Error fetching course performance metrics:", error);

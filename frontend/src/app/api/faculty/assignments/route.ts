@@ -1,8 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireFaculty, checkCourseInstructorAccess } from "@/lib/auth/faculty";
+import {
+  checkCourseInstructorAccess,
+  requireFaculty,
+} from "@/lib/auth/faculty";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { AssignmentSchema } from "@/lib/db/pg/schema.pg";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { AssignmentSchema } from "@/lib/db/pg/schema.pg";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const createAssignmentSchema = z.object({
@@ -11,7 +14,15 @@ const createAssignmentSchema = z.object({
   instructions: z.string().optional().default(""),
   courseId: z.string().uuid("Invalid course ID"),
   assignmentType: z
-    .enum(["homework", "project", "quiz", "exam", "presentation", "lab", "essay"])
+    .enum([
+      "homework",
+      "project",
+      "quiz",
+      "exam",
+      "presentation",
+      "lab",
+      "essay",
+    ])
     .default("homework"),
   totalPoints: z.number().int().positive("Points must be greater than 0"),
   dueDate: z.string().min(1, "Due date is required"),
@@ -31,9 +42,14 @@ export async function GET(request: NextRequest) {
     if (sessionOrError instanceof NextResponse) return sessionOrError;
     const session = sessionOrError;
 
-    const facultyRecord = await pgAcademicRepository.getFacultyByUserId(session.user.id);
+    const facultyRecord = await pgAcademicRepository.getFacultyByUserId(
+      session.user.id,
+    );
     if (!facultyRecord) {
-      return NextResponse.json({ error: "Faculty record not found" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Faculty record not found" },
+        { status: 403 },
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -41,14 +57,17 @@ export async function GET(request: NextRequest) {
 
     const assignments = await pgAcademicRepository.getFacultyAssignments(
       facultyRecord.id,
-      courseId || undefined
+      courseId || undefined,
     );
 
     return NextResponse.json({ success: true, data: assignments });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch assignments", message: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      {
+        error: "Failed to fetch assignments",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }
@@ -63,21 +82,30 @@ export async function POST(request: NextRequest) {
     const validated = createAssignmentSchema.parse(body);
 
     // Verify faculty teaches this course
-    const hasAccess = await checkCourseInstructorAccess(session.user.id, validated.courseId);
+    const hasAccess = await checkCourseInstructorAccess(
+      session.user.id,
+      validated.courseId,
+    );
     if (!hasAccess) {
       return NextResponse.json(
         { error: "You are not assigned to teach this course" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     // Validate due date is in the future
     const dueDate = new Date(validated.dueDate);
     if (isNaN(dueDate.getTime())) {
-      return NextResponse.json({ error: "Invalid due date format" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid due date format" },
+        { status: 400 },
+      );
     }
     if (dueDate <= new Date()) {
-      return NextResponse.json({ error: "Due date must be in the future" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Due date must be in the future" },
+        { status: 400 },
+      );
     }
 
     const [assignment] = await pgDb
@@ -102,18 +130,21 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { success: true, data: assignment, message: "Assignment created" },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Validation failed", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
-      { error: "Failed to create assignment", message: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      {
+        error: "Failed to create assignment",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }

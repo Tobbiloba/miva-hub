@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server";
 import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
 import { getUserUsageInfo } from "@/lib/middleware/usage-check";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     }
 
     const subscription = await subscriptionRepository.getUserActiveSubscription(
-      session.user.id
+      session.user.id,
     );
 
     const plan = await subscriptionRepository.getUserPlan(session.user.id);
@@ -26,27 +26,31 @@ export async function GET(req: NextRequest) {
 
     const changeLogs = await subscriptionRepository.getUserChangeLogs(
       session.user.id,
-      5
+      5,
     );
 
     return NextResponse.json({
-      subscription: subscription ? {
-        id: subscription.id,
-        status: subscription.status,
-        currentPeriodStart: subscription.currentPeriodStart,
-        currentPeriodEnd: subscription.currentPeriodEnd,
-        nextPaymentDate: subscription.nextPaymentDate,
-        lastPaymentDate: subscription.lastPaymentDate,
-        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
-        cancelledAt: subscription.cancelledAt,
-      } : null,
-      plan: planDetails ? {
-        name: planDetails.name,
-        displayName: planDetails.displayName,
-        priceNgn: planDetails.priceNgn,
-        features: planDetails.features,
-        limits: planDetails.limits,
-      } : { name: "FREE", displayName: "Free Plan" },
+      subscription: subscription
+        ? {
+            id: subscription.id,
+            status: subscription.status,
+            currentPeriodStart: subscription.currentPeriodStart,
+            currentPeriodEnd: subscription.currentPeriodEnd,
+            nextPaymentDate: subscription.nextPaymentDate,
+            lastPaymentDate: subscription.lastPaymentDate,
+            cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+            cancelledAt: subscription.cancelledAt,
+          }
+        : null,
+      plan: planDetails
+        ? {
+            name: planDetails.name,
+            displayName: planDetails.displayName,
+            priceNgn: planDetails.priceNgn,
+            features: planDetails.features,
+            limits: planDetails.limits,
+          }
+        : { name: "FREE", displayName: "Free Plan" },
       currentPlan: plan,
       usage: usageInfo?.usage,
       changeLogs,
@@ -55,7 +59,7 @@ export async function GET(req: NextRequest) {
     console.error("Error fetching subscription status:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

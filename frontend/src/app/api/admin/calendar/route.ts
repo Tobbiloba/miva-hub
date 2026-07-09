@@ -1,8 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { CalendarEventSchema, UserSchema, CourseSchema, DepartmentSchema, type CalendarEventEntity } from "@/lib/db/pg/schema.pg";
-import { eq, and, sql, desc, ilike, or, gte, lte, type SQL } from "drizzle-orm";
+import {
+  type CalendarEventEntity,
+  CalendarEventSchema,
+  CourseSchema,
+  DepartmentSchema,
+  UserSchema,
+} from "@/lib/db/pg/schema.pg";
+import { type SQL, and, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,14 +17,14 @@ export async function GET(request: NextRequest) {
     if (sessionOrError instanceof NextResponse) return sessionOrError;
 
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search');
-    const eventType = searchParams.get('eventType');
-    const status = searchParams.get('status');
-    const priority = searchParams.get('priority');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const search = searchParams.get("search");
+    const eventType = searchParams.get("eventType");
+    const status = searchParams.get("status");
+    const priority = searchParams.get("priority");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const limit = parseInt(searchParams.get("limit") || "50");
+    const offset = parseInt(searchParams.get("offset") || "0");
 
     // Apply filters
     const conditions: (SQL | undefined)[] = [];
@@ -27,21 +33,33 @@ export async function GET(request: NextRequest) {
       conditions.push(
         or(
           ilike(CalendarEventSchema.title, `%${search}%`),
-          ilike(CalendarEventSchema.description, `%${search}%`)
-        )
+          ilike(CalendarEventSchema.description, `%${search}%`),
+        ),
       );
     }
 
-    if (eventType && eventType !== 'all') {
-      conditions.push(eq(CalendarEventSchema.eventType, eventType as CalendarEventEntity["eventType"]));
+    if (eventType && eventType !== "all") {
+      conditions.push(
+        eq(
+          CalendarEventSchema.eventType,
+          eventType as CalendarEventEntity["eventType"],
+        ),
+      );
     }
 
-    if (status && status !== 'all') {
-      conditions.push(eq(CalendarEventSchema.status, status as CalendarEventEntity["status"]));
+    if (status && status !== "all") {
+      conditions.push(
+        eq(CalendarEventSchema.status, status as CalendarEventEntity["status"]),
+      );
     }
 
-    if (priority && priority !== 'all') {
-      conditions.push(eq(CalendarEventSchema.priority, priority as CalendarEventEntity["priority"]));
+    if (priority && priority !== "all") {
+      conditions.push(
+        eq(
+          CalendarEventSchema.priority,
+          priority as CalendarEventEntity["priority"],
+        ),
+      );
     }
 
     if (startDate) {
@@ -63,39 +81,49 @@ export async function GET(request: NextRequest) {
       .from(CalendarEventSchema)
       .leftJoin(UserSchema, eq(CalendarEventSchema.createdById, UserSchema.id))
       .leftJoin(CourseSchema, eq(CalendarEventSchema.courseId, CourseSchema.id))
-      .leftJoin(DepartmentSchema, eq(CalendarEventSchema.departmentId, DepartmentSchema.id))
+      .leftJoin(
+        DepartmentSchema,
+        eq(CalendarEventSchema.departmentId, DepartmentSchema.id),
+      )
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(CalendarEventSchema.startDate))
       .limit(limit)
       .offset(offset);
 
     // Transform data to match frontend interface
-    const transformedEvents = events.map(({ event, creator, course, department }) => ({
-      id: event.id,
-      title: event.title,
-      description: event.description || '',
-      type: event.eventType,
-      date: event.startDate,
-      time: event.startTime || (event.isAllDay ? 'All Day' : '09:00'),
-      endDate: event.endDate,
-      endTime: event.endTime || event.startTime,
-      location: event.location || '',
-      priority: event.priority,
-      status: event.status,
-      affectedUsers: event.affectedUsers,
-      creator: creator?.name || 'System',
-      course: course ? `${course.courseCode} - ${course.title}` : null,
-      department: department?.name || null,
-      isAllDay: event.isAllDay,
-      isRecurring: event.isRecurring,
-      remindersEnabled: event.remindersEnabled,
-      attendeeCount: event.affectedUsers === 'all' ? 650 : 
-                    event.affectedUsers === 'students' ? 450 :
-                    event.affectedUsers === 'faculty' ? 45 : 100,
-      color: getEventColor(event.eventType),
-      createdAt: event.createdAt.toISOString(),
-      updatedAt: event.updatedAt.toISOString(),
-    }));
+    const transformedEvents = events.map(
+      ({ event, creator, course, department }) => ({
+        id: event.id,
+        title: event.title,
+        description: event.description || "",
+        type: event.eventType,
+        date: event.startDate,
+        time: event.startTime || (event.isAllDay ? "All Day" : "09:00"),
+        endDate: event.endDate,
+        endTime: event.endTime || event.startTime,
+        location: event.location || "",
+        priority: event.priority,
+        status: event.status,
+        affectedUsers: event.affectedUsers,
+        creator: creator?.name || "System",
+        course: course ? `${course.courseCode} - ${course.title}` : null,
+        department: department?.name || null,
+        isAllDay: event.isAllDay,
+        isRecurring: event.isRecurring,
+        remindersEnabled: event.remindersEnabled,
+        attendeeCount:
+          event.affectedUsers === "all"
+            ? 650
+            : event.affectedUsers === "students"
+              ? 450
+              : event.affectedUsers === "faculty"
+                ? 45
+                : 100,
+        color: getEventColor(event.eventType),
+        createdAt: event.createdAt.toISOString(),
+        updatedAt: event.updatedAt.toISOString(),
+      }),
+    );
 
     // Get total count
     const totalCount = await pgDb
@@ -109,18 +137,17 @@ export async function GET(request: NextRequest) {
         total: totalCount[0]?.count || 0,
         limit,
         offset,
-        hasMore: offset + limit < (totalCount[0]?.count || 0)
-      }
+        hasMore: offset + limit < (totalCount[0]?.count || 0),
+      },
     });
-
   } catch (error) {
     console.error("Error fetching calendar events:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: "Failed to fetch calendar events" 
+      {
+        success: false,
+        message: "Failed to fetch calendar events",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -133,9 +160,9 @@ export async function POST(request: NextRequest) {
     const session = sessionOrError;
 
     const body = await request.json();
-    const { 
-      title, 
-      description, 
+    const {
+      title,
+      description,
       eventType,
       startDate,
       endDate,
@@ -150,14 +177,17 @@ export async function POST(request: NextRequest) {
       departmentId,
       remindersEnabled,
       isRecurring,
-      recurringPattern
+      recurringPattern,
     } = body;
 
     // Validate required fields
     if (!title || !eventType || !startDate || !endDate) {
       return NextResponse.json(
-        { success: false, message: "Title, event type, start date, and end date are required" },
-        { status: 400 }
+        {
+          success: false,
+          message: "Title, event type, start date, and end date are required",
+        },
+        { status: 400 },
       );
     }
 
@@ -171,7 +201,7 @@ export async function POST(request: NextRequest) {
     if (user.length === 0) {
       return NextResponse.json(
         { success: false, message: "User not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -188,9 +218,9 @@ export async function POST(request: NextRequest) {
         endTime,
         isAllDay: isAllDay === true,
         location,
-        priority: priority || 'medium',
-        status: status || 'scheduled',
-        affectedUsers: affectedUsers || 'all',
+        priority: priority || "medium",
+        status: status || "scheduled",
+        affectedUsers: affectedUsers || "all",
         courseId: courseId || null,
         departmentId: departmentId || null,
         remindersEnabled: remindersEnabled !== false,
@@ -203,30 +233,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Calendar event created successfully",
-      data: newEvent[0]
+      data: newEvent[0],
     });
-
   } catch (error) {
     console.error("Error creating calendar event:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: "Failed to create calendar event" 
+      {
+        success: false,
+        message: "Failed to create calendar event",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 function getEventColor(eventType: string): string {
   const colors = {
-    academic: 'blue',
-    registration: 'green',
-    exam: 'red',
-    holiday: 'purple',
-    professional: 'orange',
-    ceremony: 'indigo',
-    maintenance: 'gray'
+    academic: "blue",
+    registration: "green",
+    exam: "red",
+    holiday: "purple",
+    professional: "orange",
+    ceremony: "indigo",
+    maintenance: "gray",
   };
-  return colors[eventType as keyof typeof colors] || 'blue';
+  return colors[eventType as keyof typeof colors] || "blue";
 }

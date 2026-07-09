@@ -1,7 +1,7 @@
 import { McpServerCustomizationRepository } from "app-types/mcp";
+import { and, eq } from "drizzle-orm";
 import { pgDb as db } from "../db.pg";
 import { McpServerCustomizationSchema, McpServerSchema } from "../schema.pg";
-import { and, eq } from "drizzle-orm";
 
 export type McpServerCustomization = {
   id: string;

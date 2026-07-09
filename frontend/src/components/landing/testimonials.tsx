@@ -1,7 +1,7 @@
 "use client";
+import { ArrowRight } from "lucide-react";
 import React, { useState } from "react";
 import { Button } from "ui/button";
-import { ArrowRight } from "lucide-react";
 
 interface Testimonial {
   id: number;
@@ -54,7 +54,8 @@ const Testimonials: React.FC = () => {
             Students are learning better with Askly
           </h1>
           <p className="text-neutral-200 text-sm sm:text-base md:text-lg leading-relaxed">
-            Real stories from students using Askly to study efficiently, understand deeply, and prepare with confidence.
+            Real stories from students using Askly to study efficiently,
+            understand deeply, and prepare with confidence.
           </p>
 
           <Button className="mt-4 rounded gap-2 p-1.5 pl-4 sm:pl-6 h-fit hover:gap-3 transition-all text-sm sm:text-base">
@@ -84,7 +85,7 @@ const Testimonials: React.FC = () => {
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                      testimonials[activeIndex].name
+                      testimonials[activeIndex].name,
                     )}&size=80&background=e5e7eb&color=6b7280`;
                   }}
                 />

@@ -20,7 +20,7 @@ export interface ExtendedUser extends BaseUser {
 
 // Type guard to check if user has extended properties
 export function isExtendedUser(user: BaseUser): user is ExtendedUser {
-  return user && typeof user === 'object';
+  return user && typeof user === "object";
 }
 
 // Safely get student ID from user
@@ -56,7 +56,7 @@ export function getCurrentSemester(user?: BaseUser | null): string | null {
 // Get complete extended user data
 export function getExtendedUser(user?: BaseUser | null): ExtendedUser | null {
   if (!user) return null;
-  
+
   return {
     ...user,
     studentId: getStudentId(user),

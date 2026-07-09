@@ -8,7 +8,8 @@ import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-reposito
 export async function getCurrentSemester(): Promise<string> {
   try {
     // Try to get from active academic calendar first
-    const activeCalendar = await pgAcademicRepository.getActiveAcademicCalendar();
+    const activeCalendar =
+      await pgAcademicRepository.getActiveAcademicCalendar();
     if (activeCalendar?.semester) {
       return activeCalendar.semester;
     }
@@ -27,7 +28,8 @@ export async function getCurrentSemester(): Promise<string> {
  */
 export async function getCurrentAcademicYear(): Promise<string> {
   try {
-    const activeCalendar = await pgAcademicRepository.getActiveAcademicCalendar();
+    const activeCalendar =
+      await pgAcademicRepository.getActiveAcademicCalendar();
     if (activeCalendar?.academicYear) {
       return activeCalendar.academicYear;
     }
@@ -44,14 +46,14 @@ export async function getCurrentAcademicYear(): Promise<string> {
  * Calculates the current semester based on the current date
  * Academic year runs from August to July
  * Fall: August - December
- * Spring: January - May  
+ * Spring: January - May
  * Summer: June - July
  */
 function calculateCurrentSemester(): string {
   const now = new Date();
   const month = now.getMonth() + 1; // getMonth() returns 0-11
   const year = now.getFullYear();
-  
+
   if (month >= 8 && month <= 12) {
     // Fall semester: August - December of current year
     return `${year}-fall`;
@@ -72,7 +74,7 @@ function calculateCurrentAcademicYear(): string {
   const now = new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
-  
+
   if (month >= 8) {
     // August onwards: academic year starts this year, ends next year
     return `${year}-${year + 1}`;
@@ -92,9 +94,9 @@ export async function getCurrentAcademicTerm(): Promise<{
 }> {
   const [semester, academicYear] = await Promise.all([
     getCurrentSemester(),
-    getCurrentAcademicYear()
+    getCurrentAcademicYear(),
   ]);
-  
+
   return { semester, academicYear };
 }
 
@@ -103,13 +105,15 @@ export async function getCurrentAcademicTerm(): Promise<{
  * @param semester - Semester string like "2025-spring"
  * @returns Object with year and term
  */
-export function parseSemester(semester: string): { year: number; term: string } | null {
+export function parseSemester(
+  semester: string,
+): { year: number; term: string } | null {
   const match = semester.match(/^(\d{4})-(fall|spring|summer)$/);
   if (!match) return null;
-  
+
   return {
     year: parseInt(match[1]),
-    term: match[2]
+    term: match[2],
   };
 }
 
@@ -121,13 +125,13 @@ export function parseSemester(semester: string): { year: number; term: string } 
 export function formatSemester(semester: string): string {
   const parsed = parseSemester(semester);
   if (!parsed) return semester;
-  
+
   const termNames = {
-    fall: 'Fall',
-    spring: 'Spring',
-    summer: 'Summer'
+    fall: "Fall",
+    spring: "Spring",
+    summer: "Summer",
   };
-  
+
   return `${termNames[parsed.term as keyof typeof termNames]} ${parsed.year}`;
 }
 
@@ -139,15 +143,15 @@ export function formatSemester(semester: string): string {
 export function getNextSemester(currentSemester: string): string {
   const parsed = parseSemester(currentSemester);
   if (!parsed) return currentSemester;
-  
+
   const { year, term } = parsed;
-  
+
   switch (term) {
-    case 'fall':
+    case "fall":
       return `${year + 1}-spring`;
-    case 'spring':
+    case "spring":
       return `${year}-summer`;
-    case 'summer':
+    case "summer":
       return `${year + 1}-fall`;
     default:
       return currentSemester;
@@ -162,15 +166,15 @@ export function getNextSemester(currentSemester: string): string {
 export function getPreviousSemester(currentSemester: string): string {
   const parsed = parseSemester(currentSemester);
   if (!parsed) return currentSemester;
-  
+
   const { year, term } = parsed;
-  
+
   switch (term) {
-    case 'fall':
+    case "fall":
       return `${year}-summer`;
-    case 'spring':
+    case "spring":
       return `${year - 1}-fall`;
-    case 'summer':
+    case "summer":
       return `${year}-spring`;
     default:
       return currentSemester;

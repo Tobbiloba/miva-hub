@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "ui/card";
 import { LucideIcon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "ui/card";
 
 interface StudentStatsCardProps {
   title: string;
@@ -14,20 +14,20 @@ interface StudentStatsCardProps {
   accent?: "blue" | "green" | "orange" | "red" | "purple";
 }
 
-export function StudentStatsCard({ 
-  title, 
-  value, 
-  description, 
-  icon: Icon, 
+export function StudentStatsCard({
+  title,
+  value,
+  description,
+  icon: Icon,
   trend,
-  accent = "blue"
+  accent = "blue",
 }: StudentStatsCardProps) {
   const accentColors = {
     blue: "text-blue-600 dark:text-blue-400",
-    green: "text-green-600 dark:text-green-400", 
+    green: "text-green-600 dark:text-green-400",
     orange: "text-orange-600 dark:text-orange-400",
     red: "text-red-600 dark:text-red-400",
-    purple: "text-purple-600 dark:text-purple-400"
+    purple: "text-purple-600 dark:text-purple-400",
   };
 
   return (
@@ -43,9 +43,11 @@ export function StudentStatsCard({
         {(description || trend) && (
           <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1">
             {trend && (
-              <span className={trend.isPositive ? "text-green-600" : "text-red-600"}>
-                {trend.isPositive ? "+" : ""}{trend.value}%
-                {trend.text && ` ${trend.text}`}
+              <span
+                className={trend.isPositive ? "text-green-600" : "text-red-600"}
+              >
+                {trend.isPositive ? "+" : ""}
+                {trend.value}%{trend.text && ` ${trend.text}`}
               </span>
             )}
             {description && <span>{description}</span>}

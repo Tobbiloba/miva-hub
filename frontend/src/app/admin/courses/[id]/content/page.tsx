@@ -1,27 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { WeeklyContentBuilder } from "@/components/admin/weekly-content-builder";
-import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { CourseEntity, CourseWeekEntity } from "@/lib/db/pg/schema.pg";
+import {
+  AlertCircle,
   ArrowLeft,
+  BarChart3,
   BookOpen,
   Calendar,
-  Settings,
   CheckCircle,
   Clock,
-  AlertCircle,
-  List,
   Grid,
+  List,
   Loader2,
+  Settings,
   Users,
-  BarChart3
 } from "lucide-react";
 import Link from "next/link";
-import { CourseEntity, CourseWeekEntity } from "@/lib/db/pg/schema.pg";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface CourseWithDepartment extends CourseEntity {
   department: {
@@ -38,7 +44,7 @@ export default function CourseContentManagementPage() {
   const [courseWeeks, setCourseWeeks] = useState<CourseWeekEntity[]>([]);
   const [selectedWeek, setSelectedWeek] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const { toast } = useToast();
 
   // Load course data and weeks
@@ -58,7 +64,9 @@ export default function CourseContentManagementPage() {
         setCourse(courseData.data);
 
         // Load course weeks
-        const weeksResponse = await fetch(`/api/admin/course-weeks?courseId=${courseId}`);
+        const weeksResponse = await fetch(
+          `/api/admin/course-weeks?courseId=${courseId}`,
+        );
         const weeksData = await weeksResponse.json();
 
         if (weeksData.success && weeksData.data.length > 0) {
@@ -68,13 +76,12 @@ export default function CourseContentManagementPage() {
           const totalWeeks = courseData.data.totalWeeks || 16;
           await createDefaultWeeks(totalWeeks);
         }
-
       } catch (error) {
-        console.error('Error loading course data:', error);
+        console.error("Error loading course data:", error);
         toast({
           title: "Error",
           description: "Failed to load course data",
-          variant: "destructive"
+          variant: "destructive",
         });
       } finally {
         setIsLoading(false);
@@ -89,18 +96,18 @@ export default function CourseContentManagementPage() {
   const createDefaultWeeks = async (totalWeeks: number) => {
     try {
       const weeks: CourseWeekEntity[] = [];
-      
+
       for (let i = 1; i <= totalWeeks; i++) {
-        const response = await fetch('/api/admin/course-weeks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/admin/course-weeks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             courseId,
             weekNumber: i,
             title: `Week ${i}`,
             description: `Content for week ${i}`,
             learningObjectives: JSON.stringify([]),
-            topics: JSON.stringify([])
+            topics: JSON.stringify([]),
           }),
         });
 
@@ -112,20 +119,18 @@ export default function CourseContentManagementPage() {
 
       setCourseWeeks(weeks);
     } catch (error) {
-      console.error('Error creating default weeks:', error);
+      console.error("Error creating default weeks:", error);
       toast({
-        title: "Error", 
+        title: "Error",
         description: "Failed to create course weeks",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const handleWeekUpdate = (updatedWeek: CourseWeekEntity) => {
-    setCourseWeeks(prev => 
-      prev.map(week => 
-        week.id === updatedWeek.id ? updatedWeek : week
-      )
+    setCourseWeeks((prev) =>
+      prev.map((week) => (week.id === updatedWeek.id ? updatedWeek : week)),
     );
   };
 
@@ -134,32 +139,41 @@ export default function CourseContentManagementPage() {
     // For now, just check if week has content
     const hasTitle = week.title !== `Week ${week.weekNumber}`;
     const hasDescription = !!week.description;
-    const hasObjectives = week.learningObjectives && JSON.parse(week.learningObjectives).length > 0;
-    
-    const completedItems = [hasTitle, hasDescription, hasObjectives].filter(Boolean).length;
+    const hasObjectives =
+      week.learningObjectives && JSON.parse(week.learningObjectives).length > 0;
+
+    const completedItems = [hasTitle, hasDescription, hasObjectives].filter(
+      Boolean,
+    ).length;
     return Math.round((completedItems / 3) * 100);
   };
 
   const getWeekStatus = (week: CourseWeekEntity) => {
     const progress = getWeekProgress(week);
-    if (progress === 100) return 'completed';
-    if (progress > 0) return 'in-progress';
-    return 'not-started';
+    if (progress === 100) return "completed";
+    if (progress > 0) return "in-progress";
+    return "not-started";
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed': return CheckCircle;
-      case 'in-progress': return Clock;
-      default: return AlertCircle;
+      case "completed":
+        return CheckCircle;
+      case "in-progress":
+        return Clock;
+      default:
+        return AlertCircle;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'text-green-600 bg-green-100';
-      case 'in-progress': return 'text-yellow-600 bg-yellow-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case "completed":
+        return "text-green-600 bg-green-100";
+      case "in-progress":
+        return "text-yellow-600 bg-yellow-100";
+      default:
+        return "text-gray-600 bg-gray-100";
     }
   };
 
@@ -178,7 +192,8 @@ export default function CourseContentManagementPage() {
           <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
           <h1 className="text-2xl font-bold mb-2">Course Not Found</h1>
           <p className="text-muted-foreground mb-4">
-            The course you&apos;re looking for doesn&apos;t exist or you don&apos;t have permission to access it.
+            The course you&apos;re looking for doesn&apos;t exist or you
+            don&apos;t have permission to access it.
           </p>
           <Link href="/admin/courses">
             <Button>
@@ -191,7 +206,9 @@ export default function CourseContentManagementPage() {
     );
   }
 
-  const selectedWeekData = courseWeeks.find(week => week.weekNumber === selectedWeek);
+  const selectedWeekData = courseWeeks.find(
+    (week) => week.weekNumber === selectedWeek,
+  );
 
   return (
     <div className="space-y-6">
@@ -208,7 +225,8 @@ export default function CourseContentManagementPage() {
             {course.courseCode}: {course.title}
           </h1>
           <p className="text-muted-foreground">
-            {course.department.name} • {course.credits} credits • {courseWeeks.length} weeks
+            {course.department.name} • {course.credits} credits •{" "}
+            {courseWeeks.length} weeks
           </p>
         </div>
         <div className="flex gap-2">
@@ -242,19 +260,27 @@ export default function CourseContentManagementPage() {
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">
-                {courseWeeks.filter(week => getWeekStatus(week) === 'completed').length}
+                {
+                  courseWeeks.filter(
+                    (week) => getWeekStatus(week) === "completed",
+                  ).length
+                }
               </div>
               <div className="text-sm text-muted-foreground">Completed</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">
-                {courseWeeks.filter(week => getWeekStatus(week) === 'in-progress').length}
+                {
+                  courseWeeks.filter(
+                    (week) => getWeekStatus(week) === "in-progress",
+                  ).length
+                }
               </div>
               <div className="text-sm text-muted-foreground">In Progress</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">
-                {courseWeeks.filter(week => week.isPublished).length}
+                {courseWeeks.filter((week) => week.isPublished).length}
               </div>
               <div className="text-sm text-muted-foreground">Published</div>
             </div>
@@ -275,16 +301,16 @@ export default function CourseContentManagementPage() {
                 </CardTitle>
                 <div className="flex gap-1">
                   <Button
-                    variant={viewMode === 'list' ? 'default' : 'outline'}
+                    variant={viewMode === "list" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setViewMode('list')}
+                    onClick={() => setViewMode("list")}
                   >
                     <List className="h-4 w-4" />
                   </Button>
                   <Button
-                    variant={viewMode === 'grid' ? 'default' : 'outline'}
+                    variant={viewMode === "grid" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setViewMode('grid')}
+                    onClick={() => setViewMode("grid")}
                   >
                     <Grid className="h-4 w-4" />
                   </Button>
@@ -297,22 +323,26 @@ export default function CourseContentManagementPage() {
                   const status = getWeekStatus(week);
                   const StatusIcon = getStatusIcon(status);
                   const progress = getWeekProgress(week);
-                  
+
                   return (
                     <button
                       key={week.id}
                       onClick={() => setSelectedWeek(week.weekNumber)}
                       className={`w-full p-3 text-left border-b hover:bg-muted/50 transition-colors ${
-                        selectedWeek === week.weekNumber ? 'bg-muted' : ''
+                        selectedWeek === week.weekNumber ? "bg-muted" : ""
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className={`p-1 rounded ${getStatusColor(status)}`}>
+                          <div
+                            className={`p-1 rounded ${getStatusColor(status)}`}
+                          >
                             <StatusIcon className="h-3 w-3" />
                           </div>
                           <div>
-                            <div className="font-medium text-sm">Week {week.weekNumber}</div>
+                            <div className="font-medium text-sm">
+                              Week {week.weekNumber}
+                            </div>
                             <div className="text-xs text-muted-foreground truncate">
                               {week.title}
                             </div>

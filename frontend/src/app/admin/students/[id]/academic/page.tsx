@@ -1,3 +1,5 @@
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -5,8 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -15,29 +15,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  GraduationCap,
-  ArrowLeft,
-  BookOpen,
-  AlertTriangle,
-  User,
-} from "lucide-react";
-import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
-  UserSchema,
-  StudentEnrollmentSchema,
   CourseSchema,
   ProgramSchema,
+  StudentEnrollmentSchema,
+  UserSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and } from "drizzle-orm";
 import {
   calculateCumulativeGPA,
   classifyDegree,
 } from "@/lib/utils/grade-calculator";
-import { StudentAcademicActions } from "./student-academic-actions";
+import { and, eq } from "drizzle-orm";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  BookOpen,
+  GraduationCap,
+  User,
+} from "lucide-react";
+import Link from "next/link";
 import { EnrollStudentDialog } from "./enroll-student-dialog";
+import { StudentAcademicActions } from "./student-academic-actions";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -103,42 +103,46 @@ export default async function StudentAcademicPage({ params }: PageProps) {
     .from(StudentEnrollmentSchema)
     .innerJoin(
       CourseSchema,
-      eq(StudentEnrollmentSchema.courseId, CourseSchema.id)
+      eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
     )
     .where(eq(StudentEnrollmentSchema.studentId, id))
     .orderBy(
       StudentEnrollmentSchema.academicYear,
-      StudentEnrollmentSchema.semester
+      StudentEnrollmentSchema.semester,
     );
 
   // Carryover courses
   const failedEnrollments = enrollments.filter((e) => e.status === "failed");
   const completedCourseIds = new Set(
-    enrollments.filter((e) => e.status === "completed").map((e) => e.courseId)
+    enrollments.filter((e) => e.status === "completed").map((e) => e.courseId),
   );
   const carryoverCourses = failedEnrollments.filter(
-    (e) => !completedCourseIds.has(e.courseId)
+    (e) => !completedCourseIds.has(e.courseId),
   );
 
   // CGPA
   const completedEnrollments = enrollments.filter(
-    (e) => e.status === "completed" && e.gradePoints != null
+    (e) => e.status === "completed" && e.gradePoints != null,
   );
   const cgpa = calculateCumulativeGPA(
     completedEnrollments.map((e) => ({
       gradePoints: Number(e.gradePoints),
       credits: e.credits,
-    }))
+    })),
   );
   const degreeClassification = classifyDegree(cgpa);
   const totalCreditsCompleted = completedEnrollments.reduce(
     (sum, e) => sum + e.credits,
-    0
+    0,
   );
 
   // Fetch programs for the override dropdown
   const programs = await pgDb
-    .select({ id: ProgramSchema.id, name: ProgramSchema.name, code: ProgramSchema.code })
+    .select({
+      id: ProgramSchema.id,
+      name: ProgramSchema.name,
+      code: ProgramSchema.code,
+    })
     .from(ProgramSchema)
     .where(eq(ProgramSchema.isActive, true));
 
@@ -178,9 +182,7 @@ export default async function StudentAcademicPage({ params }: PageProps) {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Academic Record
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight">Academic Record</h1>
           <p className="text-muted-foreground">
             {student.name} ({student.studentId ?? "No Student ID"})
           </p>
@@ -279,11 +281,11 @@ export default async function StudentAcademicPage({ params }: PageProps) {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">
-                  Admission Level
-                </p>
+                <p className="text-sm text-muted-foreground">Admission Level</p>
                 <p className="font-medium">
-                  {student.admissionLevel ? `${student.admissionLevel}L` : "N/A"}
+                  {student.admissionLevel
+                    ? `${student.admissionLevel}L`
+                    : "N/A"}
                 </p>
               </div>
             </div>
@@ -332,8 +334,8 @@ export default async function StudentAcademicPage({ params }: PageProps) {
           <div>
             <CardTitle>Enrollment History</CardTitle>
             <CardDescription>
-              {enrollments.length} enrollment{enrollments.length !== 1 ? "s" : ""}{" "}
-              total
+              {enrollments.length} enrollment
+              {enrollments.length !== 1 ? "s" : ""} total
             </CardDescription>
           </div>
           <EnrollStudentDialog
@@ -380,9 +382,7 @@ export default async function StudentAcademicPage({ params }: PageProps) {
                     <TableCell className="capitalize">{e.semester}</TableCell>
                     <TableCell>{e.academicYear}</TableCell>
                     <TableCell>
-                      <Badge variant={statusColor(e.status)}>
-                        {e.status}
-                      </Badge>
+                      <Badge variant={statusColor(e.status)}>{e.status}</Badge>
                     </TableCell>
                     <TableCell className={gradeColor(e.finalGrade)}>
                       {e.finalGrade ?? "—"}

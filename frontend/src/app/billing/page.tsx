@@ -264,7 +264,8 @@ export default function BillingPage() {
                     <AlertDialogDescription>
                       Your subscription will remain active until{" "}
                       {formatDate(status.subscription!.current_period_end)}.
-                      After that, you&apos;ll lose access until you subscribe again.
+                      After that, you&apos;ll lose access until you subscribe
+                      again.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

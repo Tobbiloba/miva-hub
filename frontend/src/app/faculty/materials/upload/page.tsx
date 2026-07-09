@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileUploadZone } from "@/components/admin/file-upload-zone";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -13,18 +12,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileUploadZone } from "@/components/admin/file-upload-zone";
+import { Textarea } from "@/components/ui/textarea";
 import {
+  AlertCircle,
   ArrowLeft,
-  Upload,
+  FolderOpen,
   Globe,
   Link2,
-  FolderOpen,
   Loader2,
-  AlertCircle,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const MATERIAL_TYPES = [
@@ -43,7 +43,9 @@ const WEEK_OPTIONS = Array.from({ length: 16 }, (_, i) => ({
 
 export default function FacultyMaterialUploadPage() {
   const router = useRouter();
-  const [courses, setCourses] = useState<{ id: string; courseCode: string; title: string }[]>([]);
+  const [courses, setCourses] = useState<
+    { id: string; courseCode: string; title: string }[]
+  >([]);
   const [courseId, setCourseId] = useState("");
   const [materialType, setMaterialType] = useState("");
   const [weekNumber, setWeekNumber] = useState("");
@@ -123,7 +125,7 @@ export default function FacultyMaterialUploadPage() {
       toast.success(
         inputMode === "url"
           ? "External URL added as material"
-          : "File uploaded successfully"
+          : "File uploaded successfully",
       );
       router.push("/faculty/materials");
     } catch (error) {
@@ -147,7 +149,9 @@ export default function FacultyMaterialUploadPage() {
             <FolderOpen className="h-6 w-6 text-blue-600" />
             Upload Material
           </h1>
-          <p className="text-muted-foreground">Add course material for your students</p>
+          <p className="text-muted-foreground">
+            Add course material for your students
+          </p>
         </div>
       </div>
 
@@ -253,11 +257,15 @@ export default function FacultyMaterialUploadPage() {
 
           {inputMode === "file" ? (
             <div>
-              <FileUploadZone onFilesSelected={handleFilesAdded} disabled={!isFormValid} />
+              <FileUploadZone
+                onFilesSelected={handleFilesAdded}
+                disabled={!isFormValid}
+              />
               {selectedFile && (
                 <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
                   <Upload className="h-4 w-4" />
-                  Selected: {selectedFile.name} ({(selectedFile.size / (1024 * 1024)).toFixed(1)} MB)
+                  Selected: {selectedFile.name} (
+                  {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB)
                 </div>
               )}
             </div>
@@ -274,16 +282,22 @@ export default function FacultyMaterialUploadPage() {
               />
               {externalUrl && !isUrlValid && (
                 <p className="text-xs text-destructive flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" /> Enter a valid URL (http:// or https://)
+                  <AlertCircle className="h-3 w-3" /> Enter a valid URL (http://
+                  or https://)
                 </p>
               )}
               <p className="text-xs text-muted-foreground">
-                Paste a YouTube video, article, or any public URL. No upload or AI processing needed.
+                Paste a YouTube video, article, or any public URL. No upload or
+                AI processing needed.
               </p>
             </div>
           )}
 
-          <Button onClick={handleSubmit} disabled={!canSubmit} className="w-full">
+          <Button
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className="w-full"
+          >
             {uploading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -1,6 +1,6 @@
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { sql } from "drizzle-orm";
-import { existsTodayForStudent, createNotification } from "./helpers";
+import { createNotification, existsTodayForStudent } from "./helpers";
 
 export async function generateStreakAtRiskNotifications(): Promise<number> {
   // Find students who have a streak >= 2 (activity yesterday and day before)

@@ -1,41 +1,44 @@
 "use client";
 
-import { useState, useMemo } from 'react';
-import { ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
-import { cn } from 'lib/utils';
-import { VideoCard } from '../media/VideoCard';
-import { PDFCard } from '../media/PDFCard';
-import { isVideoMaterial, isPDFMaterial } from 'lib/video-utils';
+import { cn } from "lib/utils";
+import { isPDFMaterial, isVideoMaterial } from "lib/video-utils";
+import { BookOpen, ChevronDown, ChevronUp } from "lucide-react";
+import { useMemo, useState } from "react";
+import { PDFCard } from "../media/PDFCard";
+import { VideoCard } from "../media/VideoCard";
 
 interface MaterialsMessagePartProps {
   materials: any[];
   toolCallId?: string;
 }
 
-export function MaterialsMessagePart({ materials, toolCallId }: MaterialsMessagePartProps) {
+export function MaterialsMessagePart({
+  materials,
+  toolCallId,
+}: MaterialsMessagePartProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  
-  console.log('📚 MaterialsMessagePart rendering:', {
+
+  console.log("📚 MaterialsMessagePart rendering:", {
     materialCount: materials.length,
     toolCallId,
-    isExpanded
+    isExpanded,
   });
-  
+
   // Separate materials by type
   const { videos, pdfs } = useMemo(() => {
     const vids = materials.filter(isVideoMaterial);
     const docs = materials.filter(isPDFMaterial);
-    
-    console.log('  - Videos:', vids.length);
-    console.log('  - PDFs:', docs.length);
-    
+
+    console.log("  - Videos:", vids.length);
+    console.log("  - PDFs:", docs.length);
+
     return { videos: vids, pdfs: docs };
   }, [materials]);
-  
+
   if (materials.length === 0) {
     return null;
   }
-  
+
   return (
     <div className="w-full mx-auto max-w-5xl px-6">
       <div
@@ -50,7 +53,8 @@ export function MaterialsMessagePart({ materials, toolCallId }: MaterialsMessage
           <div className="flex items-center gap-2">
             <BookOpen className="size-4 text-muted-foreground" />
             <span className="font-medium">
-              📚 Course Materials ({materials.length} item{materials.length > 1 ? 's' : ''})
+              📚 Course Materials ({materials.length} item
+              {materials.length > 1 ? "s" : ""})
             </span>
           </div>
           <button
@@ -67,17 +71,19 @@ export function MaterialsMessagePart({ materials, toolCallId }: MaterialsMessage
             )}
           </button>
         </div>
-        
+
         {/* Summary when collapsed */}
         {!isExpanded && (
           <div className="mt-2 text-muted-foreground">
-            {pdfs.length > 0 && `${pdfs.length} PDF${pdfs.length > 1 ? 's' : ''}`}
-            {pdfs.length > 0 && videos.length > 0 && ' • '}
-            {videos.length > 0 && `${videos.length} Video${videos.length > 1 ? 's' : ''}`}
-            {' • Click to view'}
+            {pdfs.length > 0 &&
+              `${pdfs.length} PDF${pdfs.length > 1 ? "s" : ""}`}
+            {pdfs.length > 0 && videos.length > 0 && " • "}
+            {videos.length > 0 &&
+              `${videos.length} Video${videos.length > 1 ? "s" : ""}`}
+            {" • Click to view"}
           </div>
         )}
-        
+
         {/* Expanded Content */}
         {isExpanded && (
           <div className="mt-4 space-y-4">
@@ -88,17 +94,17 @@ export function MaterialsMessagePart({ materials, toolCallId }: MaterialsMessage
                   📄 Reading Materials ({pdfs.length})
                 </h5>
                 {pdfs.map((material, index) => {
-                  console.log('📄 Rendering PDFCard #' + index + ':', material);
+                  console.log("📄 Rendering PDFCard #" + index + ":", material);
                   return (
-                    <PDFCard 
-                      key={material.id || `pdf-${index}`} 
+                    <PDFCard
+                      key={material.id || `pdf-${index}`}
                       material={material}
                     />
                   );
                 })}
               </div>
             )}
-            
+
             {/* Video Materials */}
             {videos.length > 0 && (
               <div className="space-y-2">
@@ -106,10 +112,13 @@ export function MaterialsMessagePart({ materials, toolCallId }: MaterialsMessage
                   🎥 Video Content ({videos.length})
                 </h5>
                 {videos.map((material, index) => {
-                  console.log('📹 Rendering VideoCard #' + index + ':', material);
+                  console.log(
+                    "📹 Rendering VideoCard #" + index + ":",
+                    material,
+                  );
                   return (
-                    <VideoCard 
-                      key={material.id || `video-${index}`} 
+                    <VideoCard
+                      key={material.id || `video-${index}`}
                       material={material}
                     />
                   );

@@ -21,8 +21,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { GraduationCap, Hash, Loader2, Mail, Plus, Users } from "lucide-react";
-import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 
 interface StudentFormData {
   name: string;

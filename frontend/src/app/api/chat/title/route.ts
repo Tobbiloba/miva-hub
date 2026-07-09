@@ -1,12 +1,12 @@
 import { smoothStream, streamText } from "ai";
 
-import { customModelProvider } from "lib/ai/models";
-import { CREATE_THREAD_TITLE_PROMPT } from "lib/ai/prompts";
-import globalLogger from "logger";
 import { ChatModel } from "app-types/chat";
-import { chatRepository } from "lib/db/repository";
 import { getSession } from "auth/server";
 import { colorize } from "consola/utils";
+import { customModelProvider } from "lib/ai/models";
+import { CREATE_THREAD_TITLE_PROMPT } from "lib/ai/prompts";
+import { chatRepository } from "lib/db/repository";
+import globalLogger from "logger";
 import { handleError } from "../shared.chat";
 
 const logger = globalLogger.withDefaults({

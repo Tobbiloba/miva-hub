@@ -1,24 +1,4 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,23 +9,49 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  Users,
-  Search,
-  Plus,
-  Trash2,
-  UserCheck,
-  Shield,
-  GraduationCap,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   BookOpen,
   Building2,
+  Clock,
+  GraduationCap,
+  Loader2,
   Mail,
   Phone,
-  Clock,
-  Loader2
+  Plus,
+  Search,
+  Shield,
+  Trash2,
+  UserCheck,
+  Users,
 } from "lucide-react";
-import { toast } from "sonner";
 import Link from "next/link";
+import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 interface User {
   id: string;
@@ -71,42 +77,55 @@ interface User {
 
 export default function UsersManagePage() {
   const [users, setUsers] = useState<User[]>([]);
-  
+
   // Helper functions
   const getRoleColor = (role: string) => {
     switch (role) {
-      case "student": return "bg-blue-100 text-blue-800";
-      case "faculty": return "bg-green-100 text-green-800";
-      case "admin": return "bg-purple-100 text-purple-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "student":
+        return "bg-blue-100 text-blue-800";
+      case "faculty":
+        return "bg-green-100 text-green-800";
+      case "admin":
+        return "bg-purple-100 text-purple-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "active": return "bg-green-100 text-green-800 border-green-200";
-      case "inactive": return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "suspended": return "bg-red-100 text-red-800 border-red-200";
-      case "pending": return "bg-blue-100 text-blue-800 border-blue-200";
-      default: return "";
+      case "active":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "inactive":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "suspended":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "pending":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      default:
+        return "";
     }
   };
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case "student": return GraduationCap;
-      case "faculty": return BookOpen;
-      case "admin": return Shield;
-      default: return Users;
+      case "student":
+        return GraduationCap;
+      case "faculty":
+        return BookOpen;
+      case "admin":
+        return Shield;
+      default:
+        return Users;
     }
   };
 
   const formatPosition = (position?: string) => {
-    if (!position) return '';
+    if (!position) return "";
     return position
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   };
 
   const formatLastLogin = (dateString: string) => {
@@ -114,9 +133,9 @@ export default function UsersManagePage() {
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays} days ago`;
     return date.toLocaleDateString();
   };
@@ -140,9 +159,9 @@ export default function UsersManagePage() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/users');
+      const response = await fetch("/api/admin/users");
       const data = await response.json();
-      
+
       if (data.success) {
         setUsers(data.data || []);
       } else {
@@ -158,18 +177,18 @@ export default function UsersManagePage() {
 
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
-    
+
     setDeleting(true);
     try {
       const response = await fetch(`/api/admin/users/${userToDelete.id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       const data = await response.json();
 
       if (data.success) {
         toast.success("User deleted successfully");
-        setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
+        setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
       } else {
         toast.error(data.message || "Failed to delete user");
       }
@@ -195,11 +214,11 @@ export default function UsersManagePage() {
       if (data.success) {
         setUsers((prev) =>
           prev.map((u) =>
-            u.id === user.id ? { ...u, isVerified: !u.isVerified } : u
-          )
+            u.id === user.id ? { ...u, isVerified: !u.isVerified } : u,
+          ),
         );
         toast.success(
-          `${user.name} marked as ${!user.isVerified ? "verified" : "unverified"}`
+          `${user.name} marked as ${!user.isVerified ? "verified" : "unverified"}`,
         );
       } else {
         toast.error(data.message || "Failed to update verification");
@@ -212,27 +231,41 @@ export default function UsersManagePage() {
   };
 
   // Filter users based on search and selections
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (user.studentId && user.studentId.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.studentId &&
+        user.studentId.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesRole = selectedRole === "all" || user.role === selectedRole;
-    const matchesStatus = selectedStatus === "all" || user.status === selectedStatus;
-    const matchesDepartment = selectedDepartment === "all" || user.department === selectedDepartment;
-    const matchesVerified = selectedVerified === "all" ||
+    const matchesStatus =
+      selectedStatus === "all" || user.status === selectedStatus;
+    const matchesDepartment =
+      selectedDepartment === "all" || user.department === selectedDepartment;
+    const matchesVerified =
+      selectedVerified === "all" ||
       (selectedVerified === "verified" && user.isVerified) ||
       (selectedVerified === "unverified" && !user.isVerified);
 
-    return matchesSearch && matchesRole && matchesStatus && matchesDepartment && matchesVerified;
+    return (
+      matchesSearch &&
+      matchesRole &&
+      matchesStatus &&
+      matchesDepartment &&
+      matchesVerified
+    );
   });
 
   // Pagination
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedUsers = filteredUsers.slice(
+    startIndex,
+    startIndex + itemsPerPage,
+  );
 
   // Get unique departments for filter
-  const departments = [...new Set(users.map(user => user.department))];
+  const departments = [...new Set(users.map((user) => user.department))];
 
   if (loading) {
     return (
@@ -244,9 +277,9 @@ export default function UsersManagePage() {
 
   // Calculate statistics
   const totalUsers = users.length;
-  const activeUsers = users.filter(user => user.status === 'active').length;
-  const studentCount = users.filter(user => user.role === 'student').length;
-  const facultyCount = users.filter(user => user.role === 'faculty').length;
+  const activeUsers = users.filter((user) => user.status === "active").length;
+  const studentCount = users.filter((user) => user.role === "student").length;
+  const facultyCount = users.filter((user) => user.role === "faculty").length;
 
   return (
     <div className="space-y-6 p-6">
@@ -261,7 +294,7 @@ export default function UsersManagePage() {
             Manage all system users, roles, and permissions
           </p>
         </div>
-        
+
         <div className="flex gap-2">
           <Button asChild>
             <Link href="/admin/users/create">
@@ -285,7 +318,7 @@ export default function UsersManagePage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -297,7 +330,7 @@ export default function UsersManagePage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -309,7 +342,7 @@ export default function UsersManagePage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -330,8 +363,8 @@ export default function UsersManagePage() {
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search users by name, email, or ID..." 
+                <Input
+                  placeholder="Search users by name, email, or ID..."
                   className="pl-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -361,7 +394,10 @@ export default function UsersManagePage() {
                 <SelectItem value="pending">Pending</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+            <Select
+              value={selectedDepartment}
+              onValueChange={setSelectedDepartment}
+            >
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Department" />
               </SelectTrigger>
@@ -374,7 +410,10 @@ export default function UsersManagePage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={selectedVerified} onValueChange={setSelectedVerified}>
+            <Select
+              value={selectedVerified}
+              onValueChange={setSelectedVerified}
+            >
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Verification" />
               </SelectTrigger>
@@ -420,156 +459,171 @@ export default function UsersManagePage() {
                   </TableHeader>
                   <TableBody>
                     {paginatedUsers.map((user) => {
-                  const RoleIcon = getRoleIcon(user.role);
-                  return (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
-                            <RoleIcon className="h-4 w-4" />
-                          </div>
-                          <div>
-                            <p className="font-medium">{user.name}</p>
-                            <p className="text-sm text-muted-foreground">{user.email}</p>
-                            {(user.studentId || user.employeeId) && (
-                              <p className="text-xs text-muted-foreground">
-                                ID: {user.studentId || user.employeeId}
+                      const RoleIcon = getRoleIcon(user.role);
+                      return (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
+                                <RoleIcon className="h-4 w-4" />
+                              </div>
+                              <div>
+                                <p className="font-medium">{user.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {user.email}
+                                </p>
+                                {(user.studentId || user.employeeId) && (
+                                  <p className="text-xs text-muted-foreground">
+                                    ID: {user.studentId || user.employeeId}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <Badge
+                              variant="secondary"
+                              className={getRoleColor(user.role)}
+                            >
+                              {user.role}
+                            </Badge>
+                            {user.position && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatPosition(user.position)}
                               </p>
                             )}
-                          </div>
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <Badge variant="secondary" className={getRoleColor(user.role)}>
-                          {user.role}
-                        </Badge>
-                        {user.position && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {formatPosition(user.position)}
-                          </p>
-                        )}
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{user.department}</span>
-                        </div>
-                        {user.level && (
-                          <p className="text-xs text-muted-foreground">
-                            Level {user.level}
-                          </p>
-                        )}
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <Badge variant="outline" className={getStatusColor(user.status)}>
-                            {user.status}
-                          </Badge>
-                          {user.role === "student" && (
-                            <Badge
-                              variant="outline"
-                              className={
-                                user.isVerified
-                                  ? "bg-green-50 text-green-700 border-green-200 text-xs"
-                                  : "bg-amber-50 text-amber-700 border-amber-200 text-xs"
-                              }
-                            >
-                              {user.isVerified ? "Verified" : "Unverified"}
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-sm">
-                            <Mail className="h-3 w-3 text-muted-foreground" />
-                            <span className="truncate max-w-[120px]" title={user.email}>
-                              {user.email.split('@')[0]}
-                            </span>
-                          </div>
-                          {user.phone && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Phone className="h-3 w-3" />
-                              <span>{user.phone}</span>
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">{user.department}</span>
                             </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Clock className="h-3 w-3 text-muted-foreground" />
-                          <span>{formatLastLogin(user.lastLogin)}</span>
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="text-sm space-y-1">
-                          {user.role === 'student' && (
-                            <>
-                              <div>GPA: {user.gpa}</div>
-                              <div className="text-xs text-muted-foreground">
-                                Credits: {user.creditsCompleted}
-                              </div>
-                            </>
-                          )}
-                          {user.role === 'faculty' && (
-                            <>
-                              <div>Office: {user.officeLocation}</div>
-                              <div className="text-xs text-muted-foreground">
-                                Courses: {user.coursesTeaching}
-                              </div>
-                            </>
-                          )}
-                          {user.role === 'admin' && user.permissions && (
-                            <div className="text-xs text-muted-foreground">
-                              {user.permissions.length} permissions
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {user.role === "student" && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={togglingVerify === user.id}
-                              className={
-                                user.isVerified
-                                  ? "text-green-600 hover:text-green-700 hover:bg-green-50"
-                                  : "text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                              }
-                              title={user.isVerified ? "Verified — click to unverify" : "Unverified — click to verify"}
-                              onClick={() => handleToggleVerify(user)}
-                            >
-                              {togglingVerify === user.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <UserCheck className="h-4 w-4" />
+                            {user.level && (
+                              <p className="text-xs text-muted-foreground">
+                                Level {user.level}
+                              </p>
+                            )}
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="flex flex-col gap-1">
+                              <Badge
+                                variant="outline"
+                                className={getStatusColor(user.status)}
+                              >
+                                {user.status}
+                              </Badge>
+                              {user.role === "student" && (
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    user.isVerified
+                                      ? "bg-green-50 text-green-700 border-green-200 text-xs"
+                                      : "bg-amber-50 text-amber-700 border-amber-200 text-xs"
+                                  }
+                                >
+                                  {user.isVerified ? "Verified" : "Unverified"}
+                                </Badge>
                               )}
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => {
-                              setUserToDelete(user);
-                              setDeleteDialogOpen(true);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1 text-sm">
+                                <Mail className="h-3 w-3 text-muted-foreground" />
+                                <span
+                                  className="truncate max-w-[120px]"
+                                  title={user.email}
+                                >
+                                  {user.email.split("@")[0]}
+                                </span>
+                              </div>
+                              {user.phone && (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Phone className="h-3 w-3" />
+                                  <span>{user.phone}</span>
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="flex items-center gap-1 text-sm">
+                              <Clock className="h-3 w-3 text-muted-foreground" />
+                              <span>{formatLastLogin(user.lastLogin)}</span>
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="text-sm space-y-1">
+                              {user.role === "student" && (
+                                <>
+                                  <div>GPA: {user.gpa}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Credits: {user.creditsCompleted}
+                                  </div>
+                                </>
+                              )}
+                              {user.role === "faculty" && (
+                                <>
+                                  <div>Office: {user.officeLocation}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Courses: {user.coursesTeaching}
+                                  </div>
+                                </>
+                              )}
+                              {user.role === "admin" && user.permissions && (
+                                <div className="text-xs text-muted-foreground">
+                                  {user.permissions.length} permissions
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              {user.role === "student" && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={togglingVerify === user.id}
+                                  className={
+                                    user.isVerified
+                                      ? "text-green-600 hover:text-green-700 hover:bg-green-50"
+                                      : "text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                  }
+                                  title={
+                                    user.isVerified
+                                      ? "Verified — click to unverify"
+                                      : "Unverified — click to verify"
+                                  }
+                                  onClick={() => handleToggleVerify(user)}
+                                >
+                                  {togglingVerify === user.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <UserCheck className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => {
+                                  setUserToDelete(user);
+                                  setDeleteDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
                     })}
                   </TableBody>
                 </Table>
@@ -579,13 +633,17 @@ export default function UsersManagePage() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-sm text-muted-foreground">
-                    Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredUsers.length)} of {filteredUsers.length} users
+                    Showing {startIndex + 1} to{" "}
+                    {Math.min(startIndex + itemsPerPage, filteredUsers.length)}{" "}
+                    of {filteredUsers.length} users
                   </p>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.max(1, prev - 1))
+                      }
                       disabled={currentPage === 1}
                     >
                       Previous
@@ -593,7 +651,9 @@ export default function UsersManagePage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                      }
                       disabled={currentPage === totalPages}
                     >
                       Next
@@ -612,12 +672,13 @@ export default function UsersManagePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {userToDelete?.name}? This action cannot be undone and will remove all associated data.
+              Are you sure you want to delete {userToDelete?.name}? This action
+              cannot be undone and will remove all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDeleteUser}
               disabled={deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

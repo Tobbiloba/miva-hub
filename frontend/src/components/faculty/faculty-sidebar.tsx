@@ -1,22 +1,22 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
-import {
-  LayoutDashboard,
-  BookOpen,
-  FileText,
-  GraduationCap,
-  Megaphone,
-  FolderOpen,
-  Users,
-  Calendar,
-  User,
-} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import {
+  BookOpen,
+  Calendar,
+  FileText,
+  FolderOpen,
+  GraduationCap,
+  LayoutDashboard,
+  Megaphone,
+  User,
+  Users,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface FacultySidebarProps {
   facultyInfo: {
@@ -39,49 +39,49 @@ const navigationItems = [
     title: "Overview",
     href: "/faculty",
     icon: LayoutDashboard,
-    description: "Dashboard and quick stats"
+    description: "Dashboard and quick stats",
   },
   {
     title: "My Courses",
     href: "/faculty/courses",
     icon: BookOpen,
-    description: "Manage course content and enrollment"
+    description: "Manage course content and enrollment",
   },
   {
     title: "Assignments",
     href: "/faculty/assignments",
     icon: FileText,
-    description: "Create and manage assignments"
+    description: "Create and manage assignments",
   },
   {
     title: "Grade Book",
     href: "/faculty/grades",
     icon: GraduationCap,
-    description: "Grade assignments and track progress"
+    description: "Grade assignments and track progress",
   },
   {
     title: "Students",
     href: "/faculty/students",
     icon: Users,
-    description: "View student rosters and performance"
+    description: "View student rosters and performance",
   },
   {
     title: "Announcements",
     href: "/faculty/announcements",
     icon: Megaphone,
-    description: "Create course announcements"
+    description: "Create course announcements",
   },
   {
     title: "Materials",
     href: "/faculty/materials",
     icon: FolderOpen,
-    description: "Upload and organize course materials"
+    description: "Upload and organize course materials",
   },
   {
     title: "Schedule",
     href: "/faculty/schedule",
     icon: Calendar,
-    description: "View teaching schedule and office hours"
+    description: "View teaching schedule and office hours",
   },
 ];
 
@@ -90,18 +90,21 @@ const bottomNavItems = [
     title: "Profile",
     href: "/profile",
     icon: User,
-    description: "Manage your profile and account settings"
+    description: "Manage your profile and account settings",
   },
 ];
 
-export function FacultySidebar({ facultyInfo, facultyRecord }: FacultySidebarProps) {
+export function FacultySidebar({
+  facultyInfo,
+  facultyRecord,
+}: FacultySidebarProps) {
   const pathname = usePathname();
 
   const formatPosition = (position: string) => {
     return position
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   };
 
   return (
@@ -119,7 +122,9 @@ export function FacultySidebar({ facultyInfo, facultyRecord }: FacultySidebarPro
                   {facultyInfo.name}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">
-                  {facultyRecord ? formatPosition(facultyRecord.position) : 'Faculty'}
+                  {facultyRecord
+                    ? formatPosition(facultyRecord.position)
+                    : "Faculty"}
                 </p>
               </div>
             </div>
@@ -136,16 +141,17 @@ export function FacultySidebar({ facultyInfo, facultyRecord }: FacultySidebarPro
         {/* Main Navigation */}
         <nav className="flex-1 space-y-1 px-4">
           {navigationItems.map((item) => {
-            const isActive = pathname === item.href || 
+            const isActive =
+              pathname === item.href ||
               (item.href !== "/faculty" && pathname.startsWith(item.href));
-            
+
             return (
               <Link key={item.href} href={item.href}>
                 <Button
                   variant={isActive ? "secondary" : "ghost"}
                   className={cn(
                     "w-full justify-start h-auto p-3",
-                    isActive && "bg-secondary/80"
+                    isActive && "bg-secondary/80",
                   )}
                 >
                   <item.icon className="mr-3 h-4 w-4 shrink-0" />
@@ -165,7 +171,7 @@ export function FacultySidebar({ facultyInfo, facultyRecord }: FacultySidebarPro
         <div className="border-t p-4 space-y-1">
           {bottomNavItems.map((item) => {
             const isActive = pathname === item.href;
-            
+
             return (
               <Link key={item.href} href={item.href}>
                 <Button
@@ -183,10 +189,12 @@ export function FacultySidebar({ facultyInfo, facultyRecord }: FacultySidebarPro
         {/* Status Indicator */}
         <div className="border-t p-4">
           <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-            <div className={cn(
-              "h-2 w-2 rounded-full",
-              facultyRecord?.isActive ? "bg-green-500" : "bg-red-500"
-            )} />
+            <div
+              className={cn(
+                "h-2 w-2 rounded-full",
+                facultyRecord?.isActive ? "bg-green-500" : "bg-red-500",
+              )}
+            />
             <span>
               {facultyRecord?.isActive ? "Active Faculty" : "Inactive"}
             </span>

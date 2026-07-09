@@ -1,18 +1,18 @@
+import { isJson, isString, toAny } from "lib/utils";
+import { LinkIcon } from "lucide-react";
 import React, { memo, PropsWithChildren } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { PreBlock } from "./pre-block";
-import { isJson, isString, toAny } from "lib/utils";
 import JsonView from "ui/json-view";
-import { LinkIcon } from "lucide-react";
 import {
   Table,
-  TableHeader,
   TableBody,
-  TableRow,
-  TableHead,
   TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "ui/table";
+import { PreBlock } from "./pre-block";
 
 const FadeIn = memo(({ children }: PropsWithChildren) => {
   return <span className="fade-in animate-in duration-1000">{children} </span>;

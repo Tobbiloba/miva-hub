@@ -1,23 +1,23 @@
 "use client";
 import Mention from "@tiptap/extension-mention";
 import {
+  Editor,
   EditorContent,
   Range,
-  useEditor,
   UseEditorOptions,
-  Editor,
+  useEditor,
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { TipTapMentionJsonContent } from "app-types/util";
 import { cn } from "lib/utils";
 import {
   FC,
+  RefObject,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  RefObject,
 } from "react";
 import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";

@@ -1,17 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,8 +11,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Megaphone, Plus, Trash2, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Loader2, Megaphone, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface Announcement {
@@ -41,10 +41,14 @@ interface Announcement {
 
 const priorityVariant = (p: string) => {
   switch (p) {
-    case "urgent": return "destructive";
-    case "high": return "default";
-    case "medium": return "secondary";
-    default: return "outline";
+    case "urgent":
+      return "destructive";
+    case "high":
+      return "default";
+    case "medium":
+      return "secondary";
+    default:
+      return "outline";
   }
 };
 
@@ -71,7 +75,9 @@ export default function FacultyAnnouncementsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/faculty/announcements/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/faculty/announcements/${id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error("Failed to delete");
       toast.success("Announcement deleted");
       setAnnouncements((prev) => prev.filter((a) => a.id !== id));
@@ -108,9 +114,7 @@ export default function FacultyAnnouncementsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>
-            Your Announcements ({announcements.length})
-          </CardTitle>
+          <CardTitle>Your Announcements ({announcements.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {announcements.length === 0 ? (
@@ -141,7 +145,15 @@ export default function FacultyAnnouncementsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={priorityVariant(a.priority) as "default" | "secondary" | "destructive" | "outline"}>
+                      <Badge
+                        variant={
+                          priorityVariant(a.priority) as
+                            | "default"
+                            | "secondary"
+                            | "destructive"
+                            | "outline"
+                        }
+                      >
                         {a.priority}
                       </Badge>
                     </TableCell>
@@ -162,14 +174,19 @@ export default function FacultyAnnouncementsPage() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete announcement?</AlertDialogTitle>
+                            <AlertDialogTitle>
+                              Delete announcement?
+                            </AlertDialogTitle>
                             <AlertDialogDescription>
-                              This will permanently delete &quot;{a.title}&quot;.
+                              This will permanently delete &quot;{a.title}
+                              &quot;.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(a.id)}>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(a.id)}
+                            >
                               Delete
                             </AlertDialogAction>
                           </AlertDialogFooter>

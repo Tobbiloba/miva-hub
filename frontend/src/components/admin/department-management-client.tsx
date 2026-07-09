@@ -1,20 +1,5 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,8 +11,23 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Edit } from "lucide-react";
+import { Edit, Loader2, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 
 interface Department {
   id: string;
@@ -48,10 +48,10 @@ interface DepartmentManagementClientProps {
   mode?: "add" | "edit" | "delete";
 }
 
-export function DepartmentManagementClient({ 
-  children, 
-  department, 
-  mode = "add" 
+export function DepartmentManagementClient({
+  children,
+  department,
+  mode = "add",
 }: DepartmentManagementClientProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -68,10 +68,11 @@ export function DepartmentManagementClient({
     setIsLoading(true);
 
     try {
-      const url = mode === "edit" && department?.id 
-        ? `/api/admin/departments/${department.id}`
-        : "/api/admin/departments";
-        
+      const url =
+        mode === "edit" && department?.id
+          ? `/api/admin/departments/${department.id}`
+          : "/api/admin/departments";
+
       const method = mode === "edit" ? "PUT" : "POST";
 
       const response = await fetch(url, {
@@ -87,9 +88,9 @@ export function DepartmentManagementClient({
           title: mode === "edit" ? "Department Updated" : "Department Created",
           description: `${formData.name} has been ${mode === "edit" ? "updated" : "created"} successfully.`,
         });
-        
+
         setIsOpen(false);
-        
+
         // Reset form for add mode
         if (mode === "add") {
           setFormData({ name: "", code: "", description: "" });
@@ -103,7 +104,8 @@ export function DepartmentManagementClient({
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description:
+          error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     } finally {
@@ -113,9 +115,9 @@ export function DepartmentManagementClient({
 
   const handleDelete = async () => {
     if (!department?.id) return;
-    
+
     setIsLoading(true);
-    
+
     try {
       const response = await fetch(`/api/admin/departments/${department.id}`, {
         method: "DELETE",
@@ -137,7 +139,10 @@ export function DepartmentManagementClient({
     } catch (error) {
       toast({
         title: "Delete Failed",
-        description: error instanceof Error ? error.message : "Failed to delete department",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to delete department",
         variant: "destructive",
       });
     } finally {
@@ -145,23 +150,25 @@ export function DepartmentManagementClient({
     }
   };
 
-  const handleInputChange = (field: keyof DepartmentFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (
+    field: keyof DepartmentFormData,
+    value: string,
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   // Delete confirmation dialog
   if (mode === "delete") {
     return (
       <AlertDialog>
-        <AlertDialogTrigger asChild>
-          {children}
-        </AlertDialogTrigger>
+        <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the{" "}
-              <strong>{department?.name}</strong> department and remove all associated data.
+              <strong>{department?.name}</strong> department and remove all
+              associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -189,9 +196,7 @@ export function DepartmentManagementClient({
   // Add/Edit dialog
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -208,10 +213,9 @@ export function DepartmentManagementClient({
             )}
           </DialogTitle>
           <DialogDescription>
-            {mode === "edit" 
+            {mode === "edit"
               ? "Update the department information below."
-              : "Fill in the details to create a new academic department."
-            }
+              : "Fill in the details to create a new academic department."}
           </DialogDescription>
         </DialogHeader>
 
@@ -233,13 +237,16 @@ export function DepartmentManagementClient({
               <Input
                 id="code"
                 value={formData.code}
-                onChange={(e) => handleInputChange("code", e.target.value.toUpperCase())}
+                onChange={(e) =>
+                  handleInputChange("code", e.target.value.toUpperCase())
+                }
                 placeholder="e.g., CS"
                 maxLength={10}
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Unique code used for course prefixes (automatically converted to uppercase)
+                Unique code used for course prefixes (automatically converted to
+                uppercase)
               </p>
             </div>
 
@@ -248,7 +255,9 @@ export function DepartmentManagementClient({
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => handleInputChange("description", e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("description", e.target.value)
+                }
                 placeholder="Brief description of the department..."
                 rows={3}
               />
@@ -256,9 +265,9 @@ export function DepartmentManagementClient({
           </div>
 
           <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => setIsOpen(false)}
               disabled={isLoading}
             >
@@ -270,8 +279,10 @@ export function DepartmentManagementClient({
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {mode === "edit" ? "Updating..." : "Creating..."}
                 </>
+              ) : mode === "edit" ? (
+                "Update Department"
               ) : (
-                mode === "edit" ? "Update Department" : "Create Department"
+                "Create Department"
               )}
             </Button>
           </DialogFooter>
@@ -282,7 +293,9 @@ export function DepartmentManagementClient({
 }
 
 // Convenience components for different modes
-export function AddDepartmentDialog({ children }: { children: React.ReactNode }) {
+export function AddDepartmentDialog({
+  children,
+}: { children: React.ReactNode }) {
   return (
     <DepartmentManagementClient mode="add">
       {children}
@@ -290,10 +303,10 @@ export function AddDepartmentDialog({ children }: { children: React.ReactNode })
   );
 }
 
-export function EditDepartmentDialog({ 
-  children, 
-  department 
-}: { 
+export function EditDepartmentDialog({
+  children,
+  department,
+}: {
   children: React.ReactNode;
   department: Department;
 }) {
@@ -304,10 +317,10 @@ export function EditDepartmentDialog({
   );
 }
 
-export function DeleteDepartmentDialog({ 
-  children, 
-  department 
-}: { 
+export function DeleteDepartmentDialog({
+  children,
+  department,
+}: {
   children: React.ReactNode;
   department: Department;
 }) {

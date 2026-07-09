@@ -1,23 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
+  CourseSchema,
   FlashcardDeckSchema,
   FlashcardSchema,
-  CourseSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ deckId: string }> }
+  { params }: { params: Promise<{ deckId: string }> },
 ) {
   try {
     const session = await getSession();
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -35,19 +35,22 @@ export async function GET(
         createdAt: FlashcardDeckSchema.createdAt,
       })
       .from(FlashcardDeckSchema)
-      .innerJoin(CourseSchema, eq(FlashcardDeckSchema.courseId, CourseSchema.id))
+      .innerJoin(
+        CourseSchema,
+        eq(FlashcardDeckSchema.courseId, CourseSchema.id),
+      )
       .where(
         and(
           eq(FlashcardDeckSchema.id, deckId),
-          eq(FlashcardDeckSchema.studentId, session.user.id)
-        )
+          eq(FlashcardDeckSchema.studentId, session.user.id),
+        ),
       )
       .limit(1);
 
     if (!deck) {
       return NextResponse.json(
         { success: false, message: "Deck not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -63,7 +66,7 @@ export async function GET(
     console.error("GET /api/flashcards/decks/[deckId] error:", error);
     return NextResponse.json(
       { success: false, message: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

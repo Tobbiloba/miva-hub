@@ -14,7 +14,7 @@ export function useToast() {
     }
 
     const { title, description, variant } = options;
-    
+
     if (variant === "destructive") {
       sonnerToast.error(title || "Error", {
         description,

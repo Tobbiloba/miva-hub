@@ -1,9 +1,9 @@
-import { NextRequest } from "next/server";
 import { mcpOAuthRepository } from "@/lib/db/repository";
 import { mcpClientsManager } from "lib/ai/mcp/mcp-manager";
+import { NextRequest } from "next/server";
 
-import globalLogger from "logger";
 import { colorize } from "consola/utils";
+import globalLogger from "logger";
 
 interface OAuthResponseOptions {
   type: "success" | "error";

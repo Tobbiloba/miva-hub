@@ -1,23 +1,23 @@
 "use client";
 
-import { isToolUIPart, type UIMessage } from "ai";
-import { memo, useMemo, useState } from "react";
+import { type UIMessage, isToolUIPart } from "ai";
 import equal from "lib/equal";
+import { memo, useMemo, useState } from "react";
 
-import { cn, truncateString } from "lib/utils";
 import type { UseChatHelpers } from "@ai-sdk/react";
-import {
-  UserMessagePart,
-  AssistMessagePart,
-  ToolMessagePart,
-  ReasoningPart,
-} from "./message-parts";
-import { ChevronDown, ChevronUp, TriangleAlertIcon } from "lucide-react";
-import { Button } from "ui/button";
-import { useTranslations } from "next-intl";
 import { ChatMetadata } from "app-types/chat";
-import { MaterialsMessagePart } from "./message-parts/MaterialsMessagePart";
+import { cn, truncateString } from "lib/utils";
 import { extractRichMaterials } from "lib/video-utils";
+import { ChevronDown, ChevronUp, TriangleAlertIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Button } from "ui/button";
+import {
+  AssistMessagePart,
+  ReasoningPart,
+  ToolMessagePart,
+  UserMessagePart,
+} from "./message-parts";
+import { MaterialsMessagePart } from "./message-parts/MaterialsMessagePart";
 
 interface Props {
   message: UIMessage;
@@ -47,7 +47,7 @@ const PurePreviewMessage = ({
   sendMessage,
 }: Props) => {
   const isUserMessage = useMemo(() => message.role === "user", [message.role]);
-  
+
   if (message.role == "system") {
     return null; // system message is not shown
   }
@@ -116,17 +116,19 @@ const PurePreviewMessage = ({
                 isLastPart &&
                 part.state == "input-available" &&
                 isLoading;
-              
+
               // Check if this tool has rich materials
-              const richMaterials = part.output ? extractRichMaterials(part.output) : [];
+              const richMaterials = part.output
+                ? extractRichMaterials(part.output)
+                : [];
               const hasMaterials = richMaterials.length > 0;
-              
-              console.log('🔍 Tool Part Material Check:', {
+
+              console.log("🔍 Tool Part Material Check:", {
                 toolCallId: part.toolCallId,
                 hasMaterials,
-                materialCount: richMaterials.length
+                materialCount: richMaterials.length,
               });
-              
+
               return (
                 <>
                   <ToolMessagePart

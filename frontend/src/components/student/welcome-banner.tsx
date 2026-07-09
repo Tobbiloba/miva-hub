@@ -1,7 +1,7 @@
 "use client";
 
+import { Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { X, Sparkles } from "lucide-react";
 
 const DISMISS_KEY = "askly_welcome_banner_dismissed";
 
@@ -37,8 +37,9 @@ export function WelcomeBanner({ createdAt, firstName }: WelcomeBannerProps) {
         <div className="flex items-start gap-2 text-blue-800 dark:text-blue-200 text-sm">
           <Sparkles className="h-4 w-4 shrink-0 mt-0.5" />
           <p>
-            Your study tools are ready, {firstName}. We&apos;ve started a flashcard deck for you
-            to try. Take a look around — and ask Askly anything in the chat.
+            Your study tools are ready, {firstName}. We&apos;ve started a
+            flashcard deck for you to try. Take a look around — and ask Askly
+            anything in the chat.
           </p>
         </div>
         <button

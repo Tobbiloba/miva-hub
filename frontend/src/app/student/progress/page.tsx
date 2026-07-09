@@ -1,20 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import {
-  TrendingUp,
-  Flame,
   Activity,
-  CalendarDays,
   BookOpen,
-  Clock,
-  Layers,
-  FileText,
   Brain,
+  CalendarDays,
+  Clock,
+  FileText,
+  Flame,
+  Layers,
+  TrendingUp,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface CourseProgress {
   courseId: string;
@@ -47,11 +47,17 @@ interface ProgressData {
   recentActivity: ActivityItem[];
 }
 
-const ACTIVITY_LABELS: Record<string, { label: string; icon: typeof BookOpen }> = {
+const ACTIVITY_LABELS: Record<
+  string,
+  { label: string; icon: typeof BookOpen }
+> = {
   material_viewed: { label: "Opened material", icon: BookOpen },
   flashcard_reviewed: { label: "Reviewed flashcard", icon: Layers },
   study_guide_generated: { label: "Generated study guide", icon: Brain },
-  practice_questions_generated: { label: "Generated practice questions", icon: FileText },
+  practice_questions_generated: {
+    label: "Generated practice questions",
+    icon: FileText,
+  },
   quiz_viewed: { label: "Opened quiz", icon: FileText },
   assignment_viewed: { label: "Opened assignment", icon: FileText },
 };
@@ -117,9 +123,13 @@ export default function ProgressPage() {
             <TrendingUp className="h-8 w-8 text-blue-600" />
             Progress
           </h1>
-          <p className="text-muted-foreground">Your study activity and course coverage</p>
+          <p className="text-muted-foreground">
+            Your study activity and course coverage
+          </p>
         </div>
-        <div className="text-center py-12 text-muted-foreground">Loading progress...</div>
+        <div className="text-center py-12 text-muted-foreground">
+          Loading progress...
+        </div>
       </div>
     );
   }
@@ -139,14 +149,19 @@ export default function ProgressPage() {
             <TrendingUp className="h-8 w-8 text-blue-600" />
             Progress
           </h1>
-          <p className="text-muted-foreground">Your study activity and course coverage</p>
+          <p className="text-muted-foreground">
+            Your study activity and course coverage
+          </p>
         </div>
         <Card>
           <CardContent className="text-center py-16">
             <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-lg font-medium mb-2">Start studying and your progress will show up here</p>
+            <p className="text-lg font-medium mb-2">
+              Start studying and your progress will show up here
+            </p>
             <p className="text-muted-foreground max-w-md mx-auto">
-              Open a course material, review some flashcards, or ask Askly to generate a study guide.
+              Open a course material, review some flashcards, or ask Askly to
+              generate a study guide.
             </p>
           </CardContent>
         </Card>
@@ -162,7 +177,9 @@ export default function ProgressPage() {
           <TrendingUp className="h-8 w-8 text-blue-600" />
           Progress
         </h1>
-        <p className="text-muted-foreground">Your study activity and course coverage</p>
+        <p className="text-muted-foreground">
+          Your study activity and course coverage
+        </p>
       </div>
 
       {/* Stats strip */}
@@ -238,7 +255,9 @@ export default function ProgressPage() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="text-base">{course.courseCode}</CardTitle>
+                      <CardTitle className="text-base">
+                        {course.courseCode}
+                      </CardTitle>
                       <p className="text-sm text-muted-foreground mt-0.5">
                         {course.courseTitle}
                       </p>
@@ -260,15 +279,19 @@ export default function ProgressPage() {
                     <div className="space-y-1.5">
                       <Progress value={course.coveragePct} className="h-2" />
                       <p className="text-xs text-muted-foreground">
-                        {course.viewedMaterials} of {course.totalMaterials} materials opened
+                        {course.viewedMaterials} of {course.totalMaterials}{" "}
+                        materials opened
                       </p>
                     </div>
                   )}
 
                   {/* Week pills */}
-                  {(course.weeksTouched.length > 0 || course.weeksUntouched.length > 0) && (
+                  {(course.weeksTouched.length > 0 ||
+                    course.weeksUntouched.length > 0) && (
                     <div className="space-y-1.5">
-                      <p className="text-xs font-medium text-muted-foreground">Weeks</p>
+                      <p className="text-xs font-medium text-muted-foreground">
+                        Weeks
+                      </p>
                       <div className="flex flex-wrap gap-1.5">
                         {[...course.weeksTouched, ...course.weeksUntouched]
                           .sort((a, b) => a - b)
@@ -320,10 +343,7 @@ export default function ProgressPage() {
                   const Icon = config.icon;
 
                   return (
-                    <div
-                      key={item.id}
-                      className="flex items-start gap-3"
-                    >
+                    <div key={item.id} className="flex items-start gap-3">
                       <div className="rounded-md bg-muted p-1.5 mt-0.5 shrink-0">
                         <Icon className="h-3.5 w-3.5 text-muted-foreground" />
                       </div>

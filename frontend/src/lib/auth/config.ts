@@ -1,12 +1,12 @@
 import {
-  GitHubConfigSchema,
-  GoogleConfigSchema,
-  MicrosoftConfigSchema,
-  GitHubConfig,
-  GoogleConfig,
-  MicrosoftConfig,
   AuthConfig,
   AuthConfigSchema,
+  GitHubConfig,
+  GitHubConfigSchema,
+  GoogleConfig,
+  GoogleConfigSchema,
+  MicrosoftConfig,
+  MicrosoftConfigSchema,
 } from "app-types/authentication";
 import { experimental_taintUniqueValue } from "react";
 import { parseEnvBoolean } from "../utils";

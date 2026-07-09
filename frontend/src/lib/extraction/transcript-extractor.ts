@@ -14,7 +14,8 @@ export async function extractPdfText(pdfBuffer: Buffer): Promise<string> {
   const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
   const data = new Uint8Array(pdfBuffer);
-  const doc = await pdfjsLib.getDocument({ data, useSystemFonts: true }).promise;
+  const doc = await pdfjsLib.getDocument({ data, useSystemFonts: true })
+    .promise;
 
   const pages: string[] = [];
   for (let i = 1; i <= doc.numPages; i++) {
@@ -37,7 +38,7 @@ export async function extractPdfText(pdfBuffer: Buffer): Promise<string> {
 
 export async function fetchVimeoVtt(
   vimeoVideoId: string,
-  vimeoHash?: string
+  vimeoHash?: string,
 ): Promise<string | null> {
   // Step 1: Fetch Vimeo player page to get config with text tracks
   const playerUrl = vimeoHash
@@ -59,7 +60,9 @@ export async function fetchVimeoVtt(
   const html = await res.text();
 
   // Extract playerConfig JSON from the HTML
-  const configMatch = html.match(/window\.playerConfig\s*=\s*({[\s\S]+?});?\s*(?:<\/script>|$)/);
+  const configMatch = html.match(
+    /window\.playerConfig\s*=\s*({[\s\S]+?});?\s*(?:<\/script>|$)/,
+  );
   if (!configMatch) {
     console.warn("[transcript] Could not find playerConfig in Vimeo HTML");
     return null;
@@ -81,9 +84,7 @@ export async function fetchVimeoVtt(
 
   // Prefer AI-generated English, fall back to any English, fall back to first track
   const track =
-    textTracks.find(
-      (t: any) => t.lang === "en" && t.kind === "captions"
-    ) ||
+    textTracks.find((t: any) => t.lang === "en" && t.kind === "captions") ||
     textTracks.find((t: any) => t.lang === "en") ||
     textTracks[0];
 
@@ -148,7 +149,7 @@ export async function extractTranscriptForMaterial(
     s3Key?: string;
     vimeoVideoId?: string;
     vimeoHash?: string;
-  }
+  },
 ): Promise<{ status: string; wordCount?: number; error?: string }> {
   // Mark as extracting
   await pgDb
@@ -188,7 +189,8 @@ export async function extractTranscriptForMaterial(
           .update(CourseMaterialSchema)
           .set({
             transcriptStatus: "failed",
-            transcriptErrorMessage: "PDF contains no extractable text (image-only or empty)",
+            transcriptErrorMessage:
+              "PDF contains no extractable text (image-only or empty)",
             updatedAt: new Date(),
           })
           .where(eq(CourseMaterialSchema.id, materialId));
@@ -201,7 +203,8 @@ export async function extractTranscriptForMaterial(
           .update(CourseMaterialSchema)
           .set({
             transcriptStatus: "skipped",
-            transcriptErrorMessage: "No Vimeo video ID available for transcript extraction",
+            transcriptErrorMessage:
+              "No Vimeo video ID available for transcript extraction",
             updatedAt: new Date(),
           })
           .where(eq(CourseMaterialSchema.id, materialId));

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Play, Pause, Volume2, VolumeX, Maximize } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Maximize, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { useState } from "react";
 
 interface VideoPlayerProps {
   src: string;
@@ -59,7 +59,7 @@ export function VideoPlayer({ src, title, className = "" }: VideoPlayerProps) {
           variant="outline"
           size="sm"
           className="mt-2"
-          onClick={() => window.open(src, '_blank')}
+          onClick={() => window.open(src, "_blank")}
         >
           Open in New Tab
         </Button>
@@ -74,7 +74,7 @@ export function VideoPlayer({ src, title, className = "" }: VideoPlayerProps) {
           <p className="text-sm font-medium">{title}</p>
         </div>
       )}
-      
+
       <div className="relative group">
         <video
           id={`video-${src}`}
@@ -86,7 +86,7 @@ export function VideoPlayer({ src, title, className = "" }: VideoPlayerProps) {
           preload="metadata"
           controls={false}
         />
-        
+
         {/* Custom Controls Overlay */}
         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
           <div className="flex items-center gap-2">
@@ -96,18 +96,26 @@ export function VideoPlayer({ src, title, className = "" }: VideoPlayerProps) {
               onClick={handlePlay}
               className="bg-black/50 hover:bg-black/70 text-white"
             >
-              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              {isPlaying ? (
+                <Pause className="h-4 w-4" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
             </Button>
-            
+
             <Button
               variant="secondary"
               size="sm"
               onClick={handleMute}
               className="bg-black/50 hover:bg-black/70 text-white"
             >
-              {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              {isMuted ? (
+                <VolumeX className="h-4 w-4" />
+              ) : (
+                <Volume2 className="h-4 w-4" />
+              )}
             </Button>
-            
+
             <Button
               variant="secondary"
               size="sm"

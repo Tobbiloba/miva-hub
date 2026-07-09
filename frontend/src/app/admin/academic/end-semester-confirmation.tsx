@@ -1,11 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,8 +11,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ArrowRight, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface DryRunData {
   sessionName: string;
@@ -144,13 +144,8 @@ export function EndSemesterConfirmation() {
                   {Object.entries(preview.byLevel)
                     .sort(([a], [b]) => Number(a) - Number(b))
                     .map(([level, count]) => (
-                      <div
-                        key={level}
-                        className="flex justify-between text-sm"
-                      >
-                        <span className="text-muted-foreground">
-                          {level}L
-                        </span>
+                      <div key={level} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{level}L</span>
                         <span>{count} students</span>
                       </div>
                     ))}

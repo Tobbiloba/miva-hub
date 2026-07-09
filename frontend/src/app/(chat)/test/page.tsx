@@ -1,24 +1,24 @@
 "use client";
 
-import { PieChart } from "@/components/tool-invocation/pie-chart";
-import { BarChart } from "@/components/tool-invocation/bar-chart";
-import { LineChart } from "@/components/tool-invocation/line-chart";
-import { InteractiveTable } from "@/components/tool-invocation/interactive-table";
-import { Flashcards } from "@/components/tool-invocation/flashcards";
-import { Quiz } from "@/components/tool-invocation/quiz";
-import { Exam } from "@/components/tool-invocation/exam";
 import { Assignment } from "@/components/tool-invocation/assignment";
-import { CourseMaterial } from "@/components/tool-invocation/course-material";
-import { Schedule } from "@/components/tool-invocation/schedule";
-import { CourseList } from "@/components/tool-invocation/course-list";
 import { AssignmentList } from "@/components/tool-invocation/assignment-list";
+import { BarChart } from "@/components/tool-invocation/bar-chart";
+import { CourseList } from "@/components/tool-invocation/course-list";
+import { CourseMaterial } from "@/components/tool-invocation/course-material";
+import { Exam } from "@/components/tool-invocation/exam";
+import { Flashcards } from "@/components/tool-invocation/flashcards";
+import { InteractiveTable } from "@/components/tool-invocation/interactive-table";
+import { LineChart } from "@/components/tool-invocation/line-chart";
+import { PieChart } from "@/components/tool-invocation/pie-chart";
+import { Quiz } from "@/components/tool-invocation/quiz";
+import { Schedule } from "@/components/tool-invocation/schedule";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function TestPage() {
   return (
     <div className="container mx-auto py-8 max-w-6xl">
       <h1 className="text-3xl font-bold mb-6">Visualization Tools Test Page</h1>
-      
+
       <Tabs defaultValue="flashcards" className="w-full">
         <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6">
           <TabsTrigger value="flashcards">Flashcards</TabsTrigger>
@@ -48,11 +48,13 @@ export default function TestPage() {
                 back: "A binary tree where each node has at most two children, and for each node, all values in the left subtree are less than the node's value, and all values in the right subtree are greater.",
               },
               {
-                front: "What is the time complexity of searching in a balanced BST?",
+                front:
+                  "What is the time complexity of searching in a balanced BST?",
                 back: "O(log n) - because we can eliminate half of the remaining nodes at each step.",
               },
               {
-                front: "What is the worst-case time complexity of insertion in a BST?",
+                front:
+                  "What is the worst-case time complexity of insertion in a BST?",
                 back: "O(n) - when the tree becomes completely unbalanced, resembling a linked list.",
               },
               {
@@ -60,7 +62,8 @@ export default function TestPage() {
                 back: "Visiting nodes in the order: left subtree, root, right subtree. This produces values in sorted order for a BST.",
               },
               {
-                front: "What is the difference between a balanced and unbalanced BST?",
+                front:
+                  "What is the difference between a balanced and unbalanced BST?",
                 back: "A balanced BST has roughly equal heights for left and right subtrees at every node, while an unbalanced BST has significant height differences, leading to worse performance.",
               },
               {
@@ -110,7 +113,8 @@ export default function TestPage() {
                 correct_answer: "useContext",
               },
               {
-                question: "What does the dependency array in useEffect control?",
+                question:
+                  "What does the dependency array in useEffect control?",
                 question_type: "multiple_choice",
                 options: [
                   "When the component re-renders",
@@ -122,7 +126,8 @@ export default function TestPage() {
                 correct_answer: "When the effect runs",
               },
               {
-                question: "useMemo and useCallback are both optimization hooks.",
+                question:
+                  "useMemo and useCallback are both optimization hooks.",
                 question_type: "true_false",
                 points: 10,
                 correct_answer: "True",
@@ -142,19 +147,22 @@ export default function TestPage() {
             instructions="You have 90 minutes to complete this exam. Answer all questions. Show your work for partial credit. The exam will auto-submit when time expires."
             questions={[
               {
-                question: "Find the partial derivative ∂f/∂x of f(x,y) = x²y + 3xy²",
+                question:
+                  "Find the partial derivative ∂f/∂x of f(x,y) = x²y + 3xy²",
                 question_type: "short_answer",
                 points: 15,
                 correct_answer: "2xy + 3y²",
               },
               {
-                question: "The gradient of a scalar function points in the direction of maximum increase.",
+                question:
+                  "The gradient of a scalar function points in the direction of maximum increase.",
                 question_type: "true_false",
                 points: 10,
                 correct_answer: "True",
               },
               {
-                question: "Which of the following is a valid parameterization of a circle?",
+                question:
+                  "Which of the following is a valid parameterization of a circle?",
                 question_type: "multiple_choice",
                 options: [
                   "r(t) = (cos t, sin t)",
@@ -166,10 +174,12 @@ export default function TestPage() {
                 correct_answer: "r(t) = (cos t, sin t)",
               },
               {
-                question: "Explain the difference between a local maximum and a global maximum for a multivariable function. Provide an example.",
+                question:
+                  "Explain the difference between a local maximum and a global maximum for a multivariable function. Provide an example.",
                 question_type: "essay",
                 points: 20,
-                correct_answer: "A local maximum is a point where the function value is greater than all nearby points, while a global maximum is the highest point across the entire domain. Example: f(x,y) = -(x²+y²) has a global maximum at (0,0), while f(x,y) = x⁴-x²+y² has local maxima at x=±1/√2.",
+                correct_answer:
+                  "A local maximum is a point where the function value is greater than all nearby points, while a global maximum is the highest point across the entire domain. Example: f(x,y) = -(x²+y²) has a global maximum at (0,0), while f(x,y) = x⁴-x²+y² has local maxima at x=±1/√2.",
               },
               {
                 question: "Calculate the divergence of F = (xy, yz, xz)",
@@ -178,28 +188,27 @@ export default function TestPage() {
                 correct_answer: "y + z + x",
               },
               {
-                question: "Green's Theorem relates a line integral around a closed curve to a double integral over the region it encloses.",
+                question:
+                  "Green's Theorem relates a line integral around a closed curve to a double integral over the region it encloses.",
                 question_type: "true_false",
                 points: 10,
                 correct_answer: "True",
               },
               {
-                question: "What is the value of ∫∫R xy dA over the rectangle R = [0,2] × [0,3]?",
+                question:
+                  "What is the value of ∫∫R xy dA over the rectangle R = [0,2] × [0,3]?",
                 question_type: "multiple_choice",
-                options: [
-                  "6",
-                  "9",
-                  "12",
-                  "18",
-                ],
+                options: ["6", "9", "12", "18"],
                 points: 10,
                 correct_answer: "9",
               },
               {
-                question: "What does it mean for a vector field to be conservative? How can you test if a vector field is conservative?",
+                question:
+                  "What does it mean for a vector field to be conservative? How can you test if a vector field is conservative?",
                 question_type: "essay",
                 points: 10,
-                correct_answer: "A vector field is conservative if it is the gradient of some scalar potential function, meaning the line integral is path-independent. Test: Check if curl F = 0, or verify that the mixed partial derivatives are equal (∂P/∂y = ∂Q/∂x in 2D).",
+                correct_answer:
+                  "A vector field is conservative if it is the gradient of some scalar potential function, meaning the line integral is path-independent. Test: Check if curl F = 0, or verify that the mixed partial derivatives are equal (∂P/∂y = ∂Q/∂x in 2D).",
               },
             ]}
             grading_rubric="Partial credit will be awarded based on correct methodology and work shown. Essay questions will be graded on completeness, accuracy, and clarity of explanation."
@@ -246,17 +255,20 @@ export default function TestPage() {
               {
                 criteria: "User Registration",
                 points: 20,
-                description: "Complete registration system with validation and email verification",
+                description:
+                  "Complete registration system with validation and email verification",
               },
               {
                 criteria: "Secure Login",
                 points: 20,
-                description: "Proper password hashing, JWT implementation, and rate limiting",
+                description:
+                  "Proper password hashing, JWT implementation, and rate limiting",
               },
               {
                 criteria: "Password Reset",
                 points: 15,
-                description: "Secure token-based password reset with proper expiration",
+                description:
+                  "Secure token-based password reset with proper expiration",
               },
               {
                 criteria: "Testing",
@@ -266,12 +278,14 @@ export default function TestPage() {
               {
                 criteria: "Code Quality",
                 points: 10,
-                description: "Clean, maintainable code following best practices",
+                description:
+                  "Clean, maintainable code following best practices",
               },
               {
                 criteria: "Documentation",
                 points: 10,
-                description: "Clear API docs, setup guide, and security documentation",
+                description:
+                  "Clear API docs, setup guide, and security documentation",
               },
             ]}
             resources={[
@@ -315,7 +329,7 @@ export default function TestPage() {
               "Queues",
               "Time Complexity",
               "Memory Management",
-              "Python Implementation"
+              "Python Implementation",
             ]}
           />
         </TabsContent>
@@ -466,7 +480,8 @@ export default function TestPage() {
                 assignment_type: "project",
                 urgency: "urgent",
                 days_until_due: 2,
-                description: "Implement a self-balancing BST with insert, delete, and search operations. Include comprehensive unit tests.",
+                description:
+                  "Implement a self-balancing BST with insert, delete, and search operations. Include comprehensive unit tests.",
                 status: "in_progress",
               },
               {
@@ -479,7 +494,8 @@ export default function TestPage() {
                 assignment_type: "quiz",
                 urgency: "soon",
                 days_until_due: 5,
-                description: "Complete the online quiz covering useState, useEffect, useContext, and custom hooks.",
+                description:
+                  "Complete the online quiz covering useState, useEffect, useContext, and custom hooks.",
               },
               {
                 title: "Calculus Problem Set 7",
@@ -491,7 +507,8 @@ export default function TestPage() {
                 assignment_type: "homework",
                 urgency: "later",
                 days_until_due: 9,
-                description: "Problems on partial derivatives, gradients, and optimization of multivariable functions.",
+                description:
+                  "Problems on partial derivatives, gradients, and optimization of multivariable functions.",
               },
             ]}
           />
@@ -514,12 +531,30 @@ export default function TestPage() {
           <BarChart
             title="Monthly Sales Performance"
             data={[
-              { xAxisLabel: "Jan", series: [{ seriesName: "Sales", value: 4000 }] },
-              { xAxisLabel: "Feb", series: [{ seriesName: "Sales", value: 3000 }] },
-              { xAxisLabel: "Mar", series: [{ seriesName: "Sales", value: 5000 }] },
-              { xAxisLabel: "Apr", series: [{ seriesName: "Sales", value: 4500 }] },
-              { xAxisLabel: "May", series: [{ seriesName: "Sales", value: 6000 }] },
-              { xAxisLabel: "Jun", series: [{ seriesName: "Sales", value: 5500 }] },
+              {
+                xAxisLabel: "Jan",
+                series: [{ seriesName: "Sales", value: 4000 }],
+              },
+              {
+                xAxisLabel: "Feb",
+                series: [{ seriesName: "Sales", value: 3000 }],
+              },
+              {
+                xAxisLabel: "Mar",
+                series: [{ seriesName: "Sales", value: 5000 }],
+              },
+              {
+                xAxisLabel: "Apr",
+                series: [{ seriesName: "Sales", value: 4500 }],
+              },
+              {
+                xAxisLabel: "May",
+                series: [{ seriesName: "Sales", value: 6000 }],
+              },
+              {
+                xAxisLabel: "Jun",
+                series: [{ seriesName: "Sales", value: 5500 }],
+              },
             ]}
           />
         </TabsContent>
@@ -528,12 +563,30 @@ export default function TestPage() {
           <LineChart
             title="Website Traffic Trend"
             data={[
-              { xAxisLabel: "Week 1", series: [{ seriesName: "Traffic", value: 1200 }] },
-              { xAxisLabel: "Week 2", series: [{ seriesName: "Traffic", value: 1900 }] },
-              { xAxisLabel: "Week 3", series: [{ seriesName: "Traffic", value: 1500 }] },
-              { xAxisLabel: "Week 4", series: [{ seriesName: "Traffic", value: 2200 }] },
-              { xAxisLabel: "Week 5", series: [{ seriesName: "Traffic", value: 2800 }] },
-              { xAxisLabel: "Week 6", series: [{ seriesName: "Traffic", value: 3200 }] },
+              {
+                xAxisLabel: "Week 1",
+                series: [{ seriesName: "Traffic", value: 1200 }],
+              },
+              {
+                xAxisLabel: "Week 2",
+                series: [{ seriesName: "Traffic", value: 1900 }],
+              },
+              {
+                xAxisLabel: "Week 3",
+                series: [{ seriesName: "Traffic", value: 1500 }],
+              },
+              {
+                xAxisLabel: "Week 4",
+                series: [{ seriesName: "Traffic", value: 2200 }],
+              },
+              {
+                xAxisLabel: "Week 5",
+                series: [{ seriesName: "Traffic", value: 2800 }],
+              },
+              {
+                xAxisLabel: "Week 6",
+                series: [{ seriesName: "Traffic", value: 3200 }],
+              },
             ]}
           />
         </TabsContent>
@@ -549,11 +602,41 @@ export default function TestPage() {
               { key: "status", label: "Status" },
             ]}
             data={[
-              { course_code: "CS101", course_name: "Intro to Programming", enrolled: 45, capacity: 50, status: "Open" },
-              { course_code: "CS201", course_name: "Data Structures", enrolled: 50, capacity: 50, status: "Full" },
-              { course_code: "CS301", course_name: "Algorithms", enrolled: 38, capacity: 45, status: "Open" },
-              { course_code: "MATH301", course_name: "Calculus III", enrolled: 42, capacity: 50, status: "Open" },
-              { course_code: "CS401", course_name: "Software Engineering", enrolled: 35, capacity: 40, status: "Open" },
+              {
+                course_code: "CS101",
+                course_name: "Intro to Programming",
+                enrolled: 45,
+                capacity: 50,
+                status: "Open",
+              },
+              {
+                course_code: "CS201",
+                course_name: "Data Structures",
+                enrolled: 50,
+                capacity: 50,
+                status: "Full",
+              },
+              {
+                course_code: "CS301",
+                course_name: "Algorithms",
+                enrolled: 38,
+                capacity: 45,
+                status: "Open",
+              },
+              {
+                course_code: "MATH301",
+                course_name: "Calculus III",
+                enrolled: 42,
+                capacity: 50,
+                status: "Open",
+              },
+              {
+                course_code: "CS401",
+                course_name: "Software Engineering",
+                enrolled: 35,
+                capacity: 40,
+                status: "Open",
+              },
             ]}
           />
         </TabsContent>

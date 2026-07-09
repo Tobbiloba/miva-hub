@@ -1,3 +1,6 @@
+import { SessionManagementClient } from "@/components/admin/session-management-client";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -5,8 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -15,27 +16,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  GraduationCap,
-  Users,
-  Calendar,
-  BookOpen,
-  Plus,
-  AlertCircle,
-  Edit,
-  Trash2,
-} from "lucide-react";
-import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
+import { AcademicSessionSchema, UserSchema } from "@/lib/db/pg/schema.pg";
+import { and, desc, eq, sql } from "drizzle-orm";
 import {
-  AcademicSessionSchema,
-  UserSchema,
-} from "@/lib/db/pg/schema.pg";
-import { eq, and, sql, desc } from "drizzle-orm";
+  AlertCircle,
+  BookOpen,
+  Calendar,
+  Edit,
+  GraduationCap,
+  Plus,
+  Trash2,
+  Users,
+} from "lucide-react";
+import Link from "next/link";
 import { EndSemesterConfirmation } from "./end-semester-confirmation";
 import { EndSessionConfirmation } from "./end-session-confirmation";
-import { SessionManagementClient } from "@/components/admin/session-management-client";
 
 export default async function AcademicManagementPage() {
   const adminAccess = await requireAdmin();
@@ -63,8 +60,8 @@ export default async function AcademicManagementPage() {
     .where(
       and(
         eq(UserSchema.role, "student"),
-        eq(UserSchema.enrollmentStatus, "active")
-      )
+        eq(UserSchema.enrollmentStatus, "active"),
+      ),
     );
 
   const [graduatedCount] = await pgDb
@@ -73,8 +70,8 @@ export default async function AcademicManagementPage() {
     .where(
       and(
         eq(UserSchema.role, "student"),
-        eq(UserSchema.enrollmentStatus, "graduated")
-      )
+        eq(UserSchema.enrollmentStatus, "graduated"),
+      ),
     );
 
   // Students by level
@@ -87,8 +84,8 @@ export default async function AcademicManagementPage() {
     .where(
       and(
         eq(UserSchema.role, "student"),
-        eq(UserSchema.enrollmentStatus, "active")
-      )
+        eq(UserSchema.enrollmentStatus, "active"),
+      ),
     )
     .groupBy(UserSchema.currentLevel)
     .orderBy(UserSchema.currentLevel);
@@ -103,8 +100,8 @@ export default async function AcademicManagementPage() {
     .where(
       and(
         eq(UserSchema.role, "student"),
-        eq(UserSchema.enrollmentStatus, "active")
-      )
+        eq(UserSchema.enrollmentStatus, "active"),
+      ),
     )
     .groupBy(UserSchema.currentSemester);
 
@@ -197,7 +194,11 @@ export default async function AcademicManagementPage() {
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {studentsByLevel.map((row) => (
-                      <Badge key={row.level} variant="outline" className="text-sm">
+                      <Badge
+                        key={row.level}
+                        variant="outline"
+                        className="text-sm"
+                      >
                         {row.level ?? "N/A"}L: {Number(row.count)}
                       </Badge>
                     ))}
@@ -302,7 +303,10 @@ export default async function AcademicManagementPage() {
                             <Edit className="h-4 w-4" />
                           </Button>
                         </SessionManagementClient>
-                        <SessionManagementClient session={session} mode="delete">
+                        <SessionManagementClient
+                          session={session}
+                          mode="delete"
+                        >
                           <Button
                             variant="ghost"
                             size="sm"

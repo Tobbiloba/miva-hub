@@ -1,13 +1,10 @@
 "use client";
 
-import { useState, useMemo } from 'react';
-import { Video, Play, ChevronDown, ChevronUp } from 'lucide-react';
-import { VideoPlayer } from './VideoPlayer';
-import { 
-  getVideoDisplayName, 
-  formatVideoDate 
-} from 'lib/video-utils';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from "framer-motion";
+import { formatVideoDate, getVideoDisplayName } from "lib/video-utils";
+import { ChevronDown, ChevronUp, Play, Video } from "lucide-react";
+import { useMemo, useState } from "react";
+import { VideoPlayer } from "./VideoPlayer";
 
 interface VideoMaterial {
   id: string;
@@ -39,17 +36,17 @@ const variants = {
 
 export function VideoCard({ material, className }: VideoCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  
+
   const videoUrl = material.file_url;
-  
+
   const displayName = useMemo(() => {
     return getVideoDisplayName(material);
   }, [material]);
-  
+
   const formattedDate = useMemo(() => {
     return formatVideoDate(material.upload_date);
   }, [material.upload_date]);
-  
+
   return (
     <div className={className}>
       {/* Video Card Header */}
@@ -64,11 +61,12 @@ export function VideoCard({ material, className }: VideoCardProps) {
           <div>
             <div className="font-medium text-sm">{displayName}</div>
             <div className="text-xs text-muted-foreground">
-              Video • {formattedDate} • Click to {isExpanded ? 'collapse' : 'expand'}
+              Video • {formattedDate} • Click to{" "}
+              {isExpanded ? "collapse" : "expand"}
             </div>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           {!isExpanded && (
             <div className="p-1.5 bg-primary/10 rounded-full">
@@ -96,10 +94,7 @@ export function VideoCard({ material, className }: VideoCardProps) {
             style={{ overflow: "hidden" }}
           >
             <div className="mt-2 rounded-lg overflow-hidden border bg-background">
-              <VideoPlayer 
-                src={videoUrl} 
-                title={displayName}
-              />
+              <VideoPlayer src={videoUrl} title={displayName} />
             </div>
           </motion.div>
         )}

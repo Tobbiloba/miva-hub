@@ -1,38 +1,38 @@
 @font-face {
-  font-family: 'Neue Montreal';
-  src: url('/font/NeueMontreal-Regular.otf') format('opentype');
+  font-family: "Neue Montreal";
+  src: url("/font/NeueMontreal-Regular.otf") format("opentype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Neue Montreal';
-  src: url('/font/NeueMontreal-Medium.otf') format('opentype');
+  font-family: "Neue Montreal";
+  src: url("/font/NeueMontreal-Medium.otf") format("opentype");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Neue Montreal';
-  src: url('/font/NeueMontreal-Bold.otf') format('opentype');
+  font-family: "Neue Montreal";
+  src: url("/font/NeueMontreal-Bold.otf") format("opentype");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Neue Montreal';
-  src: url('/font/NeueMontreal-Light.otf') format('opentype');
+  font-family: "Neue Montreal";
+  src: url("/font/NeueMontreal-Light.otf") format("opentype");
   font-weight: 300;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Neue Montreal';
-  src: url('/font/NeueMontreal-Italic.otf') format('opentype');
+  font-family: "Neue Montreal";
+  src: url("/font/NeueMontreal-Italic.otf") format("opentype");
   font-weight: 400;
   font-style: italic;
   font-display: swap;
@@ -50,7 +50,8 @@ html {
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Neue Montreal', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: "Neue Montreal", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -1592,10 +1593,10 @@ html {
   --askly-bg-elevated: #15110d;
 
   /* Amber ramp */
-  --askly-amber-50: #FAEEDA;
-  --askly-amber-100: #FAC775;
-  --askly-amber-400: #EF9F27;
-  --askly-amber-600: #BA7517;
+  --askly-amber-50: #faeeda;
+  --askly-amber-100: #fac775;
+  --askly-amber-400: #ef9f27;
+  --askly-amber-600: #ba7517;
   --askly-amber-800: #633806;
   --askly-amber-900: #412402;
 
@@ -1623,10 +1624,8 @@ html {
   backdrop-filter: blur(40px) saturate(180%);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
   border: 0.5px solid var(--askly-border);
-  box-shadow:
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -0.5px 0 rgba(0, 0, 0, 0.4),
-    0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.12), inset 0 -0.5px 0
+    rgba(0, 0, 0, 0.4), 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .askly-glass-subtle {
@@ -1647,35 +1646,61 @@ html {
   backdrop-filter: blur(24px) saturate(160%);
   -webkit-backdrop-filter: blur(24px) saturate(160%);
   border: 0.5px solid var(--askly-border-active);
-  box-shadow:
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.15),
-    0 0 24px rgba(250, 199, 117, 0.18);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.15), 0 0 24px
+    rgba(250, 199, 117, 0.18);
 }
 
 /* ── Orb animation keyframes ─────────────────────────────────────────────── */
 
 @keyframes askly-orb-float-1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50%       { transform: translate(60px, 40px) scale(1.1); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(60px, 40px) scale(1.1);
+  }
 }
 
 @keyframes askly-orb-float-2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50%       { transform: translate(-50px, 30px) scale(0.95); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-50px, 30px) scale(0.95);
+  }
 }
 
 @keyframes askly-orb-float-3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50%       { transform: translate(40px, -50px) scale(1.05); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(40px, -50px) scale(1.05);
+  }
 }
 
 @keyframes askly-pulse-glow {
-  0%, 100% { opacity: 0.85; }
-  50%       { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
-.askly-orb-1 { animation: askly-orb-float-1 14s ease-in-out infinite; }
-.askly-orb-2 { animation: askly-orb-float-2 18s ease-in-out infinite; }
-.askly-orb-3 { animation: askly-orb-float-3 22s ease-in-out infinite; }
-.askly-pulse-glow { animation: askly-pulse-glow 4s ease-in-out infinite; }
-
+.askly-orb-1 {
+  animation: askly-orb-float-1 14s ease-in-out infinite;
+}
+.askly-orb-2 {
+  animation: askly-orb-float-2 18s ease-in-out infinite;
+}
+.askly-orb-3 {
+  animation: askly-orb-float-3 22s ease-in-out infinite;
+}
+.askly-pulse-glow {
+  animation: askly-pulse-glow 4s ease-in-out infinite;
+}

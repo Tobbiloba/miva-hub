@@ -1,8 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
-import { eq, desc, and, count, type SQL } from "drizzle-orm";
 import { pgDb as db } from "@/lib/db/pg/db.pg";
-import { AIProcessingJobSchema, CourseMaterialSchema } from "@/lib/db/pg/schema.pg";
+import {
+  AIProcessingJobSchema,
+  CourseMaterialSchema,
+} from "@/lib/db/pg/schema.pg";
+import { type SQL, and, count, desc, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,13 +16,13 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const status = searchParams.get("status");
+    const limit = parseInt(searchParams.get("limit") || "50");
+    const offset = parseInt(searchParams.get("offset") || "0");
 
     // Build query conditions
     const conditions: SQL[] = [];
-    if (status && status !== 'all') {
+    if (status && status !== "all") {
       conditions.push(eq(AIProcessingJobSchema.status, status as any));
     }
 
@@ -41,7 +44,10 @@ export async function GET(request: NextRequest) {
         courseId: CourseMaterialSchema.courseId,
       })
       .from(AIProcessingJobSchema)
-      .leftJoin(CourseMaterialSchema, eq(AIProcessingJobSchema.courseMaterialId, CourseMaterialSchema.id))
+      .leftJoin(
+        CourseMaterialSchema,
+        eq(AIProcessingJobSchema.courseMaterialId, CourseMaterialSchema.id),
+      )
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(AIProcessingJobSchema.createdAt))
       .limit(limit)
@@ -64,13 +70,16 @@ export async function GET(request: NextRequest) {
       .from(AIProcessingJobSchema)
       .groupBy(AIProcessingJobSchema.status);
 
-    const statusCounts = stats.reduce((acc, stat) => {
-      acc[stat.status] = stat.count;
-      return acc;
-    }, {} as Record<string, number>);
+    const statusCounts = stats.reduce(
+      (acc, stat) => {
+        acc[stat.status] = stat.count;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return NextResponse.json({
-      jobs: jobs.map(job => ({
+      jobs: jobs.map((job) => ({
         id: job.id,
         courseMaterialId: job.courseMaterialId,
         jobType: job.jobType,
@@ -101,12 +110,11 @@ export async function GET(request: NextRequest) {
         failed: statusCounts.failed || 0,
       },
     });
-
   } catch (error) {
     console.error("Error fetching processing jobs:", error);
     return NextResponse.json(
       { error: "Failed to fetch processing jobs" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

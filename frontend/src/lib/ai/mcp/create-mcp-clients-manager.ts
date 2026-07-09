@@ -1,25 +1,25 @@
+import { ToolCallOptions, jsonSchema } from "ai";
 import {
-  VercelAIMcpToolTag,
   type MCPServerConfig,
   type McpServerInsert,
   type McpServerSelect,
   type VercelAIMcpTool,
+  VercelAIMcpToolTag,
 } from "app-types/mcp";
-import { createMCPClient, type MCPClient } from "./create-mcp-client";
+import { colorize } from "consola/utils";
+import { McpServerSchema } from "lib/db/pg/schema.pg";
 import {
+  Locker,
   errorToString,
   generateUUID,
-  Locker,
   safeJSONParse,
   toAny,
 } from "lib/utils";
-import { safe } from "ts-safe";
-import { McpServerSchema } from "lib/db/pg/schema.pg";
-import { createMCPToolId } from "./mcp-tool-id";
 import globalLogger from "logger";
-import { jsonSchema, ToolCallOptions } from "ai";
+import { safe } from "ts-safe";
+import { type MCPClient, createMCPClient } from "./create-mcp-client";
+import { createMCPToolId } from "./mcp-tool-id";
 import { createMemoryMCPConfigStorage } from "./memory-mcp-config-storage";
-import { colorize } from "consola/utils";
 
 /**
  * Interface for storage of MCP server configurations.
@@ -258,14 +258,20 @@ export class MCPClientsManager {
     }
     return this.toolCall(client.id, toolName, input, userContext);
   }
-  async toolCall(id: string, toolName: string, input: unknown, userContext?: any) {
+  async toolCall(
+    id: string,
+    toolName: string,
+    input: unknown,
+    userContext?: any,
+  ) {
     console.log(`🔧 [MCP DEBUG] Starting toolCall:`, {
       clientId: id,
       toolName,
       originalInput: input,
       userContext,
       inputType: typeof input,
-      inputKeys: input && typeof input === 'object' ? Object.keys(input) : 'not object'
+      inputKeys:
+        input && typeof input === "object" ? Object.keys(input) : "not object",
     });
 
     return safe(() => this.getClient(id))
@@ -274,23 +280,28 @@ export class MCPClientsManager {
         console.log(`🔧 [MCP DEBUG] Client found:`, {
           clientId: id,
           clientStatus: client.client.status,
-          toolInfo: client.client.toolInfo?.length || 0
+          toolInfo: client.client.toolInfo?.length || 0,
         });
         return client.client;
       })
       .map((client) => {
         // Inject user context into input if available and tool supports it
-        const enrichedInput = this.enrichInputWithUserContext(input, userContext, toolName, id);
-        
+        const enrichedInput = this.enrichInputWithUserContext(
+          input,
+          userContext,
+          toolName,
+          id,
+        );
+
         console.log(`🔧 [MCP DEBUG] About to call tool:`, {
           clientId: id,
           toolName,
           originalInput: JSON.stringify(input, null, 2),
           enrichedInput: JSON.stringify(enrichedInput, null, 2),
           inputChanged: JSON.stringify(input) !== JSON.stringify(enrichedInput),
-          userContext: JSON.stringify(userContext, null, 2)
+          userContext: JSON.stringify(userContext, null, 2),
         });
-        
+
         return client.callTool(toolName, enrichedInput);
       })
       .map((res) => {
@@ -320,9 +331,9 @@ export class MCPClientsManager {
           errorMessage: errorToString(err),
           errorName: err?.name || "ERROR",
           errorStack: err?.stack,
-          errorDetails: JSON.stringify(err, null, 2)
+          errorDetails: JSON.stringify(err, null, 2),
         });
-        
+
         return {
           isError: true,
           error: {
@@ -339,26 +350,27 @@ export class MCPClientsManager {
    * Enrich tool input with user context for academic MCP tools
    */
   private enrichInputWithUserContext(
-    input: any, 
-    userContext: any, 
-    toolName: string, 
-    serverId: string
+    input: any,
+    userContext: any,
+    toolName: string,
+    serverId: string,
   ): any {
     console.log(`🔧 [MCP Context] Starting enrichment:`, {
       toolName,
       serverId,
       originalInput: JSON.stringify(input, null, 2),
       originalInputType: typeof input,
-      originalInputKeys: input && typeof input === 'object' ? Object.keys(input) : 'not object',
+      originalInputKeys:
+        input && typeof input === "object" ? Object.keys(input) : "not object",
       userContext: JSON.stringify(userContext, null, 2),
       userContextType: typeof userContext,
       hasStudentId: !!userContext?.studentId,
       studentIdValue: userContext?.studentId,
-      studentIdType: typeof userContext?.studentId
+      studentIdType: typeof userContext?.studentId,
     });
-    
+
     // Only enrich for MIVA Academic MCP server tools
-    if (!serverId.includes('miva-academic') && !this.isAcademicTool(toolName)) {
+    if (!serverId.includes("miva-academic") && !this.isAcademicTool(toolName)) {
       console.log(`🔧 [MCP Context] Skipping enrichment - not academic tool`);
       return input;
     }
@@ -376,14 +388,14 @@ export class MCPClientsManager {
       const oldStudentId = enrichedInput.student_id;
       const newStudentId = userContext.studentId;
       enrichedInput.student_id = newStudentId;
-      
+
       console.log(`🔧 [MCP Context] Student ID override:`, {
         toolName,
         oldStudentId: oldStudentId,
         oldStudentIdType: typeof oldStudentId,
         newStudentId: newStudentId,
         newStudentIdType: typeof newStudentId,
-        changed: oldStudentId !== newStudentId
+        changed: oldStudentId !== newStudentId,
       });
     }
 
@@ -397,10 +409,13 @@ export class MCPClientsManager {
       toolName,
       finalInput: JSON.stringify(enrichedInput, null, 2),
       finalInputType: typeof enrichedInput,
-      finalInputKeys: enrichedInput && typeof enrichedInput === 'object' ? Object.keys(enrichedInput) : 'not object',
-      inputChanged: JSON.stringify(input) !== JSON.stringify(enrichedInput)
+      finalInputKeys:
+        enrichedInput && typeof enrichedInput === "object"
+          ? Object.keys(enrichedInput)
+          : "not object",
+      inputChanged: JSON.stringify(input) !== JSON.stringify(enrichedInput),
     });
-    
+
     return enrichedInput;
   }
 
@@ -409,23 +424,23 @@ export class MCPClientsManager {
    */
   private isAcademicTool(toolName: string): boolean {
     const academicTools = [
-      'get_course_materials',
-      'get_course_info', 
-      'list_enrolled_courses',
-      'get_course_videos',
-      'get_reading_materials',
-      'view_course_announcements',
-      'get_course_syllabus',
-      'get_academic_schedule',
-      'get_upcoming_assignments',
-      'get_course_schedule',
-      'get_faculty_contact',
-      'view_assignment_info',
-      'get_curriculum_guidance',
-      'get_academic_standing',
-      'ask_study_question',
-      'start_study_session',
-      'view_study_history'
+      "get_course_materials",
+      "get_course_info",
+      "list_enrolled_courses",
+      "get_course_videos",
+      "get_reading_materials",
+      "view_course_announcements",
+      "get_course_syllabus",
+      "get_academic_schedule",
+      "get_upcoming_assignments",
+      "get_course_schedule",
+      "get_faculty_contact",
+      "view_assignment_info",
+      "get_curriculum_guidance",
+      "get_academic_standing",
+      "ask_study_question",
+      "start_study_session",
+      "view_study_history",
     ];
     return academicTools.includes(toolName);
   }
@@ -435,27 +450,27 @@ export class MCPClientsManager {
    */
   private toolExpectsStudentId(toolName: string): boolean {
     const studentIdTools = [
-      'get_course_materials',
-      'list_enrolled_courses', 
-      'get_course_videos',
-      'get_reading_materials',
-      'view_course_announcements',
-      'get_course_syllabus',
-      'get_academic_schedule',
-      'get_upcoming_assignments',
-      'get_course_schedule',
-      'get_faculty_contact',
-      'view_assignment_info',
-      'get_curriculum_guidance',
-      'get_academic_standing',
+      "get_course_materials",
+      "list_enrolled_courses",
+      "get_course_videos",
+      "get_reading_materials",
+      "view_course_announcements",
+      "get_course_syllabus",
+      "get_academic_schedule",
+      "get_upcoming_assignments",
+      "get_course_schedule",
+      "get_faculty_contact",
+      "view_assignment_info",
+      "get_curriculum_guidance",
+      "get_academic_standing",
       // Usage-limited tools that need student_id for tracking
-      'ask_study_question',
-      'generate_study_guide',
-      'create_flashcards',
-      'generate_quiz',
-      'generate_exam_simulator',
-      'submit_exam_answers',
-      'convert_notes_to_flashcards'
+      "ask_study_question",
+      "generate_study_guide",
+      "create_flashcards",
+      "generate_quiz",
+      "generate_exam_simulator",
+      "submit_exam_answers",
+      "convert_notes_to_flashcards",
     ];
     return studentIdTools.includes(toolName);
   }
@@ -465,9 +480,9 @@ export class MCPClientsManager {
    */
   private isStudyBuddyTool(toolName: string): boolean {
     const studyBuddyTools = [
-      'ask_study_question',
-      'start_study_session', 
-      'view_study_history'
+      "ask_study_question",
+      "start_study_session",
+      "view_study_history",
     ];
     return studyBuddyTools.includes(toolName);
   }

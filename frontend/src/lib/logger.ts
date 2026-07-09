@@ -1,4 +1,4 @@
-import { createConsola, LogLevels } from "consola";
+import { LogLevels, createConsola } from "consola";
 import { IS_DEV } from "./const";
 
 const logger = createConsola({

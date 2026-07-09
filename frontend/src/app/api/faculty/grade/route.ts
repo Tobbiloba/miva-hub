@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/server";
 import { getFacultyInfo } from "@/lib/auth/faculty";
+import { getSession } from "@/lib/auth/server";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const gradeSubmissionSchema = z.object({
@@ -18,16 +18,18 @@ export async function POST(request: NextRequest) {
     if (!facultyInfo) {
       return NextResponse.json(
         { error: "Faculty authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    const facultyRecord = await pgAcademicRepository.getFacultyByUserId(facultyInfo.id);
-    
+    const facultyRecord = await pgAcademicRepository.getFacultyByUserId(
+      facultyInfo.id,
+    );
+
     if (!facultyRecord) {
       return NextResponse.json(
         { error: "Faculty record not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -36,14 +38,14 @@ export async function POST(request: NextRequest) {
 
     // Verify faculty has access to this submission
     const submissionDetails = await pgAcademicRepository.getSubmissionDetails(
-      submissionId, 
-      facultyRecord.id
+      submissionId,
+      facultyRecord.id,
     );
 
     if (!submissionDetails) {
       return NextResponse.json(
         { error: "Submission not found or access denied" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
     if (grade > maxPoints) {
       return NextResponse.json(
         { error: `Grade cannot exceed ${maxPoints} points` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -61,35 +63,34 @@ export async function POST(request: NextRequest) {
       submissionId,
       grade,
       feedback,
-      facultyInfo.id
+      facultyInfo.id,
     );
 
     if (!updatedSubmission) {
       return NextResponse.json(
         { error: "Failed to update grade" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     return NextResponse.json({
       success: true,
       submission: updatedSubmission,
-      message: "Grade submitted successfully"
+      message: "Grade submitted successfully",
     });
-
   } catch (error) {
     console.error("Error submitting grade:", error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid request data", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -102,16 +103,18 @@ export async function GET(request: NextRequest) {
     if (!facultyInfo) {
       return NextResponse.json(
         { error: "Faculty authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    const facultyRecord = await pgAcademicRepository.getFacultyByUserId(facultyInfo.id);
-    
+    const facultyRecord = await pgAcademicRepository.getFacultyByUserId(
+      facultyInfo.id,
+    );
+
     if (!facultyRecord) {
       return NextResponse.json(
         { error: "Faculty record not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -121,34 +124,33 @@ export async function GET(request: NextRequest) {
     if (!submissionId) {
       return NextResponse.json(
         { error: "submissionId parameter required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Get submission details
     const submissionDetails = await pgAcademicRepository.getSubmissionDetails(
-      submissionId, 
-      facultyRecord.id
+      submissionId,
+      facultyRecord.id,
     );
 
     if (!submissionDetails) {
       return NextResponse.json(
         { error: "Submission not found or access denied" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return NextResponse.json({
       success: true,
-      submission: submissionDetails
+      submission: submissionDetails,
     });
-
   } catch (error) {
     console.error("Error fetching submission:", error);
-    
+
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

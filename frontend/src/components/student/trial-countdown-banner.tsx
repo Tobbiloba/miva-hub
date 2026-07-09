@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Clock, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { X, Clock } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "ui/button";
 
 const DISMISS_KEY = "askly_trial_banner_dismissed";
@@ -21,7 +21,11 @@ export function TrialCountdownBanner() {
     fetch("/api/billing/status")
       .then((res) => res.json())
       .then((data) => {
-        if (data.in_trial && data.days_left_in_trial >= 1 && data.days_left_in_trial <= 3) {
+        if (
+          data.in_trial &&
+          data.days_left_in_trial >= 1 &&
+          data.days_left_in_trial <= 3
+        ) {
           setDaysLeft(data.days_left_in_trial);
         } else {
           setDismissed(true);
@@ -42,8 +46,8 @@ export function TrialCountdownBanner() {
       <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
         <Clock className="h-4 w-4 shrink-0" />
         <span>
-          Your trial ends in {daysLeft} day{daysLeft !== 1 ? "s" : ""}.
-          Upgrade to keep access.
+          Your trial ends in {daysLeft} day{daysLeft !== 1 ? "s" : ""}. Upgrade
+          to keep access.
         </span>
       </div>
       <div className="flex items-center gap-2 shrink-0">

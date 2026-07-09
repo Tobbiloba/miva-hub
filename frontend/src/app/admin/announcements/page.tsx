@@ -1,10 +1,29 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -14,43 +33,30 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Megaphone,
-  Search,
-  Filter,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  Send,
-  Clock,
-  MoreHorizontal,
-  Users,
   AlertTriangle,
-  CheckCircle,
   Bell,
-  Pin,
-  Globe,
   BookOpen,
-  GraduationCap,
   Building2,
+  CheckCircle,
+  Clock,
+  Edit,
+  Eye,
+  Filter,
+  Globe,
+  GraduationCap,
+  Loader2,
+  Megaphone,
+  MoreHorizontal,
+  Pin,
+  Plus,
+  Search,
+  Send,
   Target,
-  Loader2
+  Trash2,
+  Users,
 } from "lucide-react";
+import Link from "next/link";
+import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 interface Announcement {
@@ -85,30 +91,32 @@ export default function AnnouncementsManagePage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Build query parameters
       const params = new URLSearchParams();
-      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
-      if (audienceFilter !== 'all') params.append('audience', audienceFilter);
-      if (statusFilter !== 'all') params.append('status', statusFilter);
-      if (priorityFilter !== 'all') params.append('priority', priorityFilter);
-      
-      const response = await fetch(`/api/admin/announcements?${params.toString()}`);
-      
+      if (debouncedSearchTerm) params.append("search", debouncedSearchTerm);
+      if (audienceFilter !== "all") params.append("audience", audienceFilter);
+      if (statusFilter !== "all") params.append("status", statusFilter);
+      if (priorityFilter !== "all") params.append("priority", priorityFilter);
+
+      const response = await fetch(
+        `/api/admin/announcements?${params.toString()}`,
+      );
+
       if (!response.ok) {
-        throw new Error('Failed to fetch announcements');
+        throw new Error("Failed to fetch announcements");
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setAnnouncements(data.data);
       } else {
-        throw new Error(data.message || 'Failed to fetch announcements');
+        throw new Error(data.message || "Failed to fetch announcements");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      toast.error('Failed to load announcements');
+      setError(err instanceof Error ? err.message : "An error occurred");
+      toast.error("Failed to load announcements");
     } finally {
       setLoading(false);
     }
@@ -119,7 +127,7 @@ export default function AnnouncementsManagePage() {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
     }, 300);
-    
+
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
@@ -145,66 +153,92 @@ export default function AnnouncementsManagePage() {
 
   const getAudienceColor = (audience: string) => {
     switch (audience) {
-      case "students": return "bg-blue-100 text-blue-800";
-      case "faculty": return "bg-green-100 text-green-800";
-      case "all": return "bg-purple-100 text-purple-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "students":
+        return "bg-blue-100 text-blue-800";
+      case "faculty":
+        return "bg-green-100 text-green-800";
+      case "all":
+        return "bg-purple-100 text-purple-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "high": return "bg-red-100 text-red-800 border-red-200";
-      case "medium": return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "low": return "bg-green-100 text-green-800 border-green-200";
-      default: return "";
+      case "high":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "low":
+        return "bg-green-100 text-green-800 border-green-200";
+      default:
+        return "";
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "published": return "bg-green-100 text-green-800";
-      case "scheduled": return "bg-blue-100 text-blue-800";
-      case "draft": return "bg-gray-100 text-gray-800";
-      case "expired": return "bg-red-100 text-red-800";
-      default: return "";
+      case "published":
+        return "bg-green-100 text-green-800";
+      case "scheduled":
+        return "bg-blue-100 text-blue-800";
+      case "draft":
+        return "bg-gray-100 text-gray-800";
+      case "expired":
+        return "bg-red-100 text-red-800";
+      default:
+        return "";
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "published": return CheckCircle;
-      case "scheduled": return Clock;
-      case "draft": return Edit;
-      case "expired": return AlertTriangle;
-      default: return Bell;
+      case "published":
+        return CheckCircle;
+      case "scheduled":
+        return Clock;
+      case "draft":
+        return Edit;
+      case "expired":
+        return AlertTriangle;
+      default:
+        return Bell;
     }
   };
 
   const getAudienceIcon = (audience: string) => {
     switch (audience) {
-      case "students": return GraduationCap;
-      case "faculty": return BookOpen;
-      case "all": return Globe;
-      default: return Users;
+      case "students":
+        return GraduationCap;
+      case "faculty":
+        return BookOpen;
+      case "all":
+        return Globe;
+      default:
+        return Users;
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
     });
   };
 
   // Calculate statistics
   const totalAnnouncements = announcements.length;
-  const publishedCount = announcements.filter(a => a.status === 'published').length;
-  const scheduledCount = announcements.filter(a => a.status === 'scheduled').length;
-  const pinnedCount = announcements.filter(a => a.isPinned).length;
+  const publishedCount = announcements.filter(
+    (a) => a.status === "published",
+  ).length;
+  const scheduledCount = announcements.filter(
+    (a) => a.status === "scheduled",
+  ).length;
+  const pinnedCount = announcements.filter((a) => a.isPinned).length;
 
   return (
     <div className="space-y-6 p-6">
@@ -219,7 +253,7 @@ export default function AnnouncementsManagePage() {
             Create and manage announcements for students, faculty, and staff
           </p>
         </div>
-        
+
         <Button asChild>
           <Link href="/admin/announcements/create">
             <Plus className="mr-2 h-4 w-4" />
@@ -236,12 +270,14 @@ export default function AnnouncementsManagePage() {
               <Megaphone className="h-5 w-5 text-blue-600" />
               <div>
                 <p className="text-2xl font-bold">{totalAnnouncements}</p>
-                <p className="text-xs text-muted-foreground">Total Announcements</p>
+                <p className="text-xs text-muted-foreground">
+                  Total Announcements
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -253,7 +289,7 @@ export default function AnnouncementsManagePage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -265,7 +301,7 @@ export default function AnnouncementsManagePage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -286,8 +322,8 @@ export default function AnnouncementsManagePage() {
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search announcements by title, content, or author..." 
+                <Input
+                  placeholder="Search announcements by title, content, or author..."
                   className="pl-10"
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
@@ -356,7 +392,9 @@ export default function AnnouncementsManagePage() {
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
                 <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Error Loading Announcements</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  Error Loading Announcements
+                </h3>
                 <p className="text-muted-foreground mb-4">{error}</p>
                 <Button onClick={fetchAnnouncements} variant="outline">
                   Try Again
@@ -367,12 +405,16 @@ export default function AnnouncementsManagePage() {
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
                 <Megaphone className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No Announcements Found</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  No Announcements Found
+                </h3>
                 <p className="text-muted-foreground mb-4">
-                  {debouncedSearchTerm || audienceFilter !== 'all' || statusFilter !== 'all' || priorityFilter !== 'all'
-                    ? 'Try adjusting your search or filters'
-                    : 'Create your first announcement to get started'
-                  }
+                  {debouncedSearchTerm ||
+                  audienceFilter !== "all" ||
+                  statusFilter !== "all" ||
+                  priorityFilter !== "all"
+                    ? "Try adjusting your search or filters"
+                    : "Create your first announcement to get started"}
                 </p>
                 <Button asChild>
                   <Link href="/admin/announcements/create">
@@ -398,151 +440,171 @@ export default function AnnouncementsManagePage() {
                 </TableHeader>
                 <TableBody>
                   {announcements.map((announcement) => {
-                  const StatusIcon = getStatusIcon(announcement.status);
-                  const AudienceIcon = getAudienceIcon(announcement.audience);
+                    const StatusIcon = getStatusIcon(announcement.status);
+                    const AudienceIcon = getAudienceIcon(announcement.audience);
 
-                  return (
-                    <TableRow key={announcement.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
-                            <Megaphone className="h-4 w-4" />
+                    return (
+                      <TableRow key={announcement.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
+                              <Megaphone className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium line-clamp-1">
+                                  {announcement.title}
+                                </p>
+                                {announcement.isPinned && (
+                                  <Pin className="h-3 w-3 text-orange-500" />
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground line-clamp-1">
+                                {announcement.content}
+                              </p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                <span>By {announcement.author}</span>
+                                {announcement.attachments.length > 0 && (
+                                  <>
+                                    <span>•</span>
+                                    <span>
+                                      {announcement.attachments.length}{" "}
+                                      attachment(s)
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex-1">
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <p className="font-medium line-clamp-1">{announcement.title}</p>
-                              {announcement.isPinned && (
-                                <Pin className="h-3 w-3 text-orange-500" />
-                              )}
+                              <AudienceIcon className="h-4 w-4 text-muted-foreground" />
+                              <Badge
+                                variant="secondary"
+                                className={getAudienceColor(
+                                  announcement.audience,
+                                )}
+                              >
+                                {announcement.audience}
+                              </Badge>
                             </div>
-                            <p className="text-sm text-muted-foreground line-clamp-1">
-                              {announcement.content}
-                            </p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                              <span>By {announcement.author}</span>
-                              {announcement.attachments.length > 0 && (
-                                <>
-                                  <span>•</span>
-                                  <span>{announcement.attachments.length} attachment(s)</span>
-                                </>
-                              )}
-                            </div>
+                            {announcement.department !== "all" && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Building2 className="h-3 w-3" />
+                                <span>{announcement.department}</span>
+                              </div>
+                            )}
+                            {announcement.courses.length > 0 && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <BookOpen className="h-3 w-3" />
+                                <span>{announcement.courses.join(", ")}</span>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="space-y-1">
+                        </TableCell>
+
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={getPriorityColor(announcement.priority)}
+                          >
+                            {announcement.priority}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell>
                           <div className="flex items-center gap-2">
-                            <AudienceIcon className="h-4 w-4 text-muted-foreground" />
-                            <Badge variant="secondary" className={getAudienceColor(announcement.audience)}>
-                              {announcement.audience}
+                            <StatusIcon className="h-4 w-4 text-muted-foreground" />
+                            <Badge
+                              variant="secondary"
+                              className={getStatusColor(announcement.status)}
+                            >
+                              {announcement.status}
                             </Badge>
                           </div>
-                          {announcement.department !== 'all' && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Building2 className="h-3 w-3" />
-                              <span>{announcement.department}</span>
-                            </div>
-                          )}
-                          {announcement.courses.length > 0 && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <BookOpen className="h-3 w-3" />
-                              <span>{announcement.courses.join(', ')}</span>
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <Badge variant="outline" className={getPriorityColor(announcement.priority)}>
-                          {announcement.priority}
-                        </Badge>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <StatusIcon className="h-4 w-4 text-muted-foreground" />
-                          <Badge variant="secondary" className={getStatusColor(announcement.status)}>
-                            {announcement.status}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">
-                            {announcement.totalTargeted != null
-                              ? `${announcement.totalTargeted} targeted`
-                              : '—'}
-                          </span>
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="space-y-1">
-                          {announcement.publishedAt && (
-                            <div className="flex items-center gap-1 text-sm">
-                              <Send className="h-3 w-3 text-muted-foreground" />
-                              <span>{formatDate(announcement.publishedAt)}</span>
-                            </div>
-                          )}
-                          {announcement.scheduledFor && (
-                            <div className="flex items-center gap-1 text-sm">
-                              <Clock className="h-3 w-3 text-muted-foreground" />
-                              <span>{formatDate(announcement.scheduledFor)}</span>
-                            </div>
-                          )}
-                          {announcement.expiresAt && (
-                            <div className="text-xs text-muted-foreground">
-                              Expires: {formatDate(announcement.expiresAt)}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Target className="mr-2 h-4 w-4" />
-                              View Analytics
-                            </DropdownMenuItem>
-                            {announcement.status === 'draft' && (
-                              <DropdownMenuItem>
-                                <Send className="mr-2 h-4 w-4" />
-                                Publish Now
-                              </DropdownMenuItem>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">
+                              {announcement.totalTargeted != null
+                                ? `${announcement.totalTargeted} targeted`
+                                : "—"}
+                            </span>
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="space-y-1">
+                            {announcement.publishedAt && (
+                              <div className="flex items-center gap-1 text-sm">
+                                <Send className="h-3 w-3 text-muted-foreground" />
+                                <span>
+                                  {formatDate(announcement.publishedAt)}
+                                </span>
+                              </div>
                             )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Pin className="mr-2 h-4 w-4" />
-                              {announcement.isPinned ? 'Unpin' : 'Pin'}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
+                            {announcement.scheduledFor && (
+                              <div className="flex items-center gap-1 text-sm">
+                                <Clock className="h-3 w-3 text-muted-foreground" />
+                                <span>
+                                  {formatDate(announcement.scheduledFor)}
+                                </span>
+                              </div>
+                            )}
+                            {announcement.expiresAt && (
+                              <div className="text-xs text-muted-foreground">
+                                Expires: {formatDate(announcement.expiresAt)}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Target className="mr-2 h-4 w-4" />
+                                View Analytics
+                              </DropdownMenuItem>
+                              {announcement.status === "draft" && (
+                                <DropdownMenuItem>
+                                  <Send className="mr-2 h-4 w-4" />
+                                  Publish Now
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Pin className="mr-2 h-4 w-4" />
+                                {announcement.isPinned ? "Unpin" : "Pin"}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
                   })}
                 </TableBody>
               </Table>

@@ -27,10 +27,12 @@ class UserContextService {
    * Get academic context for a Miva Hub user
    * Maps user email to academic student ID
    */
-  async getUserAcademicContext(userEmail: string): Promise<UserAcademicContext | null> {
+  async getUserAcademicContext(
+    userEmail: string,
+  ): Promise<UserAcademicContext | null> {
     const cacheKey = userEmail;
     const cached = this.cache[cacheKey];
-    
+
     // Return cached result if still valid
     if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
       return cached.context;
@@ -39,23 +41,26 @@ class UserContextService {
     try {
       // Query academic database to find student by email
       const result = await this.queryAcademicDatabase(userEmail);
-      
+
       // Cache the result
       this.cache[cacheKey] = {
         context: result,
         timestamp: Date.now(),
       };
-      
+
       return result;
     } catch (error) {
-      console.error(`[UserContext] Failed to get academic context for ${userEmail}:`, error);
-      
+      console.error(
+        `[UserContext] Failed to get academic context for ${userEmail}:`,
+        error,
+      );
+
       // Cache null result to avoid repeated failures
       this.cache[cacheKey] = {
         context: null,
         timestamp: Date.now(),
       };
-      
+
       return null;
     }
   }
@@ -64,22 +69,24 @@ class UserContextService {
    * Query the Miva Hub database to find student by email
    * Maps Miva Hub users to academic context
    */
-  private async queryAcademicDatabase(email: string): Promise<UserAcademicContext | null> {
+  private async queryAcademicDatabase(
+    email: string,
+  ): Promise<UserAcademicContext | null> {
     // Import PostgreSQL client dynamically to avoid loading issues
-    const { Pool } = await import('pg');
+    const { Pool } = await import("pg");
 
     // Use environment variable or fallback to localhost
     const postgresUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
-    
+
     // Query the Miva Hub database (not miva_academic)
-    const pool = postgresUrl 
+    const pool = postgresUrl
       ? new Pool({ connectionString: postgresUrl })
       : new Pool({
-          host: 'localhost',
+          host: "localhost",
           port: 5432,
-          database: 'miva_hub',
-          user: 'postgres',
-          password: '',
+          database: "miva_hub",
+          user: "postgres",
+          password: "",
         });
 
     try {
@@ -96,33 +103,35 @@ class UserContextService {
         WHERE u.email = $1
         LIMIT 1
       `;
-      
+
       const result = await pool.query(query, [email]);
-      
+
       if (result.rows.length === 0) {
         console.log(`[UserContext] No user found with email: ${email}`);
         return null;
       }
-      
+
       const row = result.rows[0];
-      
+
       // If no student record exists, return null
       if (!row.student_id) {
         console.log(`[UserContext] User ${email} has no student record`);
         return null;
       }
-      
+
       const context = {
         studentId: row.student_id,
         email: row.email,
-        firstName: row.name?.split(' ')[0] || 'Student',
-        lastName: row.name?.split(' ').slice(1).join(' ') || '',
+        firstName: row.name?.split(" ")[0] || "Student",
+        lastName: row.name?.split(" ").slice(1).join(" ") || "",
         role: row.role,
         year: row.year,
         major: row.major,
       };
-      
-      console.log(`[UserContext] Successfully mapped ${email} to studentId: ${row.student_id}`);
+
+      console.log(
+        `[UserContext] Successfully mapped ${email} to studentId: ${row.student_id}`,
+      );
       return context;
     } finally {
       await pool.end();
@@ -151,8 +160,9 @@ export const userContextService = new UserContextService();
  * Helper function to get user academic context safely
  */
 export const getUserAcademicContext = (userEmail: string) => {
-  return safe(() => userContextService.getUserAcademicContext(userEmail))
-    .orElse(null);
+  return safe(() =>
+    userContextService.getUserAcademicContext(userEmail),
+  ).orElse(null);
 };
 
 export type { UserAcademicContext };

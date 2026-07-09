@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { pgDb as db } from "../db.pg";
-import { BookmarkSchema, AgentSchema } from "../schema.pg";
+import { AgentSchema, BookmarkSchema } from "../schema.pg";
 
 export interface BookmarkRepository {
   createBookmark(

@@ -1,11 +1,7 @@
 /* eslint-disable react/no-unescaped-entities */
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -13,7 +9,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Loader } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 import { toast } from "sonner";
 
 export default function ResetPasswordPage() {
@@ -97,17 +97,15 @@ export default function ResetPasswordPage() {
                 />
               </div>
 
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full gap-2"
-              >
+              <Button type="submit" disabled={loading} className="w-full gap-2">
                 {loading && <Loader className="w-4 h-4 animate-spin" />}
                 {loading ? "Sending..." : "Send Reset Link"}
               </Button>
 
               <div className="text-center text-sm">
-                <span className="text-muted-foreground">Remember your password? </span>
+                <span className="text-muted-foreground">
+                  Remember your password?{" "}
+                </span>
                 <Link
                   href="/sign-in"
                   className="text-primary hover:underline font-medium"

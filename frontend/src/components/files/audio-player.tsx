@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Play, Pause, Volume2, VolumeX, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Music, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface AudioPlayerProps {
   src: string;
@@ -28,16 +28,16 @@ export function AudioPlayer({ src, title, className = "" }: AudioPlayerProps) {
     const handleEnd = () => setIsPlaying(false);
     const handleError = () => setError("Failed to load audio file");
 
-    audio.addEventListener('timeupdate', updateTime);
-    audio.addEventListener('loadedmetadata', updateDuration);
-    audio.addEventListener('ended', handleEnd);
-    audio.addEventListener('error', handleError);
+    audio.addEventListener("timeupdate", updateTime);
+    audio.addEventListener("loadedmetadata", updateDuration);
+    audio.addEventListener("ended", handleEnd);
+    audio.addEventListener("error", handleError);
 
     return () => {
-      audio.removeEventListener('timeupdate', updateTime);
-      audio.removeEventListener('loadedmetadata', updateDuration);
-      audio.removeEventListener('ended', handleEnd);
-      audio.removeEventListener('error', handleError);
+      audio.removeEventListener("timeupdate", updateTime);
+      audio.removeEventListener("loadedmetadata", updateDuration);
+      audio.removeEventListener("ended", handleEnd);
+      audio.removeEventListener("error", handleError);
     };
   }, []);
 
@@ -80,7 +80,7 @@ export function AudioPlayer({ src, title, className = "" }: AudioPlayerProps) {
     const newVolume = parseFloat(e.target.value);
     audio.volume = newVolume;
     setVolume([newVolume]);
-    
+
     // Auto-unmute if volume is increased from 0
     if (newVolume > 0 && isMuted) {
       audio.muted = false;
@@ -91,7 +91,7 @@ export function AudioPlayer({ src, title, className = "" }: AudioPlayerProps) {
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
   if (error) {
@@ -106,7 +106,7 @@ export function AudioPlayer({ src, title, className = "" }: AudioPlayerProps) {
           variant="outline"
           size="sm"
           className="mt-2"
-          onClick={() => window.open(src, '_blank')}
+          onClick={() => window.open(src, "_blank")}
         >
           Open in New Tab
         </Button>
@@ -117,7 +117,7 @@ export function AudioPlayer({ src, title, className = "" }: AudioPlayerProps) {
   return (
     <div className={`border rounded-lg p-4 bg-muted/20 ${className}`}>
       <audio ref={audioRef} src={src} preload="metadata" />
-      
+
       {title && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
           <Music className="h-4 w-4" />
@@ -151,16 +151,24 @@ export function AudioPlayer({ src, title, className = "" }: AudioPlayerProps) {
             onClick={handlePlay}
             disabled={!duration}
           >
-            {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+            {isPlaying ? (
+              <Pause className="h-3 w-3" />
+            ) : (
+              <Play className="h-3 w-3" />
+            )}
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
             onClick={handleMute}
             disabled={!duration}
           >
-            {isMuted || volume[0] === 0 ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+            {isMuted || volume[0] === 0 ? (
+              <VolumeX className="h-3 w-3" />
+            ) : (
+              <Volume2 className="h-3 w-3" />
+            )}
           </Button>
         </div>
 

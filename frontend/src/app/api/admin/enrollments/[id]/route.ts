@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { StudentEnrollmentSchema } from "@/lib/db/pg/schema.pg";
 import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const updateEnrollmentSchema = z.object({
@@ -15,7 +15,7 @@ const updateEnrollmentSchema = z.object({
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const adminAccess = await requireAdmin();
@@ -34,7 +34,7 @@ export async function PUT(
     if (!existing) {
       return NextResponse.json(
         { success: false, error: "Enrollment not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -53,7 +53,7 @@ export async function PUT(
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, error: "Validation failed", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
@@ -62,14 +62,14 @@ export async function PUT(
         error: "Failed to update enrollment",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const adminAccess = await requireAdmin();
@@ -86,7 +86,7 @@ export async function DELETE(
     if (!existing) {
       return NextResponse.json(
         { success: false, error: "Enrollment not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -105,7 +105,7 @@ export async function DELETE(
         error: "Failed to delete enrollment",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

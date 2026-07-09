@@ -1,8 +1,5 @@
+import { getAIDecisionStats, listAIDecisions } from "@/lib/ai/decision-ledger";
 import { requireAdmin } from "@/lib/auth/admin";
-import {
-  getAIDecisionStats,
-  listAIDecisions,
-} from "@/lib/ai/decision-ledger";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 

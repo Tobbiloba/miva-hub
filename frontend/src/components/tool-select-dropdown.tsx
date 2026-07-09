@@ -50,24 +50,24 @@ import { MCPIcon } from "ui/mcp-icon";
 
 import { useTranslations } from "next-intl";
 
+import { useMcpList } from "@/hooks/queries/use-mcp-list";
+import { ChatMention } from "app-types/chat";
+import { AppDefaultToolkit } from "lib/ai/tools";
+import { Avatar, AvatarFallback, AvatarImage } from "ui/avatar";
+import { CountAnimation } from "ui/count-animation";
 import { Switch } from "ui/switch";
 import { useShallow } from "zustand/shallow";
-import { useMcpList } from "@/hooks/queries/use-mcp-list";
-import { Avatar, AvatarFallback, AvatarImage } from "ui/avatar";
-import { AppDefaultToolkit } from "lib/ai/tools";
-import { ChatMention } from "app-types/chat";
-import { CountAnimation } from "ui/count-animation";
 
+import { AgentSummary } from "app-types/agent";
 import { Separator } from "ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
-import { AgentSummary } from "app-types/agent";
 
-import { Alert, AlertDescription, AlertTitle } from "ui/alert";
-import { safe } from "ts-safe";
-import { mutate } from "swr";
-import { handleErrorWithToast } from "ui/shared-toast";
 import { useAgents } from "@/hooks/queries/use-agents";
 import { redriectMcpOauth } from "lib/ai/mcp/oauth-redirect";
+import { mutate } from "swr";
+import { safe } from "ts-safe";
+import { Alert, AlertDescription, AlertTitle } from "ui/alert";
+import { handleErrorWithToast } from "ui/shared-toast";
 
 interface ToolSelectDropdownProps {
   align?: "start" | "end" | "center";
@@ -108,7 +108,6 @@ export function ToolSelectDropdown({
 
   const t = useTranslations("Chat.Tool");
   const { isLoading } = useMcpList();
-
 
   const agentMention = useMemo(() => {
     return mentions?.find((m) => m.type === "agent");
@@ -401,7 +400,6 @@ function ToolPresets() {
     </DropdownMenuGroup>
   );
 }
-
 
 function McpServerSelector() {
   const [appStoreMutate, allowedMcpServers, mcpServerList] = appStore(

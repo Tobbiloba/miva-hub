@@ -1,7 +1,7 @@
-import { agentRepository } from "lib/db/repository";
-import { getSession } from "auth/server";
-import { notFound } from "next/navigation";
 import { AgentsList } from "@/components/agent/agents-list";
+import { getSession } from "auth/server";
+import { agentRepository } from "lib/db/repository";
+import { notFound } from "next/navigation";
 
 export default async function AgentsPage() {
   const session = await getSession();

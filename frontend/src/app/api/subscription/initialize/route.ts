@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server";
-import { paystackService } from "@/lib/payment/paystack-service";
 import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
+import { paystackService } from "@/lib/payment/paystack-service";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,29 +18,28 @@ export async function POST(req: NextRequest) {
     if (!planCode || !planName) {
       return NextResponse.json(
         { error: "Plan code and name are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const existingSubscription = await subscriptionRepository.getUserActiveSubscription(
-      session.user.id
-    );
-    
+    const existingSubscription =
+      await subscriptionRepository.getUserActiveSubscription(session.user.id);
+
     if (existingSubscription) {
       return NextResponse.json(
         { error: "You already have an active subscription" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const plan = await subscriptionRepository.getPlanByName(planName);
-    
+
     if (!plan || !plan.paystackPlanCode) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
 
     const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/subscription/callback`;
-    
+
     const initResponse = await paystackService.initializeSubscription({
       email: session.user.email,
       planCode: plan.paystackPlanCode,
@@ -57,7 +56,7 @@ export async function POST(req: NextRequest) {
     if (!initResponse.status) {
       return NextResponse.json(
         { error: initResponse.message || "Failed to initialize subscription" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -86,7 +85,7 @@ export async function POST(req: NextRequest) {
     console.error("Error initializing subscription:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

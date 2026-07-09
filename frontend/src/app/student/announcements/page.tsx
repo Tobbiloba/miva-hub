@@ -1,8 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Bell } from "lucide-react";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSession } from "@/lib/auth/server";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { Bell } from "lucide-react";
 
 const PRIORITY_COLORS: Record<
   string,
@@ -21,10 +21,8 @@ export default async function StudentAnnouncementsPage() {
   const userId = session.user.id;
 
   // Fetch all announcements (high limit to get everything)
-  const announcements = await pgAcademicRepository.getStudentRecentAnnouncements(
-    userId,
-    100
-  );
+  const announcements =
+    await pgAcademicRepository.getStudentRecentAnnouncements(userId, 100);
 
   return (
     <div className="space-y-6">
@@ -82,7 +80,7 @@ export default async function StudentAnnouncementsPage() {
                   <span className="text-xs text-muted-foreground shrink-0">
                     {new Date(announcement.createdAt).toLocaleDateString(
                       undefined,
-                      { year: "numeric", month: "short", day: "numeric" }
+                      { year: "numeric", month: "short", day: "numeric" },
                     )}
                   </span>
                 </div>

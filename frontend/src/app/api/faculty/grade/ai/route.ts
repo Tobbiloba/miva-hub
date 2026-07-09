@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { generateObject, type ModelMessage, type UserContent } from "ai";
-import { z } from "zod";
-import { getSession } from "@/lib/auth/server";
-import { getFacultyInfo } from "@/lib/auth/faculty";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-import { customModelProvider } from "@/lib/ai/models";
 import { recordAIDecision } from "@/lib/ai/decision-ledger";
+import { customModelProvider } from "@/lib/ai/models";
+import { getFacultyInfo } from "@/lib/auth/faculty";
+import { getSession } from "@/lib/auth/server";
 import { s3Service } from "@/lib/aws/s3-service";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { type ModelMessage, type UserContent, generateObject } from "ai";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 export const maxDuration = 120;
 
@@ -26,9 +26,7 @@ const gradingSuggestionSchema = z.object({
       z.object({
         criterion: z.string().describe("The rubric criterion being assessed"),
         comment: z.string().describe("Specific comment for this criterion"),
-        pointsAwarded: z
-          .number()
-          .describe("Points awarded for this criterion"),
+        pointsAwarded: z.number().describe("Points awarded for this criterion"),
       }),
     )
     .describe("Per-criterion assessment derived from the instructions/rubric"),
@@ -212,7 +210,9 @@ export async function POST(request: NextRequest) {
       inputSummary: [
         `Assignment "${assignment.title}" (${assignment.assignmentType}, ${totalPoints} pts)`,
         hasText ? "text submission" : null,
-        fileIncluded ? `file ${submission.fileName ?? ""} (${submission.mimeType})` : null,
+        fileIncluded
+          ? `file ${submission.fileName ?? ""} (${submission.mimeType})`
+          : null,
       ]
         .filter(Boolean)
         .join(" — "),

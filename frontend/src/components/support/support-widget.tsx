@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { HelpCircle, Loader2, Send, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { cn } from "lib/utils";
 import { Button } from "ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "ui/card";
 import { Input } from "ui/input";
-import { cn } from "lib/utils";
 
 interface SupportMessage {
   role: "user" | "assistant";

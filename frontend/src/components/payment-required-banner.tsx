@@ -1,8 +1,8 @@
 "use client";
 
-import { AlertCircle, ArrowRight } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { AlertCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 interface PaymentRequiredBannerProps {

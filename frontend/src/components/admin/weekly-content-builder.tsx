@@ -1,11 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileUploadZone } from "@/components/admin/file-upload-zone";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -13,32 +20,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { FileUploadZone } from "@/components/admin/file-upload-zone";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { CourseMaterialEntity, CourseWeekEntity } from "@/lib/db/pg/schema.pg";
 import {
-  Calendar,
-  Upload,
-  FileText,
-  Video,
-  Image,
-  Download,
-  Trash2,
-  Edit,
-  Save,
-  X,
-  Plus,
-  CheckCircle,
-  Clock,
   AlertCircle,
   BookOpen,
-  PenTool,
-  Target,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Download,
+  Edit,
+  FileText,
+  Image,
   List,
-  Paperclip
+  Paperclip,
+  PenTool,
+  Plus,
+  Save,
+  Target,
+  Trash2,
+  Upload,
+  Video,
+  X,
 } from "lucide-react";
-import { CourseWeekEntity, CourseMaterialEntity } from "@/lib/db/pg/schema.pg";
+import { useCallback, useEffect, useState } from "react";
 
 interface WeeklyContentBuilderProps {
   courseId: string;
@@ -50,7 +56,7 @@ interface WeeklyContentBuilderProps {
 interface ContentItem {
   id: string;
   title: string;
-  type: 'video' | 'pdf' | 'image' | 'document' | 'quiz' | 'assignment';
+  type: "video" | "pdf" | "image" | "document" | "quiz" | "assignment";
   fileName: string;
   fileSize: number;
   uploadedAt: Date;
@@ -66,7 +72,7 @@ interface UploadTask {
   file: File;
   materialType: string;
   title: string;
-  status: 'pending' | 'uploading' | 'completed' | 'error';
+  status: "pending" | "uploading" | "completed" | "error";
   progress: number;
   error?: string;
   result?: any;
@@ -81,20 +87,22 @@ const MATERIAL_TYPES = [
   { value: "exam", label: "Exam Material", icon: Target },
 ];
 
-export function WeeklyContentBuilder({ 
-  courseId, 
-  courseTitle, 
-  weekData, 
-  onWeekUpdate 
+export function WeeklyContentBuilder({
+  courseId,
+  courseTitle,
+  weekData,
+  onWeekUpdate,
 }: WeeklyContentBuilderProps) {
   const [isEditingWeek, setIsEditingWeek] = useState(false);
   const [weekTitle, setWeekTitle] = useState(weekData.title);
-  const [weekDescription, setWeekDescription] = useState(weekData.description || "");
+  const [weekDescription, setWeekDescription] = useState(
+    weekData.description || "",
+  );
   const [learningObjectives, setLearningObjectives] = useState<string[]>(
-    weekData.learningObjectives ? JSON.parse(weekData.learningObjectives) : []
+    weekData.learningObjectives ? JSON.parse(weekData.learningObjectives) : [],
   );
   const [topics, setTopics] = useState<string[]>(
-    weekData.topics ? JSON.parse(weekData.topics) : []
+    weekData.topics ? JSON.parse(weekData.topics) : [],
   );
   const [newObjective, setNewObjective] = useState("");
   const [newTopic, setNewTopic] = useState("");
@@ -102,35 +110,39 @@ export function WeeklyContentBuilder({
   const [isLoadingContent, setIsLoadingContent] = useState(true);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [uploadTasks, setUploadTasks] = useState<UploadTask[]>([]);
-  const [selectedMaterialType, setSelectedMaterialType] = useState('resource');
+  const [selectedMaterialType, setSelectedMaterialType] = useState("resource");
   const { toast } = useToast();
 
   // Load existing content for this week
   const loadWeekContent = useCallback(async () => {
     try {
-      const response = await fetch(`/api/admin/course-materials?courseId=${courseId}&weekNumber=${weekData.weekNumber}`);
+      const response = await fetch(
+        `/api/admin/course-materials?courseId=${courseId}&weekNumber=${weekData.weekNumber}`,
+      );
       const data = await response.json();
 
       if (data.success) {
-        const items: ContentItem[] = data.data.map((material: CourseMaterialEntity) => ({
-          id: material.id,
-          title: material.title,
-          type: getContentType(material.materialType, material.fileName),
-          fileName: material.fileName || "Unknown file",
-          fileSize: material.fileSize || 0,
-          uploadedAt: new Date(material.createdAt),
-          isProcessed: material.isPublished,
-          s3Url: material.contentUrl,
-          publicUrl: material.publicUrl
-        }));
+        const items: ContentItem[] = data.data.map(
+          (material: CourseMaterialEntity) => ({
+            id: material.id,
+            title: material.title,
+            type: getContentType(material.materialType, material.fileName),
+            fileName: material.fileName || "Unknown file",
+            fileSize: material.fileSize || 0,
+            uploadedAt: new Date(material.createdAt),
+            isProcessed: material.isPublished,
+            s3Url: material.contentUrl,
+            publicUrl: material.publicUrl,
+          }),
+        );
         setContentItems(items);
       }
     } catch (error) {
-      console.error('Error loading week content:', error);
+      console.error("Error loading week content:", error);
       toast({
         title: "Error",
         description: "Failed to load week content",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsLoadingContent(false);
@@ -141,38 +153,48 @@ export function WeeklyContentBuilder({
     loadWeekContent();
   }, [loadWeekContent]);
 
-  const getContentType = (materialType: string, fileName: string | null): ContentItem['type'] => {
-    if (materialType === 'assignment') return 'assignment';
-    if (materialType === 'quiz') return 'quiz';
-    
-    const ext = fileName?.split('.').pop()?.toLowerCase();
-    if (ext === 'mp4' || ext === 'avi' || ext === 'mov') return 'video';
-    if (ext === 'pdf') return 'pdf';
-    if (ext === 'jpg' || ext === 'jpeg' || ext === 'png' || ext === 'gif') return 'image';
-    return 'document';
+  const getContentType = (
+    materialType: string,
+    fileName: string | null,
+  ): ContentItem["type"] => {
+    if (materialType === "assignment") return "assignment";
+    if (materialType === "quiz") return "quiz";
+
+    const ext = fileName?.split(".").pop()?.toLowerCase();
+    if (ext === "mp4" || ext === "avi" || ext === "mov") return "video";
+    if (ext === "pdf") return "pdf";
+    if (ext === "jpg" || ext === "jpeg" || ext === "png" || ext === "gif")
+      return "image";
+    return "document";
   };
 
-  const getContentIcon = (type: ContentItem['type']) => {
+  const getContentIcon = (type: ContentItem["type"]) => {
     switch (type) {
-      case 'video': return Video;
-      case 'pdf': return FileText;
-      case 'image': return Image;
-      case 'quiz': return Target;
-      case 'assignment': return PenTool;
-      default: return FileText;
+      case "video":
+        return Video;
+      case "pdf":
+        return FileText;
+      case "image":
+        return Image;
+      case "quiz":
+        return Target;
+      case "assignment":
+        return PenTool;
+      default:
+        return FileText;
     }
   };
 
   const saveWeekDetails = async () => {
     try {
       const response = await fetch(`/api/admin/course-weeks/${weekData.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: weekTitle,
           description: weekDescription,
           learningObjectives: JSON.stringify(learningObjectives),
-          topics: JSON.stringify(topics)
+          topics: JSON.stringify(topics),
         }),
       });
 
@@ -182,17 +204,17 @@ export function WeeklyContentBuilder({
         setIsEditingWeek(false);
         toast({
           title: "Success",
-          description: "Week details updated successfully"
+          description: "Week details updated successfully",
         });
       } else {
         throw new Error(data.message);
       }
     } catch (error) {
-      console.error('Error updating week:', error);
+      console.error("Error updating week:", error);
       toast({
         title: "Error",
         description: "Failed to update week details",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -223,34 +245,36 @@ export function WeeklyContentBuilder({
     setUploadingFiles(true);
 
     // Create upload tasks
-    const newTasks: UploadTask[] = files.map(file => ({
+    const newTasks: UploadTask[] = files.map((file) => ({
       id: `upload_${Date.now()}_${Math.random()}`,
       file,
       materialType: selectedMaterialType,
-      title: file.name.split('.')[0],
-      status: 'pending',
-      progress: 0
+      title: file.name.split(".")[0],
+      status: "pending",
+      progress: 0,
     }));
 
-    setUploadTasks(prev => [...prev, ...newTasks]);
+    setUploadTasks((prev) => [...prev, ...newTasks]);
 
     try {
       // Process uploads with progress tracking
       for (const task of newTasks) {
-        setUploadTasks(prev => prev.map(t => 
-          t.id === task.id ? { ...t, status: 'uploading' } : t
-        ));
+        setUploadTasks((prev) =>
+          prev.map((t) =>
+            t.id === task.id ? { ...t, status: "uploading" } : t,
+          ),
+        );
 
         const formData = new FormData();
-        formData.append('file', task.file);
-        formData.append('courseId', courseId);
-        formData.append('materialType', task.materialType);
-        formData.append('weekNumber', weekData.weekNumber.toString());
-        formData.append('title', task.title);
+        formData.append("file", task.file);
+        formData.append("courseId", courseId);
+        formData.append("materialType", task.materialType);
+        formData.append("weekNumber", weekData.weekNumber.toString());
+        formData.append("title", task.title);
 
         try {
-          const response = await fetch('/api/content/upload', {
-            method: 'POST',
+          const response = await fetch("/api/content/upload", {
+            method: "POST",
             body: formData,
           });
 
@@ -259,25 +283,39 @@ export function WeeklyContentBuilder({
           }
 
           const result = await response.json();
-          
-          setUploadTasks(prev => prev.map(t => 
-            t.id === task.id ? { ...t, status: 'completed', progress: 100, result } : t
-          ));
+
+          setUploadTasks((prev) =>
+            prev.map((t) =>
+              t.id === task.id
+                ? { ...t, status: "completed", progress: 100, result }
+                : t,
+            ),
+          );
         } catch (error) {
-          setUploadTasks(prev => prev.map(t => 
-            t.id === task.id ? { ...t, status: 'error', error: error instanceof Error ? error.message : 'Upload failed' } : t
-          ));
+          setUploadTasks((prev) =>
+            prev.map((t) =>
+              t.id === task.id
+                ? {
+                    ...t,
+                    status: "error",
+                    error:
+                      error instanceof Error ? error.message : "Upload failed",
+                  }
+                : t,
+            ),
+          );
         }
       }
 
-      const successfulUploads = newTasks.filter(task => 
-        uploadTasks.find(t => t.id === task.id)?.status === 'completed'
+      const successfulUploads = newTasks.filter(
+        (task) =>
+          uploadTasks.find((t) => t.id === task.id)?.status === "completed",
       ).length;
 
       if (successfulUploads > 0) {
         toast({
           title: "Success",
-          description: `${successfulUploads} file(s) uploaded successfully to AWS S3`
+          description: `${successfulUploads} file(s) uploaded successfully to AWS S3`,
         });
 
         // Re-fetch the content list in place, no full page reload
@@ -286,17 +324,17 @@ export function WeeklyContentBuilder({
         }, 2000);
       }
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error("Upload error:", error);
       toast({
         title: "Error",
         description: "Failed to upload some files",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setUploadingFiles(false);
       // Clear completed tasks after 5 seconds
       setTimeout(() => {
-        setUploadTasks(prev => prev.filter(t => t.status !== 'completed'));
+        setUploadTasks((prev) => prev.filter((t) => t.status !== "completed"));
       }, 5000);
     }
   };
@@ -304,29 +342,33 @@ export function WeeklyContentBuilder({
   const deleteContentItem = async (itemId: string) => {
     try {
       const response = await fetch(`/api/admin/course-materials/${itemId}`, {
-        method: 'DELETE'
+        method: "DELETE",
       });
 
       if (response.ok) {
-        setContentItems(contentItems.filter(item => item.id !== itemId));
+        setContentItems(contentItems.filter((item) => item.id !== itemId));
         toast({
           title: "Success",
-          description: "Content deleted successfully"
+          description: "Content deleted successfully",
         });
       } else {
-        throw new Error('Failed to delete content');
+        throw new Error("Failed to delete content");
       }
     } catch (error) {
-      console.error('Error deleting content:', error);
+      console.error("Error deleting content:", error);
       toast({
         title: "Error",
         description: "Failed to delete content",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
-  const contentProgress = Math.round((contentItems.filter(item => item.isProcessed).length / Math.max(contentItems.length, 1)) * 100);
+  const contentProgress = Math.round(
+    (contentItems.filter((item) => item.isProcessed).length /
+      Math.max(contentItems.length, 1)) *
+      100,
+  );
 
   return (
     <div className="space-y-6">
@@ -359,20 +401,24 @@ export function WeeklyContentBuilder({
                     <Save className="h-4 w-4 mr-2" />
                     Save
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       setIsEditingWeek(false);
                       setWeekTitle(weekData.title);
                       setWeekDescription(weekData.description || "");
-                    }} 
+                    }}
                     size="sm"
                   >
                     <X className="h-4 w-4" />
                   </Button>
                 </>
               ) : (
-                <Button variant="outline" onClick={() => setIsEditingWeek(true)} size="sm">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditingWeek(true)}
+                  size="sm"
+                >
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Week
                 </Button>
@@ -380,7 +426,7 @@ export function WeeklyContentBuilder({
             </div>
           </div>
         </CardHeader>
-        
+
         {(isEditingWeek || weekDescription) && (
           <CardContent>
             {isEditingWeek ? (
@@ -402,7 +448,10 @@ export function WeeklyContentBuilder({
                   <div className="space-y-2">
                     {learningObjectives.map((objective, index) => (
                       <div key={index} className="flex items-center gap-2">
-                        <Badge variant="secondary" className="flex-1 justify-start">
+                        <Badge
+                          variant="secondary"
+                          className="flex-1 justify-start"
+                        >
                           {objective}
                           <Button
                             variant="ghost"
@@ -420,7 +469,9 @@ export function WeeklyContentBuilder({
                         value={newObjective}
                         onChange={(e) => setNewObjective(e.target.value)}
                         placeholder="Add learning objective..."
-                        onKeyPress={(e) => e.key === 'Enter' && addLearningObjective()}
+                        onKeyPress={(e) =>
+                          e.key === "Enter" && addLearningObjective()
+                        }
                       />
                       <Button onClick={addLearningObjective} size="sm">
                         <Plus className="h-4 w-4" />
@@ -435,7 +486,10 @@ export function WeeklyContentBuilder({
                   <div className="space-y-2">
                     {topics.map((topic, index) => (
                       <div key={index} className="flex items-center gap-2">
-                        <Badge variant="outline" className="flex-1 justify-start">
+                        <Badge
+                          variant="outline"
+                          className="flex-1 justify-start"
+                        >
                           {topic}
                           <Button
                             variant="ghost"
@@ -453,7 +507,7 @@ export function WeeklyContentBuilder({
                         value={newTopic}
                         onChange={(e) => setNewTopic(e.target.value)}
                         placeholder="Add topic..."
-                        onKeyPress={(e) => e.key === 'Enter' && addTopic()}
+                        onKeyPress={(e) => e.key === "Enter" && addTopic()}
                       />
                       <Button onClick={addTopic} size="sm">
                         <Plus className="h-4 w-4" />
@@ -467,24 +521,28 @@ export function WeeklyContentBuilder({
                 {weekDescription && (
                   <p className="text-muted-foreground">{weekDescription}</p>
                 )}
-                
+
                 {learningObjectives.length > 0 && (
                   <div>
                     <h4 className="font-medium mb-2">Learning Objectives</h4>
                     <div className="flex flex-wrap gap-2">
                       {learningObjectives.map((objective, index) => (
-                        <Badge key={index} variant="secondary">{objective}</Badge>
+                        <Badge key={index} variant="secondary">
+                          {objective}
+                        </Badge>
                       ))}
                     </div>
                   </div>
                 )}
-                
+
                 {topics.length > 0 && (
                   <div>
                     <h4 className="font-medium mb-2">Topics Covered</h4>
                     <div className="flex flex-wrap gap-2">
                       {topics.map((topic, index) => (
-                        <Badge key={index} variant="outline">{topic}</Badge>
+                        <Badge key={index} variant="outline">
+                          {topic}
+                        </Badge>
                       ))}
                     </div>
                   </div>
@@ -514,7 +572,10 @@ export function WeeklyContentBuilder({
                 {/* Material Type Selection */}
                 <div>
                   <Label htmlFor="material-type">Material Type</Label>
-                  <Select value={selectedMaterialType} onValueChange={setSelectedMaterialType}>
+                  <Select
+                    value={selectedMaterialType}
+                    onValueChange={setSelectedMaterialType}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select material type" />
                     </SelectTrigger>
@@ -547,30 +608,39 @@ export function WeeklyContentBuilder({
                     {uploadTasks.map((task) => (
                       <div key={task.id} className="border rounded-lg p-3">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium">{task.title}</span>
+                          <span className="text-sm font-medium">
+                            {task.title}
+                          </span>
                           <div className="flex items-center gap-2">
-                            {task.status === 'uploading' && (
+                            {task.status === "uploading" && (
                               <Clock className="h-4 w-4 animate-spin" />
                             )}
-                            {task.status === 'completed' && (
+                            {task.status === "completed" && (
                               <CheckCircle className="h-4 w-4 text-green-600" />
                             )}
-                            {task.status === 'error' && (
+                            {task.status === "error" && (
                               <AlertCircle className="h-4 w-4 text-red-600" />
                             )}
-                            <Badge 
-                              variant={task.status === 'completed' ? 'default' : 
-                                      task.status === 'error' ? 'destructive' : 'secondary'}
+                            <Badge
+                              variant={
+                                task.status === "completed"
+                                  ? "default"
+                                  : task.status === "error"
+                                    ? "destructive"
+                                    : "secondary"
+                              }
                             >
                               {task.status}
                             </Badge>
                           </div>
                         </div>
-                        {task.status === 'uploading' && (
+                        {task.status === "uploading" && (
                           <Progress value={task.progress} className="h-2" />
                         )}
                         {task.error && (
-                          <p className="text-sm text-red-600 mt-1">{task.error}</p>
+                          <p className="text-sm text-red-600 mt-1">
+                            {task.error}
+                          </p>
                         )}
                         {task.result && (
                           <div className="text-xs text-muted-foreground mt-1">
@@ -607,7 +677,7 @@ export function WeeklyContentBuilder({
                   </div>
                   <Progress value={contentProgress} />
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Total Items</span>
@@ -615,11 +685,15 @@ export function WeeklyContentBuilder({
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Processed</span>
-                    <span>{contentItems.filter(item => item.isProcessed).length}</span>
+                    <span>
+                      {contentItems.filter((item) => item.isProcessed).length}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Pending</span>
-                    <span>{contentItems.filter(item => !item.isProcessed).length}</span>
+                    <span>
+                      {contentItems.filter((item) => !item.isProcessed).length}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -657,27 +731,34 @@ export function WeeklyContentBuilder({
                     className="flex items-center justify-between p-3 border rounded-lg"
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${
-                        item.isProcessed ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'
-                      }`}>
+                      <div
+                        className={`p-2 rounded-lg ${
+                          item.isProcessed
+                            ? "bg-green-100 text-green-600"
+                            : "bg-yellow-100 text-yellow-600"
+                        }`}
+                      >
                         <IconComponent className="h-4 w-4" />
                       </div>
                       <div>
                         <p className="font-medium">{item.title}</p>
                         <p className="text-sm text-muted-foreground">
-                          {item.fileName} • {(item.fileSize / 1024 / 1024).toFixed(1)} MB
+                          {item.fileName} •{" "}
+                          {(item.fileSize / 1024 / 1024).toFixed(1)} MB
                         </p>
                         {item.s3Key && (
                           <div className="text-xs text-muted-foreground mt-1">
                             <p>S3: {item.s3Key}</p>
                             {item.cloudFrontUrl && (
-                              <p className="text-green-600">CloudFront: Available ✓</p>
+                              <p className="text-green-600">
+                                CloudFront: Available ✓
+                              </p>
                             )}
                           </div>
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       {item.isProcessed ? (
                         <Badge
@@ -693,13 +774,15 @@ export function WeeklyContentBuilder({
                           Processing
                         </Badge>
                       )}
-                      
+
                       <div className="flex gap-2">
                         {item.publicUrl && (
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => window.open(item.publicUrl, '_blank')}
+                            onClick={() =>
+                              window.open(item.publicUrl, "_blank")
+                            }
                           >
                             <Download className="h-4 w-4" />
                           </Button>

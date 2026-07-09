@@ -26,7 +26,7 @@ export enum DefaultToolName {
   PythonExecution = "python-execution",
   // Academic Tools
   CourseMaterials = "get-course-materials",
-  UpcomingAssignments = "get-upcoming-assignments", 
+  UpcomingAssignments = "get-upcoming-assignments",
   FindFaculty = "find-faculty",
   AcademicSchedule = "get-academic-schedule",
 }

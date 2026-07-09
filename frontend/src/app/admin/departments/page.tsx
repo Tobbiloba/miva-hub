@@ -1,25 +1,31 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
-  Building2,
-  Plus,
-  Edit,
-  Trash2,
-  Users,
-  BookOpen,
-  Calendar,
-  Search,
-  Filter
-} from "lucide-react";
-import { requireAdmin } from "@/lib/auth/admin";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-import { 
+  DeleteDepartmentDialog,
   DepartmentManagementClient,
   EditDepartmentDialog,
-  DeleteDepartmentDialog 
 } from "@/components/admin/department-management-client";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { requireAdmin } from "@/lib/auth/admin";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import {
+  BookOpen,
+  Building2,
+  Calendar,
+  Edit,
+  Filter,
+  Plus,
+  Search,
+  Trash2,
+  Users,
+} from "lucide-react";
 
 export default async function DepartmentManagementPage() {
   const adminAccess = await requireAdmin();
@@ -36,15 +42,19 @@ export default async function DepartmentManagementPage() {
       const depts = await pgAcademicRepository.getDepartments();
       const analytics = await Promise.all(
         depts.map(async (dept) => {
-          const courses = await pgAcademicRepository.getCoursesByDepartment(dept.id);
-          const faculty = await pgAcademicRepository.getFacultyByDepartment(dept.id);
+          const courses = await pgAcademicRepository.getCoursesByDepartment(
+            dept.id,
+          );
+          const faculty = await pgAcademicRepository.getFacultyByDepartment(
+            dept.id,
+          );
           return {
             departmentId: dept.id,
             totalCourses: courses.length,
             totalFaculty: faculty.length,
-            activeCourses: courses.filter(c => c.isActive).length
+            activeCourses: courses.filter((c) => c.isActive).length,
           };
-        })
+        }),
       );
       return analytics;
     })(),
@@ -53,33 +63,39 @@ export default async function DepartmentManagementPage() {
       const depts = await pgAcademicRepository.getDepartments();
       const analytics = await Promise.all(
         depts.map(async (dept) => {
-          const faculty = await pgAcademicRepository.getFacultyByDepartment(dept.id);
+          const faculty = await pgAcademicRepository.getFacultyByDepartment(
+            dept.id,
+          );
           return {
             departmentId: dept.id,
-            faculty: faculty.map(f => ({
+            faculty: faculty.map((f) => ({
               id: f.id,
               name: f.name,
               position: f.position,
-              email: f.email
-            }))
+              email: f.email,
+            })),
           };
-        })
+        }),
       );
       return analytics;
-    })()
+    })(),
   ]);
 
   // Merge data for comprehensive department view
-  const departmentsWithAnalytics = departments.map(dept => {
-    const courseAnalytic = courseAnalytics.find(ca => ca.departmentId === dept.id);
-    const facultyAnalytic = facultyAnalytics.find(fa => fa.departmentId === dept.id);
-    
+  const departmentsWithAnalytics = departments.map((dept) => {
+    const courseAnalytic = courseAnalytics.find(
+      (ca) => ca.departmentId === dept.id,
+    );
+    const facultyAnalytic = facultyAnalytics.find(
+      (fa) => fa.departmentId === dept.id,
+    );
+
     return {
       ...dept,
       totalCourses: courseAnalytic?.totalCourses || 0,
       activeCourses: courseAnalytic?.activeCourses || 0,
       totalFaculty: courseAnalytic?.totalFaculty || 0,
-      faculty: facultyAnalytic?.faculty || []
+      faculty: facultyAnalytic?.faculty || [],
     };
   });
 
@@ -96,7 +112,7 @@ export default async function DepartmentManagementPage() {
             Manage academic departments, courses, and faculty assignments
           </p>
         </div>
-        
+
         <DepartmentManagementClient>
           <Button className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
@@ -113,47 +129,58 @@ export default async function DepartmentManagementPage() {
               <Building2 className="h-5 w-5 text-blue-600" />
               <div>
                 <p className="text-2xl font-bold">{departments.length}</p>
-                <p className="text-xs text-muted-foreground">Total Departments</p>
+                <p className="text-xs text-muted-foreground">
+                  Total Departments
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-green-600" />
               <div>
                 <p className="text-2xl font-bold">
-                  {courseAnalytics.reduce((sum, ca) => sum + ca.totalCourses, 0)}
+                  {courseAnalytics.reduce(
+                    (sum, ca) => sum + ca.totalCourses,
+                    0,
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground">Total Courses</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-purple-600" />
               <div>
                 <p className="text-2xl font-bold">
-                  {facultyAnalytics.reduce((sum, fa) => sum + fa.faculty.length, 0)}
+                  {facultyAnalytics.reduce(
+                    (sum, fa) => sum + fa.faculty.length,
+                    0,
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground">Total Faculty</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-orange-600" />
               <div>
                 <p className="text-2xl font-bold">
-                  {courseAnalytics.reduce((sum, ca) => sum + ca.activeCourses, 0)}
+                  {courseAnalytics.reduce(
+                    (sum, ca) => sum + ca.activeCourses,
+                    0,
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground">Active Courses</p>
               </div>
@@ -183,7 +210,10 @@ export default async function DepartmentManagementPage() {
       {/* Departments Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {departmentsWithAnalytics.map((department) => (
-          <Card key={department.id} className="hover:shadow-md transition-shadow">
+          <Card
+            key={department.id}
+            className="hover:shadow-md transition-shadow"
+          >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -199,14 +229,18 @@ export default async function DepartmentManagementPage() {
                     </Button>
                   </EditDepartmentDialog>
                   <DeleteDepartmentDialog department={department}>
-                    <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700"
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </DeleteDepartmentDialog>
                 </div>
               </div>
             </CardHeader>
-            
+
             <CardContent className="space-y-4">
               {/* Department Description */}
               {department.description && (
@@ -214,19 +248,25 @@ export default async function DepartmentManagementPage() {
                   {department.description}
                 </p>
               )}
-              
+
               {/* Statistics */}
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <p className="text-lg font-bold text-blue-600">{department.totalCourses}</p>
+                  <p className="text-lg font-bold text-blue-600">
+                    {department.totalCourses}
+                  </p>
                   <p className="text-xs text-muted-foreground">Courses</p>
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-green-600">{department.totalFaculty}</p>
+                  <p className="text-lg font-bold text-green-600">
+                    {department.totalFaculty}
+                  </p>
                   <p className="text-xs text-muted-foreground">Faculty</p>
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-purple-600">{department.activeCourses}</p>
+                  <p className="text-lg font-bold text-purple-600">
+                    {department.activeCourses}
+                  </p>
                   <p className="text-xs text-muted-foreground">Active</p>
                 </div>
               </div>
@@ -237,7 +277,10 @@ export default async function DepartmentManagementPage() {
                   <h4 className="text-sm font-medium">Faculty Members</h4>
                   <div className="space-y-1">
                     {department.faculty.slice(0, 3).map((faculty) => (
-                      <div key={faculty.id} className="flex items-center justify-between text-xs">
+                      <div
+                        key={faculty.id}
+                        className="flex items-center justify-between text-xs"
+                      >
                         <span className="font-medium">{faculty.name}</span>
                         <Badge variant="outline" className="text-xs">
                           {faculty.position}

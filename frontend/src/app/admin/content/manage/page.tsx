@@ -1,10 +1,29 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -14,36 +33,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Database,
-  Search,
-  Filter,
   Download,
-  Upload,
-  Trash2,
   Eye,
-  FileText,
-  Image,
-  Video,
   FileIcon,
-  MoreHorizontal,
+  FileText,
+  Filter,
   FolderOpen,
-  Plus
+  Image,
+  MoreHorizontal,
+  Plus,
+  Search,
+  Trash2,
+  Upload,
+  Video,
 } from "lucide-react";
+import Link from "next/link";
+import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 interface CourseMaterial {
@@ -89,9 +95,9 @@ export default function ContentManagePage() {
   const fetchMaterials = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/course-materials');
+      const response = await fetch("/api/admin/course-materials");
       const data = await response.json();
-      
+
       if (data.success) {
         setMaterials(data.data || []);
       } else {
@@ -107,9 +113,9 @@ export default function ContentManagePage() {
 
   const fetchCourses = async () => {
     try {
-      const response = await fetch('/api/courses/available');
+      const response = await fetch("/api/courses/available");
       const data = await response.json();
-      
+
       if (data.success) {
         setCourses(data.data || []);
       }
@@ -124,14 +130,17 @@ export default function ContentManagePage() {
     }
 
     try {
-      const response = await fetch(`/api/admin/course-materials/${materialId}`, {
-        method: 'DELETE',
-      });
-      
+      const response = await fetch(
+        `/api/admin/course-materials/${materialId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
       const data = await response.json();
-      
+
       if (data.success) {
-        setMaterials(prev => prev.filter(m => m.id !== materialId));
+        setMaterials((prev) => prev.filter((m) => m.id !== materialId));
         toast.success("Material deleted successfully");
       } else {
         toast.error(data.message || "Failed to delete material");
@@ -143,25 +152,25 @@ export default function ContentManagePage() {
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   const getFileIcon = (mimeType: string) => {
-    if (mimeType.includes('video/')) return Video;
-    if (mimeType.includes('image/')) return Image;
-    if (mimeType.includes('pdf')) return FileText;
+    if (mimeType.includes("video/")) return Video;
+    if (mimeType.includes("image/")) return Image;
+    if (mimeType.includes("pdf")) return FileText;
     return FileIcon;
   };
 
@@ -172,25 +181,31 @@ export default function ContentManagePage() {
       resource: "bg-purple-100 text-purple-800",
       reading: "bg-orange-100 text-orange-800",
       exam: "bg-red-100 text-red-800",
-      syllabus: "bg-gray-100 text-gray-800"
+      syllabus: "bg-gray-100 text-gray-800",
     };
     return colors[type as keyof typeof colors] || "bg-gray-100 text-gray-800";
   };
 
   // Filter materials based on search and selections
-  const filteredMaterials = materials.filter(material => {
-    const matchesSearch = material.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         material.fileName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCourse = selectedCourse === "all" || material.courseId === selectedCourse;
-    const matchesType = selectedType === "all" || material.materialType === selectedType;
-    
+  const filteredMaterials = materials.filter((material) => {
+    const matchesSearch =
+      material.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      material.fileName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCourse =
+      selectedCourse === "all" || material.courseId === selectedCourse;
+    const matchesType =
+      selectedType === "all" || material.materialType === selectedType;
+
     return matchesSearch && matchesCourse && matchesType;
   });
 
   // Pagination
   const totalPages = Math.ceil(filteredMaterials.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedMaterials = filteredMaterials.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedMaterials = filteredMaterials.slice(
+    startIndex,
+    startIndex + itemsPerPage,
+  );
 
   if (loading) {
     return (
@@ -206,7 +221,9 @@ export default function ContentManagePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Content Management</h1>
-          <p className="text-muted-foreground">Manage course materials and resources</p>
+          <p className="text-muted-foreground">
+            Manage course materials and resources
+          </p>
         </div>
         <Button asChild>
           <Link href="/admin/content/upload">
@@ -220,7 +237,9 @@ export default function ContentManagePage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Materials</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Materials
+            </CardTitle>
             <Database className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -238,11 +257,15 @@ export default function ContentManagePage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Public Materials</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Public Materials
+            </CardTitle>
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{materials.filter(m => m.isPublic).length}</div>
+            <div className="text-2xl font-bold">
+              {materials.filter((m) => m.isPublic).length}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -252,7 +275,9 @@ export default function ContentManagePage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatFileSize(materials.reduce((sum, m) => sum + (m.fileSize || 0), 0))}
+              {formatFileSize(
+                materials.reduce((sum, m) => sum + (m.fileSize || 0), 0),
+              )}
             </div>
           </CardContent>
         </Card>
@@ -342,8 +367,10 @@ export default function ContentManagePage() {
                 <TableBody>
                   {paginatedMaterials.map((material) => {
                     const Icon = getFileIcon(material.mimeType);
-                    const course = courses.find(c => c.id === material.courseId);
-                    
+                    const course = courses.find(
+                      (c) => c.id === material.courseId,
+                    );
+
                     return (
                       <TableRow key={material.id}>
                         <TableCell>
@@ -351,26 +378,40 @@ export default function ContentManagePage() {
                             <Icon className="h-4 w-4 text-muted-foreground" />
                             <div>
                               <p className="font-medium">{material.title}</p>
-                              <p className="text-sm text-muted-foreground">{material.fileName}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {material.fileName}
+                              </p>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">
-                            <p className="font-medium">{course?.courseCode || 'Unknown'}</p>
-                            <p className="text-muted-foreground">{course?.courseName || ''}</p>
+                            <p className="font-medium">
+                              {course?.courseCode || "Unknown"}
+                            </p>
+                            <p className="text-muted-foreground">
+                              {course?.courseName || ""}
+                            </p>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge className={getTypeColor(material.materialType)}>
+                          <Badge
+                            className={getTypeColor(material.materialType)}
+                          >
                             {material.materialType}
                           </Badge>
                         </TableCell>
                         <TableCell>Week {material.weekNumber}</TableCell>
-                        <TableCell>{formatFileSize(material.fileSize)}</TableCell>
+                        <TableCell>
+                          {formatFileSize(material.fileSize)}
+                        </TableCell>
                         <TableCell>{formatDate(material.createdAt)}</TableCell>
                         <TableCell>
-                          <Badge variant={material.isPublic ? "default" : "secondary"}>
+                          <Badge
+                            variant={
+                              material.isPublic ? "default" : "secondary"
+                            }
+                          >
                             {material.isPublic ? "Public" : "Private"}
                           </Badge>
                         </TableCell>
@@ -391,14 +432,18 @@ export default function ContentManagePage() {
                               </DropdownMenuItem>
                               {material.publicUrl && (
                                 <DropdownMenuItem asChild>
-                                  <a href={material.publicUrl} target="_blank" rel="noopener noreferrer">
+                                  <a
+                                    href={material.publicUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
                                     <Download className="mr-2 h-4 w-4" />
                                     Download
                                   </a>
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => handleDelete(material.id)}
                                 className="text-destructive"
                               >
@@ -418,13 +463,20 @@ export default function ContentManagePage() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-sm text-muted-foreground">
-                    Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredMaterials.length)} of {filteredMaterials.length} materials
+                    Showing {startIndex + 1} to{" "}
+                    {Math.min(
+                      startIndex + itemsPerPage,
+                      filteredMaterials.length,
+                    )}{" "}
+                    of {filteredMaterials.length} materials
                   </p>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.max(1, prev - 1))
+                      }
                       disabled={currentPage === 1}
                     >
                       Previous
@@ -432,7 +484,9 @@ export default function ContentManagePage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                      }
                       disabled={currentPage === totalPages}
                     >
                       Next

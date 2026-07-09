@@ -1,17 +1,17 @@
-import { Card, CardContent, CardHeader, CardTitle } from "ui/card";
-import { Button } from "ui/button";
-import { Badge } from "ui/badge";
-import { 
-  BookOpen, 
-  Clock, 
-  MapPin,
-  FileText,
-  Calendar,
-  ArrowRight,
-  GraduationCap
-} from "lucide-react";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { getSession } from "@/lib/auth/server";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import {
+  ArrowRight,
+  BookOpen,
+  Calendar,
+  Clock,
+  FileText,
+  GraduationCap,
+  MapPin,
+} from "lucide-react";
+import { Badge } from "ui/badge";
+import { Button } from "ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "ui/card";
 
 export default async function StudentCoursesPage() {
   const session = await getSession();
@@ -39,7 +39,10 @@ export default async function StudentCoursesPage() {
   }
 
   // Calculate total credits
-  const totalCredits = courses.reduce((sum, { course }) => sum + (course.credits || 0), 0);
+  const totalCredits = courses.reduce(
+    (sum, { course }) => sum + (course.credits || 0),
+    0,
+  );
 
   return (
     <div className="space-y-6">
@@ -48,7 +51,8 @@ export default async function StudentCoursesPage() {
         <div>
           <h1 className="text-3xl font-bold">My Courses</h1>
           <p className="text-muted-foreground mt-1">
-            {courses.length} course{courses.length !== 1 ? 's' : ''} enrolled • {totalCredits} total credits
+            {courses.length} course{courses.length !== 1 ? "s" : ""} enrolled •{" "}
+            {totalCredits} total credits
           </p>
         </div>
         <div className="flex gap-2">
@@ -98,13 +102,17 @@ async function CourseCard({
   scheduleEntries: { schedule: any; course: any; facultyName: string | null }[];
 }) {
   // Get upcoming assignments for this course
-  const upcomingAssignments = await pgAcademicRepository.getStudentUpcomingAssignments(studentId, 3)
-    .then(assignments => assignments.filter(a => a.assignment.courseId === course.id));
+  const upcomingAssignments = await pgAcademicRepository
+    .getStudentUpcomingAssignments(studentId, 3)
+    .then((assignments) =>
+      assignments.filter((a) => a.assignment.courseId === course.id),
+    );
 
-  const courseSchedule = scheduleEntries.map(e => e.schedule);
+  const courseSchedule = scheduleEntries.map((e) => e.schedule);
 
   const enrollmentDate = new Date(enrollment.enrollmentDate);
-  const isNewEnrollment = (Date.now() - enrollmentDate.getTime()) < (7 * 24 * 60 * 60 * 1000); // 7 days
+  const isNewEnrollment =
+    Date.now() - enrollmentDate.getTime() < 7 * 24 * 60 * 60 * 1000; // 7 days
 
   return (
     <Card className="group hover:shadow-lg transition-all duration-200">
@@ -118,7 +126,7 @@ async function CourseCard({
           </div>
           <div className="flex flex-col items-end gap-1">
             <Badge variant="outline" className="text-xs">
-              {course.credits} credit{course.credits !== 1 ? 's' : ''}
+              {course.credits} credit{course.credits !== 1 ? "s" : ""}
             </Badge>
             {isNewEnrollment && (
               <Badge className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
@@ -128,7 +136,7 @@ async function CourseCard({
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {/* Department & Level */}
         <div className="flex items-center justify-between text-sm">
@@ -137,7 +145,7 @@ async function CourseCard({
             <span className="text-muted-foreground">{department.name}</span>
           </div>
           <Badge variant="secondary" className="text-xs">
-            {course.level || 'Undergraduate'}
+            {course.level || "Undergraduate"}
           </Badge>
         </div>
 
@@ -150,18 +158,25 @@ async function CourseCard({
           {courseSchedule.length > 0 ? (
             <div className="space-y-1">
               {courseSchedule.slice(0, 2).map((schedule, index) => (
-                <div key={index} className="flex items-center justify-between text-xs bg-muted/30 p-2 rounded">
+                <div
+                  key={index}
+                  className="flex items-center justify-between text-xs bg-muted/30 p-2 rounded"
+                >
                   <span className="capitalize">{schedule.dayOfWeek}</span>
-                  <span>{schedule.startTime} - {schedule.endTime}</span>
+                  <span>
+                    {schedule.startTime} - {schedule.endTime}
+                  </span>
                   <div className="flex items-center gap-1">
                     <MapPin className="h-3 w-3" />
-                    <span>{schedule.roomLocation || 'TBD'}</span>
+                    <span>{schedule.roomLocation || "TBD"}</span>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground italic">Schedule not yet set</p>
+            <p className="text-xs text-muted-foreground italic">
+              Schedule not yet set
+            </p>
           )}
         </div>
 
@@ -175,13 +190,19 @@ async function CourseCard({
             <div className="space-y-1">
               {upcomingAssignments.slice(0, 2).map(({ assignment }) => {
                 const dueDate = new Date(assignment.dueDate);
-                const daysUntilDue = Math.ceil((dueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                
+                const daysUntilDue = Math.ceil(
+                  (dueDate.getTime() - new Date().getTime()) /
+                    (1000 * 60 * 60 * 24),
+                );
+
                 return (
-                  <div key={assignment.id} className="flex items-center justify-between text-xs bg-orange-50 dark:bg-orange-950/30 p-2 rounded">
+                  <div
+                    key={assignment.id}
+                    className="flex items-center justify-between text-xs bg-orange-50 dark:bg-orange-950/30 p-2 rounded"
+                  >
                     <span className="truncate flex-1">{assignment.title}</span>
                     <span className="text-orange-600 dark:text-orange-400 shrink-0">
-                      {daysUntilDue > 0 ? `${daysUntilDue}d` : 'Due'}
+                      {daysUntilDue > 0 ? `${daysUntilDue}d` : "Due"}
                     </span>
                   </div>
                 );
@@ -192,21 +213,11 @@ async function CourseCard({
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
-          <Button 
-            size="sm" 
-            className="flex-1"
-            disabled
-            title="Coming soon"
-          >
+          <Button size="sm" className="flex-1" disabled title="Coming soon">
             View Course
             <ArrowRight className="ml-1 h-3 w-3" />
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            disabled
-            title="Coming soon"
-          >
+          <Button variant="outline" size="sm" disabled title="Coming soon">
             <FileText className="h-3 w-3" />
           </Button>
         </div>
@@ -222,7 +233,8 @@ function EmptyCoursesState() {
         <BookOpen className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold mb-2">No Courses Enrolled</h3>
         <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-          You haven&apos;t enrolled in any courses yet. Browse available courses and register for the current semester.
+          You haven&apos;t enrolled in any courses yet. Browse available courses
+          and register for the current semester.
         </p>
         <div className="flex gap-2 justify-center">
           <Button disabled title="Coming soon">

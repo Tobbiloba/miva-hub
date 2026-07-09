@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useEffect } from "react";
-import { MessageCircle, Paperclip, Mic, ArrowUp, X } from "lucide-react";
+import { ArrowUp, MessageCircle, Mic, Paperclip, X } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 interface AsklyComposerProps {
   label?: string;
@@ -155,9 +155,7 @@ export function AsklyComposer({
         </div>
 
         {/* Right side: attachment + voice + char count + send */}
-        <div
-          style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
-        >
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <button
             type="button"
             aria-label="Attach file"
@@ -241,9 +239,7 @@ export function AsklyComposer({
               background: value.trim()
                 ? "linear-gradient(135deg, var(--askly-amber-400) 0%, var(--askly-amber-600) 100%)"
                 : "rgba(255,255,255,0.06)",
-              color: value.trim()
-                ? "#0a0807"
-                : "var(--askly-text-muted)",
+              color: value.trim() ? "#0a0807" : "var(--askly-text-muted)",
               transition: "all 0.15s ease",
               flexShrink: 0,
               boxShadow: value.trim()

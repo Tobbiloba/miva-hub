@@ -1,18 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
-  UserSchema,
-  StudentEnrollmentSchema,
   CourseSchema,
   ProgramSchema,
+  StudentEnrollmentSchema,
+  UserSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and } from "drizzle-orm";
-import { z } from "zod";
 import {
   calculateCumulativeGPA,
   classifyDegree,
 } from "@/lib/utils/grade-calculator";
+import { and, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 const updateAcademicSchema = z.object({
   currentLevel: z.number().int().min(100).max(900).optional(),
@@ -26,7 +26,7 @@ const updateAcademicSchema = z.object({
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const adminAccess = await requireAdmin();
@@ -62,7 +62,7 @@ export async function GET(
     if (!student) {
       return NextResponse.json(
         { success: false, error: "Student not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -84,12 +84,12 @@ export async function GET(
       .from(StudentEnrollmentSchema)
       .innerJoin(
         CourseSchema,
-        eq(StudentEnrollmentSchema.courseId, CourseSchema.id)
+        eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
       )
       .where(eq(StudentEnrollmentSchema.studentId, id))
       .orderBy(
         StudentEnrollmentSchema.academicYear,
-        StudentEnrollmentSchema.semester
+        StudentEnrollmentSchema.semester,
       );
 
     // Identify carryover courses: failed enrollments with no subsequent successful attempt
@@ -97,21 +97,21 @@ export async function GET(
     const completedCourseIds = new Set(
       enrollments
         .filter((e) => e.status === "completed")
-        .map((e) => e.courseId)
+        .map((e) => e.courseId),
     );
     const carryoverCourses = failedEnrollments.filter(
-      (e) => !completedCourseIds.has(e.courseId)
+      (e) => !completedCourseIds.has(e.courseId),
     );
 
     // Calculate CGPA from completed enrollments
     const completedEnrollments = enrollments.filter(
-      (e) => e.status === "completed" && e.gradePoints != null
+      (e) => e.status === "completed" && e.gradePoints != null,
     );
     const cgpa = calculateCumulativeGPA(
       completedEnrollments.map((e) => ({
         gradePoints: Number(e.gradePoints),
         credits: e.credits,
-      }))
+      })),
     );
     const degreeClassification = classifyDegree(cgpa);
 
@@ -125,7 +125,7 @@ export async function GET(
         degreeClassification,
         totalCreditsCompleted: completedEnrollments.reduce(
           (sum, e) => sum + e.credits,
-          0
+          0,
         ),
         totalCreditsEnrolled: enrollments
           .filter((e) => e.status === "enrolled")
@@ -139,14 +139,14 @@ export async function GET(
         error: "Failed to fetch student academic record",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const adminAccess = await requireAdmin();
@@ -168,7 +168,7 @@ export async function PUT(
     if (!existing) {
       return NextResponse.json(
         { success: false, error: "Student not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -210,7 +210,7 @@ export async function PUT(
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, error: "Validation failed", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
@@ -219,7 +219,7 @@ export async function PUT(
         error: "Failed to update student academic record",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

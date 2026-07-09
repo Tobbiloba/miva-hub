@@ -1,20 +1,20 @@
+import { Anchor, Cable, Users } from "lucide-react";
 import React from "react";
-import { Users, Anchor, Cable } from "lucide-react";
 const stats = [
   {
     text: "Questions answered by Askly",
     stat: "2.1M+",
-    icon: <Users className="h-6 w-6 text-black" strokeWidth={1.5}/>,
+    icon: <Users className="h-6 w-6 text-black" strokeWidth={1.5} />,
   },
   {
     text: "Study guides generated",
     stat: "450k+",
-    icon: <Anchor className="h-6 w-6 text-black"  strokeWidth={1.5}/>,
+    icon: <Anchor className="h-6 w-6 text-black" strokeWidth={1.5} />,
   },
   {
     text: "Avg. grade improvement",
     stat: "+12%",
-    icon: <Cable className="h-6 w-6 text-black" strokeWidth={1.5}/>,
+    icon: <Cable className="h-6 w-6 text-black" strokeWidth={1.5} />,
   },
 ];
 const Review = () => {
@@ -30,22 +30,25 @@ const Review = () => {
           </div>
           <div className="w-9/12 border-l-1 text-2xl pl-24">
             <h1>
-              &ldquo;Askly helped me break down tough topics and practice with targeted quizzes. I study less but remember more.&rdquo;
+              &ldquo;Askly helped me break down tough topics and practice with
+              targeted quizzes. I study less but remember more.&rdquo;
             </h1>
           </div>
         </div>
         <div className="flex gap-12 border-t py-20 max-w-7xl mx-auto text-white">
           {stats.map((stat) => (
-            <div key={stat.text} className="flex gap-8 items-center justify-center">
+            <div
+              key={stat.text}
+              className="flex gap-8 items-center justify-center"
+            >
               <div className="w-32 h-32 border bg-white flex justify-center items-center rounded-md">
                 <div className="w-16 h-16 flex justify-center items-center bg-gray-200 rounded-md">
-                    {stat.icon}
+                  {stat.icon}
                 </div>
               </div>
               <div className="flex-1">
-              <div className="text-5xl font-normal">{stat.stat}</div>
-              <div className="text-sm font-[400]">{stat.text}</div>
-              
+                <div className="text-5xl font-normal">{stat.stat}</div>
+                <div className="text-sm font-[400]">{stat.text}</div>
               </div>
             </div>
           ))}

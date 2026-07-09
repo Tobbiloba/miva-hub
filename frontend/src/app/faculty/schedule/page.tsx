@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -8,18 +8,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Calendar, Clock, MapPin } from "lucide-react";
-import { getSession } from "@/lib/auth/server";
 import { getFacultyInfo } from "@/lib/auth/faculty";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { getSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import {
-  ClassScheduleSchema,
-  CourseSchema,
-} from "@/lib/db/pg/schema.pg";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { ClassScheduleSchema, CourseSchema } from "@/lib/db/pg/schema.pg";
 import { eq } from "drizzle-orm";
+import { Calendar, Clock, MapPin } from "lucide-react";
 
-const DAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const DAY_ORDER = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+];
 
 const dayLabel = (d: string) => d.charAt(0).toUpperCase() + d.slice(1);
 
@@ -43,13 +47,17 @@ export default async function FacultySchedulePage() {
     return <div>Error: Invalid faculty session</div>;
   }
 
-  const facultyRecord = await pgAcademicRepository.getFacultyByUserId(facultyInfo.id);
+  const facultyRecord = await pgAcademicRepository.getFacultyByUserId(
+    facultyInfo.id,
+  );
   if (!facultyRecord) {
     return <div>Error: Faculty record not found</div>;
   }
 
   // Get faculty's course IDs
-  const facultyCourses = await pgAcademicRepository.getFacultyCourses(facultyRecord.id);
+  const facultyCourses = await pgAcademicRepository.getFacultyCourses(
+    facultyRecord.id,
+  );
   const courseIds = facultyCourses.map((fc) => fc.course.id);
 
   // Fetch schedules for faculty's courses
@@ -79,16 +87,20 @@ export default async function FacultySchedulePage() {
             classType: ClassScheduleSchema.classType,
           })
           .from(ClassScheduleSchema)
-          .innerJoin(CourseSchema, eq(ClassScheduleSchema.courseId, CourseSchema.id))
-          .where(eq(ClassScheduleSchema.courseId, cid))
-      )
+          .innerJoin(
+            CourseSchema,
+            eq(ClassScheduleSchema.courseId, CourseSchema.id),
+          )
+          .where(eq(ClassScheduleSchema.courseId, cid)),
+      ),
     );
     schedules = results.flat();
   }
 
   // Sort by day of week then start time
   schedules.sort((a, b) => {
-    const dayDiff = DAY_ORDER.indexOf(a.dayOfWeek) - DAY_ORDER.indexOf(b.dayOfWeek);
+    const dayDiff =
+      DAY_ORDER.indexOf(a.dayOfWeek) - DAY_ORDER.indexOf(b.dayOfWeek);
     if (dayDiff !== 0) return dayDiff;
     return a.startTime.localeCompare(b.startTime);
   });
@@ -106,13 +118,15 @@ export default async function FacultySchedulePage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            Weekly Schedule ({schedules.length} class{schedules.length !== 1 ? "es" : ""})
+            Weekly Schedule ({schedules.length} class
+            {schedules.length !== 1 ? "es" : ""})
           </CardTitle>
         </CardHeader>
         <CardContent>
           {schedules.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
-              No class schedules found. Contact your admin to set up your schedule.
+              No class schedules found. Contact your admin to set up your
+              schedule.
             </p>
           ) : (
             <Table>
@@ -141,8 +155,12 @@ export default async function FacultySchedulePage() {
                     </TableCell>
                     <TableCell>
                       <div>
-                        <span className="font-mono font-medium">{s.courseCode}</span>
-                        <p className="text-xs text-muted-foreground">{s.courseTitle}</p>
+                        <span className="font-mono font-medium">
+                          {s.courseCode}
+                        </span>
+                        <p className="text-xs text-muted-foreground">
+                          {s.courseTitle}
+                        </p>
                       </div>
                     </TableCell>
                     <TableCell className="capitalize">{s.classType}</TableCell>
@@ -151,7 +169,9 @@ export default async function FacultySchedulePage() {
                         <MapPin className="h-3 w-3 text-muted-foreground" />
                         {s.roomLocation}
                         {s.buildingName && (
-                          <span className="text-muted-foreground">({s.buildingName})</span>
+                          <span className="text-muted-foreground">
+                            ({s.buildingName})
+                          </span>
                         )}
                       </div>
                     </TableCell>

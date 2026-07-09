@@ -1,29 +1,29 @@
 "use client";
 import { MCPCard } from "@/components/mcp-card";
 
+import { MCPOverview, RECOMMENDED_MCPS } from "@/components/mcp-overview";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { MCPOverview, RECOMMENDED_MCPS } from "@/components/mcp-overview";
 
 import { Skeleton } from "ui/skeleton";
 
-import { ScrollArea } from "ui/scroll-area";
-import { useTranslations } from "next-intl";
-import { MCPIcon } from "ui/mcp-icon";
 import { useMcpList } from "@/hooks/queries/use-mcp-list";
-import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
 import { MCPServerInfo } from "app-types/mcp";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
 import { cn } from "lib/utils";
+import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "ui/dropdown-menu";
-import { useRouter } from "next/navigation";
+import { MCPIcon } from "ui/mcp-icon";
+import { ScrollArea } from "ui/scroll-area";
 
 const LightRays = dynamic(() => import("@/components/ui/light-rays"), {
   ssr: false,

@@ -1,6 +1,6 @@
 import "server-only";
-import { getSession } from "./server";
 import { NextResponse } from "next/server";
+import { getSession } from "./server";
 
 /**
  * Check if the current session belongs to an active student.
@@ -27,23 +27,35 @@ export async function requireStudent() {
     const session = await getSession();
 
     if (!session?.user) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 },
+      );
     }
 
     if (session.user.role !== "student") {
-      return NextResponse.json({ error: "Student access required" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Student access required" },
+        { status: 403 },
+      );
     }
 
     if (session.user.enrollmentStatus !== "active") {
-      return NextResponse.json({
-        error: "Active enrollment required",
-        enrollmentStatus: session.user.enrollmentStatus,
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          error: "Active enrollment required",
+          enrollmentStatus: session.user.enrollmentStatus,
+        },
+        { status: 403 },
+      );
     }
 
     return session;
   } catch {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Authentication required" },
+      { status: 401 },
+    );
   }
 }
 
@@ -88,4 +100,5 @@ export const ENROLLMENT_STATUS = {
   TRANSFERRED: "transferred",
 } as const;
 
-export type EnrollmentStatus = typeof ENROLLMENT_STATUS[keyof typeof ENROLLMENT_STATUS];
+export type EnrollmentStatus =
+  (typeof ENROLLMENT_STATUS)[keyof typeof ENROLLMENT_STATUS];

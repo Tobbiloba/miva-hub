@@ -1,11 +1,11 @@
+import { MCP_CONFIG } from "lib/config/mcp-config";
+import { FILE_BASED_MCP_CONFIG } from "lib/const";
+import {
+  type MCPClientsManager,
+  createMCPClientsManager,
+} from "./create-mcp-clients-manager";
 import { createDbBasedMCPConfigsStorage } from "./db-mcp-config-storage";
 import { createFileBasedMCPConfigsStorage } from "./fb-mcp-config-storage";
-import {
-  createMCPClientsManager,
-  type MCPClientsManager,
-} from "./create-mcp-clients-manager";
-import { FILE_BASED_MCP_CONFIG } from "lib/const";
-import { MCP_CONFIG } from "lib/config/mcp-config";
 declare global {
   // eslint-disable-next-line no-var
   var __mcpClientsManager__: MCPClientsManager;
@@ -29,7 +29,7 @@ async function ensureDefaultMCPServer() {
   try {
     const { mcpRepository } = await import("lib/db/repository");
     const { generateUUID } = await import("lib/utils");
-    
+
     const serverName = MCP_CONFIG.DEFAULT_SERVER_NAME;
     const serverConfig = {
       url: MCP_CONFIG.SERVER_URL,
@@ -43,7 +43,7 @@ async function ensureDefaultMCPServer() {
 
     // Check if server already exists
     const existingServer = await mcpRepository.selectByServerName(serverName);
-    
+
     if (!existingServer) {
       // Create the default MCP server
       await mcpRepository.save({

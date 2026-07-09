@@ -53,7 +53,9 @@ export default async function FacultyManagementPage() {
       user: UserSchema,
       faculty: FacultySchema,
       department: DepartmentSchema,
-      courseCount: sql<number>`count(${CourseInstructorSchema.courseId})`.as("courseCount"),
+      courseCount: sql<number>`count(${CourseInstructorSchema.courseId})`.as(
+        "courseCount",
+      ),
     })
     .from(UserSchema)
     .leftJoin(FacultySchema, eq(UserSchema.id, FacultySchema.userId))

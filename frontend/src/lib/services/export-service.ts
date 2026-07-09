@@ -1,6 +1,6 @@
+import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { saveAs } from "file-saver";
 import Papa from "papaparse";
 
 export type ExportFormat = "pdf" | "csv" | "json";
@@ -52,7 +52,9 @@ export const exportService = {
 
     doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
-    doc.text("Student Performance Report", pageWidth / 2, yPos, { align: "center" });
+    doc.text("Student Performance Report", pageWidth / 2, yPos, {
+      align: "center",
+    });
     yPos += 15;
 
     doc.setFontSize(10);
@@ -85,24 +87,28 @@ export const exportService = {
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Overall Grade: ${data.summary.overallGrade.toFixed(2)}%`, margin, yPos);
+    doc.text(
+      `Overall Grade: ${data.summary.overallGrade.toFixed(2)}%`,
+      margin,
+      yPos,
+    );
     yPos += 6;
     doc.text(
       `Completion Rate: ${data.summary.completionRate.toFixed(2)}%`,
       margin,
-      yPos
+      yPos,
     );
     yPos += 6;
     doc.text(
       `Total Study Time: ${Math.round(data.summary.totalStudyTime / 60)} hours`,
       margin,
-      yPos
+      yPos,
     );
     yPos += 6;
     doc.text(
       `Trend: ${data.summary.trend.charAt(0).toUpperCase() + data.summary.trend.slice(1)}`,
       margin,
-      yPos
+      yPos,
     );
     yPos += 12;
 
@@ -171,19 +177,19 @@ export const exportService = {
       doc.text(
         `Predicted Final Grade: ${latestPrediction.predictedGrade.toFixed(2)}%`,
         margin,
-        yPos
+        yPos,
       );
       yPos += 6;
       doc.text(
         `Confidence: ${(latestPrediction.confidence * 100).toFixed(0)}%`,
         margin,
-        yPos
+        yPos,
       );
       yPos += 6;
       doc.text(
         `Predicted on: ${new Date(latestPrediction.date).toLocaleDateString()}`,
         margin,
-        yPos
+        yPos,
       );
     }
 
@@ -216,7 +222,7 @@ export const exportService = {
   exportConceptMasteryCSV: async (
     conceptMastery: PerformanceData["conceptMastery"],
     studentName: string,
-    courseCode: string
+    courseCode: string,
   ): Promise<void> => {
     const csvData = conceptMastery.map((c) => ({
       Concept: c.concept,
@@ -234,7 +240,7 @@ export const exportService = {
   exportStudySessionsCSV: async (
     studySessions: PerformanceData["studySessions"],
     studentName: string,
-    courseCode: string
+    courseCode: string,
   ): Promise<void> => {
     const csvData = studySessions.map((s) => ({
       Type: s.type,
@@ -248,7 +254,10 @@ export const exportService = {
     saveAs(blob, fileName);
   },
 
-  async exportAllData(data: PerformanceData, format: ExportFormat): Promise<void> {
+  async exportAllData(
+    data: PerformanceData,
+    format: ExportFormat,
+  ): Promise<void> {
     switch (format) {
       case "pdf":
         await this.exportToPDF(data);

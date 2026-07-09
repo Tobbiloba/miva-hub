@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { NotificationSchema } from "@/lib/db/pg/schema.pg";
-import { eq, and, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import { NextResponse } from "next/server";
 
 export async function POST() {
   try {

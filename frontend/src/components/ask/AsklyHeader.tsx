@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Sparkles } from "lucide-react";
+import Link from "next/link";
 
 interface NavItem {
   label: string;
@@ -73,14 +73,14 @@ export function AsklyHeader({
 
       {/* Nav pills + avatar */}
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-        <nav
-          style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}
-        >
+        <nav style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={item.active ? "askly-glass-active" : "askly-glass-subtle"}
+              className={
+                item.active ? "askly-glass-active" : "askly-glass-subtle"
+              }
               style={{
                 display: "inline-flex",
                 alignItems: "center",

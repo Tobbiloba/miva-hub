@@ -1,23 +1,23 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { 
-  ArrowLeft, 
-  Download, 
-  FileText, 
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Brain,
   Calendar,
-  Database,
   CheckCircle,
   Clock,
-  AlertCircle,
-  Brain,
-  Zap
+  Database,
+  Download,
+  FileText,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 interface CourseMaterial {
   id: string;
@@ -68,7 +68,7 @@ export default function ContentDetailPage() {
     try {
       const response = await fetch(`/api/admin/course-materials/${materialId}`);
       const data = await response.json();
-      
+
       if (data.success) {
         setMaterial(data.data);
       } else {
@@ -84,11 +84,11 @@ export default function ContentDetailPage() {
     try {
       const response = await fetch(`/api/content/processing-jobs?limit=50`);
       const data = await response.json();
-      
+
       if (data.jobs) {
         // Filter jobs for this material
         const materialJobs = data.jobs.filter(
-          (job: any) => job.courseMaterialId === materialId
+          (job: any) => job.courseMaterialId === materialId,
         );
         setProcessingJobs(materialJobs);
       }
@@ -100,34 +100,51 @@ export default function ContentDetailPage() {
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      completed: { variant: "default" as const, icon: CheckCircle, color: "text-green-600" },
-      processing: { variant: "secondary" as const, icon: Clock, color: "text-blue-600" },
-      pending: { variant: "outline" as const, icon: Clock, color: "text-yellow-600" },
-      failed: { variant: "destructive" as const, icon: AlertCircle, color: "text-red-600" }
+      completed: {
+        variant: "default" as const,
+        icon: CheckCircle,
+        color: "text-green-600",
+      },
+      processing: {
+        variant: "secondary" as const,
+        icon: Clock,
+        color: "text-blue-600",
+      },
+      pending: {
+        variant: "outline" as const,
+        icon: Clock,
+        color: "text-yellow-600",
+      },
+      failed: {
+        variant: "destructive" as const,
+        icon: AlertCircle,
+        color: "text-red-600",
+      },
     };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+
+    const config =
+      statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
     const Icon = config.icon;
-    
+
     return (
       <Badge variant={config.variant} className="flex items-center gap-1">
         <Icon className={`h-3 w-3 ${config.color}`} />
@@ -147,9 +164,9 @@ export default function ContentDetailPage() {
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
-        a.download = material.fileName || 'download';
+        a.download = material.fileName || "download";
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -224,36 +241,52 @@ export default function ContentDetailPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Type</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Type
+                  </p>
                   <Badge variant="outline">{material.materialType}</Badge>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Week</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Week
+                  </p>
                   <p className="font-medium">Week {material.weekNumber}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">File Name</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    File Name
+                  </p>
                   <p className="font-medium">{material.fileName}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">File Size</p>
-                  <p className="font-medium">{formatFileSize(material.fileSize)}</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    File Size
+                  </p>
+                  <p className="font-medium">
+                    {formatFileSize(material.fileSize)}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Format</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Format
+                  </p>
                   <p className="font-medium">{material.mimeType}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Visibility</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Visibility
+                  </p>
                   <Badge variant={material.isPublic ? "default" : "secondary"}>
                     {material.isPublic ? "Public" : "Private"}
                   </Badge>
                 </div>
               </div>
-              
+
               {material.description && (
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Description</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">
+                    Description
+                  </p>
                   <p className="text-sm">{material.description}</p>
                 </div>
               )}
@@ -272,11 +305,16 @@ export default function ContentDetailPage() {
               {processingJobs.length > 0 ? (
                 <div className="space-y-3">
                   {processingJobs.map((job) => (
-                    <div key={job.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div
+                      key={job.id}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
                       <div className="flex items-center gap-3">
                         <Zap className="h-4 w-4 text-blue-500" />
                         <div>
-                          <p className="font-medium">{job.jobType.replace('_', ' ')}</p>
+                          <p className="font-medium">
+                            {job.jobType.replace("_", " ")}
+                          </p>
                           <p className="text-sm text-muted-foreground">
                             Created {formatDate(job.createdAt)}
                           </p>
@@ -311,8 +349,8 @@ export default function ContentDetailPage() {
               <CardTitle>Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button 
-                onClick={handleDownload} 
+              <Button
+                onClick={handleDownload}
                 className="w-full"
                 disabled={!material.publicUrl}
               >
@@ -338,19 +376,31 @@ export default function ContentDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Material ID</p>
-                <p className="text-xs font-mono bg-muted p-2 rounded">{material.id}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Material ID
+                </p>
+                <p className="text-xs font-mono bg-muted p-2 rounded">
+                  {material.id}
+                </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Course ID</p>
-                <p className="text-xs font-mono bg-muted p-2 rounded">{material.courseId}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Course ID
+                </p>
+                <p className="text-xs font-mono bg-muted p-2 rounded">
+                  {material.courseId}
+                </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Uploaded</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Uploaded
+                </p>
                 <p className="text-sm">{formatDate(material.createdAt)}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Last Updated
+                </p>
                 <p className="text-sm">{formatDate(material.updatedAt)}</p>
               </div>
             </CardContent>

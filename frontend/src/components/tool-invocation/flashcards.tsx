@@ -1,7 +1,13 @@
 "use client";
 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 type FlashcardsProps = {
   flashcards_id?: string;
@@ -21,7 +27,7 @@ export function Flashcards(props: FlashcardsProps) {
   const [flippedCards, setFlippedCards] = useState<Record<number, boolean>>({});
 
   const toggleCard = (index: number) => {
-    setFlippedCards(prev => ({
+    setFlippedCards((prev) => ({
       ...prev,
       [index]: !prev[index],
     }));
@@ -33,12 +39,16 @@ export function Flashcards(props: FlashcardsProps) {
         <CardHeader>
           <CardTitle>Flashcards - {props.topic}</CardTitle>
           <CardDescription>
-            {props.course_code && <span className="font-medium">{props.course_code}</span>}
+            {props.course_code && (
+              <span className="font-medium">{props.course_code}</span>
+            )}
             {props.course_name && props.course_code && " • "}
             {props.course_name && <span>{props.course_name}</span>}
             {(props.course_name || props.course_code) && " • "}
             {props.total_cards} cards
-            {props.difficulty_level && <span className="capitalize"> • {props.difficulty_level}</span>}
+            {props.difficulty_level && (
+              <span className="capitalize"> • {props.difficulty_level}</span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -64,7 +74,9 @@ export function Flashcards(props: FlashcardsProps) {
               <Card className="absolute inset-0 backface-hidden bg-secondary/40 hover:bg-secondary/60 transition-colors">
                 <CardContent className="p-4 h-full flex flex-col items-center justify-center text-center">
                   <p className="text-sm font-medium">{card.front}</p>
-                  <p className="text-xs text-muted-foreground mt-2">Click to flip</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Click to flip
+                  </p>
                 </CardContent>
               </Card>
 
@@ -72,7 +84,9 @@ export function Flashcards(props: FlashcardsProps) {
               <Card className="absolute inset-0 backface-hidden rotate-y-180 bg-accent/50">
                 <CardContent className="p-4 h-full flex flex-col items-center justify-center text-center">
                   <p className="text-sm">{card.back}</p>
-                  <p className="text-xs text-muted-foreground mt-2">Click to flip</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Click to flip
+                  </p>
                 </CardContent>
               </Card>
             </div>

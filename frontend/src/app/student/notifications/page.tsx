@@ -1,21 +1,21 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import useSWR from "swr";
-import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  AlertTriangle,
   Bell,
   BookOpen,
-  Flame,
-  AlertTriangle,
-  Layers,
-  FileText,
-  Trash2,
   CheckCheck,
+  FileText,
+  Flame,
+  Layers,
+  Trash2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
+import useSWR from "swr";
 
 interface Notification {
   id: string;
@@ -54,15 +54,12 @@ export default function NotificationsPage() {
   const [tab, setTab] = useState("all");
   const router = useRouter();
 
-  const {
-    data: allData,
-    mutate: mutateAll,
-  } = useSWR("/api/notifications?limit=50", fetcher);
+  const { data: allData, mutate: mutateAll } = useSWR(
+    "/api/notifications?limit=50",
+    fetcher,
+  );
 
-  const {
-    data: unreadData,
-    mutate: mutateUnread,
-  } = useSWR(
+  const { data: unreadData, mutate: mutateUnread } = useSWR(
     tab === "unread" ? "/api/notifications?unread=true&limit=50" : null,
     fetcher,
   );
@@ -112,7 +109,9 @@ export default function NotificationsPage() {
             <Bell className="h-8 w-8 text-blue-600" />
             Notifications
           </h1>
-          <p className="text-muted-foreground">Stay updated on your study activity</p>
+          <p className="text-muted-foreground">
+            Stay updated on your study activity
+          </p>
         </div>
         {unreadCount > 0 && (
           <Button variant="outline" size="sm" onClick={markAllRead}>
@@ -136,9 +135,7 @@ export default function NotificationsPage() {
               <CardContent className="text-center py-16">
                 <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-lg font-medium mb-2">
-                  {tab === "unread"
-                    ? "All caught up"
-                    : "No notifications yet"}
+                  {tab === "unread" ? "All caught up" : "No notifications yet"}
                 </p>
                 <p className="text-muted-foreground max-w-md mx-auto">
                   {tab === "unread"

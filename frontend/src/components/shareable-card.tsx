@@ -1,5 +1,12 @@
 "use client";
 
+import { AgentSummary } from "app-types/agent";
+import { WorkflowSummary } from "app-types/workflow";
+import { format } from "date-fns";
+import { cn } from "lib/utils";
+import { useTranslations } from "next-intl";
+import Link from "next/link";
+import { Avatar, AvatarFallback, AvatarImage } from "ui/avatar";
 import {
   Card,
   CardContent,
@@ -8,14 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "ui/avatar";
-import { useTranslations } from "next-intl";
-import { format } from "date-fns";
-import { cn } from "lib/utils";
 import { ShareableActions, type Visibility } from "./shareable-actions";
-import { WorkflowSummary } from "app-types/workflow";
-import { AgentSummary } from "app-types/agent";
-import Link from "next/link";
 
 export interface ShareableIcon {
   value?: string;

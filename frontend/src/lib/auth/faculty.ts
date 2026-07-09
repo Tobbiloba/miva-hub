@@ -1,6 +1,6 @@
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { NextResponse } from "next/server";
 import { getSession } from "./server";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 
 /**
  * Faculty Authentication and Authorization Helper Functions
@@ -13,47 +13,49 @@ import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-reposito
  */
 export async function requireFaculty() {
   const session = await getSession();
-  
+
   if (!session?.user) {
     return NextResponse.json(
-      { error: "Authentication required" }, 
-      { status: 401 }
+      { error: "Authentication required" },
+      { status: 401 },
     );
   }
-  
+
   // Check if user has faculty role (from DB enum column)
   if (session.user.role !== "faculty") {
     return NextResponse.json(
       { error: "Faculty access required" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
   // Verify faculty record exists and is active
   try {
-    const facultyRecord = await pgAcademicRepository.getFacultyByUserId(session.user.id);
-    
+    const facultyRecord = await pgAcademicRepository.getFacultyByUserId(
+      session.user.id,
+    );
+
     if (!facultyRecord) {
       return NextResponse.json(
-        { error: "Faculty record not found" }, 
-        { status: 403 }
+        { error: "Faculty record not found" },
+        { status: 403 },
       );
     }
-    
+
     if (!facultyRecord.isActive) {
       return NextResponse.json(
-        { error: "Faculty account is inactive" }, 
-        { status: 403 }
+        { error: "Faculty account is inactive" },
+        { status: 403 },
       );
     }
   } catch (error) {
     console.error("Error verifying faculty status:", error);
     return NextResponse.json(
-      { error: "Authentication verification failed" }, 
-      { status: 500 }
+      { error: "Authentication verification failed" },
+      { status: 500 },
     );
   }
-  
+
   return session;
 }
 
@@ -82,25 +84,27 @@ export function getFacultyInfo(session?: any) {
  * @returns Boolean indicating authorization
  */
 export async function checkCourseInstructorAccess(
-  facultyId: string, 
-  courseId: string, 
-  semester?: string
+  facultyId: string,
+  courseId: string,
+  semester?: string,
 ): Promise<boolean> {
   try {
     // Get current semester if not provided
-    const currentSemester = semester || await getCurrentSemester();
-    
+    const currentSemester = semester || (await getCurrentSemester());
+
     const courseInstructors = await pgAcademicRepository.getCourseInstructors(
-      courseId, 
-      currentSemester
+      courseId,
+      currentSemester,
     );
-    
+
     // Check if faculty is assigned to this course
-    const facultyRecord = await pgAcademicRepository.getFacultyByUserId(facultyId);
+    const facultyRecord =
+      await pgAcademicRepository.getFacultyByUserId(facultyId);
     if (!facultyRecord) return false;
-    
+
     return courseInstructors.some(
-      instructor => instructor.courseInstructor.facultyId === facultyRecord.id
+      (instructor) =>
+        instructor.courseInstructor.facultyId === facultyRecord.id,
     );
   } catch (error) {
     console.error("Error checking course instructor access:", error);
@@ -114,30 +118,33 @@ export async function checkCourseInstructorAccess(
  * @param semester - Optional semester
  * @returns Session object or NextResponse error
  */
-export async function requireCourseInstructor(courseId: string, semester?: string) {
+export async function requireCourseInstructor(
+  courseId: string,
+  semester?: string,
+) {
   const sessionOrError = await requireFaculty();
-  
+
   // If requireFaculty returned an error, pass it through
   if (sessionOrError instanceof NextResponse) {
     return sessionOrError;
   }
-  
+
   const session = sessionOrError;
-  
+
   // Verify course access
   const hasAccess = await checkCourseInstructorAccess(
-    session.user.id, 
-    courseId, 
-    semester
+    session.user.id,
+    courseId,
+    semester,
   );
-  
+
   if (!hasAccess) {
     return NextResponse.json(
-      { error: "Access denied: Not authorized to teach this course" }, 
-      { status: 403 }
+      { error: "Access denied: Not authorized to teach this course" },
+      { status: 403 },
     );
   }
-  
+
   return session;
 }
 
@@ -148,24 +155,44 @@ export async function requireCourseInstructor(courseId: string, semester?: strin
  * @returns Boolean indicating permission
  */
 export async function checkFacultyPermissions(
-  facultyId: string, 
-  permission: string
+  facultyId: string,
+  permission: string,
 ): Promise<boolean> {
   try {
-    const facultyRecord = await pgAcademicRepository.getFacultyByUserId(facultyId);
+    const facultyRecord =
+      await pgAcademicRepository.getFacultyByUserId(facultyId);
     if (!facultyRecord || !facultyRecord.isActive) return false;
-    
+
     // Permission mapping based on faculty position
     const permissions = {
-      'professor': ['grade', 'create_assignments', 'manage_course', 'manage_announcements', 'view_analytics'],
-      'associate_professor': ['grade', 'create_assignments', 'manage_course', 'manage_announcements', 'view_analytics'],
-      'assistant_professor': ['grade', 'create_assignments', 'manage_course', 'manage_announcements', 'view_analytics'],
-      'lecturer': ['grade', 'create_assignments', 'manage_announcements'],
-      'instructor': ['grade', 'create_assignments'],
-      'visiting_professor': ['grade', 'create_assignments', 'manage_course']
+      professor: [
+        "grade",
+        "create_assignments",
+        "manage_course",
+        "manage_announcements",
+        "view_analytics",
+      ],
+      associate_professor: [
+        "grade",
+        "create_assignments",
+        "manage_course",
+        "manage_announcements",
+        "view_analytics",
+      ],
+      assistant_professor: [
+        "grade",
+        "create_assignments",
+        "manage_course",
+        "manage_announcements",
+        "view_analytics",
+      ],
+      lecturer: ["grade", "create_assignments", "manage_announcements"],
+      instructor: ["grade", "create_assignments"],
+      visiting_professor: ["grade", "create_assignments", "manage_course"],
     };
-    
-    const positionPermissions = permissions[facultyRecord.position as keyof typeof permissions] || [];
+
+    const positionPermissions =
+      permissions[facultyRecord.position as keyof typeof permissions] || [];
     return positionPermissions.includes(permission);
   } catch (error) {
     console.error("Error checking faculty permissions:", error);
@@ -180,7 +207,9 @@ export async function checkFacultyPermissions(
  */
 async function getCurrentSemester(): Promise<string> {
   // Import here to avoid circular dependency
-  const { getCurrentSemester: getCurrentSemesterUtil } = await import("@/lib/utils/semester");
+  const { getCurrentSemester: getCurrentSemesterUtil } = await import(
+    "@/lib/utils/semester"
+  );
   return getCurrentSemesterUtil();
 }
 
@@ -192,37 +221,38 @@ async function getCurrentSemester(): Promise<string> {
  * @returns Boolean indicating access permission
  */
 export async function checkStudentAccess(
-  facultyId: string, 
-  studentId: string, 
-  semester?: string
+  facultyId: string,
+  studentId: string,
+  semester?: string,
 ): Promise<boolean> {
   try {
-    const currentSemester = semester || await getCurrentSemester();
-    
+    const currentSemester = semester || (await getCurrentSemester());
+
     // Get faculty record
-    const facultyRecord = await pgAcademicRepository.getFacultyByUserId(facultyId);
+    const facultyRecord =
+      await pgAcademicRepository.getFacultyByUserId(facultyId);
     if (!facultyRecord) return false;
-    
+
     // Get faculty's courses
     const facultyCourses = await pgAcademicRepository.getFacultyCourses(
-      facultyRecord.id, 
-      currentSemester
+      facultyRecord.id,
+      currentSemester,
     );
-    
+
     // Check if student is enrolled in any of faculty's courses
     for (const course of facultyCourses) {
       const enrollments = await pgAcademicRepository.getCourseEnrollments(
-        course.course.id, 
-        currentSemester
+        course.course.id,
+        currentSemester,
       );
-      
+
       const isEnrolled = enrollments.some(
-        enrollment => enrollment.studentId === studentId
+        (enrollment) => enrollment.studentId === studentId,
       );
-      
+
       if (isEnrolled) return true;
     }
-    
+
     return false;
   } catch (error) {
     console.error("Error checking student access:", error);

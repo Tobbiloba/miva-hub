@@ -2,9 +2,9 @@ import { BlendIcon } from "lucide-react";
 import { ClaudeIcon } from "./claude-icon";
 import { GeminiIcon } from "./gemini-icon";
 import { GrokIcon } from "./grok-icon";
-import { OpenAIIcon } from "./openai-icon";
 import { OllamaIcon } from "./ollama-icon";
 import { OpenRouterIcon } from "./open-router-icon";
+import { OpenAIIcon } from "./openai-icon";
 
 export function ModelProviderIcon({
   provider,

@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { FlashcardDeckSchema, CourseSchema } from "@/lib/db/pg/schema.pg";
-import { eq, desc, sql } from "drizzle-orm";
+import { CourseSchema, FlashcardDeckSchema } from "@/lib/db/pg/schema.pg";
+import { desc, eq, sql } from "drizzle-orm";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
@@ -10,7 +10,7 @@ export async function GET() {
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -30,7 +30,10 @@ export async function GET() {
         )`.as("due_count"),
       })
       .from(FlashcardDeckSchema)
-      .innerJoin(CourseSchema, eq(FlashcardDeckSchema.courseId, CourseSchema.id))
+      .innerJoin(
+        CourseSchema,
+        eq(FlashcardDeckSchema.courseId, CourseSchema.id),
+      )
       .where(eq(FlashcardDeckSchema.studentId, session.user.id))
       .orderBy(desc(FlashcardDeckSchema.createdAt));
 
@@ -39,7 +42,7 @@ export async function GET() {
     console.error("GET /api/flashcards/decks error:", error);
     return NextResponse.json(
       { success: false, message: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

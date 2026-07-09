@@ -1,8 +1,8 @@
 "use client";
 import { appStore } from "@/app/store";
+import { fetcher, objectFlow } from "lib/utils";
 import useSWR, { SWRConfiguration } from "swr";
 import { handleErrorWithToast } from "ui/shared-toast";
-import { fetcher, objectFlow } from "lib/utils";
 
 export function useMcpList(options?: SWRConfiguration) {
   return useSWR("/api/mcp/list", fetcher, {

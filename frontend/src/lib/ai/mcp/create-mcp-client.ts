@@ -1,33 +1,33 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import {
-  type MCPServerInfo,
   MCPRemoteConfigZodSchema,
-  MCPStdioConfigZodSchema,
   type MCPServerConfig,
+  type MCPServerInfo,
+  MCPStdioConfigZodSchema,
   type MCPToolInfo,
 } from "app-types/mcp";
 
-import { isMaybeRemoteConfig, isMaybeStdioConfig } from "./is-mcp-config";
-import logger from "logger";
 import type { ConsolaInstance } from "consola";
 import { colorize } from "consola/utils";
 import {
+  Locker,
   createDebounce,
   errorToString,
   generateUUID,
   isNull,
-  Locker,
   withTimeout,
 } from "lib/utils";
+import logger from "logger";
+import { isMaybeRemoteConfig, isMaybeStdioConfig } from "./is-mcp-config";
 
-import { safe } from "ts-safe";
-import { BASE_URL, IS_MCP_SERVER_REMOTE_ONLY, IS_VERCEL_ENV } from "lib/const";
 import { UnauthorizedError } from "@modelcontextprotocol/sdk/client/auth.js";
-import { PgOAuthClientProvider } from "./pg-oauth-provider";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { BASE_URL, IS_MCP_SERVER_REMOTE_ONLY, IS_VERCEL_ENV } from "lib/const";
+import { safe } from "ts-safe";
+import { PgOAuthClientProvider } from "./pg-oauth-provider";
 
 type ClientOptions = {
   autoDisconnectSeconds?: number;

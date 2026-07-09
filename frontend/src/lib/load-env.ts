@@ -1,6 +1,6 @@
-import { config } from "dotenv";
 import { existsSync } from "fs";
 import { join } from "path";
+import { config } from "dotenv";
 
 export const load = <T extends Record<string, string> = Record<string, string>>(
   root: string = process.cwd(),

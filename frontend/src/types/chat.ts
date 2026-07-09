@@ -1,8 +1,8 @@
 import type { LanguageModelUsage, UIMessage } from "ai";
+import { tag } from "lib/tag";
 import { z } from "zod";
 import { AllowedMCPServerZodSchema } from "./mcp";
 import { UserPreferences } from "./user";
-import { tag } from "lib/tag";
 
 export type ChatMetadata = {
   usage?: LanguageModelUsage;

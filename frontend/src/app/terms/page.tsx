@@ -1,6 +1,6 @@
-import { LegalPage } from "@/components/legal/legal-page";
 import fs from "fs";
 import path from "path";
+import { LegalPage } from "@/components/legal/legal-page";
 
 export const metadata = {
   title: "Terms of Service — Askly",

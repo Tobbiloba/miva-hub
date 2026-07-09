@@ -1,11 +1,11 @@
-import { useEffect, useCallback, useState, useRef } from 'react';
-import type { SaveStatus } from './useAutoSave';
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { SaveStatus } from "./useAutoSave";
 
 interface ExamProgressData {
   answers: Record<number, string>;
   currentQuestion: number;
   timeRemaining: number;
-  mode: 'preview' | 'interactive' | 'results';
+  mode: "preview" | "interactive" | "results";
 }
 
 interface UseExamProgressOptions {
@@ -19,9 +19,9 @@ export function useExamProgress({
   examId,
   studentId,
   data,
-  debounceMs = 1000
+  debounceMs = 1000,
 }: UseExamProgressOptions) {
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>({ status: 'idle' });
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>({ status: "idle" });
   const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const dataRef = useRef(data);
 
@@ -29,17 +29,22 @@ export function useExamProgress({
     dataRef.current = data;
   }, [data]);
 
-  const storageKey = examId ? `exam-progress-${examId}` : `exam-progress-temp-${Date.now()}`;
+  const storageKey = examId
+    ? `exam-progress-${examId}`
+    : `exam-progress-temp-${Date.now()}`;
 
   const saveToLocalStorage = useCallback(() => {
     try {
-      localStorage.setItem(storageKey, JSON.stringify({
-        ...dataRef.current,
-        timestamp: new Date().toISOString()
-      }));
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          ...dataRef.current,
+          timestamp: new Date().toISOString(),
+        }),
+      );
       return true;
     } catch (error) {
-      console.error('localStorage save failed:', error);
+      console.error("localStorage save failed:", error);
       return false;
     }
   }, [storageKey]);
@@ -48,38 +53,41 @@ export function useExamProgress({
     if (!examId || !studentId) return false;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/exam/save`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          exam_id: examId,
-          student_id: studentId,
-          answers: dataRef.current.answers,
-          time_remaining_seconds: dataRef.current.timeRemaining,
-          current_question: dataRef.current.currentQuestion,
-          mode: dataRef.current.mode
-        })
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/exam/save`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            exam_id: examId,
+            student_id: studentId,
+            answers: dataRef.current.answers,
+            time_remaining_seconds: dataRef.current.timeRemaining,
+            current_question: dataRef.current.currentQuestion,
+            mode: dataRef.current.mode,
+          }),
+        },
+      );
 
-      if (!response.ok) throw new Error('Backend save failed');
-      
+      if (!response.ok) throw new Error("Backend save failed");
+
       const result = await response.json();
       return result.success;
     } catch (error) {
-      console.error('Backend save failed:', error);
+      console.error("Backend save failed:", error);
       return false;
     }
   }, [examId, studentId]);
 
   const performSave = useCallback(async () => {
-    setSaveStatus({ status: 'saving' });
+    setSaveStatus({ status: "saving" });
 
     const localSaved = saveToLocalStorage();
 
     if (!examId || !studentId) {
       setSaveStatus({
-        status: localSaved ? 'saved' : 'error',
-        lastSavedAt: new Date().toISOString()
+        status: localSaved ? "saved" : "error",
+        lastSavedAt: new Date().toISOString(),
       });
       return;
     }
@@ -88,21 +96,21 @@ export function useExamProgress({
 
     if (backendSaved) {
       setSaveStatus({
-        status: 'saved',
-        lastSavedAt: new Date().toISOString()
+        status: "saved",
+        lastSavedAt: new Date().toISOString(),
       });
     } else {
       setSaveStatus({
-        status: localSaved ? 'offline' : 'error',
+        status: localSaved ? "offline" : "error",
         lastSavedAt: new Date().toISOString(),
-        error: 'Saved locally only'
+        error: "Saved locally only",
       });
     }
   }, [saveToLocalStorage, saveToBackend, examId, studentId]);
 
   useEffect(() => {
     if (data.mode === "results") return;
-    
+
     if (!data || !data.answers) return;
 
     if (saveTimeoutRef.current) {
@@ -123,7 +131,7 @@ export function useExamProgress({
   return {
     saveStatus,
     forceSave: performSave,
-    storageKey
+    storageKey,
   };
 }
 
@@ -140,9 +148,12 @@ export function useLoadExamProgress(examId?: string, studentId?: string) {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 500);
 
-          const response = await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/exam/load/${examId}/${studentId}`, {
-            signal: controller.signal
-          });
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/exam/load/${examId}/${studentId}`,
+            {
+              signal: controller.signal,
+            },
+          );
 
           clearTimeout(timeout);
 
@@ -153,14 +164,14 @@ export function useLoadExamProgress(examId?: string, studentId?: string) {
                 answers: result.answers,
                 currentQuestion: result.current_question,
                 timeRemaining: result.time_remaining_seconds,
-                mode: result.mode
+                mode: result.mode,
               });
               setLoading(false);
               return;
             }
           }
         } catch (error) {
-          console.warn('Backend load failed, using localStorage:', error);
+          console.warn("Backend load failed, using localStorage:", error);
         }
       }
 
@@ -174,11 +185,11 @@ export function useLoadExamProgress(examId?: string, studentId?: string) {
               answers: data.answers,
               currentQuestion: data.currentQuestion,
               timeRemaining: data.timeRemaining,
-              mode: data.mode
+              mode: data.mode,
             });
           }
         } catch (error) {
-          console.error('localStorage load failed:', error);
+          console.error("localStorage load failed:", error);
         }
       }
 
@@ -196,14 +207,17 @@ export async function clearExamProgress(examId?: string, studentId?: string) {
   if (storageKey) {
     localStorage.removeItem(storageKey);
   }
-  
+
   if (examId && studentId) {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/exam/clear/${examId}/${studentId}`, {
-        method: 'DELETE'
-      });
+      await fetch(
+        `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/exam/clear/${examId}/${studentId}`,
+        {
+          method: "DELETE",
+        },
+      );
     } catch (error) {
-      console.error('Backend clear failed:', error);
+      console.error("Backend clear failed:", error);
     }
   }
 }

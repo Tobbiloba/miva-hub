@@ -1,15 +1,17 @@
 "use client";
 
+import { CheckCircle, Loader2, XCircle } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { Loader2, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "ui/button";
 
 export default function BillingCallbackPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const reference = searchParams.get("reference") || searchParams.get("trxref");
-  const [state, setState] = useState<"verifying" | "success" | "error">("verifying");
+  const [state, setState] = useState<"verifying" | "success" | "error">(
+    "verifying",
+  );
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -50,7 +52,9 @@ export default function BillingCallbackPage() {
         attempts++;
         if (attempts >= maxAttempts) {
           setState("error");
-          setMessage("Could not verify your subscription. Please check your billing page.");
+          setMessage(
+            "Could not verify your subscription. Please check your billing page.",
+          );
         } else {
           setTimeout(checkSubscription, 2000);
         }
@@ -66,7 +70,9 @@ export default function BillingCallbackPage() {
         {state === "verifying" && (
           <>
             <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-            <h1 className="text-2xl font-bold">Activating your subscription...</h1>
+            <h1 className="text-2xl font-bold">
+              Activating your subscription...
+            </h1>
             <p className="text-muted-foreground">
               Please wait while we confirm your payment.
             </p>

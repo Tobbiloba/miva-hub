@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
@@ -8,7 +8,7 @@ export async function GET() {
     if (!session) {
       return NextResponse.json(
         { error: "No active academic session found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -35,7 +35,7 @@ export async function GET() {
     console.error("Failed to fetch active session:", error);
     return NextResponse.json(
       { error: "Failed to fetch active session" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

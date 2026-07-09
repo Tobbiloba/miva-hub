@@ -1,8 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireFaculty, checkCourseInstructorAccess } from "@/lib/auth/faculty";
+import {
+  checkCourseInstructorAccess,
+  requireFaculty,
+} from "@/lib/auth/faculty";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { AnnouncementSchema, CourseSchema } from "@/lib/db/pg/schema.pg";
-import { eq, desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const createAnnouncementSchema = z.object({
@@ -40,8 +43,11 @@ export async function GET() {
     return NextResponse.json({ success: true, data: announcements });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch announcements", message: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      {
+        error: "Failed to fetch announcements",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }
@@ -56,11 +62,14 @@ export async function POST(request: NextRequest) {
     const validated = createAnnouncementSchema.parse(body);
 
     // Verify faculty teaches this course
-    const hasAccess = await checkCourseInstructorAccess(session.user.id, validated.courseId);
+    const hasAccess = await checkCourseInstructorAccess(
+      session.user.id,
+      validated.courseId,
+    );
     if (!hasAccess) {
       return NextResponse.json(
         { error: "You are not assigned to teach this course" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -80,18 +89,21 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { success: true, data: announcement, message: "Announcement created" },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Validation failed", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
-      { error: "Failed to create announcement", message: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      {
+        error: "Failed to create announcement",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }

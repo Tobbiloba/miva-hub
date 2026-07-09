@@ -1,32 +1,43 @@
 "use client";
 
-import { useChat } from "@ai-sdk/react";
-import { toast } from "sonner";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import PromptInput from "./prompt-input";
-import clsx from "clsx";
 import { appStore } from "@/app/store";
+import { useChat } from "@ai-sdk/react";
+import clsx from "clsx";
 import { cn, createDebounce, generateUUID, truncateString } from "lib/utils";
-import { ErrorMessage, PreviewMessage } from "./message";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { ChatGreeting } from "./chat-greeting";
+import { ErrorMessage, PreviewMessage } from "./message";
+import PromptInput from "./prompt-input";
 
-import { useShallow } from "zustand/shallow";
 import {
   DefaultChatTransport,
+  UIMessage,
   isToolUIPart,
   lastAssistantMessageIsCompleteWithToolCalls,
-  UIMessage,
 } from "ai";
+import { useShallow } from "zustand/shallow";
 
-import { safe } from "ts-safe";
-import { mutate } from "swr";
-import { ChatApiSchemaRequestBody, ChatModel } from "app-types/chat";
-import { useToRef } from "@/hooks/use-latest";
-import { isShortcutEvent, Shortcuts } from "lib/keyboard-shortcuts";
-import { Button } from "ui/button";
 import { deleteThreadAction } from "@/app/api/chat/actions";
+import { useGenerateThreadTitle } from "@/hooks/queries/use-generate-thread-title";
+import { useToRef } from "@/hooks/use-latest";
+import { useMounted } from "@/hooks/use-mounted";
+import { ChatApiSchemaRequestBody, ChatModel } from "app-types/chat";
+import { AnimatePresence, motion } from "framer-motion";
+import { getStorageManager } from "lib/browser-stroage";
+import { Shortcuts, isShortcutEvent } from "lib/keyboard-shortcuts";
+import {
+  ArrowDown,
+  Loader,
+  PanelRightClose,
+  PanelRightOpen,
+} from "lucide-react";
+import { useTranslations } from "next-intl";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { ArrowDown, Loader, PanelRightOpen, PanelRightClose } from "lucide-react";
+import { mutate } from "swr";
+import { safe } from "ts-safe";
+import { Button } from "ui/button";
 import {
   Dialog,
   DialogContent,
@@ -35,13 +46,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "ui/dialog";
-import { useTranslations } from "next-intl";
 import { Think } from "ui/think";
-import { useGenerateThreadTitle } from "@/hooks/queries/use-generate-thread-title";
-import dynamic from "next/dynamic";
-import { useMounted } from "@/hooks/use-mounted";
-import { getStorageManager } from "lib/browser-stroage";
-import { AnimatePresence, motion } from "framer-motion";
 import { ChatDrawer } from "./chat/ChatSidebar";
 
 type Props = {
@@ -297,14 +302,17 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
     }));
   }, [appStoreMutate]);
 
-  const handleDrawerOpenChange = useCallback((open: boolean) => {
-    appStoreMutate((state) => ({
-      chatSidebar: {
-        ...state.chatSidebar,
-        visible: open,
-      },
-    }));
-  }, [appStoreMutate]);
+  const handleDrawerOpenChange = useCallback(
+    (open: boolean) => {
+      appStoreMutate((state) => ({
+        chatSidebar: {
+          ...state.chatSidebar,
+          visible: open,
+        },
+      }));
+    },
+    [appStoreMutate],
+  );
 
   useEffect(() => {
     appStoreMutate({ currentThreadId: threadId });
@@ -454,7 +462,7 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
           onClose={() => setIsDeleteThreadPopupOpen(false)}
           open={isDeleteThreadPopupOpen}
         />
-        
+
         {/* Drawer Toggle Button */}
         <div className="fixed top-1/2 right-4 -translate-y-1/2 z-50">
           <Button
@@ -471,7 +479,7 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
             )}
           </Button>
         </div>
-        
+
         {/* Chat Drawer */}
         <ChatDrawer
           messages={messages}

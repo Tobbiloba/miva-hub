@@ -1,4 +1,8 @@
 "use client";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -9,20 +13,16 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "ui/sidebar";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
-import Image from "next/image";
 
-import { AppSidebarMenus } from "./app-sidebar-menus";
 import { AppSidebarAgents } from "./app-sidebar-agents";
+import { AppSidebarMenus } from "./app-sidebar-menus";
 import { AppSidebarThreads } from "./app-sidebar-threads";
 
-import { isShortcutEvent, Shortcuts } from "lib/keyboard-shortcuts";
-import { AppSidebarUser } from "./app-sidebar-user";
-import { PanelLeft } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Session, User } from "better-auth";
+import { Shortcuts, isShortcutEvent } from "lib/keyboard-shortcuts";
+import { PanelLeft } from "lucide-react";
+import { AppSidebarUser } from "./app-sidebar-user";
 
 export function AppSidebar({
   session,

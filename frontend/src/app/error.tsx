@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
 
 export default function Error({
   error,
@@ -28,7 +28,11 @@ export default function Error({
           <Button size="lg" onClick={() => reset()}>
             Try Again
           </Button>
-          <Button size="lg" variant="outline" onClick={() => (window.location.href = "/")}>
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() => (window.location.href = "/")}
+          >
             Go to Home
           </Button>
         </div>
@@ -40,7 +44,13 @@ export default function Error({
         )}
 
         <p className="text-muted-foreground mt-12">
-          Need help? <a href="mailto:support@askly.com" className="text-primary hover:underline">Contact support</a>
+          Need help?{" "}
+          <a
+            href="mailto:support@askly.com"
+            className="text-primary hover:underline"
+          >
+            Contact support
+          </a>
         </p>
       </div>
     </div>

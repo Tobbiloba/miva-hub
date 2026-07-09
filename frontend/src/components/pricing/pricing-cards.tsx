@@ -1,12 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Crown, Zap, Loader2, GraduationCap } from "lucide-react";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { CheckCircle2, Crown, GraduationCap, Loader2, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface Plan {
   id: string;
@@ -29,7 +35,6 @@ interface PricingCardsProps {
 export function PricingCards({
   plans,
   currentSubscription,
-  isLoggedIn,
   selectedPlan,
 }: PricingCardsProps) {
   const [loading, setLoading] = useState<string | null>(null);
@@ -68,7 +73,9 @@ export function PricingCards({
       window.location.href = data.authorizationUrl;
     } catch (error) {
       console.error("Subscription error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to start subscription");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to start subscription",
+      );
       setLoading(null);
     }
   };
@@ -86,7 +93,10 @@ export function PricingCards({
   }
 
   const isCurrentPlan = (planId: string) => {
-    return currentSubscription?.planId === planId && currentSubscription?.status === "active";
+    return (
+      currentSubscription?.planId === planId &&
+      currentSubscription?.status === "active"
+    );
   };
 
   return (
@@ -104,27 +114,35 @@ export function PricingCards({
             </Badge>
           </div>
         )}
-        
+
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-blue-600" />
-              <CardTitle className="text-2xl">{studentPlan.displayName}</CardTitle>
+              <CardTitle className="text-2xl">
+                {studentPlan.displayName}
+              </CardTitle>
             </div>
             <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">
               Popular
             </Badge>
           </div>
-          <CardDescription className="text-base">{studentPlan.description}</CardDescription>
+          <CardDescription className="text-base">
+            {studentPlan.description}
+          </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold">₦{(studentPlan.priceNgn / 100).toLocaleString()}</span>
+              <span className="text-4xl font-bold">
+                ₦{(studentPlan.priceNgn / 100).toLocaleString()}
+              </span>
               <span className="text-muted-foreground">/month</span>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">Perfect for regular students</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Perfect for regular students
+            </p>
           </div>
 
           <Button
@@ -170,7 +188,7 @@ export function PricingCards({
             </Badge>
           </div>
         )}
-        
+
         <div className="absolute -top-3 right-4">
           <Badge className="bg-gradient-to-r from-purple-600 to-purple-400 text-white border-0">
             <Crown className="h-3 w-3 mr-1" />
@@ -181,18 +199,26 @@ export function PricingCards({
         <CardHeader>
           <div className="flex items-center gap-2">
             <Crown className="h-5 w-5 text-purple-600" />
-            <CardTitle className="text-2xl">{premiumPlan.displayName}</CardTitle>
+            <CardTitle className="text-2xl">
+              {premiumPlan.displayName}
+            </CardTitle>
           </div>
-          <CardDescription className="text-base">{premiumPlan.description}</CardDescription>
+          <CardDescription className="text-base">
+            {premiumPlan.description}
+          </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold">₦{(premiumPlan.priceNgn / 100).toLocaleString()}</span>
+              <span className="text-4xl font-bold">
+                ₦{(premiumPlan.priceNgn / 100).toLocaleString()}
+              </span>
               <span className="text-muted-foreground">/month</span>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">Advanced features with unlimited access</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Advanced features with unlimited access
+            </p>
           </div>
 
           <Button
@@ -214,7 +240,9 @@ export function PricingCards({
           </Button>
 
           <div className="space-y-3">
-            <p className="text-sm font-semibold">Everything in Student, plus:</p>
+            <p className="text-sm font-semibold">
+              Everything in Student, plus:
+            </p>
             {premiumPlan.features.slice(8, 16).map((feature, idx) => (
               <div key={idx} className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
@@ -238,22 +266,30 @@ export function PricingCards({
             </Badge>
           </div>
         )}
-        
+
         <CardHeader>
           <div className="flex items-center gap-2">
             <GraduationCap className="h-5 w-5 text-green-600" />
-            <CardTitle className="text-2xl">{facultyPlan.displayName}</CardTitle>
+            <CardTitle className="text-2xl">
+              {facultyPlan.displayName}
+            </CardTitle>
           </div>
-          <CardDescription className="text-base">{facultyPlan.description}</CardDescription>
+          <CardDescription className="text-base">
+            {facultyPlan.description}
+          </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold">₦{(facultyPlan.priceNgn / 100).toLocaleString()}</span>
+              <span className="text-4xl font-bold">
+                ₦{(facultyPlan.priceNgn / 100).toLocaleString()}
+              </span>
               <span className="text-muted-foreground">/month</span>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">For educators and course creators</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              For educators and course creators
+            </p>
           </div>
 
           <Button

@@ -1,11 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,8 +11,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  AlertTriangle,
+  ArrowRight,
+  GraduationCap,
+  Loader2,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowRight, GraduationCap, Loader2, AlertTriangle } from "lucide-react";
 
 interface DryRunData {
   currentSessionName: string;
@@ -129,9 +134,9 @@ export function EndSessionConfirmation({
             End Current Session
           </AlertDialogTitle>
           <AlertDialogDescription>
-            This will graduate final-year students, advance all other students to
-            the next level, close the current session, and activate the next one.
-            This action cannot be undone.
+            This will graduate final-year students, advance all other students
+            to the next level, close the current session, and activate the next
+            one. This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -176,7 +181,9 @@ export function EndSessionConfirmation({
             <div className="space-y-3">
               <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Session Transition</span>
+                  <span className="text-sm font-medium">
+                    Session Transition
+                  </span>
                   <span className="text-sm">
                     {preview.currentSessionName}{" "}
                     <ArrowRight className="inline h-3 w-3 mx-1" />{" "}
@@ -214,7 +221,7 @@ export function EndSessionConfirmation({
                           </span>
                           <span>{count} students</span>
                         </div>
-                      )
+                      ),
                     )}
                   </div>
                 </div>
@@ -237,7 +244,7 @@ export function EndSessionConfirmation({
                           </span>
                           <span>{count} students</span>
                         </div>
-                      )
+                      ),
                     )}
                   </div>
                 </div>
@@ -275,10 +282,7 @@ export function EndSessionConfirmation({
               executeEndSession();
             }}
             disabled={
-              confirmation !== "CONFIRM" ||
-              executing ||
-              loading ||
-              !preview
+              confirmation !== "CONFIRM" || executing || loading || !preview
             }
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >

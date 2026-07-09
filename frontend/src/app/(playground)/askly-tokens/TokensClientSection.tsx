@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { BookOpen, HelpCircle, Lightbulb, FileText, LayoutGrid } from "lucide-react";
-import { AsklyPill } from "@/components/ask/AsklyPill";
 import { AsklyComposer } from "@/components/ask/AsklyComposer";
+import { AsklyPill } from "@/components/ask/AsklyPill";
+import {
+  BookOpen,
+  FileText,
+  HelpCircle,
+  LayoutGrid,
+  Lightbulb,
+} from "lucide-react";
+import { useState } from "react";
 
 const pills = [
   { id: "guide", label: "Study guide", icon: BookOpen },
@@ -44,7 +50,14 @@ export function TokensClientSection() {
             />
           ))}
         </div>
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "0.5rem",
+            flexWrap: "wrap",
+            marginTop: "0.5rem",
+          }}
+        >
           {pills.slice(0, 3).map((p) => (
             <AsklyPill key={p.id} icon={p.icon} label={p.label} size="sm" />
           ))}
@@ -89,18 +102,20 @@ export function TokensClientSection() {
           Animation classes
         </h2>
         <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          {(["askly-orb-1", "askly-orb-2", "askly-orb-3"] as const).map((cls, i) => (
-            <div
-              key={cls}
-              className={`${cls} askly-pulse-glow`}
-              style={{
-                width: "60px",
-                height: "60px",
-                borderRadius: "50%",
-                background: `radial-gradient(circle, var(--askly-amber-${[400, 100, 600][i]}) 0%, transparent 70%)`,
-              }}
-            />
-          ))}
+          {(["askly-orb-1", "askly-orb-2", "askly-orb-3"] as const).map(
+            (cls, i) => (
+              <div
+                key={cls}
+                className={`${cls} askly-pulse-glow`}
+                style={{
+                  width: "60px",
+                  height: "60px",
+                  borderRadius: "50%",
+                  background: `radial-gradient(circle, var(--askly-amber-${[400, 100, 600][i]}) 0%, transparent 70%)`,
+                }}
+              />
+            ),
+          )}
           <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.3)" }}>
             orb-1 (14s) · orb-2 (18s) · orb-3 (22s) — all with pulse-glow (4s)
           </span>

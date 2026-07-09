@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Key, Upload, CheckCircle } from "lucide-react";
+import { CheckCircle, Key, Loader2, Save, Upload } from "lucide-react";
+import React, { useState } from "react";
 
 interface ProfileClientProps {
   category: string;
@@ -11,7 +11,7 @@ interface ProfileClientProps {
   children: React.ReactNode;
 }
 
-export function ProfileClient({ category, currentProfile, children }: ProfileClientProps) {
+export function ProfileClient({ category, children }: ProfileClientProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const { toast } = useToast();
@@ -20,14 +20,16 @@ export function ProfileClient({ category, currentProfile, children }: ProfileCli
     setIsLoading(true);
     try {
       // Get form data from the children form elements
-      const form = document.querySelector(`form[data-category="${category}"]`) as HTMLFormElement;
+      const form = document.querySelector(
+        `form[data-category="${category}"]`,
+      ) as HTMLFormElement;
       const formData = new FormData(form);
-      
+
       // Convert FormData to object
       const profileData: any = {};
       formData.forEach((value, key) => {
-        if (key.includes('checkbox') || key.includes('switch')) {
-          profileData[key] = value === 'on';
+        if (key.includes("checkbox") || key.includes("switch")) {
+          profileData[key] = value === "on";
         } else {
           profileData[key] = value;
         }
@@ -41,9 +43,9 @@ export function ProfileClient({ category, currentProfile, children }: ProfileCli
       const response = await fetch("/api/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           category,
-          data: profileData 
+          data: profileData,
         }),
       });
 
@@ -60,7 +62,8 @@ export function ProfileClient({ category, currentProfile, children }: ProfileCli
     } catch (error) {
       toast({
         title: "Update Failed",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description:
+          error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     } finally {
@@ -69,7 +72,11 @@ export function ProfileClient({ category, currentProfile, children }: ProfileCli
   };
 
   const handlePasswordChange = async (passwordData: any) => {
-    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+    if (
+      !passwordData.currentPassword ||
+      !passwordData.newPassword ||
+      !passwordData.confirmPassword
+    ) {
       throw new Error("All password fields are required");
     }
 
@@ -99,9 +106,11 @@ export function ProfileClient({ category, currentProfile, children }: ProfileCli
           title: "Password Changed",
           description: "Your password has been updated successfully.",
         });
-        
+
         // Clear password fields
-        const form = document.querySelector(`form[data-category="${category}"]`) as HTMLFormElement;
+        const form = document.querySelector(
+          `form[data-category="${category}"]`,
+        ) as HTMLFormElement;
         if (form) {
           form.reset();
         }
@@ -113,12 +122,14 @@ export function ProfileClient({ category, currentProfile, children }: ProfileCli
     }
   };
 
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
+    if (!file.type.startsWith("image/")) {
       toast({
         title: "Invalid File",
         description: "Please select an image file (JPG, PNG, or GIF).",
@@ -140,7 +151,7 @@ export function ProfileClient({ category, currentProfile, children }: ProfileCli
     setIsLoading(true);
     try {
       const formData = new FormData();
-      formData.append('photo', file);
+      formData.append("photo", file);
 
       const response = await fetch("/api/profile/photo", {
         method: "POST",
@@ -154,7 +165,7 @@ export function ProfileClient({ category, currentProfile, children }: ProfileCli
           title: "Photo Updated",
           description: "Your profile photo has been updated successfully.",
         });
-        
+
         // Refresh the page to show the new photo
         window.location.reload();
       } else {
@@ -163,7 +174,8 @@ export function ProfileClient({ category, currentProfile, children }: ProfileCli
     } catch (error) {
       toast({
         title: "Upload Failed",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description:
+          error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     } finally {
@@ -204,7 +216,7 @@ export function ProfileClient({ category, currentProfile, children }: ProfileCli
             <Button
               variant="outline"
               size="sm"
-              onClick={() => document.getElementById('photo-upload')?.click()}
+              onClick={() => document.getElementById("photo-upload")?.click()}
               disabled={isLoading}
             >
               <Upload className="mr-2 h-4 w-4" />
@@ -212,9 +224,9 @@ export function ProfileClient({ category, currentProfile, children }: ProfileCli
             </Button>
           </div>
         )}
-        
-        <Button 
-          onClick={handleSave} 
+
+        <Button
+          onClick={handleSave}
           disabled={isLoading || isChangingPassword}
           variant={category === "security" ? "default" : "default"}
         >
@@ -224,9 +236,7 @@ export function ProfileClient({ category, currentProfile, children }: ProfileCli
       </div>
 
       {/* Form content */}
-      <form data-category={category}>
-        {children}
-      </form>
+      <form data-category={category}>{children}</form>
 
       {/* Security specific help text */}
       {category === "security" && (

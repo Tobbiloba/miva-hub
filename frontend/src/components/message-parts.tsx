@@ -1,63 +1,63 @@
 "use client";
 
-import { getToolName, ToolUIPart, UIMessage } from "ai";
+import { useCopy } from "@/hooks/use-copy";
+import type { UseChatHelpers } from "@ai-sdk/react";
+import { ToolUIPart, UIMessage, getToolName } from "ai";
+import { cn, safeJSONParse, truncateString } from "lib/utils";
 import {
   Check,
+  ChevronDownIcon,
+  ChevronRight,
+  ChevronUp,
   Copy,
+  EllipsisIcon,
+  HammerIcon,
   Loader,
   Pencil,
-  ChevronDownIcon,
-  ChevronUp,
   RefreshCw,
-  X,
   Trash2,
-  ChevronRight,
   TriangleAlert,
-  HammerIcon,
-  EllipsisIcon,
+  X,
 } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "ui/button";
+import JsonView from "ui/json-view";
+import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
 import { Markdown } from "./markdown";
 import { MarkdownWithFiles } from "./markdown-with-files";
-import { cn, safeJSONParse, truncateString } from "lib/utils";
-import JsonView from "ui/json-view";
-import { useMemo, useState, memo, useEffect, useRef, useCallback } from "react";
 import { MessageEditor } from "./message-editor";
-import type { UseChatHelpers } from "@ai-sdk/react";
-import { useCopy } from "@/hooks/use-copy";
 
-import { AnimatePresence, motion } from "framer-motion";
-import { SelectModel } from "./select-model";
 import {
   deleteMessageAction,
   deleteMessagesByChatIdAfterTimestampAction,
 } from "@/app/api/chat/actions";
+import { AnimatePresence, motion } from "framer-motion";
+import { SelectModel } from "./select-model";
 
+import { ChatMetadata, ChatModel, ManualToolConfirmTag } from "app-types/chat";
 import { toast } from "sonner";
 import { safe } from "ts-safe";
-import { ChatMetadata, ChatModel, ManualToolConfirmTag } from "app-types/chat";
 
-import { useTranslations } from "next-intl";
 import { extractMCPToolId } from "lib/ai/mcp/mcp-tool-id";
+import { useTranslations } from "next-intl";
 import { Separator } from "ui/separator";
 import { MediaRenderer } from "./chat/MediaRenderer";
 
-import { TextShimmer } from "ui/text-shimmer";
-import equal from "lib/equal";
-import { Avatar, AvatarFallback, AvatarImage } from "ui/avatar";
 import { DefaultToolName } from "lib/ai/tools";
+import equal from "lib/equal";
 import {
   Shortcut,
   getShortcutKeyList,
   isShortcutEvent,
 } from "lib/keyboard-shortcuts";
+import { Avatar, AvatarFallback, AvatarImage } from "ui/avatar";
+import { TextShimmer } from "ui/text-shimmer";
 
-import dynamic from "next/dynamic";
-import { notify } from "lib/notify";
-import { ModelProviderIcon } from "ui/model-provider-icon";
 import { appStore } from "@/app/store";
 import { BACKGROUND_COLORS, EMOJI_DATA } from "lib/const";
+import { notify } from "lib/notify";
+import dynamic from "next/dynamic";
+import { ModelProviderIcon } from "ui/model-provider-icon";
 
 type MessagePart = UIMessage["parts"][number];
 type TextMessagePart = Extract<MessagePart, { type: "text" }>;
@@ -701,7 +701,10 @@ const Assignment = dynamic(
 );
 
 const CourseMaterial = dynamic(
-  () => import("./tool-invocation/course-material").then((mod) => mod.CourseMaterial),
+  () =>
+    import("./tool-invocation/course-material").then(
+      (mod) => mod.CourseMaterial,
+    ),
   {
     ssr: false,
     loading,
@@ -725,7 +728,10 @@ const CourseList = dynamic(
 );
 
 const AssignmentList = dynamic(
-  () => import("./tool-invocation/assignment-list").then((mod) => mod.AssignmentList),
+  () =>
+    import("./tool-invocation/assignment-list").then(
+      (mod) => mod.AssignmentList,
+    ),
   {
     ssr: false,
     loading,
@@ -890,7 +896,6 @@ export const ToolMessagePart = memo(
       return null;
     }, [isCompleted, output, state, errorText]);
 
-
     const CustomToolComponent = useMemo(() => {
       if (
         toolName === DefaultToolName.WebSearch ||
@@ -954,17 +959,11 @@ export const ToolMessagePart = memo(
             );
           case DefaultToolName.CreateQuiz:
             return (
-              <Quiz
-                key={`${toolCallId}-${toolName}`}
-                {...(input as any)}
-              />
+              <Quiz key={`${toolCallId}-${toolName}`} {...(input as any)} />
             );
           case DefaultToolName.CreateExam:
             return (
-              <Exam
-                key={`${toolCallId}-${toolName}`}
-                {...(input as any)}
-              />
+              <Exam key={`${toolCallId}-${toolName}`} {...(input as any)} />
             );
           case DefaultToolName.CreateAssignment:
             return (
@@ -982,10 +981,7 @@ export const ToolMessagePart = memo(
             );
           case DefaultToolName.CreateSchedule:
             return (
-              <Schedule
-                key={`${toolCallId}-${toolName}`}
-                {...(input as any)}
-              />
+              <Schedule key={`${toolCallId}-${toolName}`} {...(input as any)} />
             );
           case DefaultToolName.CreateCourseList:
             return (
@@ -1005,7 +1001,6 @@ export const ToolMessagePart = memo(
       }
       return null;
     }, [toolName, state, onToolCallDirect, result, input]);
-
 
     const { serverName: mcpServerName, toolName: mcpToolName } = useMemo(() => {
       return extractMCPToolId(toolName);

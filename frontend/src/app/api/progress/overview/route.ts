@@ -1,13 +1,13 @@
-import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
-  StudyActivitySchema,
-  StudentEnrollmentSchema,
-  CourseSchema,
   CourseMaterialSchema,
+  CourseSchema,
+  StudentEnrollmentSchema,
+  StudyActivitySchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and, desc, sql, count } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
@@ -27,31 +27,34 @@ export async function GET() {
         // 1. Streak: count distinct days working backwards from today (UTC)
         // Streak: get distinct activity days descending, count consecutive from today
         // Cast to text to avoid node-pg local-tz Date parsing issues
-        pgDb.execute<{ d: string }>(sql`
+        pgDb
+          .execute<{ d: string }>(sql`
           SELECT DISTINCT to_char(date_trunc('day', created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS d
           FROM study_activity
           WHERE student_id = ${studentId}
           ORDER BY d DESC
           LIMIT 365
-        `).then(r => {
-          const rows = r.rows ?? [];
-          if (rows.length === 0) return 0;
-          // Today in UTC as YYYY-MM-DD
-          const now = new Date();
-          const todayStr = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-${String(now.getUTCDate()).padStart(2, "0")}`;
-          const todayMs = Date.parse(todayStr + "T00:00:00Z");
-          let streak = 0;
-          for (const row of rows) {
-            const dayMs = Date.parse(row.d + "T00:00:00Z");
-            const diffDays = Math.round((todayMs - dayMs) / 86400000);
-            if (diffDays === streak) {
-              streak++;
-            } else {
-              break;
+        `)
+          .then((r) => {
+            const rows = r.rows ?? [];
+            if (rows.length === 0) return 0;
+            // Today in UTC as YYYY-MM-DD
+            const now = new Date();
+            const todayStr = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-${String(now.getUTCDate()).padStart(2, "0")}`;
+            const todayMs = Date.parse(todayStr + "T00:00:00Z");
+            let streak = 0;
+            for (const row of rows) {
+              const dayMs = Date.parse(row.d + "T00:00:00Z");
+              const diffDays = Math.round((todayMs - dayMs) / 86400000);
+              if (diffDays === streak) {
+                streak++;
+              } else {
+                break;
+              }
             }
-          }
-          return streak;
-        }).catch(() => 0),
+            return streak;
+          })
+          .catch(() => 0),
 
         // 2. Activity counts (today + this week)
         pgDb
@@ -62,7 +65,9 @@ export async function GET() {
             activitiesThisWeek: sql<number>`COUNT(*) FILTER (
               WHERE ${StudyActivitySchema.createdAt} >= date_trunc('week', CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
             )::int`,
-            lastActivityAt: sql<string | null>`MAX(${StudyActivitySchema.createdAt})`,
+            lastActivityAt: sql<
+              string | null
+            >`MAX(${StudyActivitySchema.createdAt})`,
           })
           .from(StudyActivitySchema)
           .where(eq(StudyActivitySchema.studentId, studentId))

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { runLecturePipeline } from "@/lib/ai/lecture-pipeline";
 import { isCourseInstructor } from "@/lib/academic/lecture-study";
+import { runLecturePipeline } from "@/lib/ai/lecture-pipeline";
 import { requireFaculty } from "@/lib/auth/faculty";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { getUserUniversity } from "@/lib/tenant";

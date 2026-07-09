@@ -1,10 +1,10 @@
-import { Suspense } from "react";
-import { getSession } from "@/lib/auth/server";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { AsklyBackground } from "@/components/ask/AsklyBackground";
 import { AsklyHeader } from "@/components/ask/AsklyHeader";
+import { getSession } from "@/lib/auth/server";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { Suspense } from "react";
 import { DashboardClient } from "./DashboardClient";
-import type { UpcomingAssignment, LatestAnnouncement } from "./DashboardClient";
+import type { LatestAnnouncement, UpcomingAssignment } from "./DashboardClient";
 
 // ── Greeting helper ───────────────────────────────────────────────────────────
 
@@ -28,7 +28,7 @@ async function getPageData(userId: string) {
 
   // Only consider currently-active enrollments (excludes completed 100L courses)
   const activeEnrollments = enrollments.filter(
-    (e) => (e as any).status === "enrolled"
+    (e) => (e as any).status === "enrolled",
   );
 
   // Resolve first course details (enrollment only has courseId)

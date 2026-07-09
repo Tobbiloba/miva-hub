@@ -1,20 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server";
 import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: req.headers });
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const usageTypes = [
-      { type: "ai_messages_per_day", period: "daily", label: "AI Messages Today" },
-      { type: "quizzes_per_week", period: "weekly", label: "Quizzes This Week" },
+      {
+        type: "ai_messages_per_day",
+        period: "daily",
+        label: "AI Messages Today",
+      },
+      {
+        type: "quizzes_per_week",
+        period: "weekly",
+        label: "Quizzes This Week",
+      },
       { type: "exams_per_month", period: "monthly", label: "Exams This Month" },
-      { type: "flashcard_sets_per_week", period: "weekly", label: "Flashcard Sets This Week" },
+      {
+        type: "flashcard_sets_per_week",
+        period: "weekly",
+        label: "Flashcard Sets This Week",
+      },
     ];
 
     const usageData = await Promise.all(
@@ -23,9 +35,9 @@ export async function GET(req: NextRequest) {
           const usage = await subscriptionRepository.checkUsageLimit(
             session.user.id,
             type,
-            period as any
+            period as any,
           );
-          
+
           return {
             label,
             type,
@@ -44,7 +56,7 @@ export async function GET(req: NextRequest) {
             allowed: true,
           };
         }
-      })
+      }),
     );
 
     return NextResponse.json({ usage: usageData });
@@ -52,7 +64,7 @@ export async function GET(req: NextRequest) {
     console.error("Error fetching usage stats:", error);
     return NextResponse.json(
       { error: "Failed to fetch usage statistics" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
   AcademicSessionSchema,
-  UserSchema,
   ProgramSchema,
+  UserSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     if (!currentSession) {
       return NextResponse.json(
         { success: false, error: "No active academic session found" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: "Current session is already in the second semester",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -56,18 +56,18 @@ export async function POST(request: NextRequest) {
         and(
           eq(UserSchema.enrollmentStatus, "active"),
           eq(UserSchema.currentSemester, "first"),
-          eq(UserSchema.role, "student")
-        )
+          eq(UserSchema.role, "student"),
+        ),
       )
       .groupBy(
         UserSchema.currentLevel,
         UserSchema.programId,
-        ProgramSchema.name
+        ProgramSchema.name,
       );
 
     const totalAffected = affectedStudents.reduce(
       (sum, row) => sum + Number(row.count),
-      0
+      0,
     );
 
     // Build breakdown by level
@@ -112,8 +112,8 @@ export async function POST(request: NextRequest) {
           and(
             eq(UserSchema.enrollmentStatus, "active"),
             eq(UserSchema.currentSemester, "first"),
-            eq(UserSchema.role, "student")
-          )
+            eq(UserSchema.role, "student"),
+          ),
         )
         .returning({ id: UserSchema.id });
 
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
         error: "Failed to end semester",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

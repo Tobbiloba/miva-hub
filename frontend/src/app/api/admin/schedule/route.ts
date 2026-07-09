@@ -1,8 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { ClassScheduleSchema, CourseSchema, type ClassScheduleEntity } from "@/lib/db/pg/schema.pg";
-import { eq, and, desc, type SQL } from "drizzle-orm";
+import {
+  type ClassScheduleEntity,
+  ClassScheduleSchema,
+  CourseSchema,
+} from "@/lib/db/pg/schema.pg";
+import { type SQL, and, desc, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const createScheduleSchema = z.object({
@@ -42,7 +46,12 @@ export async function GET(request: NextRequest) {
     const conditions: (SQL | undefined)[] = [];
     if (courseId) conditions.push(eq(ClassScheduleSchema.courseId, courseId));
     if (dayOfWeek)
-      conditions.push(eq(ClassScheduleSchema.dayOfWeek, dayOfWeek as ClassScheduleEntity["dayOfWeek"]));
+      conditions.push(
+        eq(
+          ClassScheduleSchema.dayOfWeek,
+          dayOfWeek as ClassScheduleEntity["dayOfWeek"],
+        ),
+      );
 
     const schedules = await pgDb
       .select({
@@ -60,7 +69,10 @@ export async function GET(request: NextRequest) {
         createdAt: ClassScheduleSchema.createdAt,
       })
       .from(ClassScheduleSchema)
-      .innerJoin(CourseSchema, eq(ClassScheduleSchema.courseId, CourseSchema.id))
+      .innerJoin(
+        CourseSchema,
+        eq(ClassScheduleSchema.courseId, CourseSchema.id),
+      )
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(ClassScheduleSchema.createdAt));
 
@@ -72,7 +84,7 @@ export async function GET(request: NextRequest) {
         error: "Failed to fetch schedules",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -89,7 +101,7 @@ export async function POST(request: NextRequest) {
     if (validated.endTime <= validated.startTime) {
       return NextResponse.json(
         { success: false, error: "End time must be after start time" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -103,7 +115,7 @@ export async function POST(request: NextRequest) {
     if (!course) {
       return NextResponse.json(
         { success: false, error: "Course not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -129,13 +141,13 @@ export async function POST(request: NextRequest) {
         data: schedule,
         message: "Class schedule created successfully",
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, error: "Validation failed", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
@@ -144,7 +156,7 @@ export async function POST(request: NextRequest) {
         error: "Failed to create schedule",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

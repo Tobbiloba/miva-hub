@@ -1,3 +1,5 @@
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -5,19 +7,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookOpen, GraduationCap, FileText } from "lucide-react";
-import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
-  ProgramSchema,
-  ProgramCurriculumSchema,
   CourseSchema,
   DepartmentSchema,
+  ProgramCurriculumSchema,
+  ProgramSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, asc } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
+import { ArrowLeft, BookOpen, FileText, GraduationCap } from "lucide-react";
+import Link from "next/link";
 import { AddCourseDialog } from "./add-course-dialog";
 import { RemoveCourseButton } from "./remove-course-button";
 
@@ -60,7 +60,7 @@ export default async function CurriculumPage({
     .from(ProgramSchema)
     .innerJoin(
       DepartmentSchema,
-      eq(ProgramSchema.departmentId, DepartmentSchema.id)
+      eq(ProgramSchema.departmentId, DepartmentSchema.id),
     )
     .where(eq(ProgramSchema.id, programId))
     .limit(1);
@@ -92,12 +92,12 @@ export default async function CurriculumPage({
     .from(ProgramCurriculumSchema)
     .innerJoin(
       CourseSchema,
-      eq(ProgramCurriculumSchema.courseId, CourseSchema.id)
+      eq(ProgramCurriculumSchema.courseId, CourseSchema.id),
     )
     .where(eq(ProgramCurriculumSchema.programId, programId))
     .orderBy(
       asc(ProgramCurriculumSchema.level),
-      asc(ProgramCurriculumSchema.orderInSemester)
+      asc(ProgramCurriculumSchema.orderInSemester),
     );
 
   // Fetch all courses for the add dialog (filtered by program's department)
@@ -254,9 +254,7 @@ export default async function CurriculumPage({
                                 }
                                 className="shrink-0 text-xs"
                               >
-                                {entry.isCompulsory
-                                  ? "Compulsory"
-                                  : "Elective"}
+                                {entry.isCompulsory ? "Compulsory" : "Elective"}
                               </Badge>
                               <span className="text-xs text-muted-foreground shrink-0">
                                 {entry.credits}cr

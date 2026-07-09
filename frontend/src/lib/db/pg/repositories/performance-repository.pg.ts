@@ -1,28 +1,28 @@
-import { eq, and, desc, asc, gte, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte } from "drizzle-orm";
 import { pgDb as db } from "../db.pg";
 import {
-  PerformanceHistorySchema,
+  type ConceptMasteryEntity,
   ConceptMasterySchema,
-  StudentStudySessionsSchema,
+  type GradePredictionsEntity,
   GradePredictionsSchema,
   type PerformanceHistoryEntity,
-  type ConceptMasteryEntity,
+  PerformanceHistorySchema,
   type StudentStudySessionsEntity,
-  type GradePredictionsEntity,
+  StudentStudySessionsSchema,
 } from "../schema.pg";
 
 export const performanceRepository = {
   async getStudentPerformanceHistory(
     studentId: string,
     courseId?: string,
-    semester?: string
+    semester?: string,
   ): Promise<PerformanceHistoryEntity[]> {
     const conditions = [eq(PerformanceHistorySchema.studentId, studentId)];
-    
+
     if (courseId) {
       conditions.push(eq(PerformanceHistorySchema.courseId, courseId));
     }
-    
+
     if (semester) {
       conditions.push(eq(PerformanceHistorySchema.semester, semester));
     }
@@ -35,7 +35,10 @@ export const performanceRepository = {
   },
 
   async createPerformanceRecord(
-    data: Omit<typeof PerformanceHistorySchema.$inferInsert, "id" | "createdAt" | "updatedAt">
+    data: Omit<
+      typeof PerformanceHistorySchema.$inferInsert,
+      "id" | "createdAt" | "updatedAt"
+    >,
   ): Promise<PerformanceHistoryEntity> {
     const [record] = await db
       .insert(PerformanceHistorySchema)
@@ -53,7 +56,7 @@ export const performanceRepository = {
     courseId: string,
     weekNumber: number,
     semester: string,
-    updates: Partial<typeof PerformanceHistorySchema.$inferInsert>
+    updates: Partial<typeof PerformanceHistorySchema.$inferInsert>,
   ): Promise<PerformanceHistoryEntity | null> {
     const [updated] = await db
       .update(PerformanceHistorySchema)
@@ -66,8 +69,8 @@ export const performanceRepository = {
           eq(PerformanceHistorySchema.studentId, studentId),
           eq(PerformanceHistorySchema.courseId, courseId),
           eq(PerformanceHistorySchema.weekNumber, weekNumber),
-          eq(PerformanceHistorySchema.semester, semester)
-        )
+          eq(PerformanceHistorySchema.semester, semester),
+        ),
       )
       .returning();
     return updated ?? null;
@@ -75,10 +78,10 @@ export const performanceRepository = {
 
   async getStudentConceptMastery(
     studentId: string,
-    courseId?: string
+    courseId?: string,
   ): Promise<ConceptMasteryEntity[]> {
     const conditions = [eq(ConceptMasterySchema.studentId, studentId)];
-    
+
     if (courseId) {
       conditions.push(eq(ConceptMasterySchema.courseId, courseId));
     }
@@ -93,13 +96,13 @@ export const performanceRepository = {
   async getWeakConcepts(
     studentId: string,
     courseId?: string,
-    threshold: number = 0.6
+    threshold: number = 0.6,
   ): Promise<ConceptMasteryEntity[]> {
     const conditions = [
       eq(ConceptMasterySchema.studentId, studentId),
       lte(ConceptMasterySchema.masteryLevel, threshold.toString()),
     ];
-    
+
     if (courseId) {
       conditions.push(eq(ConceptMasterySchema.courseId, courseId));
     }
@@ -115,7 +118,7 @@ export const performanceRepository = {
     studentId: string,
     courseId: string,
     conceptName: string,
-    wasCorrect: boolean
+    wasCorrect: boolean,
   ): Promise<ConceptMasteryEntity> {
     const existing = await db
       .select()
@@ -124,16 +127,19 @@ export const performanceRepository = {
         and(
           eq(ConceptMasterySchema.studentId, studentId),
           eq(ConceptMasterySchema.courseId, courseId),
-          eq(ConceptMasterySchema.conceptName, conceptName)
-        )
+          eq(ConceptMasterySchema.conceptName, conceptName),
+        ),
       )
       .limit(1);
 
     if (existing.length > 0) {
       const current = existing[0];
-      const newCorrectAttempts = (current.correctAttempts ?? 0) + (wasCorrect ? 1 : 0);
+      const newCorrectAttempts =
+        (current.correctAttempts ?? 0) + (wasCorrect ? 1 : 0);
       const newTotalAttempts = (current.totalAttempts ?? 0) + 1;
-      const newMasteryLevel = (newCorrectAttempts / newTotalAttempts).toFixed(2);
+      const newMasteryLevel = (newCorrectAttempts / newTotalAttempts).toFixed(
+        2,
+      );
 
       const [updated] = await db
         .update(ConceptMasterySchema)
@@ -148,11 +154,11 @@ export const performanceRepository = {
           and(
             eq(ConceptMasterySchema.studentId, studentId),
             eq(ConceptMasterySchema.courseId, courseId),
-            eq(ConceptMasterySchema.conceptName, conceptName)
-          )
+            eq(ConceptMasterySchema.conceptName, conceptName),
+          ),
         )
         .returning();
-      
+
       return updated;
     } else {
       const [created] = await db
@@ -170,7 +176,7 @@ export const performanceRepository = {
           updatedAt: new Date(),
         })
         .returning();
-      
+
       return created;
     }
   },
@@ -183,20 +189,29 @@ export const performanceRepository = {
       startDate?: Date;
       endDate?: Date;
       limit?: number;
-    }
+    },
   ): Promise<StudentStudySessionsEntity[]> {
     const conditions = [eq(StudentStudySessionsSchema.studentId, studentId)];
-    
+
     if (options?.courseId) {
-      conditions.push(eq(StudentStudySessionsSchema.courseId, options.courseId));
+      conditions.push(
+        eq(StudentStudySessionsSchema.courseId, options.courseId),
+      );
     }
-    
+
     if (options?.sessionType) {
-      conditions.push(eq(StudentStudySessionsSchema.sessionType, options.sessionType as StudentStudySessionsEntity["sessionType"]));
+      conditions.push(
+        eq(
+          StudentStudySessionsSchema.sessionType,
+          options.sessionType as StudentStudySessionsEntity["sessionType"],
+        ),
+      );
     }
 
     if (options?.startDate) {
-      conditions.push(gte(StudentStudySessionsSchema.startedAt, options.startDate));
+      conditions.push(
+        gte(StudentStudySessionsSchema.startedAt, options.startDate),
+      );
     }
 
     if (options?.endDate) {
@@ -218,7 +233,10 @@ export const performanceRepository = {
   },
 
   async createStudySession(
-    data: Omit<typeof StudentStudySessionsSchema.$inferInsert, "id" | "createdAt">
+    data: Omit<
+      typeof StudentStudySessionsSchema.$inferInsert,
+      "id" | "createdAt"
+    >,
   ): Promise<StudentStudySessionsEntity> {
     const [session] = await db
       .insert(StudentStudySessionsSchema)
@@ -234,7 +252,7 @@ export const performanceRepository = {
     studentId: string,
     courseId?: string,
     startDate?: Date,
-    endDate?: Date
+    endDate?: Date,
   ): Promise<{
     totalMinutes: number;
     sessionCount: number;
@@ -242,15 +260,15 @@ export const performanceRepository = {
     byType: Record<string, number>;
   }> {
     const conditions = [eq(StudentStudySessionsSchema.studentId, studentId)];
-    
+
     if (courseId) {
       conditions.push(eq(StudentStudySessionsSchema.courseId, courseId));
     }
-    
+
     if (startDate) {
       conditions.push(gte(StudentStudySessionsSchema.startedAt, startDate));
     }
-    
+
     if (endDate) {
       conditions.push(lte(StudentStudySessionsSchema.endedAt, endDate));
     }
@@ -260,9 +278,13 @@ export const performanceRepository = {
       .from(StudentStudySessionsSchema)
       .where(and(...conditions));
 
-    const totalMinutes = sessions.reduce((sum, s) => sum + s.durationMinutes, 0);
+    const totalMinutes = sessions.reduce(
+      (sum, s) => sum + s.durationMinutes,
+      0,
+    );
     const sessionCount = sessions.length;
-    const averageSessionLength = sessionCount > 0 ? totalMinutes / sessionCount : 0;
+    const averageSessionLength =
+      sessionCount > 0 ? totalMinutes / sessionCount : 0;
 
     const byType: Record<string, number> = {};
     sessions.forEach((s) => {
@@ -280,14 +302,14 @@ export const performanceRepository = {
   async getGradePredictions(
     studentId: string,
     courseId?: string,
-    semester?: string
+    semester?: string,
   ): Promise<GradePredictionsEntity[]> {
     const conditions = [eq(GradePredictionsSchema.studentId, studentId)];
-    
+
     if (courseId) {
       conditions.push(eq(GradePredictionsSchema.courseId, courseId));
     }
-    
+
     if (semester) {
       conditions.push(eq(GradePredictionsSchema.semester, semester));
     }
@@ -300,7 +322,7 @@ export const performanceRepository = {
   },
 
   async createGradePrediction(
-    data: Omit<typeof GradePredictionsSchema.$inferInsert, "id" | "createdAt">
+    data: Omit<typeof GradePredictionsSchema.$inferInsert, "id" | "createdAt">,
   ): Promise<GradePredictionsEntity> {
     const [prediction] = await db
       .insert(GradePredictionsSchema)
@@ -315,7 +337,7 @@ export const performanceRepository = {
   async getLatestGradePrediction(
     studentId: string,
     courseId: string,
-    semester: string
+    semester: string,
   ): Promise<GradePredictionsEntity | null> {
     const [result] = await db
       .select()
@@ -324,18 +346,18 @@ export const performanceRepository = {
         and(
           eq(GradePredictionsSchema.studentId, studentId),
           eq(GradePredictionsSchema.courseId, courseId),
-          eq(GradePredictionsSchema.semester, semester)
-        )
+          eq(GradePredictionsSchema.semester, semester),
+        ),
       )
       .orderBy(desc(GradePredictionsSchema.predictedAt))
       .limit(1);
-    
+
     return result ?? null;
   },
 
   async getDashboardData(
     studentId: string,
-    semester: string
+    semester: string,
   ): Promise<{
     performanceHistory: PerformanceHistoryEntity[];
     conceptMastery: ConceptMasteryEntity[];
@@ -377,14 +399,18 @@ export const performanceRepository = {
   async getPerformanceTrends(
     studentId: string,
     courseId: string,
-    semester: string
+    semester: string,
   ): Promise<{
     weeklyGrades: Array<{ week: number; grade: number }>;
     studyTimeByWeek: Array<{ week: number; minutes: number }>;
     completionRate: number;
     trend: "improving" | "declining" | "stable";
   }> {
-    const history = await this.getStudentPerformanceHistory(studentId, courseId, semester);
+    const history = await this.getStudentPerformanceHistory(
+      studentId,
+      courseId,
+      semester,
+    );
 
     const weeklyGrades = history
       .filter((h) => h.averageGrade !== null)
@@ -401,9 +427,16 @@ export const performanceRepository = {
       }))
       .sort((a, b) => a.week - b.week);
 
-    const totalCompleted = history.reduce((sum, h) => sum + (h.assignmentsCompleted ?? 0), 0);
-    const totalAssignments = history.reduce((sum, h) => sum + (h.assignmentsTotal ?? 0), 0);
-    const completionRate = totalAssignments > 0 ? (totalCompleted / totalAssignments) * 100 : 0;
+    const totalCompleted = history.reduce(
+      (sum, h) => sum + (h.assignmentsCompleted ?? 0),
+      0,
+    );
+    const totalAssignments = history.reduce(
+      (sum, h) => sum + (h.assignmentsTotal ?? 0),
+      0,
+    );
+    const completionRate =
+      totalAssignments > 0 ? (totalCompleted / totalAssignments) * 100 : 0;
 
     let trend: "improving" | "declining" | "stable" = "stable";
     if (weeklyGrades.length >= 3) {
@@ -411,7 +444,7 @@ export const performanceRepository = {
       const first = recent[0].grade;
       const last = recent[recent.length - 1].grade;
       const diff = last - first;
-      
+
       if (diff > 5) trend = "improving";
       else if (diff < -5) trend = "declining";
     }
@@ -426,30 +459,44 @@ export const performanceRepository = {
 
   async getStrengthsAndWeaknesses(
     studentId: string,
-    courseId?: string
+    courseId?: string,
   ): Promise<{
     strengths: ConceptMasteryEntity[];
     weaknesses: ConceptMasteryEntity[];
     needsPractice: ConceptMasteryEntity[];
   }> {
-    const allConcepts = await this.getStudentConceptMastery(studentId, courseId);
+    const allConcepts = await this.getStudentConceptMastery(
+      studentId,
+      courseId,
+    );
 
     const strengths = allConcepts.filter(
-      (c) => parseFloat(c.masteryLevel || "0") >= 0.8
+      (c) => parseFloat(c.masteryLevel || "0") >= 0.8,
     );
 
     const weaknesses = allConcepts.filter(
-      (c) => parseFloat(c.masteryLevel || "0") < 0.5
+      (c) => parseFloat(c.masteryLevel || "0") < 0.5,
     );
 
     const needsPractice = allConcepts.filter(
-      (c) => parseFloat(c.masteryLevel || "0") >= 0.5 && parseFloat(c.masteryLevel || "0") < 0.8
+      (c) =>
+        parseFloat(c.masteryLevel || "0") >= 0.5 &&
+        parseFloat(c.masteryLevel || "0") < 0.8,
     );
 
     return {
-      strengths: strengths.sort((a, b) => parseFloat(b.masteryLevel || "0") - parseFloat(a.masteryLevel || "0")),
-      weaknesses: weaknesses.sort((a, b) => parseFloat(a.masteryLevel || "0") - parseFloat(b.masteryLevel || "0")),
-      needsPractice: needsPractice.sort((a, b) => parseFloat(a.masteryLevel || "0") - parseFloat(b.masteryLevel || "0")),
+      strengths: strengths.sort(
+        (a, b) =>
+          parseFloat(b.masteryLevel || "0") - parseFloat(a.masteryLevel || "0"),
+      ),
+      weaknesses: weaknesses.sort(
+        (a, b) =>
+          parseFloat(a.masteryLevel || "0") - parseFloat(b.masteryLevel || "0"),
+      ),
+      needsPractice: needsPractice.sort(
+        (a, b) =>
+          parseFloat(a.masteryLevel || "0") - parseFloat(b.masteryLevel || "0"),
+      ),
     };
   },
 };

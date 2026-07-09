@@ -1,15 +1,22 @@
 "use client";
 
-import { useState, useMemo } from 'react';
-import { Button } from 'ui/button';
-import { ChevronDown, ChevronUp, FileText, Video, Music, Image } from 'lucide-react';
-import { cn } from 'lib/utils';
-import { PDFViewer } from '../media/PDFViewer';
-import { VideoPlayer } from '../media/VideoPlayer';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from "framer-motion";
+import { cn } from "lib/utils";
+import {
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Image,
+  Music,
+  Video,
+} from "lucide-react";
+import { useMemo, useState } from "react";
+import { Button } from "ui/button";
+import { PDFViewer } from "../media/PDFViewer";
+import { VideoPlayer } from "../media/VideoPlayer";
 
 interface MediaItem {
-  type: 'pdf' | 'video' | 'audio' | 'image';
+  type: "pdf" | "video" | "audio" | "image";
   url: string;
   title?: string;
 }
@@ -22,7 +29,7 @@ interface ExpandableMediaProps {
 // Extract media URLs from text content
 function extractMediaUrls(text: string): MediaItem[] {
   const mediaItems: MediaItem[] = [];
-  
+
   // URL patterns for different media types
   const patterns = {
     pdf: /https?:\/\/[^\s]+\.pdf(?:\?[^\s]*)?/gi,
@@ -30,32 +37,32 @@ function extractMediaUrls(text: string): MediaItem[] {
     audio: /https?:\/\/[^\s]+\.(?:mp3|wav|m4a|ogg)(?:\?[^\s]*)?/gi,
     image: /https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg)(?:\?[^\s]*)?/gi,
   };
-  
+
   Object.entries(patterns).forEach(([type, pattern]) => {
     const matches = text.match(pattern) || [];
-    matches.forEach(url => {
+    matches.forEach((url) => {
       // Extract filename for title
-      const filename = url.split('/').pop()?.split('?')[0] || url;
+      const filename = url.split("/").pop()?.split("?")[0] || url;
       mediaItems.push({
-        type: type as MediaItem['type'],
+        type: type as MediaItem["type"],
         url,
         title: filename,
       });
     });
   });
-  
+
   return mediaItems;
 }
 
-function getMediaIcon(type: MediaItem['type']) {
+function getMediaIcon(type: MediaItem["type"]) {
   switch (type) {
-    case 'pdf':
+    case "pdf":
       return <FileText className="w-4 h-4 text-red-500" />;
-    case 'video':
+    case "video":
       return <Video className="w-4 h-4 text-blue-500" />;
-    case 'audio':
+    case "audio":
       return <Music className="w-4 h-4 text-green-500" />;
-    case 'image':
+    case "image":
       return <Image className="w-4 h-4 text-purple-500" />;
     default:
       return <FileText className="w-4 h-4 text-gray-500" />;
@@ -64,46 +71,46 @@ function getMediaIcon(type: MediaItem['type']) {
 
 function MediaViewer({ mediaItem }: { mediaItem: MediaItem }) {
   switch (mediaItem.type) {
-    case 'pdf':
+    case "pdf":
       return (
         <div className="w-full h-96 border rounded-lg overflow-hidden">
           <PDFViewer url={mediaItem.url} />
         </div>
       );
-      
-    case 'video':
+
+    case "video":
       return (
         <div className="w-full max-w-2xl">
           <VideoPlayer src={mediaItem.url} />
         </div>
       );
-      
-    case 'audio':
+
+    case "audio":
       return (
         <div className="w-full">
           <audio
             controls
             className="w-full"
             src={mediaItem.url}
-            aria-label={`Audio: ${mediaItem.title || 'Media content'}`}
+            aria-label={`Audio: ${mediaItem.title || "Media content"}`}
           >
             Your browser does not support the audio element.
           </audio>
         </div>
       );
-      
-    case 'image':
+
+    case "image":
       return (
         <div className="w-full max-w-2xl">
           <img
             src={mediaItem.url}
-            alt={mediaItem.title || 'Media content'}
+            alt={mediaItem.title || "Media content"}
             className="w-full h-auto rounded-lg border"
             loading="lazy"
           />
         </div>
       );
-      
+
     default:
       return (
         <div className="p-4 border rounded-lg bg-muted">
@@ -140,13 +147,13 @@ const variants = {
 
 export function ExpandableMedia({ content, className }: ExpandableMediaProps) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-  
+
   const mediaItems = useMemo(() => extractMediaUrls(content), [content]);
-  
+
   if (mediaItems.length === 0) {
     return null;
   }
-  
+
   const toggleExpanded = (url: string) => {
     const newExpanded = new Set(expandedItems);
     if (newExpanded.has(url)) {
@@ -156,14 +163,17 @@ export function ExpandableMedia({ content, className }: ExpandableMediaProps) {
     }
     setExpandedItems(newExpanded);
   };
-  
+
   return (
     <div className={cn("space-y-3", className)}>
       {mediaItems.map((mediaItem, index) => {
         const isExpanded = expandedItems.has(mediaItem.url);
-        
+
         return (
-          <div key={`${mediaItem.url}-${index}`} className="border rounded-lg bg-card">
+          <div
+            key={`${mediaItem.url}-${index}`}
+            className="border rounded-lg bg-card"
+          >
             <Button
               variant="ghost"
               onClick={() => toggleExpanded(mediaItem.url)}
@@ -173,10 +183,12 @@ export function ExpandableMedia({ content, className }: ExpandableMediaProps) {
                 {getMediaIcon(mediaItem.type)}
                 <div className="text-left">
                   <div className="font-medium text-sm">
-                    {mediaItem.title || `${mediaItem.type.toUpperCase()} Content`}
+                    {mediaItem.title ||
+                      `${mediaItem.type.toUpperCase()} Content`}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Click to {isExpanded ? 'collapse' : 'expand'} {mediaItem.type} viewer
+                    Click to {isExpanded ? "collapse" : "expand"}{" "}
+                    {mediaItem.type} viewer
                   </div>
                 </div>
               </div>
@@ -186,7 +198,7 @@ export function ExpandableMedia({ content, className }: ExpandableMediaProps) {
                 <ChevronDown className="w-4 h-4 text-muted-foreground" />
               )}
             </Button>
-            
+
             <AnimatePresence initial={false}>
               {isExpanded && (
                 <motion.div

@@ -1,18 +1,18 @@
 import { streamObject } from "ai";
 
+import { ChatModel } from "app-types/chat";
 import { customModelProvider } from "lib/ai/models";
 import { buildAgentGenerationPrompt } from "lib/ai/prompts";
 import globalLogger from "logger";
-import { ChatModel } from "app-types/chat";
 
+import { AgentGenerateSchema } from "app-types/agent";
 import { getSession } from "auth/server";
 import { colorize } from "consola/utils";
-import { AgentGenerateSchema } from "app-types/agent";
+import { mcpClientsManager } from "lib/ai/mcp/mcp-manager";
+import { objectFlow } from "lib/utils";
+import { safe } from "ts-safe";
 import { z } from "zod";
 import { loadAppDefaultTools } from "../../chat/shared.chat";
-import { safe } from "ts-safe";
-import { objectFlow } from "lib/utils";
-import { mcpClientsManager } from "lib/ai/mcp/mcp-manager";
 
 const logger = globalLogger.withDefaults({
   message: colorize("blackBright", `Agent Generate API: `),
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
         toolNames.add(toolName);
       });
     } catch (error) {
-      console.error('Failed to load app default tools:', error);
+      console.error("Failed to load app default tools:", error);
     }
 
     await safe(mcpClientsManager.tools())
@@ -52,7 +52,6 @@ export async function POST(request: Request) {
         });
       })
       .unwrap();
-
 
     const dynamicAgentSchema = AgentGenerateSchema.extend({
       tools: z

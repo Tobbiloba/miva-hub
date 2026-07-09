@@ -5,12 +5,14 @@ interface AsklyBackgroundProps {
 }
 
 const intensityConfig = {
-  subtle:  { opacity: 0.55, scale: 0.85 },
-  normal:  { opacity: 0.75, scale: 1 },
+  subtle: { opacity: 0.55, scale: 0.85 },
+  normal: { opacity: 0.75, scale: 1 },
   vibrant: { opacity: 0.95, scale: 1.15 },
 };
 
-export function AsklyBackground({ intensity = "normal" }: AsklyBackgroundProps) {
+export function AsklyBackground({
+  intensity = "normal",
+}: AsklyBackgroundProps) {
   const cfg = intensityConfig[intensity];
 
   return (

@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
@@ -6,7 +5,8 @@ import {
   CourseSchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 /**
  * GET /api/admin/content/moderation
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     isNull(CourseMaterialSchema.deletedAt),
     ...(transcriptFilter
       ? [eq(CourseMaterialSchema.transcriptStatus, transcriptFilter as any)]
-      : [])
+      : []),
   );
 
   const items = await pgDb

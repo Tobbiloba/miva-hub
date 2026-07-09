@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -20,8 +18,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Save, Loader2, AlertCircle } from "lucide-react";
+import { AlertCircle, ArrowLeft, Calendar, Loader2, Save } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface Course {
   id: string;
@@ -79,7 +79,7 @@ export default function CreateSchedulePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
-    {}
+    {},
   );
   const { toast } = useToast();
   const router = useRouter();
@@ -127,8 +127,7 @@ export default function CreateSchedulePage() {
 
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field])
-      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -172,7 +171,8 @@ export default function CreateSchedulePage() {
       } else {
         toast({
           title: "Error",
-          description: data.error || data.message || "Failed to create schedule",
+          description:
+            data.error || data.message || "Failed to create schedule",
           variant: "destructive",
         });
       }
@@ -337,9 +337,7 @@ export default function CreateSchedulePage() {
                 <Input
                   type="time"
                   value={formData.endTime}
-                  onChange={(e) =>
-                    handleInputChange("endTime", e.target.value)
-                  }
+                  onChange={(e) => handleInputChange("endTime", e.target.value)}
                 />
                 {errors.endTime && (
                   <p className="text-sm text-red-500 flex items-center gap-1">

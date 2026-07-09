@@ -1,11 +1,11 @@
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
-  StudentEnrollmentSchema,
   CourseMaterialSchema,
   CourseSchema,
+  StudentEnrollmentSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and } from "drizzle-orm";
-import { existsEverForStudent, createNotification } from "./helpers";
+import { and, eq } from "drizzle-orm";
+import { createNotification, existsEverForStudent } from "./helpers";
 
 /**
  * Generate new_content notifications for a specific material that was just published.

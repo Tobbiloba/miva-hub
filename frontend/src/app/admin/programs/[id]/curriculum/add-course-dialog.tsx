@@ -1,9 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -14,6 +11,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -21,9 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
-import { Plus, Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface Course {
   id: string;
@@ -56,7 +56,7 @@ export function AddCourseDialog({
 
   // Filter out courses already in this cell
   const availableCourses = courses.filter(
-    (c) => !existingCourseIds.includes(c.id)
+    (c) => !existingCourseIds.includes(c.id),
   );
 
   const handleSubmit = async () => {
@@ -146,9 +146,7 @@ export function AddCourseDialog({
             <Checkbox
               id="is-compulsory"
               checked={isCompulsory}
-              onCheckedChange={(checked) =>
-                setIsCompulsory(checked === true)
-              }
+              onCheckedChange={(checked) => setIsCompulsory(checked === true)}
             />
             <Label htmlFor="is-compulsory" className="cursor-pointer">
               Compulsory course
@@ -172,10 +170,7 @@ export function AddCourseDialog({
           <Button variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={loading || !courseId}
-          >
+          <Button onClick={handleSubmit} disabled={loading || !courseId}>
             {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Add Course
           </Button>

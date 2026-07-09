@@ -1,9 +1,9 @@
 "use client";
 
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeSlug from "rehype-slug";
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import rehypeSlug from "rehype-slug";
+import remarkGfm from "remark-gfm";
 
 interface LegalPageProps {
   content: string;
@@ -23,13 +23,21 @@ export function LegalPage({ content }: LegalPageProps) {
         </article>
 
         <footer className="mt-16 pt-8 border-t border-border text-sm text-muted-foreground flex gap-6">
-          <Link href="/terms" className="hover:text-foreground transition-colors">
+          <Link
+            href="/terms"
+            className="hover:text-foreground transition-colors"
+          >
             Terms of Service
           </Link>
-          <Link href="/privacy" className="hover:text-foreground transition-colors">
+          <Link
+            href="/privacy"
+            className="hover:text-foreground transition-colors"
+          >
             Privacy Policy
           </Link>
-          <span className="ml-auto">&copy; {new Date().getFullYear()} Askly</span>
+          <span className="ml-auto">
+            &copy; {new Date().getFullYear()} Askly
+          </span>
         </footer>
       </div>
     </div>

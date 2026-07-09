@@ -3,12 +3,20 @@ import { deleteThreadAction, updateThreadAction } from "@/app/api/chat/actions";
 import { appStore } from "@/app/store";
 import { useToRef } from "@/hooks/use-latest";
 import { Loader, PencilLine, Trash } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { type PropsWithChildren, useState } from "react";
 import { toast } from "sonner";
 import { mutate } from "swr";
 import { safe } from "ts-safe";
 import { Button } from "ui/button";
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "ui/command";
 import {
   Dialog,
   DialogClose,
@@ -21,14 +29,6 @@ import {
 } from "ui/dialog";
 import { Input } from "ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "ui/popover";
-import {
-  Command,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from "ui/command";
-import { useTranslations } from "next-intl";
 import { useShallow } from "zustand/shallow";
 
 type Props = PropsWithChildren<{
@@ -99,7 +99,6 @@ export function ThreadDropdown({
       })
       .unwrap();
   };
-
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

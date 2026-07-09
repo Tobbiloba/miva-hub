@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
+  CourseSchema,
   StudentEnrollmentSchema,
   UserSchema,
-  CourseSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const createEnrollmentSchema = z.object({
@@ -31,13 +31,18 @@ export async function POST(request: NextRequest) {
     const [student] = await pgDb
       .select({ id: UserSchema.id })
       .from(UserSchema)
-      .where(and(eq(UserSchema.id, validated.studentId), eq(UserSchema.role, "student")))
+      .where(
+        and(
+          eq(UserSchema.id, validated.studentId),
+          eq(UserSchema.role, "student"),
+        ),
+      )
       .limit(1);
 
     if (!student) {
       return NextResponse.json(
         { success: false, error: "Student not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -51,7 +56,7 @@ export async function POST(request: NextRequest) {
     if (!course) {
       return NextResponse.json(
         { success: false, error: "Course not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -63,8 +68,8 @@ export async function POST(request: NextRequest) {
         and(
           eq(StudentEnrollmentSchema.studentId, validated.studentId),
           eq(StudentEnrollmentSchema.courseId, validated.courseId),
-          eq(StudentEnrollmentSchema.semester, validated.semester)
-        )
+          eq(StudentEnrollmentSchema.semester, validated.semester),
+        ),
       )
       .limit(1);
 
@@ -74,7 +79,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: "Student is already enrolled in this course for this semester",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -98,13 +103,13 @@ export async function POST(request: NextRequest) {
         data: enrollment,
         message: "Student enrolled successfully",
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, error: "Validation failed", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
@@ -113,7 +118,7 @@ export async function POST(request: NextRequest) {
         error: "Failed to create enrollment",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

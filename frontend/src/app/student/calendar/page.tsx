@@ -1,8 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, MapPin, Clock } from "lucide-react";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSession } from "@/lib/auth/server";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { CalendarDays, Clock, MapPin } from "lucide-react";
 
 const EVENT_TYPE_COLORS: Record<
   string,
@@ -27,7 +27,11 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   maintenance: "Maintenance",
 };
 
-function formatDateRange(start: string, end: string | null, _isAllDay: boolean) {
+function formatDateRange(
+  start: string,
+  end: string | null,
+  _isAllDay: boolean,
+) {
   const startDate = new Date(start + "T00:00:00");
   const opts: Intl.DateTimeFormatOptions = {
     year: "numeric",
@@ -51,12 +55,8 @@ export default async function StudentCalendarPage() {
 
   // Split into upcoming and past
   const today = new Date().toISOString().split("T")[0];
-  const upcoming = events.filter(
-    (e) => (e.endDate ?? e.startDate) >= today
-  );
-  const past = events.filter(
-    (e) => (e.endDate ?? e.startDate) < today
-  );
+  const upcoming = events.filter((e) => (e.endDate ?? e.startDate) >= today);
+  const past = events.filter((e) => (e.endDate ?? e.startDate) < today);
 
   const renderEvent = (event: (typeof events)[number]) => (
     <div
@@ -115,9 +115,7 @@ export default async function StudentCalendarPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>
-            Upcoming Events ({upcoming.length})
-          </CardTitle>
+          <CardTitle>Upcoming Events ({upcoming.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {upcoming.length === 0 ? (

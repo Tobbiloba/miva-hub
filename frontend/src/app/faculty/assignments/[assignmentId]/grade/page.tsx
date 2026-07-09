@@ -1,24 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import {
-  Award,
-  ArrowLeft,
-  Download,
-  FileText,
-  Clock,
-  User,
-  CheckCircle,
-  Eye,
-  ExternalLink,
-} from "lucide-react";
-import { getSession } from "@/lib/auth/server";
-import { getFacultyInfo } from "@/lib/auth/faculty";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import GradingForm from "./grading-form";
 import {
   Select,
   SelectContent,
@@ -26,32 +9,54 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getFacultyInfo } from "@/lib/auth/faculty";
+import { getSession } from "@/lib/auth/server";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import {
+  ArrowLeft,
+  Award,
+  CheckCircle,
+  Clock,
+  Download,
+  ExternalLink,
+  Eye,
+  FileText,
+  User,
+} from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import GradingForm from "./grading-form";
 
 interface PageProps {
   params: Promise<{ assignmentId: string }>;
   searchParams: Promise<{ submissionId?: string }>;
 }
 
-export default async function AssignmentGradingPage({ params, searchParams }: PageProps) {
+export default async function AssignmentGradingPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { assignmentId } = await params;
   const searchParamsResolved = await searchParams;
   const session = await getSession();
   const facultyInfo = getFacultyInfo(session);
-  
+
   if (!facultyInfo) {
     return <div>Error: Invalid faculty session</div>;
   }
 
-  const facultyRecord = await pgAcademicRepository.getFacultyByUserId(facultyInfo.id);
-  
+  const facultyRecord = await pgAcademicRepository.getFacultyByUserId(
+    facultyInfo.id,
+  );
+
   if (!facultyRecord) {
     return <div>Error: Faculty record not found</div>;
   }
 
   // Get assignment submissions
   const submissions = await pgAcademicRepository.getAssignmentSubmissions(
-    assignmentId, 
-    facultyRecord.id
+    assignmentId,
+    facultyRecord.id,
   );
 
   if (submissions.length === 0) {
@@ -61,7 +66,9 @@ export default async function AssignmentGradingPage({ params, searchParams }: Pa
   // Get specific submission if provided, otherwise use first one
   let currentSubmission = submissions[0];
   if (searchParamsResolved.submissionId) {
-    const found = submissions.find(s => s.submission.id === searchParamsResolved.submissionId);
+    const found = submissions.find(
+      (s) => s.submission.id === searchParamsResolved.submissionId,
+    );
     if (found) currentSubmission = found;
   }
 
@@ -75,16 +82,24 @@ export default async function AssignmentGradingPage({ params, searchParams }: Pa
   const submittedAt = new Date(submission.submittedAt);
   const isLate = submittedAt > dueDate;
   const daysDifference = Math.floor(
-    (submittedAt.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
+    (submittedAt.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24),
   );
 
   // Get other submissions for navigation
-  const currentIndex = submissions.findIndex(s => s.submission.id === submission.id);
-  const previousSubmission = currentIndex > 0 ? submissions[currentIndex - 1] : null;
-  const nextSubmission = currentIndex < submissions.length - 1 ? submissions[currentIndex + 1] : null;
+  const currentIndex = submissions.findIndex(
+    (s) => s.submission.id === submission.id,
+  );
+  const previousSubmission =
+    currentIndex > 0 ? submissions[currentIndex - 1] : null;
+  const nextSubmission =
+    currentIndex < submissions.length - 1
+      ? submissions[currentIndex + 1]
+      : null;
 
   // Calculate statistics
-  const gradedCount = submissions.filter(s => s.submission.grade !== null).length;
+  const gradedCount = submissions.filter(
+    (s) => s.submission.grade !== null,
+  ).length;
   const pendingCount = submissions.length - gradedCount;
 
   return (
@@ -98,7 +113,7 @@ export default async function AssignmentGradingPage({ params, searchParams }: Pa
               Back to Assignments
             </Link>
           </Button>
-          
+
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
               <Award className="h-8 w-8 text-blue-600" />
@@ -109,11 +124,15 @@ export default async function AssignmentGradingPage({ params, searchParams }: Pa
             </p>
           </div>
         </div>
-        
+
         <div className="flex gap-2">
           {submission.fileUrl && (
             <Button variant="outline" asChild>
-              <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer">
+              <a
+                href={submission.fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Download className="mr-2 h-4 w-4" />
                 Download File
               </a>
@@ -136,39 +155,48 @@ export default async function AssignmentGradingPage({ params, searchParams }: Pa
               <div className="text-sm text-muted-foreground">
                 Submission {currentIndex + 1} of {submissions.length}
               </div>
-              
+
               <Select value={submission.id}>
                 <SelectTrigger className="w-[300px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {submissions.map(({ submission: sub, student: st }, index) => (
-                    <SelectItem key={sub.id} value={sub.id}>
-                      <Link href={`/faculty/assignments/${assignmentId}/grade?submissionId=${sub.id}`} className="flex items-center gap-2">
-                        {index + 1}. {st.name}
-                        {sub.grade ? (
-                          <CheckCircle className="h-3 w-3 text-green-600" />
-                        ) : (
-                          <Clock className="h-3 w-3 text-orange-600" />
-                        )}
-                      </Link>
-                    </SelectItem>
-                  ))}
+                  {submissions.map(
+                    ({ submission: sub, student: st }, index) => (
+                      <SelectItem key={sub.id} value={sub.id}>
+                        <Link
+                          href={`/faculty/assignments/${assignmentId}/grade?submissionId=${sub.id}`}
+                          className="flex items-center gap-2"
+                        >
+                          {index + 1}. {st.name}
+                          {sub.grade ? (
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Clock className="h-3 w-3 text-orange-600" />
+                          )}
+                        </Link>
+                      </SelectItem>
+                    ),
+                  )}
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="flex gap-2">
               {previousSubmission && (
                 <Button variant="outline" size="sm" asChild>
-                  <Link href={`/faculty/assignments/${assignmentId}/grade?submissionId=${previousSubmission.submission.id}`}>
+                  <Link
+                    href={`/faculty/assignments/${assignmentId}/grade?submissionId=${previousSubmission.submission.id}`}
+                  >
                     Previous
                   </Link>
                 </Button>
               )}
               {nextSubmission && (
                 <Button variant="outline" size="sm" asChild>
-                  <Link href={`/faculty/assignments/${assignmentId}/grade?submissionId=${nextSubmission.submission.id}`}>
+                  <Link
+                    href={`/faculty/assignments/${assignmentId}/grade?submissionId=${nextSubmission.submission.id}`}
+                  >
                     Next
                   </Link>
                 </Button>
@@ -194,25 +222,30 @@ export default async function AssignmentGradingPage({ params, searchParams }: Pa
                 <div>
                   <Label className="text-sm font-medium">Student</Label>
                   <p className="text-lg">{student.name}</p>
-                  <p className="text-sm text-muted-foreground">{student.email}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {student.email}
+                  </p>
                 </div>
-                
+
                 <div>
                   <Label className="text-sm font-medium">Submission Date</Label>
                   <p className="text-lg">{submittedAt.toLocaleDateString()}</p>
                   <p className="text-sm text-muted-foreground">
-                    {submittedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {submittedAt.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <Badge variant={isLate ? "destructive" : "default"}>
                   {isLate ? "Late Submission" : "On Time"}
                 </Badge>
                 {isLate && (
                   <span className="text-sm text-muted-foreground">
-                    {daysDifference} day{daysDifference !== 1 ? 's' : ''} late
+                    {daysDifference} day{daysDifference !== 1 ? "s" : ""} late
                   </span>
                 )}
                 <Badge variant="outline">
@@ -235,11 +268,13 @@ export default async function AssignmentGradingPage({ params, searchParams }: Pa
                 <div>
                   <Label className="text-sm font-medium">Text Submission</Label>
                   <div className="mt-2 p-4 bg-muted rounded-lg">
-                    <pre className="whitespace-pre-wrap text-sm">{submission.submissionText}</pre>
+                    <pre className="whitespace-pre-wrap text-sm">
+                      {submission.submissionText}
+                    </pre>
                   </div>
                 </div>
               )}
-              
+
               {submission.fileUrl && (
                 <div>
                   <Label className="text-sm font-medium">Attached File</Label>
@@ -247,7 +282,9 @@ export default async function AssignmentGradingPage({ params, searchParams }: Pa
                     <div className="flex items-center gap-3">
                       <FileText className="h-5 w-5 text-muted-foreground" />
                       <div className="flex-1">
-                        <p className="font-medium">{submission.fileName || 'Submitted File'}</p>
+                        <p className="font-medium">
+                          {submission.fileName || "Submitted File"}
+                        </p>
                         {submission.fileSize && (
                           <p className="text-sm text-muted-foreground">
                             {(submission.fileSize / 1024 / 1024).toFixed(2)} MB
@@ -255,7 +292,11 @@ export default async function AssignmentGradingPage({ params, searchParams }: Pa
                         )}
                       </div>
                       <Button variant="outline" size="sm" asChild>
-                        <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer">
+                        <a
+                          href={submission.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
                           <ExternalLink className="mr-2 h-3 w-3" />
                           Open
                         </a>
@@ -264,7 +305,7 @@ export default async function AssignmentGradingPage({ params, searchParams }: Pa
                   </div>
                 </div>
               )}
-              
+
               {!submission.submissionText && !submission.fileUrl && (
                 <div className="text-center py-8 text-muted-foreground">
                   <FileText className="mx-auto h-8 w-8 mb-2" />
@@ -290,24 +331,29 @@ export default async function AssignmentGradingPage({ params, searchParams }: Pa
                 <Label className="text-sm font-medium">Total Points</Label>
                 <p className="text-2xl font-bold">{assignment.totalPoints}</p>
               </div>
-              
+
               <div>
                 <Label className="text-sm font-medium">Type</Label>
                 <p>{assignment.assignmentType}</p>
               </div>
-              
+
               <div>
                 <Label className="text-sm font-medium">Due Date</Label>
                 <p>{dueDate.toLocaleDateString()}</p>
                 <p className="text-sm text-muted-foreground">
-                  {dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {dueDate.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </p>
               </div>
-              
+
               {assignment.description && (
                 <div>
                   <Label className="text-sm font-medium">Description</Label>
-                  <p className="text-sm text-muted-foreground">{assignment.description}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {assignment.description}
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -349,12 +395,20 @@ export default async function AssignmentGradingPage({ params, searchParams }: Pa
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
                     <span className="text-sm">
-                      Graded on {submission.gradedAt ? new Date(submission.gradedAt).toLocaleDateString() : 'Unknown'}
+                      Graded on{" "}
+                      {submission.gradedAt
+                        ? new Date(submission.gradedAt).toLocaleDateString()
+                        : "Unknown"}
                     </span>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    Current grade: {submission.grade}/{assignment.totalPoints} 
-                    ({((Number(submission.grade) / Number(assignment.totalPoints)) * 100).toFixed(1)}%)
+                    Current grade: {submission.grade}/{assignment.totalPoints}(
+                    {(
+                      (Number(submission.grade) /
+                        Number(assignment.totalPoints)) *
+                      100
+                    ).toFixed(1)}
+                    %)
                   </div>
                 </div>
               </CardContent>
@@ -365,4 +419,3 @@ export default async function AssignmentGradingPage({ params, searchParams }: Pa
     </div>
   );
 }
-

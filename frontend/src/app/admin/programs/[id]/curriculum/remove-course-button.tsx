@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,9 +11,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
-import { X, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface RemoveCourseButtonProps {
   programId: string;
@@ -40,7 +40,7 @@ export function RemoveCourseButton({
     try {
       const res = await fetch(
         `/api/admin/programs/${programId}/curriculum/${curriculumId}`,
-        { method: "DELETE" }
+        { method: "DELETE" },
       );
 
       const data = await res.json();

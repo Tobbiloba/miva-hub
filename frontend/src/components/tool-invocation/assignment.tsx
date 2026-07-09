@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -13,13 +17,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import {
   Table,
   TableBody,
@@ -28,11 +27,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FileText, Calendar, ExternalLink, Upload, Send, Loader2, CloudOff, CheckCircle2, XCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAssignmentProgress, useLoadAssignmentProgress, clearAssignmentProgress } from "@/hooks/useAssignmentProgress";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  clearAssignmentProgress,
+  useAssignmentProgress,
+  useLoadAssignmentProgress,
+} from "@/hooks/useAssignmentProgress";
 import { authClient } from "@/lib/auth/client";
 import { getStudentId } from "@/lib/auth/user-utils";
+import {
+  Calendar,
+  CheckCircle2,
+  CloudOff,
+  ExternalLink,
+  FileText,
+  Loader2,
+  Send,
+  Upload,
+  XCircle,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 type AssignmentProps = {
   assignment_id?: string;
@@ -60,55 +74,63 @@ type AssignmentProps = {
 export function Assignment(props: AssignmentProps) {
   const { data: session } = authClient.useSession();
   const studentId = getStudentId(session?.user);
-  
+
   const [mode, setMode] = useState<"preview" | "interactive">("preview");
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [submissionText, setSubmissionText] = useState("");
   const [submissionLink, setSubmissionLink] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [showResumePrompt, setShowResumePrompt] = useState(false);
-  
-  const { progress: savedProgress } = useLoadAssignmentProgress(props.assignment_id, studentId || undefined);
-  
-  const fileMetadata = selectedFiles.map(f => ({
+
+  const { progress: savedProgress } = useLoadAssignmentProgress(
+    props.assignment_id,
+    studentId || undefined,
+  );
+
+  const fileMetadata = selectedFiles.map((f) => ({
     name: f.name,
     size: f.size,
-    type: f.type
+    type: f.type,
   }));
-  
+
   const { saveStatus, forceSave } = useAssignmentProgress({
     assignmentId: props.assignment_id,
     studentId: studentId || undefined,
     data: {
       submissionText,
       submissionFiles: fileMetadata,
-      submissionLink
+      submissionLink,
     },
-    debounceMs: 2000
+    debounceMs: 2000,
   });
-  
+
   useEffect(() => {
     if (savedProgress && !showResumePrompt && mode === "preview") {
-      const hasContent = 
-        (savedProgress.submissionText && savedProgress.submissionText.trim().length > 0) ||
-        (savedProgress.submissionFiles && savedProgress.submissionFiles.length > 0) ||
-        (savedProgress.submissionLink && savedProgress.submissionLink.trim().length > 0);
-      
+      const hasContent =
+        (savedProgress.submissionText &&
+          savedProgress.submissionText.trim().length > 0) ||
+        (savedProgress.submissionFiles &&
+          savedProgress.submissionFiles.length > 0) ||
+        (savedProgress.submissionLink &&
+          savedProgress.submissionLink.trim().length > 0);
+
       if (hasContent) {
         setShowResumePrompt(true);
       }
     }
   }, [savedProgress, showResumePrompt, mode]);
-  
+
   const handleResumeProgress = () => {
     if (savedProgress) {
-      if (savedProgress.submissionText) setSubmissionText(savedProgress.submissionText);
-      if (savedProgress.submissionLink) setSubmissionLink(savedProgress.submissionLink);
+      if (savedProgress.submissionText)
+        setSubmissionText(savedProgress.submissionText);
+      if (savedProgress.submissionLink)
+        setSubmissionLink(savedProgress.submissionLink);
       setShowResumePrompt(false);
       setMode("interactive");
     }
   };
-  
+
   const handleStartFresh = async () => {
     await clearAssignmentProgress(props.assignment_id, studentId || undefined);
     setShowResumePrompt(false);
@@ -135,28 +157,28 @@ export function Assignment(props: AssignmentProps) {
 
   const getSaveStatusDisplay = () => {
     switch (saveStatus.status) {
-      case 'saving':
+      case "saving":
         return (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Loader2 className="w-3 h-3 animate-spin" />
             <span>Saving draft...</span>
           </div>
         );
-      case 'saved':
+      case "saved":
         return (
           <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
             <CheckCircle2 className="w-3 h-3" />
             <span>Draft saved</span>
           </div>
         );
-      case 'offline':
+      case "offline":
         return (
           <div className="flex items-center gap-2 text-xs text-yellow-600 dark:text-yellow-400">
             <CloudOff className="w-3 h-3" />
             <span>Offline</span>
           </div>
         );
-      case 'error':
+      case "error":
         return (
           <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
             <XCircle className="w-3 h-3" />
@@ -174,9 +196,7 @@ export function Assignment(props: AssignmentProps) {
         {showResumePrompt && savedProgress && (
           <Alert className="bg-blue-500/10 border-blue-500/20">
             <AlertDescription className="flex items-center justify-between">
-              <span className="text-sm">
-                Resume your draft submission?
-              </span>
+              <span className="text-sm">Resume your draft submission?</span>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={handleStartFresh}>
                   Start Fresh
@@ -188,45 +208,47 @@ export function Assignment(props: AssignmentProps) {
             </AlertDescription>
           </Alert>
         )}
-        
+
         <Card className="bg-card">
-        <CardContent className="p-6">
-          <div className="flex items-start gap-4">
-            <div className="p-3 rounded-lg bg-secondary/40">
-              <FileText className="w-6 h-6" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="font-semibold text-lg">{props.title}</h3>
-                {props.status && (
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(props.status)}`}>
-                    {props.status.replace("_", " ").toUpperCase()}
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-lg bg-secondary/40">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="font-semibold text-lg">{props.title}</h3>
+                  {props.status && (
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(props.status)}`}
+                    >
+                      {props.status.replace("_", " ").toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  {props.course_code && (
+                    <span className="font-medium">{props.course_code}</span>
+                  )}
+                  {props.course_name && props.course_code && " • "}
+                  {props.course_name}
+                </p>
+                <p className="text-sm mb-4">{props.description}</p>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4" />
+                    Due: {props.due_date}
                   </span>
-                )}
+                  <span>•</span>
+                  <span>{props.total_points} points</span>
+                </div>
+                <Button onClick={() => setMode("interactive")}>
+                  View Details
+                </Button>
               </div>
-              <p className="text-sm text-muted-foreground mb-3">
-                {props.course_code && <span className="font-medium">{props.course_code}</span>}
-                {props.course_name && props.course_code && " • "}
-                {props.course_name}
-              </p>
-              <p className="text-sm mb-4">{props.description}</p>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  Due: {props.due_date}
-                </span>
-                <span>•</span>
-                <span>{props.total_points} points</span>
-              </div>
-              <Button
-                onClick={() => setMode("interactive")}
-              >
-                View Details
-              </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -263,7 +285,9 @@ export function Assignment(props: AssignmentProps) {
             {props.status && (
               <>
                 <span className="text-muted-foreground">•</span>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(props.status)}`}>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(props.status)}`}
+                >
                   {props.status.replace("_", " ").toUpperCase()}
                 </span>
               </>
@@ -274,7 +298,11 @@ export function Assignment(props: AssignmentProps) {
 
       <Card className="bg-secondary/40">
         <CardContent className="p-0">
-          <Accordion type="multiple" defaultValue={["description"]} className="w-full">
+          <Accordion
+            type="multiple"
+            defaultValue={["description"]}
+            className="w-full"
+          >
             <AccordionItem value="description" className="border-b-0">
               <AccordionTrigger className="px-4">
                 <h4 className="font-semibold text-sm">Description</h4>
@@ -290,7 +318,9 @@ export function Assignment(props: AssignmentProps) {
                   <h4 className="font-semibold text-sm">Instructions</h4>
                 </AccordionTrigger>
                 <AccordionContent className="px-4">
-                  <p className="text-sm whitespace-pre-wrap">{props.instructions}</p>
+                  <p className="text-sm whitespace-pre-wrap">
+                    {props.instructions}
+                  </p>
                 </AccordionContent>
               </AccordionItem>
             )}
@@ -312,7 +342,9 @@ export function Assignment(props: AssignmentProps) {
                     <TableBody>
                       {props.rubric.map((item, i) => (
                         <TableRow key={i}>
-                          <TableCell className="font-medium">{item.criteria}</TableCell>
+                          <TableCell className="font-medium">
+                            {item.criteria}
+                          </TableCell>
                           <TableCell>{item.points}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {item.description}
@@ -361,15 +393,18 @@ export function Assignment(props: AssignmentProps) {
         <Card className="bg-card">
           <CardContent className="p-6 space-y-4">
             <h4 className="font-semibold text-sm mb-4">Submit Your Work</h4>
-            
-            {(props.submission_type === "file" || props.submission_type === "multiple") && (
+
+            {(props.submission_type === "file" ||
+              props.submission_type === "multiple") && (
               <div className="space-y-2">
                 <Label>Upload Files</Label>
                 <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
                   <input
                     type="file"
                     multiple={props.submission_type === "multiple"}
-                    onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
+                    onChange={(e) =>
+                      setSelectedFiles(Array.from(e.target.files || []))
+                    }
                     className="hidden"
                     id="file-upload"
                   />
@@ -386,7 +421,10 @@ export function Assignment(props: AssignmentProps) {
                 {selectedFiles.length > 0 && (
                   <div className="space-y-1">
                     {selectedFiles.map((file, i) => (
-                      <div key={i} className="text-sm text-muted-foreground flex items-center gap-2">
+                      <div
+                        key={i}
+                        className="text-sm text-muted-foreground flex items-center gap-2"
+                      >
                         <FileText className="w-4 h-4" />
                         {file.name} ({(file.size / 1024).toFixed(2)} KB)
                       </div>
@@ -396,7 +434,8 @@ export function Assignment(props: AssignmentProps) {
               </div>
             )}
 
-            {(props.submission_type === "text" || props.submission_type === "multiple") && (
+            {(props.submission_type === "text" ||
+              props.submission_type === "multiple") && (
               <div className="space-y-2">
                 <Label>Submission Text</Label>
                 <Textarea
@@ -408,7 +447,8 @@ export function Assignment(props: AssignmentProps) {
               </div>
             )}
 
-            {(props.submission_type === "link" || props.submission_type === "multiple") && (
+            {(props.submission_type === "link" ||
+              props.submission_type === "multiple") && (
               <div className="space-y-2">
                 <Label>Submission Link</Label>
                 <Input
@@ -420,7 +460,7 @@ export function Assignment(props: AssignmentProps) {
               </div>
             )}
 
-            <Button 
+            <Button
               className="w-full"
               onClick={async () => {
                 await forceSave();
@@ -439,7 +479,8 @@ export function Assignment(props: AssignmentProps) {
           <DialogHeader>
             <DialogTitle>Confirm Submission</DialogTitle>
             <DialogDescription>
-              Are you sure you want to submit this assignment? You won&apos;t be able to make changes after submission.
+              Are you sure you want to submit this assignment? You won&apos;t be
+              able to make changes after submission.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -447,32 +488,44 @@ export function Assignment(props: AssignmentProps) {
               {selectedFiles.length > 0 && (
                 <div>
                   <span className="font-medium">Files: </span>
-                  <span className="text-muted-foreground">{selectedFiles.length} file(s)</span>
+                  <span className="text-muted-foreground">
+                    {selectedFiles.length} file(s)
+                  </span>
                 </div>
               )}
               {submissionText && (
                 <div>
                   <span className="font-medium">Text: </span>
-                  <span className="text-muted-foreground">{submissionText.length} characters</span>
+                  <span className="text-muted-foreground">
+                    {submissionText.length} characters
+                  </span>
                 </div>
               )}
               {submissionLink && (
                 <div>
                   <span className="font-medium">Link: </span>
-                  <span className="text-muted-foreground break-all">{submissionLink}</span>
+                  <span className="text-muted-foreground break-all">
+                    {submissionLink}
+                  </span>
                 </div>
               )}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSubmitDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowSubmitDialog(false)}
+            >
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={async () => {
-                await clearAssignmentProgress(props.assignment_id, studentId || undefined);
+                await clearAssignmentProgress(
+                  props.assignment_id,
+                  studentId || undefined,
+                );
                 setShowSubmitDialog(false);
-                alert('Assignment submitted successfully!');
+                alert("Assignment submitted successfully!");
               }}
             >
               Confirm Submission

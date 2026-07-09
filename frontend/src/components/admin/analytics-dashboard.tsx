@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -12,20 +10,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  TrendingUp,
-  TrendingDown,
-  RefreshCw,
-  Download,
-  Users,
-  GraduationCap,
-  FileText,
-  Activity,
-  Award,
-  AlertTriangle,
-  Loader2
-} from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Activity,
+  AlertTriangle,
+  Award,
+  Download,
+  FileText,
+  GraduationCap,
+  Loader2,
+  RefreshCw,
+  TrendingDown,
+  TrendingUp,
+  Users,
+} from "lucide-react";
+import React, { useState, useEffect } from "react";
 
 interface AnalyticsDashboardProps {
   initialData: any;
@@ -53,7 +53,9 @@ export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
   const refreshAllData = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/admin/analytics?type=all&refresh=true${selectedDepartment !== "all" ? `&departmentId=${selectedDepartment}` : ""}`);
+      const response = await fetch(
+        `/api/admin/analytics?type=all&refresh=true${selectedDepartment !== "all" ? `&departmentId=${selectedDepartment}` : ""}`,
+      );
       const result = await response.json();
 
       if (result.success) {
@@ -83,9 +85,9 @@ export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
       const result = await response.json();
 
       if (result.success) {
-        setAnalyticsData(prev => ({
+        setAnalyticsData((prev) => ({
           ...prev,
-          realTimeStats: result.data
+          realTimeStats: result.data,
         }));
         setLastUpdated(new Date());
       }
@@ -99,11 +101,11 @@ export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
       const response = await fetch("/api/admin/analytics", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "generate_report" })
+        body: JSON.stringify({ action: "generate_report" }),
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         // Download the report as JSON
         const dataStr = JSON.stringify(result.report, null, 2);
@@ -111,7 +113,7 @@ export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
         const url = URL.createObjectURL(dataBlob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = `miva-analytics-report-${new Date().toISOString().split('T')[0]}.json`;
+        link.download = `miva-analytics-report-${new Date().toISOString().split("T")[0]}.json`;
         link.click();
         URL.revokeObjectURL(url);
 
@@ -134,7 +136,9 @@ export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`/api/admin/analytics?type=all${departmentId !== "all" ? `&departmentId=${departmentId}` : ""}`);
+      const response = await fetch(
+        `/api/admin/analytics?type=all${departmentId !== "all" ? `&departmentId=${departmentId}` : ""}`,
+      );
       const result = await response.json();
 
       if (result.success) {
@@ -157,7 +161,10 @@ export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
       {/* Header Controls */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Select value={selectedDepartment} onValueChange={handleDepartmentChange}>
+          <Select
+            value={selectedDepartment}
+            onValueChange={handleDepartmentChange}
+          >
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Filter by Department" />
             </SelectTrigger>
@@ -221,19 +228,25 @@ export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
                 <RealTimeMetric
                   icon={<FileText className="h-4 w-4" />}
                   label="Submissions"
-                  value={analyticsData.realTimeStats.todaysActivity.newSubmissions}
+                  value={
+                    analyticsData.realTimeStats.todaysActivity.newSubmissions
+                  }
                   color="green"
                 />
                 <RealTimeMetric
                   icon={<GraduationCap className="h-4 w-4" />}
                   label="Grades"
-                  value={analyticsData.realTimeStats.todaysActivity.gradesPosted}
+                  value={
+                    analyticsData.realTimeStats.todaysActivity.gradesPosted
+                  }
                   color="blue"
                 />
                 <RealTimeMetric
                   icon={<Users className="h-4 w-4" />}
                   label="Enrollments"
-                  value={analyticsData.realTimeStats.todaysActivity.newEnrollments}
+                  value={
+                    analyticsData.realTimeStats.todaysActivity.newEnrollments
+                  }
                   color="purple"
                 />
                 <RealTimeMetric
@@ -278,7 +291,9 @@ export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  {isLoading ? "Loading course data..." : "No course analytics available"}
+                  {isLoading
+                    ? "Loading course data..."
+                    : "No course analytics available"}
                 </div>
               )}
             </CardContent>
@@ -288,11 +303,17 @@ export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
         {/* Insights Tab */}
         <TabsContent value="insights" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <PopularCoursesCard courses={analyticsData.learningInsights?.popularCourses || []} />
-            <ChallengingCoursesCard courses={analyticsData.learningInsights?.difficultCourses || []} />
+            <PopularCoursesCard
+              courses={analyticsData.learningInsights?.popularCourses || []}
+            />
+            <ChallengingCoursesCard
+              courses={analyticsData.learningInsights?.difficultCourses || []}
+            />
           </div>
-          
-          <PerformanceTrendsCard trends={analyticsData.learningInsights?.performanceTrends} />
+
+          <PerformanceTrendsCard
+            trends={analyticsData.learningInsights?.performanceTrends}
+          />
         </TabsContent>
       </Tabs>
     </div>
@@ -300,7 +321,12 @@ export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
 }
 
 // Helper Components
-function RealTimeMetric({ icon, label, value, color }: {
+function RealTimeMetric({
+  icon,
+  label,
+  value,
+  color,
+}: {
   icon: React.ReactNode;
   label: string;
   value: number;
@@ -310,12 +336,14 @@ function RealTimeMetric({ icon, label, value, color }: {
     green: "text-green-600 bg-green-100",
     blue: "text-blue-600 bg-blue-100",
     purple: "text-purple-600 bg-purple-100",
-    orange: "text-orange-600 bg-orange-100"
+    orange: "text-orange-600 bg-orange-100",
   };
 
   return (
     <div className="flex items-center gap-2">
-      <div className={`p-1.5 rounded-full ${colorClasses[color as keyof typeof colorClasses]}`}>
+      <div
+        className={`p-1.5 rounded-full ${colorClasses[color as keyof typeof colorClasses]}`}
+      >
         {icon}
       </div>
       <div>
@@ -335,19 +363,27 @@ function CourseCard({ course }: { course: any }) {
           <Badge variant="outline">{course.enrolledStudents} students</Badge>
         </div>
         <p className="text-sm text-muted-foreground">{course.courseName}</p>
-        <p className="text-xs text-muted-foreground">Faculty: {course.facultyName}</p>
+        <p className="text-xs text-muted-foreground">
+          Faculty: {course.facultyName}
+        </p>
       </div>
       <div className="flex items-center gap-4">
         <div className="text-center">
-          <p className="text-lg font-bold text-green-600">{course.averageGrade.toFixed(1)}%</p>
+          <p className="text-lg font-bold text-green-600">
+            {course.averageGrade.toFixed(1)}%
+          </p>
           <p className="text-xs text-muted-foreground">Avg Grade</p>
         </div>
         <div className="text-center">
-          <p className="text-lg font-bold text-blue-600">{course.totalAssignments}</p>
+          <p className="text-lg font-bold text-blue-600">
+            {course.totalAssignments}
+          </p>
           <p className="text-xs text-muted-foreground">Assignments</p>
         </div>
         <div className="text-center">
-          <p className="text-lg font-bold text-purple-600">{course.submissionRate.toFixed(1)}%</p>
+          <p className="text-lg font-bold text-purple-600">
+            {course.submissionRate.toFixed(1)}%
+          </p>
           <p className="text-xs text-muted-foreground">Submission Rate</p>
         </div>
       </div>
@@ -367,14 +403,19 @@ function PopularCoursesCard({ courses }: { courses: any[] }) {
       <CardContent>
         <div className="space-y-3">
           {courses.slice(0, 5).map((course, index) => (
-            <div key={course.courseCode} className="flex items-center justify-between">
+            <div
+              key={course.courseCode}
+              className="flex items-center justify-between"
+            >
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center font-medium">
                   {index + 1}
                 </div>
                 <span className="font-medium">{course.courseCode}</span>
               </div>
-              <Badge variant="secondary">{course.enrollmentCount} students</Badge>
+              <Badge variant="secondary">
+                {course.enrollmentCount} students
+              </Badge>
             </div>
           ))}
         </div>
@@ -395,14 +436,19 @@ function ChallengingCoursesCard({ courses }: { courses: any[] }) {
       <CardContent>
         <div className="space-y-3">
           {courses.slice(0, 5).map((course, index) => (
-            <div key={course.courseCode} className="flex items-center justify-between">
+            <div
+              key={course.courseCode}
+              className="flex items-center justify-between"
+            >
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-600 text-xs flex items-center justify-center font-medium">
                   {index + 1}
                 </div>
                 <span className="font-medium">{course.courseCode}</span>
               </div>
-              <Badge variant="outline">{course.averageGrade.toFixed(1)}% avg</Badge>
+              <Badge variant="outline">
+                {course.averageGrade.toFixed(1)}% avg
+              </Badge>
             </div>
           ))}
         </div>
@@ -425,11 +471,15 @@ function PerformanceTrendsCard({ trends }: { trends: any }) {
       <CardContent className="space-y-4">
         <div className="grid gap-4 md:grid-cols-3">
           <div className="text-center p-4 border rounded-lg">
-            <p className="text-2xl font-bold text-blue-600">{trends.currentSemesterAverage.toFixed(1)}%</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {trends.currentSemesterAverage.toFixed(1)}%
+            </p>
             <p className="text-sm text-muted-foreground">Current Semester</p>
           </div>
           <div className="text-center p-4 border rounded-lg">
-            <p className="text-2xl font-bold text-gray-600">{trends.previousSemesterAverage.toFixed(1)}%</p>
+            <p className="text-2xl font-bold text-gray-600">
+              {trends.previousSemesterAverage.toFixed(1)}%
+            </p>
             <p className="text-sm text-muted-foreground">Previous Semester</p>
           </div>
           <div className="text-center p-4 border rounded-lg">
@@ -439,7 +489,9 @@ function PerformanceTrendsCard({ trends }: { trends: any }) {
               ) : (
                 <TrendingDown className="h-5 w-5 text-red-600" />
               )}
-              <p className={`text-2xl font-bold ${trends.improvementRate > 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <p
+                className={`text-2xl font-bold ${trends.improvementRate > 0 ? "text-green-600" : "text-red-600"}`}
+              >
                 {Math.abs(trends.improvementRate).toFixed(1)}%
               </p>
             </div>

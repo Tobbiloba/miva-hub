@@ -1,15 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/server";
-import { pgDb } from "@/lib/db/pg/db.pg";
-import { UserSchema, FacultySchema, type UserEntity } from "@/lib/db/pg/schema.pg";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-import { z } from "zod";
-import { eq } from "drizzle-orm";
 import { getUserRole } from "@/lib/auth/user-utils";
+import { pgDb } from "@/lib/db/pg/db.pg";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import {
+  FacultySchema,
+  type UserEntity,
+  UserSchema,
+} from "@/lib/db/pg/schema.pg";
+import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 // Validation schemas for different profile categories
 const personalProfileSchema = z.object({
-  name: z.string().min(1, "Name is required").max(100, "Name too long").optional(),
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(100, "Name too long")
+    .optional(),
   phone: z.string().optional(),
   bio: z.string().optional(),
   dateOfBirth: z.string().optional(),
@@ -33,11 +41,11 @@ const settingsProfileSchema = z.object({
 export async function GET(_request: NextRequest) {
   try {
     const session = await getSession();
-    
+
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -51,7 +59,7 @@ export async function GET(_request: NextRequest) {
     if (user.length === 0) {
       return NextResponse.json(
         { success: false, error: "User not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -63,24 +71,35 @@ export async function GET(_request: NextRequest) {
 
     // Get role-specific data
     let roleSpecificData: any = {};
-    
-    if (userRole === 'faculty') {
+
+    if (userRole === "faculty") {
       // Get faculty record first
-      const facultyRecord = await pgAcademicRepository.getFacultyByUserId(session.user.id);
-      
+      const facultyRecord = await pgAcademicRepository.getFacultyByUserId(
+        session.user.id,
+      );
+
       if (facultyRecord) {
         // Get faculty data and related information using facultyId
-        const [facultyCourses, facultyStudents, gradingQueue] = await Promise.all([
-          pgAcademicRepository.getFacultyCourses(facultyRecord.id).catch(() => []),
-          pgAcademicRepository.getFacultyStudents(facultyRecord.id).catch(() => []),
-          pgAcademicRepository.getFacultyGradingQueue(facultyRecord.id, 5).catch(() => [])
-        ]);
+        const [facultyCourses, facultyStudents, gradingQueue] =
+          await Promise.all([
+            pgAcademicRepository
+              .getFacultyCourses(facultyRecord.id)
+              .catch(() => []),
+            pgAcademicRepository
+              .getFacultyStudents(facultyRecord.id)
+              .catch(() => []),
+            pgAcademicRepository
+              .getFacultyGradingQueue(facultyRecord.id, 5)
+              .catch(() => []),
+          ]);
 
         let departmentData: Awaited<
           ReturnType<typeof pgAcademicRepository.getDepartmentById>
         > = null;
         if (facultyRecord.departmentId) {
-          departmentData = await pgAcademicRepository.getDepartmentById(facultyRecord.departmentId);
+          departmentData = await pgAcademicRepository.getDepartmentById(
+            facultyRecord.departmentId,
+          );
         }
 
         roleSpecificData = {
@@ -92,8 +111,8 @@ export async function GET(_request: NextRequest) {
           stats: {
             activeCourses: facultyCourses.length,
             totalStudents: facultyStudents.length,
-            pendingGrades: gradingQueue.length
-          }
+            pendingGrades: gradingQueue.length,
+          },
         };
       } else {
         roleSpecificData = {
@@ -105,17 +124,22 @@ export async function GET(_request: NextRequest) {
           stats: {
             activeCourses: 0,
             totalStudents: 0,
-            pendingGrades: 0
-          }
+            pendingGrades: 0,
+          },
         };
       }
-    } else if (userRole === 'student') {
+    } else if (userRole === "student") {
       // Get student data and related information
-      const [enrollmentStats, studentCourses, upcomingAssignments, recentAnnouncements] = await Promise.all([
+      const [
+        enrollmentStats,
+        studentCourses,
+        upcomingAssignments,
+        recentAnnouncements,
+      ] = await Promise.all([
         pgAcademicRepository.getStudentEnrollmentStats(session.user.id),
         pgAcademicRepository.getStudentCourses(session.user.id),
         pgAcademicRepository.getStudentUpcomingAssignments(session.user.id, 5),
-        pgAcademicRepository.getStudentRecentAnnouncements(session.user.id, 5)
+        pgAcademicRepository.getStudentRecentAnnouncements(session.user.id, 5),
       ]);
 
       // Get department info from first enrolled course
@@ -132,8 +156,8 @@ export async function GET(_request: NextRequest) {
         stats: {
           enrolledCourses: enrollmentStats.enrolledCourses,
           totalCredits: enrollmentStats.totalCredits,
-          upcomingAssignments: upcomingAssignments.length
-        }
+          upcomingAssignments: upcomingAssignments.length,
+        },
       };
     }
 
@@ -143,22 +167,24 @@ export async function GET(_request: NextRequest) {
     const profileData = {
       ...userProfile,
       ...roleSpecificData,
-      recentActivity
+      recentActivity,
     };
 
     return NextResponse.json({
       success: true,
-      data: profileData
+      data: profileData,
     });
-
   } catch (error) {
-    console.error('[Profile API] GET Error:', error);
-    
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to fetch profile',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error("[Profile API] GET Error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch profile",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }
 
@@ -171,45 +197,51 @@ async function getRecentActivity(userId: string, userRole: string | null) {
     time: string;
     icon: string;
   }> = [];
-  
+
   try {
-    if (userRole === 'student') {
+    if (userRole === "student") {
       // Get recent assignment submissions (without grades)
-      const submissions = await pgAcademicRepository.getStudentUpcomingAssignments(userId, 3);
+      const submissions =
+        await pgAcademicRepository.getStudentUpcomingAssignments(userId, 3);
       submissions.forEach(({ assignment, course }) => {
         activities.push({
-          type: 'assignment',
+          type: "assignment",
           message: `Assignment due: ${assignment.title}`,
           course: course.courseCode,
           time: new Date(assignment.dueDate).toLocaleDateString(),
-          icon: 'FileText'
+          icon: "FileText",
         });
       });
 
       // Get recent announcements
-      const announcements = await pgAcademicRepository.getStudentRecentAnnouncements(userId, 2);
+      const announcements =
+        await pgAcademicRepository.getStudentRecentAnnouncements(userId, 2);
       announcements.forEach(({ announcement, course }) => {
         activities.push({
-          type: 'announcement',
+          type: "announcement",
           message: `New announcement: ${announcement.title}`,
-          course: course?.courseCode || 'General',
+          course: course?.courseCode || "General",
           time: new Date(announcement.createdAt).toLocaleDateString(),
-          icon: 'Bell'
+          icon: "Bell",
         });
       });
-    } else if (userRole === 'faculty') {
+    } else if (userRole === "faculty") {
       // Get faculty record first to get facultyId
-      const facultyRecord = await pgAcademicRepository.getFacultyByUserId(userId);
+      const facultyRecord =
+        await pgAcademicRepository.getFacultyByUserId(userId);
       if (facultyRecord) {
         // Get recent grading queue items
-        const gradingQueue = await pgAcademicRepository.getFacultyGradingQueue(facultyRecord.id, 3);
+        const gradingQueue = await pgAcademicRepository.getFacultyGradingQueue(
+          facultyRecord.id,
+          3,
+        );
         gradingQueue.forEach(({ assignment, course, student }) => {
           activities.push({
-            type: 'grading',
+            type: "grading",
             message: `Pending: ${assignment.title} from ${student.name}`,
             course: course.courseCode,
-            time: 'Pending review',
-            icon: 'GraduationCap'
+            time: "Pending review",
+            icon: "GraduationCap",
           });
         });
       }
@@ -217,22 +249,22 @@ async function getRecentActivity(userId: string, userRole: string | null) {
 
     // Add generic login activity
     activities.push({
-      type: 'login',
-      message: 'Logged into system',
-      time: 'Today',
-      icon: 'Activity'
+      type: "login",
+      message: "Logged into system",
+      time: "Today",
+      icon: "Activity",
     });
 
     return activities.slice(0, 4); // Limit to 4 recent activities
   } catch (error) {
-    console.error('Error fetching recent activity:', error);
+    console.error("Error fetching recent activity:", error);
     return [
       {
-        type: 'login',
-        message: 'Logged into system',
-        time: 'Today',
-        icon: 'Activity'
-      }
+        type: "login",
+        message: "Logged into system",
+        time: "Today",
+        icon: "Activity",
+      },
     ];
   }
 }
@@ -240,11 +272,11 @@ async function getRecentActivity(userId: string, userRole: string | null) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getSession();
-    
+
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -255,7 +287,7 @@ export async function PUT(request: NextRequest) {
     if (!category || !data) {
       return NextResponse.json(
         { success: false, error: "Category and data are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -265,43 +297,65 @@ export async function PUT(request: NextRequest) {
 
     // Validate data based on category
     switch (category) {
-      case 'personal':
+      case "personal":
         validatedData = personalProfileSchema.parse(data);
         updateUserFields = {
           ...(validatedData.name && { name: validatedData.name }),
-          ...(validatedData.phone !== undefined && { phone: validatedData.phone }),
+          ...(validatedData.phone !== undefined && {
+            phone: validatedData.phone,
+          }),
           ...(validatedData.bio !== undefined && { bio: validatedData.bio }),
-          ...(validatedData.dateOfBirth !== undefined && { dateOfBirth: validatedData.dateOfBirth }),
-          ...(validatedData.address !== undefined && { address: validatedData.address }),
+          ...(validatedData.dateOfBirth !== undefined && {
+            dateOfBirth: validatedData.dateOfBirth,
+          }),
+          ...(validatedData.address !== undefined && {
+            address: validatedData.address,
+          }),
         };
         break;
 
-      case 'academic':
+      case "academic":
         validatedData = academicProfileSchema.parse(data);
         updateUserFields = {
-          ...(validatedData.academicYear && { academicYear: validatedData.academicYear }),
-          ...(validatedData.department !== undefined && { department: validatedData.department }),
+          ...(validatedData.academicYear && {
+            academicYear: validatedData.academicYear,
+          }),
+          ...(validatedData.department !== undefined && {
+            department: validatedData.department,
+          }),
         };
         updateFacultyFields = {
-          ...(validatedData.officeHours !== undefined && { officeHours: validatedData.officeHours }),
+          ...(validatedData.officeHours !== undefined && {
+            officeHours: validatedData.officeHours,
+          }),
         };
         break;
 
-      case 'settings':
+      case "settings":
         validatedData = settingsProfileSchema.parse(data);
         updateUserFields = {
-          ...(validatedData.emailNotifications !== undefined && { emailNotifications: validatedData.emailNotifications }),
-          ...(validatedData.pushNotifications !== undefined && { pushNotifications: validatedData.pushNotifications }),
-          ...(validatedData.marketingEmails !== undefined && { marketingEmails: validatedData.marketingEmails }),
-          ...(validatedData.profileVisibility && { profileVisibility: validatedData.profileVisibility }),
-          ...(validatedData.twoFactorEnabled !== undefined && { twoFactorEnabled: validatedData.twoFactorEnabled }),
+          ...(validatedData.emailNotifications !== undefined && {
+            emailNotifications: validatedData.emailNotifications,
+          }),
+          ...(validatedData.pushNotifications !== undefined && {
+            pushNotifications: validatedData.pushNotifications,
+          }),
+          ...(validatedData.marketingEmails !== undefined && {
+            marketingEmails: validatedData.marketingEmails,
+          }),
+          ...(validatedData.profileVisibility && {
+            profileVisibility: validatedData.profileVisibility,
+          }),
+          ...(validatedData.twoFactorEnabled !== undefined && {
+            twoFactorEnabled: validatedData.twoFactorEnabled,
+          }),
         };
         break;
 
       default:
         return NextResponse.json(
           { success: false, error: "Invalid category" },
-          { status: 400 }
+          { status: 400 },
         );
     }
 
@@ -311,7 +365,7 @@ export async function PUT(request: NextRequest) {
         .update(UserSchema)
         .set({
           ...updateUserFields,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(UserSchema.id, session.user.id));
     }
@@ -330,7 +384,7 @@ export async function PUT(request: NextRequest) {
           .update(FacultySchema)
           .set({
             ...updateFacultyFields,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(eq(FacultySchema.userId, session.user.id));
       }
@@ -338,24 +392,29 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Profile updated successfully"
+      message: "Profile updated successfully",
     });
-
   } catch (error) {
-    console.error('[Profile API] PUT Error:', error);
-    
+    console.error("[Profile API] PUT Error:", error);
+
     if (error instanceof z.ZodError) {
-      return NextResponse.json({
-        success: false,
-        error: 'Validation failed',
-        details: error.issues
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Validation failed",
+          details: error.issues,
+        },
+        { status: 400 },
+      );
     }
-    
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to update profile',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to update profile",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }

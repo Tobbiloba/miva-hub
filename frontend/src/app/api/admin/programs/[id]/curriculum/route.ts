@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
-  ProgramCurriculumSchema,
   CourseSchema,
+  ProgramCurriculumSchema,
   ProgramSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and, asc } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const createCurriculumSchema = z.object({
@@ -24,7 +24,7 @@ const createCurriculumSchema = z.object({
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const adminAccess = await requireAdmin();
@@ -42,7 +42,7 @@ export async function GET(
     if (!program) {
       return NextResponse.json(
         { success: false, error: "Program not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -61,13 +61,13 @@ export async function GET(
       .from(ProgramCurriculumSchema)
       .innerJoin(
         CourseSchema,
-        eq(ProgramCurriculumSchema.courseId, CourseSchema.id)
+        eq(ProgramCurriculumSchema.courseId, CourseSchema.id),
       )
       .where(eq(ProgramCurriculumSchema.programId, programId))
       .orderBy(
         asc(ProgramCurriculumSchema.level),
         asc(ProgramCurriculumSchema.semester),
-        asc(ProgramCurriculumSchema.orderInSemester)
+        asc(ProgramCurriculumSchema.orderInSemester),
       );
 
     return NextResponse.json({ success: true, data: entries });
@@ -78,14 +78,14 @@ export async function GET(
         error: "Failed to fetch curriculum",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const adminAccess = await requireAdmin();
@@ -105,7 +105,7 @@ export async function POST(
     if (!program) {
       return NextResponse.json(
         { success: false, error: "Program not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -119,7 +119,7 @@ export async function POST(
     if (!course) {
       return NextResponse.json(
         { success: false, error: "Course not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -132,8 +132,8 @@ export async function POST(
           eq(ProgramCurriculumSchema.programId, programId),
           eq(ProgramCurriculumSchema.courseId, validated.courseId),
           eq(ProgramCurriculumSchema.level, validated.level),
-          eq(ProgramCurriculumSchema.semester, validated.semester)
-        )
+          eq(ProgramCurriculumSchema.semester, validated.semester),
+        ),
       )
       .limit(1);
 
@@ -143,7 +143,7 @@ export async function POST(
           success: false,
           error: `${course.courseCode} is already mapped to this level and semester`,
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -165,13 +165,13 @@ export async function POST(
         data: entry,
         message: `${course.courseCode} added to curriculum`,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, error: "Validation failed", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
@@ -180,7 +180,7 @@ export async function POST(
         error: "Failed to add curriculum entry",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

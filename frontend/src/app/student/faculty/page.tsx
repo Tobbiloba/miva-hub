@@ -1,8 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Mail, MapPin, Clock, Briefcase } from "lucide-react";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSession } from "@/lib/auth/server";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { Briefcase, Clock, Mail, MapPin, Users } from "lucide-react";
 
 const ROLE_LABELS: Record<string, string> = {
   primary: "Lead Instructor",
@@ -81,10 +81,7 @@ export default async function StudentFacultyPage() {
                   let officeHoursStr = "By appointment";
                   if (Array.isArray(officeHours) && officeHours.length > 0) {
                     officeHoursStr = officeHours.join(", ");
-                  } else if (
-                    typeof officeHours === "string" &&
-                    officeHours
-                  ) {
+                  } else if (typeof officeHours === "string" && officeHours) {
                     officeHoursStr = officeHours;
                   }
 

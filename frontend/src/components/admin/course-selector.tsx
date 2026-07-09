@@ -1,8 +1,14 @@
 "use client";
-import { useState, useEffect } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect, useState } from "react";
 
 interface Course {
   id: string;
@@ -22,7 +28,10 @@ interface CourseSelectorProps {
   selectedCourse?: string;
 }
 
-export function CourseSelector({ onCourseSelect, selectedCourse }: CourseSelectorProps) {
+export function CourseSelector({
+  onCourseSelect,
+  selectedCourse,
+}: CourseSelectorProps) {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
@@ -31,14 +40,14 @@ export function CourseSelector({ onCourseSelect, selectedCourse }: CourseSelecto
 
   useEffect(() => {
     // Fetch departments
-    fetch('/api/departments')
-      .then(res => res.json())
-      .then(data => {
+    fetch("/api/departments")
+      .then((res) => res.json())
+      .then((data) => {
         setDepartments(data);
         setLoading(false);
       })
-      .catch(error => {
-        console.error('Failed to fetch departments:', error);
+      .catch((error) => {
+        console.error("Failed to fetch departments:", error);
         setLoading(false);
       });
   }, []);
@@ -47,13 +56,13 @@ export function CourseSelector({ onCourseSelect, selectedCourse }: CourseSelecto
     if (selectedDepartment) {
       setCoursesLoading(true);
       fetch(`/api/courses?departmentId=${selectedDepartment}`)
-        .then(res => res.json())
-        .then(data => {
+        .then((res) => res.json())
+        .then((data) => {
           setCourses(data);
           setCoursesLoading(false);
         })
-        .catch(error => {
-          console.error('Failed to fetch courses:', error);
+        .catch((error) => {
+          console.error("Failed to fetch courses:", error);
           setCoursesLoading(false);
         });
     } else {
@@ -80,7 +89,10 @@ export function CourseSelector({ onCourseSelect, selectedCourse }: CourseSelecto
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="department">Department</Label>
-        <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+        <Select
+          value={selectedDepartment}
+          onValueChange={setSelectedDepartment}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select a department" />
           </SelectTrigger>
@@ -96,19 +108,21 @@ export function CourseSelector({ onCourseSelect, selectedCourse }: CourseSelecto
 
       <div className="space-y-2">
         <Label htmlFor="course">Course</Label>
-        <Select 
-          value={selectedCourse} 
+        <Select
+          value={selectedCourse}
           onValueChange={onCourseSelect}
           disabled={!selectedDepartment || coursesLoading}
         >
           <SelectTrigger>
-            <SelectValue placeholder={
-              !selectedDepartment 
-                ? "Select a department first" 
-                : coursesLoading 
-                  ? "Loading courses..." 
-                  : "Select a course"
-            } />
+            <SelectValue
+              placeholder={
+                !selectedDepartment
+                  ? "Select a department first"
+                  : coursesLoading
+                    ? "Loading courses..."
+                    : "Select a course"
+              }
+            />
           </SelectTrigger>
           <SelectContent>
             {courses.map((course) => (

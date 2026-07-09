@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { requireStudent } from "@/lib/auth/student";
-import { getStudentId, getAcademicYear } from "@/lib/auth/user-utils";
+import { getAcademicYear, getStudentId } from "@/lib/auth/user-utils";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(_request: NextRequest) {
   try {
@@ -18,20 +18,24 @@ export async function GET(_request: NextRequest) {
       courses,
       upcomingAssignments,
       recentAnnouncements,
-      gradesSummary
+      gradesSummary,
     ] = await Promise.all([
       pgAcademicRepository.getStudentEnrollmentStats(session.user.id),
       pgAcademicRepository.getStudentCourses(session.user.id),
       pgAcademicRepository.getStudentUpcomingAssignments(session.user.id, 5),
       pgAcademicRepository.getStudentRecentAnnouncements(session.user.id, 5),
-      pgAcademicRepository.getStudentGradesSummary(session.user.id)
+      pgAcademicRepository.getStudentGradesSummary(session.user.id),
     ]);
 
     // Calculate additional stats
     const completedAssignments = gradesSummary.length;
-    const averageGrade = gradesSummary.length > 0 
-      ? gradesSummary.reduce((sum, g) => sum + (Number(g.submission.grade) || 0), 0) / gradesSummary.length
-      : 0;
+    const averageGrade =
+      gradesSummary.length > 0
+        ? gradesSummary.reduce(
+            (sum, g) => sum + (Number(g.submission.grade) || 0),
+            0,
+          ) / gradesSummary.length
+        : 0;
 
     return NextResponse.json({
       student: {
@@ -46,19 +50,18 @@ export async function GET(_request: NextRequest) {
         totalCredits: enrollmentStats.totalCredits,
         upcomingAssignments: upcomingAssignments.length,
         completedAssignments,
-        averageGrade: Number(averageGrade.toFixed(1))
+        averageGrade: Number(averageGrade.toFixed(1)),
       },
       courses: courses.slice(0, 4), // Limit to 4 for dashboard
       upcomingAssignments: upcomingAssignments,
       recentAnnouncements: recentAnnouncements,
-      recentGrades: gradesSummary.slice(0, 3) // Latest 3 grades
+      recentGrades: gradesSummary.slice(0, 3), // Latest 3 grades
     });
-
   } catch (error) {
     console.error("Error fetching student dashboard:", error);
     return NextResponse.json(
       { error: "Failed to fetch dashboard data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

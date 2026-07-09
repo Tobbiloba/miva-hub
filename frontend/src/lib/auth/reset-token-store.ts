@@ -7,7 +7,11 @@ export interface ResetToken {
 
 const resetTokens = new Map<string, ResetToken>();
 
-export function storeResetToken(token: string, email: string, expiryMs: number = 60 * 60 * 1000): void {
+export function storeResetToken(
+  token: string,
+  email: string,
+  expiryMs: number = 60 * 60 * 1000,
+): void {
   resetTokens.set(token, {
     email: email.toLowerCase(),
     expiresAt: Date.now() + expiryMs,

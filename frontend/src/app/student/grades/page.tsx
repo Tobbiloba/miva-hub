@@ -1,24 +1,19 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import {
-  Award,
-  BarChart3,
-  FileText,
-  Target
-} from "lucide-react";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { getSession } from "@/lib/auth/server";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import {
-  calculateSemesterGPA,
-  calculateGPA,
-  percentageToLetterGrade,
-  percentageToGradePoints,
+  type CourseGrade,
   calculateAcademicStanding,
   calculateDegreeProgress,
-  type CourseGrade
+  calculateGPA,
+  calculateSemesterGPA,
+  percentageToGradePoints,
+  percentageToLetterGrade,
 } from "@/lib/utils/grade-calculator";
+import { Award, BarChart3, FileText, Target } from "lucide-react";
 import Link from "next/link";
 
 export default async function StudentGradesPage() {
@@ -29,33 +24,54 @@ export default async function StudentGradesPage() {
   }
 
   const userId = session.user.id;
-  const userAcademicYear = (session.user as any).academicYear as string | undefined;
+  const userAcademicYear = (session.user as any).academicYear as
+    | string
+    | undefined;
 
   // Fetch ALL grades (historical) and current-semester courses
   const [allGradesSummary, courses] = await Promise.all([
-    pgAcademicRepository.getStudentGradesSummary(userId, { includeHistorical: true }),
-    pgAcademicRepository.getStudentCourses(userId, { includeHistorical: true })
+    pgAcademicRepository.getStudentGradesSummary(userId, {
+      includeHistorical: true,
+    }),
+    pgAcademicRepository.getStudentCourses(userId, { includeHistorical: true }),
   ]);
 
   // Transform ALL grades for cumulative GPA
-  const allCourseGrades: CourseGrade[] = transformToGradeCalculatorFormat(allGradesSummary, courses);
+  const allCourseGrades: CourseGrade[] = transformToGradeCalculatorFormat(
+    allGradesSummary,
+    courses,
+  );
 
   // Split current-semester grades by matching enrollment academicYear
   const currentSemesterGrades: CourseGrade[] = userAcademicYear
     ? transformToGradeCalculatorFormat(
-        allGradesSummary.filter(g => g.enrollment?.academicYear === userAcademicYear),
-        courses
+        allGradesSummary.filter(
+          (g) => g.enrollment?.academicYear === userAcademicYear,
+        ),
+        courses,
       )
     : allCourseGrades;
 
   const hasCurrentSemesterGrades = currentSemesterGrades.length > 0;
 
   // Calculate GPA metrics
-  const gpaCalculation = calculateSemesterGPA(currentSemesterGrades, allCourseGrades);
-  const currentSemesterGPA = hasCurrentSemesterGrades ? calculateGPA(currentSemesterGrades) : null;
-  const academicStanding = calculateAcademicStanding(gpaCalculation.cumulativeGPA || gpaCalculation.gpa, gpaCalculation.totalCreditHours);
-  const degreeProgress = calculateDegreeProgress(gpaCalculation.totalCreditHours, 120, gpaCalculation.cumulativeGPA || gpaCalculation.gpa);
-  
+  const gpaCalculation = calculateSemesterGPA(
+    currentSemesterGrades,
+    allCourseGrades,
+  );
+  const currentSemesterGPA = hasCurrentSemesterGrades
+    ? calculateGPA(currentSemesterGrades)
+    : null;
+  const academicStanding = calculateAcademicStanding(
+    gpaCalculation.cumulativeGPA || gpaCalculation.gpa,
+    gpaCalculation.totalCreditHours,
+  );
+  const degreeProgress = calculateDegreeProgress(
+    gpaCalculation.totalCreditHours,
+    120,
+    gpaCalculation.cumulativeGPA || gpaCalculation.gpa,
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -83,9 +99,22 @@ export default async function StudentGradesPage() {
                 <Award className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{(gpaCalculation.cumulativeGPA || gpaCalculation.gpa).toFixed(2)}</p>
+                <p className="text-2xl font-bold">
+                  {(gpaCalculation.cumulativeGPA || gpaCalculation.gpa).toFixed(
+                    2,
+                  )}
+                </p>
                 <p className="text-sm text-muted-foreground">Cumulative GPA</p>
-                <Badge variant={academicStanding.standing === "Dean's List" ? 'default' : academicStanding.standing === 'Good Standing' ? 'secondary' : 'destructive'} className="text-xs mt-1">
+                <Badge
+                  variant={
+                    academicStanding.standing === "Dean's List"
+                      ? "default"
+                      : academicStanding.standing === "Good Standing"
+                        ? "secondary"
+                        : "destructive"
+                  }
+                  className="text-xs mt-1"
+                >
                   {academicStanding.standing}
                 </Badge>
               </div>
@@ -102,14 +131,24 @@ export default async function StudentGradesPage() {
               <div>
                 {hasCurrentSemesterGrades ? (
                   <>
-                    <p className="text-2xl font-bold">{currentSemesterGPA!.gpa.toFixed(2)}</p>
-                    <p className="text-sm text-muted-foreground">Current Semester GPA</p>
+                    <p className="text-2xl font-bold">
+                      {currentSemesterGPA!.gpa.toFixed(2)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Current Semester GPA
+                    </p>
                   </>
                 ) : (
                   <>
-                    <p className="text-lg font-medium text-muted-foreground">—</p>
-                    <p className="text-sm text-muted-foreground">Current Semester GPA</p>
-                    <p className="text-xs text-muted-foreground mt-1">No graded courses this semester yet</p>
+                    <p className="text-lg font-medium text-muted-foreground">
+                      —
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Current Semester GPA
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      No graded courses this semester yet
+                    </p>
                   </>
                 )}
               </div>
@@ -124,7 +163,9 @@ export default async function StudentGradesPage() {
                 <Target className="h-6 w-6 text-purple-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{degreeProgress.percentageComplete.toFixed(0)}%</p>
+                <p className="text-2xl font-bold">
+                  {degreeProgress.percentageComplete.toFixed(0)}%
+                </p>
                 <p className="text-sm text-muted-foreground">Degree Progress</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {degreeProgress.remainingHours} hours remaining
@@ -142,7 +183,9 @@ export default async function StudentGradesPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{allGradesSummary.length}</p>
-                <p className="text-sm text-muted-foreground">Graded Assignments</p>
+                <p className="text-sm text-muted-foreground">
+                  Graded Assignments
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {degreeProgress.estimatedSemestersRemaining} semesters left
                 </p>
@@ -163,7 +206,7 @@ export default async function StudentGradesPage() {
         <CardContent>
           <div className="space-y-4">
             {allCourseGrades.map((courseGrade) => (
-              <CourseGradeCard 
+              <CourseGradeCard
                 key={courseGrade.courseId}
                 courseGrade={courseGrade}
               />
@@ -191,17 +234,21 @@ export default async function StudentGradesPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {allGradesSummary.slice(0, 10).map(({ assignment, course, submission }) => (
-              <RecentGradeItem 
-                key={assignment.id}
-                assignment={assignment}
-                course={course}
-                submission={submission}
-              />
-            ))}
+            {allGradesSummary
+              .slice(0, 10)
+              .map(({ assignment, course, submission }) => (
+                <RecentGradeItem
+                  key={assignment.id}
+                  assignment={assignment}
+                  course={course}
+                  submission={submission}
+                />
+              ))}
             {allGradesSummary.length === 0 && (
               <div className="text-center py-6">
-                <p className="text-muted-foreground">No recent grades to display</p>
+                <p className="text-muted-foreground">
+                  No recent grades to display
+                </p>
               </div>
             )}
           </div>
@@ -228,7 +275,18 @@ function CourseGradeCard({ courseGrade }: { courseGrade: CourseGrade }) {
             <Badge variant="outline" className="text-xs">
               {courseGrade.creditHours} credits
             </Badge>
-            <Badge variant={courseGrade.letterGrade.startsWith('A') ? 'default' : courseGrade.letterGrade.startsWith('B') ? 'secondary' : courseGrade.letterGrade.startsWith('C') ? 'outline' : 'destructive'} className="text-xs">
+            <Badge
+              variant={
+                courseGrade.letterGrade.startsWith("A")
+                  ? "default"
+                  : courseGrade.letterGrade.startsWith("B")
+                    ? "secondary"
+                    : courseGrade.letterGrade.startsWith("C")
+                      ? "outline"
+                      : "destructive"
+              }
+              className="text-xs"
+            >
               {courseGrade.letterGrade}
             </Badge>
           </div>
@@ -237,13 +295,19 @@ function CourseGradeCard({ courseGrade }: { courseGrade: CourseGrade }) {
           </p>
           <div className="flex items-center gap-4">
             <div>
-              <p className="text-2xl font-bold">{courseGrade.percentage.toFixed(1)}%</p>
+              <p className="text-2xl font-bold">
+                {courseGrade.percentage.toFixed(1)}%
+              </p>
               <p className="text-sm text-muted-foreground">
-                {courseGrade.assignments.length} assignment{courseGrade.assignments.length !== 1 ? 's' : ''} • {courseGrade.gradePoints.toFixed(1)} GPA
+                {courseGrade.assignments.length} assignment
+                {courseGrade.assignments.length !== 1 ? "s" : ""} •{" "}
+                {courseGrade.gradePoints.toFixed(1)} GPA
               </p>
             </div>
             <div>
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ${getGradeColor(courseGrade.percentage)}`}>
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ${getGradeColor(courseGrade.percentage)}`}
+              >
                 {courseGrade.letterGrade}
               </div>
             </div>
@@ -257,13 +321,17 @@ function CourseGradeCard({ courseGrade }: { courseGrade: CourseGrade }) {
   );
 }
 
-function RecentGradeItem({ assignment, course, submission }: { assignment: any; course: any; submission: any }) {
+function RecentGradeItem({
+  assignment,
+  course,
+  submission,
+}: { assignment: any; course: any; submission: any }) {
   const grade = Number(submission.grade);
   const maxPoints = assignment.totalPoints || assignment.points || 100;
   const percentage = maxPoints > 0 ? (grade / maxPoints) * 100 : grade;
   const letterGrade = percentageToLetterGrade(percentage);
   const gradePoints = percentageToGradePoints(percentage);
-  
+
   const getGradeColor = (percentage: number) => {
     if (percentage >= 90) return "text-green-600";
     if (percentage >= 80) return "text-blue-600";
@@ -279,17 +347,31 @@ function RecentGradeItem({ assignment, course, submission }: { assignment: any; 
           <Badge variant="outline" className="text-xs">
             {course.courseCode}
           </Badge>
-          <Badge variant={letterGrade.startsWith('A') ? 'default' : letterGrade.startsWith('B') ? 'secondary' : letterGrade.startsWith('C') ? 'outline' : 'destructive'} className="text-xs">
+          <Badge
+            variant={
+              letterGrade.startsWith("A")
+                ? "default"
+                : letterGrade.startsWith("B")
+                  ? "secondary"
+                  : letterGrade.startsWith("C")
+                    ? "outline"
+                    : "destructive"
+            }
+            className="text-xs"
+          >
             {letterGrade}
           </Badge>
           <span className="text-xs text-muted-foreground">
-            {new Date(submission.gradedAt || submission.submittedAt).toLocaleDateString()}
+            {new Date(
+              submission.gradedAt || submission.submittedAt,
+            ).toLocaleDateString()}
           </span>
         </div>
       </div>
       <div className="text-right">
         <p className={`text-lg font-bold ${getGradeColor(percentage)}`}>
-          {grade}{maxPoints && `/${maxPoints}`}
+          {grade}
+          {maxPoints && `/${maxPoints}`}
         </p>
         <p className={`text-sm ${getGradeColor(percentage)}`}>
           {percentage.toFixed(1)}% • {gradePoints.toFixed(1)} GPA
@@ -300,30 +382,39 @@ function RecentGradeItem({ assignment, course, submission }: { assignment: any; 
 }
 
 // Helper functions
-function transformToGradeCalculatorFormat(grades: any[], courses: any[]): CourseGrade[] {
+function transformToGradeCalculatorFormat(
+  grades: any[],
+  courses: any[],
+): CourseGrade[] {
   // Group grades by course
-  const gradesByCourse = grades.reduce((acc, grade) => {
-    const courseId = grade.assignment.courseId;
-    if (!acc[courseId]) {
-      acc[courseId] = [];
-    }
-    acc[courseId].push(grade);
-    return acc;
-  }, {} as Record<string, any[]>);
+  const gradesByCourse = grades.reduce(
+    (acc, grade) => {
+      const courseId = grade.assignment.courseId;
+      if (!acc[courseId]) {
+        acc[courseId] = [];
+      }
+      acc[courseId].push(grade);
+      return acc;
+    },
+    {} as Record<string, any[]>,
+  );
 
   // Convert to CourseGrade format
   const courseGradeResults: CourseGrade[] = [];
-  
+
   for (const [courseId, gradeEntries] of Object.entries(gradesByCourse)) {
-    const course = courses.find(c => c.course.id === courseId)?.course;
+    const course = courses.find((c) => c.course.id === courseId)?.course;
     if (!course) continue;
 
     // Calculate course average percentage
-    const totalGrade = (gradeEntries as any[]).reduce((sum, { submission, assignment }) => {
-      const grade = Number(submission.grade);
-      const maxPoints = assignment.totalPoints || assignment.points || 100;
-      return sum + (maxPoints > 0 ? (grade / maxPoints) * 100 : grade);
-    }, 0);
+    const totalGrade = (gradeEntries as any[]).reduce(
+      (sum, { submission, assignment }) => {
+        const grade = Number(submission.grade);
+        const maxPoints = assignment.totalPoints || assignment.points || 100;
+        return sum + (maxPoints > 0 ? (grade / maxPoints) * 100 : grade);
+      },
+      0,
+    );
 
     const percentage = totalGrade / (gradeEntries as any[]).length;
     const letterGrade = percentageToLetterGrade(percentage);
@@ -337,14 +428,15 @@ function transformToGradeCalculatorFormat(grades: any[], courses: any[]): Course
       letterGrade,
       gradePoints,
       percentage,
-      assignments: (gradeEntries as any[]).map(({ submission, assignment }) => ({
-        points: Number(submission.grade),
-        totalPoints: assignment.totalPoints || assignment.points || 100,
-        creditHours: course.credits || 3
-      }))
+      assignments: (gradeEntries as any[]).map(
+        ({ submission, assignment }) => ({
+          points: Number(submission.grade),
+          totalPoints: assignment.totalPoints || assignment.points || 100,
+          creditHours: course.credits || 3,
+        }),
+      ),
     });
   }
-  
+
   return courseGradeResults;
 }
-

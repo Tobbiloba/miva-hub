@@ -1,9 +1,9 @@
 "use client";
-import React, { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { Button } from "../ui/button";
 import { Menu, X } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import React, { useState } from "react";
+import { Button } from "../ui/button";
 
 const links = [
   {
@@ -28,7 +28,11 @@ const Navbar = () => {
       {/* Desktop Links */}
       <div className="hidden md:flex items-center gap-8 lg:gap-10">
         {links.map((link, index) => (
-          <Link key={index} href={link.href} className="flex items-center gap-2 font-medium text-sm lg:text-base">
+          <Link
+            key={index}
+            href={link.href}
+            className="flex items-center gap-2 font-medium text-sm lg:text-base"
+          >
             <p className="text-sm font-[300] text-neutral-500">{index + 1}</p>
             {link.label}
           </Link>
@@ -38,14 +42,23 @@ const Navbar = () => {
       {/* Logo */}
       <div className="h-fit flex-shrink-0">
         <div className="flex items-center gap-2">
-          <Image src="/logo.png" alt="Askly logo" width={40} height={40} className="md:w-14 md:h-14" />
+          <Image
+            src="/logo.png"
+            alt="Askly logo"
+            width={40}
+            height={40}
+            className="md:w-14 md:h-14"
+          />
         </div>
       </div>
 
       {/* Desktop Button */}
       <div className="hidden md:block">
         <Button className="rounded gap-2 p-1 pl-4 lg:pl-6 h-fit hover:gap-3 transition-all text-sm lg:text-base">
-          Sign In <div className="p-2 ml-2 px-3 lg:px-4 bg-black text-white rounded text-xs lg:text-sm">Sign Up</div>
+          Sign In{" "}
+          <div className="p-2 ml-2 px-3 lg:px-4 bg-black text-white rounded text-xs lg:text-sm">
+            Sign Up
+          </div>
         </Button>
       </div>
 
@@ -69,13 +82,18 @@ const Navbar = () => {
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-2 font-medium text-base py-2"
               >
-                <p className="text-sm font-[300] text-neutral-500">{index + 1}</p>
+                <p className="text-sm font-[300] text-neutral-500">
+                  {index + 1}
+                </p>
                 {link.label}
               </Link>
             ))}
             <div className="pt-4 border-t border-neutral-800">
               <Button className="w-full rounded gap-2 p-2 justify-center">
-                Sign In <div className="p-1.5 px-3 bg-black text-white rounded text-sm">Sign Up</div>
+                Sign In{" "}
+                <div className="p-1.5 px-3 bg-black text-white rounded text-sm">
+                  Sign Up
+                </div>
               </Button>
             </div>
           </div>

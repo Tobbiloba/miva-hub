@@ -1,17 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { GraduationCap, Clock, CheckCircle2, XCircle, AlertTriangle, Loader2, CloudOff } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { useExamProgress, useLoadExamProgress, clearExamProgress } from "@/hooks/useExamProgress";
+import {
+  clearExamProgress,
+  useExamProgress,
+  useLoadExamProgress,
+} from "@/hooks/useExamProgress";
 import { authClient } from "@/lib/auth/client";
 import { getStudentId } from "@/lib/auth/user-utils";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  CloudOff,
+  GraduationCap,
+  Loader2,
+  XCircle,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 type ExamProps = {
   exam_id?: string;
@@ -36,23 +48,30 @@ type ExamProps = {
 export function Exam(props: ExamProps) {
   const { data: session } = authClient.useSession();
   const studentId = getStudentId(session?.user);
-  
-  const [mode, setMode] = useState<"preview" | "interactive" | "results">("preview");
+
+  const [mode, setMode] = useState<"preview" | "interactive" | "results">(
+    "preview",
+  );
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [timeRemaining, setTimeRemaining] = useState(props.time_limit_minutes * 60);
+  const [timeRemaining, setTimeRemaining] = useState(
+    props.time_limit_minutes * 60,
+  );
   const [submitted, setSubmitted] = useState(false);
   const [showResumePrompt, setShowResumePrompt] = useState(false);
-  
-  const { progress: savedProgress } = useLoadExamProgress(props.exam_id, studentId || undefined);
-  
+
+  const { progress: savedProgress } = useLoadExamProgress(
+    props.exam_id,
+    studentId || undefined,
+  );
+
   const { saveStatus } = useExamProgress({
     examId: props.exam_id,
     studentId: studentId || undefined,
     data: { answers, currentQuestion, timeRemaining, mode },
-    debounceMs: 1000
+    debounceMs: 1000,
   });
-  
+
   useEffect(() => {
     if (savedProgress && mode === "preview") {
       if (savedProgress.mode === "results") {
@@ -65,7 +84,7 @@ export function Exam(props: ExamProps) {
       }
     }
   }, [savedProgress, showResumePrompt, mode]);
-  
+
   const handleResumeProgress = () => {
     if (savedProgress) {
       setAnswers(savedProgress.answers);
@@ -75,7 +94,7 @@ export function Exam(props: ExamProps) {
       setShowResumePrompt(false);
     }
   };
-  
+
   const handleStartFresh = async () => {
     await clearExamProgress(props.exam_id, studentId || undefined);
     setShowResumePrompt(false);
@@ -86,7 +105,7 @@ export function Exam(props: ExamProps) {
     if (mode !== "interactive" || submitted) return;
 
     const timer = setInterval(() => {
-      setTimeRemaining(prev => {
+      setTimeRemaining((prev) => {
         if (prev <= 1) {
           handleSubmit();
           return 0;
@@ -105,7 +124,7 @@ export function Exam(props: ExamProps) {
   };
 
   const handleAnswer = (answer: string) => {
-    setAnswers(prev => ({
+    setAnswers((prev) => ({
       ...prev,
       [currentQuestion]: answer,
     }));
@@ -121,16 +140,22 @@ export function Exam(props: ExamProps) {
     let correct = 0;
     let totalPoints = 0;
     let earnedPoints = 0;
-    
+
     props.questions.forEach((q, i) => {
       totalPoints += q.points;
-      
+
       if (q.correct_answer && answers[i]) {
         if (answers[i] === q.correct_answer) {
           correct++;
           earnedPoints += q.points;
-        } else if (q.question_type === 'short_answer' || q.question_type === 'essay') {
-          const similarity = calculateStringSimilarity(answers[i], q.correct_answer);
+        } else if (
+          q.question_type === "short_answer" ||
+          q.question_type === "essay"
+        ) {
+          const similarity = calculateStringSimilarity(
+            answers[i],
+            q.correct_answer,
+          );
           if (similarity > 0.85) {
             correct++;
             earnedPoints += q.points;
@@ -143,21 +168,21 @@ export function Exam(props: ExamProps) {
 
     return { correct, totalPoints, earnedPoints };
   };
-  
+
   const calculateStringSimilarity = (str1: string, str2: string): number => {
     const s1 = str1.toLowerCase().trim();
     const s2 = str2.toLowerCase().trim();
-    
+
     if (s1 === s2) return 1.0;
-    
+
     const longer = s1.length > s2.length ? s1 : s2;
 
     if (longer.length === 0) return 1.0;
-    
+
     const editDistance = getEditDistance(s1, s2);
     return (longer.length - editDistance) / longer.length;
   };
-  
+
   const getEditDistance = (s1: string, s2: string): number => {
     const costs: number[] = [];
     for (let i = 0; i <= s1.length; i++) {
@@ -183,28 +208,28 @@ export function Exam(props: ExamProps) {
 
   const getSaveStatusDisplay = () => {
     switch (saveStatus.status) {
-      case 'saving':
+      case "saving":
         return (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Loader2 className="w-3 h-3 animate-spin" />
             <span>Saving...</span>
           </div>
         );
-      case 'saved':
+      case "saved":
         return (
           <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
             <CheckCircle2 className="w-3 h-3" />
             <span>Saved</span>
           </div>
         );
-      case 'offline':
+      case "offline":
         return (
           <div className="flex items-center gap-2 text-xs text-yellow-600 dark:text-yellow-400">
             <CloudOff className="w-3 h-3" />
             <span>Offline</span>
           </div>
         );
-      case 'error':
+      case "error":
         return (
           <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
             <XCircle className="w-3 h-3" />
@@ -223,7 +248,9 @@ export function Exam(props: ExamProps) {
           <Alert className="bg-blue-500/10 border-blue-500/20">
             <AlertDescription className="flex items-center justify-between">
               <span className="text-sm">
-                Resume your previous attempt? ({Object.keys(savedProgress.answers).length} questions answered, {Math.floor(savedProgress.timeRemaining / 60)} min remaining)
+                Resume your previous attempt? (
+                {Object.keys(savedProgress.answers).length} questions answered,{" "}
+                {Math.floor(savedProgress.timeRemaining / 60)} min remaining)
               </span>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={handleStartFresh}>
@@ -236,7 +263,7 @@ export function Exam(props: ExamProps) {
             </AlertDescription>
           </Alert>
         )}
-        
+
         <Card className="bg-card">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
@@ -246,7 +273,10 @@ export function Exam(props: ExamProps) {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <h3 className="font-semibold text-lg">
-                    {props.exam_type ? props.exam_type.charAt(0).toUpperCase() + props.exam_type.slice(1) : "Exam"}
+                    {props.exam_type
+                      ? props.exam_type.charAt(0).toUpperCase() +
+                        props.exam_type.slice(1)
+                      : "Exam"}
                   </h3>
                   {props.exam_type && (
                     <span className="px-2 py-1 rounded-full bg-secondary/40 text-xs font-medium capitalize">
@@ -255,7 +285,9 @@ export function Exam(props: ExamProps) {
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">
-                  {props.course_code && <span className="font-medium">{props.course_code}</span>}
+                  {props.course_code && (
+                    <span className="font-medium">{props.course_code}</span>
+                  )}
                   {props.course_name && props.course_code && " • "}
                   {props.course_name}
                 </p>
@@ -277,9 +309,7 @@ export function Exam(props: ExamProps) {
                     </p>
                   </div>
                 )}
-                <Button
-                  onClick={() => setMode("interactive")}
-                >
+                <Button onClick={() => setMode("interactive")}>
                   Start Exam
                 </Button>
               </div>
@@ -304,7 +334,8 @@ export function Exam(props: ExamProps) {
                 {percentage.toFixed(0)}%
               </div>
               <p className="text-muted-foreground">
-                {correct} out of {props.total_questions} correct • {earnedPoints.toFixed(1)} / {totalPoints} points
+                {correct} out of {props.total_questions} correct •{" "}
+                {earnedPoints.toFixed(1)} / {totalPoints} points
               </p>
             </div>
             <Button onClick={() => setMode("preview")} className="w-full">
@@ -319,13 +350,19 @@ export function Exam(props: ExamProps) {
             let score = 0;
             let isFullyCorrect = false;
             let isPartialCredit = false;
-            
+
             if (q.correct_answer && answers[i]) {
               if (answers[i] === q.correct_answer) {
                 score = 1.0;
                 isFullyCorrect = true;
-              } else if (q.question_type === 'short_answer' || q.question_type === 'essay') {
-                const similarity = calculateStringSimilarity(answers[i], q.correct_answer);
+              } else if (
+                q.question_type === "short_answer" ||
+                q.question_type === "essay"
+              ) {
+                const similarity = calculateStringSimilarity(
+                  answers[i],
+                  q.correct_answer,
+                );
                 score = similarity;
                 if (similarity > 0.85) {
                   isFullyCorrect = true;
@@ -334,15 +371,15 @@ export function Exam(props: ExamProps) {
                 }
               }
             }
-            
-            const borderColor = isFullyCorrect 
-              ? "border-green-500/20" 
-              : isPartialCredit 
-                ? "border-yellow-500/20" 
-                : wasAnswered 
-                  ? "border-red-500/20" 
+
+            const borderColor = isFullyCorrect
+              ? "border-green-500/20"
+              : isPartialCredit
+                ? "border-yellow-500/20"
+                : wasAnswered
+                  ? "border-red-500/20"
                   : "border-gray-500/20";
-            
+
             return (
               <Card key={i} className={borderColor}>
                 <CardContent className="p-4">
@@ -351,7 +388,9 @@ export function Exam(props: ExamProps) {
                       <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5" />
                     ) : isPartialCredit ? (
                       <div className="w-5 h-5 rounded-full bg-yellow-500/20 flex items-center justify-center mt-0.5">
-                        <span className="text-xs text-yellow-600 dark:text-yellow-400 font-bold">~</span>
+                        <span className="text-xs text-yellow-600 dark:text-yellow-400 font-bold">
+                          ~
+                        </span>
                       </div>
                     ) : wasAnswered ? (
                       <XCircle className="w-5 h-5 text-red-500 mt-0.5" />
@@ -364,14 +403,17 @@ export function Exam(props: ExamProps) {
                           Question {i + 1}: {q.question}
                         </p>
                         {wasAnswered && (
-                          <span className={`text-xs font-medium px-2 py-1 rounded ${
-                            isFullyCorrect 
-                              ? "bg-green-500/10 text-green-600 dark:text-green-400" 
-                              : isPartialCredit 
-                                ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
-                                : "bg-red-500/10 text-red-600 dark:text-red-400"
-                          }`}>
-                            {(score * q.points).toFixed(1)}/{q.points} pts ({(score * 100).toFixed(0)}%)
+                          <span
+                            className={`text-xs font-medium px-2 py-1 rounded ${
+                              isFullyCorrect
+                                ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                                : isPartialCredit
+                                  ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+                                  : "bg-red-500/10 text-red-600 dark:text-red-400"
+                            }`}
+                          >
+                            {(score * q.points).toFixed(1)}/{q.points} pts (
+                            {(score * 100).toFixed(0)}%)
                           </span>
                         )}
                       </div>
@@ -385,7 +427,8 @@ export function Exam(props: ExamProps) {
                           </p>
                           {isPartialCredit && (
                             <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-1">
-                              ℹ️ Partial credit: Your answer demonstrates some understanding but is incomplete
+                              ℹ️ Partial credit: Your answer demonstrates some
+                              understanding but is incomplete
                             </p>
                           )}
                         </>
@@ -406,13 +449,19 @@ export function Exam(props: ExamProps) {
 
   return (
     <div className="space-y-4">
-      <Card className={`${isWarningTime ? "border-2 border-yellow-500/40 bg-yellow-500/5" : "bg-card"}`}>
+      <Card
+        className={`${isWarningTime ? "border-2 border-yellow-500/40 bg-yellow-500/5" : "bg-card"}`}
+      >
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {isWarningTime && <AlertTriangle className="w-5 h-5 text-yellow-500" />}
+              {isWarningTime && (
+                <AlertTriangle className="w-5 h-5 text-yellow-500" />
+              )}
               <Clock className="w-5 h-5" />
-              <span className={`font-mono text-lg font-semibold ${isWarningTime ? "text-yellow-500" : ""}`}>
+              <span
+                className={`font-mono text-lg font-semibold ${isWarningTime ? "text-yellow-500" : ""}`}
+              >
                 {formatTime(timeRemaining)}
               </span>
               {isWarningTime && (
@@ -423,11 +472,7 @@ export function Exam(props: ExamProps) {
             </div>
             <div className="flex items-center gap-3">
               {getSaveStatusDisplay()}
-              <Button
-                onClick={handleSubmit}
-                variant="destructive"
-                size="sm"
-              >
+              <Button onClick={handleSubmit} variant="destructive" size="sm">
                 Submit Exam
               </Button>
             </div>
@@ -475,7 +520,10 @@ export function Exam(props: ExamProps) {
               <div className="space-y-3">
                 {question.options.map((option, i) => (
                   <div key={i} className="flex items-center space-x-2">
-                    <RadioGroupItem value={option} id={`q${currentQuestion}-opt${i}`} />
+                    <RadioGroupItem
+                      value={option}
+                      id={`q${currentQuestion}-opt${i}`}
+                    />
                     <Label
                       htmlFor={`q${currentQuestion}-opt${i}`}
                       className="flex-1 cursor-pointer"
@@ -492,14 +540,26 @@ export function Exam(props: ExamProps) {
             <RadioGroup value={currentAnswer} onValueChange={handleAnswer}>
               <div className="space-y-3">
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="True" id={`q${currentQuestion}-true`} />
-                  <Label htmlFor={`q${currentQuestion}-true`} className="cursor-pointer">
+                  <RadioGroupItem
+                    value="True"
+                    id={`q${currentQuestion}-true`}
+                  />
+                  <Label
+                    htmlFor={`q${currentQuestion}-true`}
+                    className="cursor-pointer"
+                  >
                     True
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="False" id={`q${currentQuestion}-false`} />
-                  <Label htmlFor={`q${currentQuestion}-false`} className="cursor-pointer">
+                  <RadioGroupItem
+                    value="False"
+                    id={`q${currentQuestion}-false`}
+                  />
+                  <Label
+                    htmlFor={`q${currentQuestion}-false`}
+                    className="cursor-pointer"
+                  >
                     False
                   </Label>
                 </div>

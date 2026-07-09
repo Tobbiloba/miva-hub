@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "ui/card";
 import { LucideIcon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "ui/card";
 
 interface StatsCardProps {
   title: string;
@@ -12,12 +12,12 @@ interface StatsCardProps {
   };
 }
 
-export function StatsCard({ 
-  title, 
-  value, 
-  description, 
-  icon: Icon, 
-  trend 
+export function StatsCard({
+  title,
+  value,
+  description,
+  icon: Icon,
+  trend,
 }: StatsCardProps) {
   return (
     <Card>
@@ -32,8 +32,11 @@ export function StatsCard({
         {(description || trend) && (
           <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1">
             {trend && (
-              <span className={trend.isPositive ? "text-green-600" : "text-red-600"}>
-                {trend.isPositive ? "+" : ""}{trend.value}%
+              <span
+                className={trend.isPositive ? "text-green-600" : "text-red-600"}
+              >
+                {trend.isPositive ? "+" : ""}
+                {trend.value}%
               </span>
             )}
             {description && <span>{description}</span>}

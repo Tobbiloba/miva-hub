@@ -1,6 +1,6 @@
-import { motion } from "framer-motion";
-import { ReactNode, useRef, useLayoutEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
+import { ReactNode, useLayoutEffect, useRef, useState } from "react";
 
 interface AutoHeightProps {
   children: ReactNode;

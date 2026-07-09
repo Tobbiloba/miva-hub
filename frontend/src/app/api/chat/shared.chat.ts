@@ -1,21 +1,19 @@
 import "server-only";
 import {
   LoadAPIKeyError,
-  UIMessage,
   Tool,
-  tool as createTool,
-  isToolUIPart,
-  UIMessagePart,
   ToolUIPart,
+  UIMessage,
+  UIMessagePart,
+  tool as createTool,
   getToolName,
+  isToolUIPart,
 } from "ai";
 import {
   ChatMention,
   ChatMetadata,
   ManualToolConfirmTag,
 } from "app-types/chat";
-import { errorToString, exclude, objectFlow } from "lib/utils";
-import logger from "logger";
 import {
   AllowedMCPServer,
   McpServerCustomizationsPrompt,
@@ -23,11 +21,16 @@ import {
   VercelAIMcpToolTag,
 } from "app-types/mcp";
 import { MANUAL_REJECT_RESPONSE_PROMPT } from "lib/ai/prompts";
+import { errorToString, exclude, objectFlow } from "lib/utils";
+import logger from "logger";
 
-import { safe } from "ts-safe";
 import { mcpClientsManager } from "lib/ai/mcp/mcp-manager";
-import { APP_DEFAULT_TOOL_KIT, loadAppDefaultToolKitWithAcademic } from "lib/ai/tools/tool-kit";
 import { AppDefaultToolkit } from "lib/ai/tools";
+import {
+  APP_DEFAULT_TOOL_KIT,
+  loadAppDefaultToolKitWithAcademic,
+} from "lib/ai/tools/tool-kit";
+import { safe } from "ts-safe";
 
 export function filterMCPToolsByMentions(
   tools: Record<string, VercelAIMcpTool>,
@@ -202,7 +205,6 @@ export function filterMcpServerCustomizations(
   );
 }
 
-
 export const loadMcpTools = (opt?: {
   mentions?: ChatMention[];
   allowedMcpServers?: Record<string, AllowedMCPServer>;
@@ -210,32 +212,34 @@ export const loadMcpTools = (opt?: {
 }) =>
   safe(() => mcpClientsManager.tools())
     .map((tools) => {
-      const filteredTools = opt?.mentions?.length 
+      const filteredTools = opt?.mentions?.length
         ? filterMCPToolsByMentions(tools, opt.mentions)
         : filterMCPToolsByAllowedMCPServers(tools, opt?.allowedMcpServers);
-      
+
       // If user context is available, enhance tools with context-aware execute functions
       if (opt?.userContext) {
-        return Object.entries(filteredTools).reduce((acc, [toolId, tool]) => {
-          acc[toolId] = {
-            ...tool,
-            execute: (params: any, _options: any) => {
-              return mcpClientsManager.toolCall(
-                tool._mcpServerId,
-                tool._originToolName,
-                params,
-                opt.userContext
-              );
-            }
-          };
-          return acc;
-        }, {} as Record<string, VercelAIMcpTool>);
+        return Object.entries(filteredTools).reduce(
+          (acc, [toolId, tool]) => {
+            acc[toolId] = {
+              ...tool,
+              execute: (params: any, _options: any) => {
+                return mcpClientsManager.toolCall(
+                  tool._mcpServerId,
+                  tool._originToolName,
+                  params,
+                  opt.userContext,
+                );
+              },
+            };
+            return acc;
+          },
+          {} as Record<string, VercelAIMcpTool>,
+        );
       }
-      
+
       return filteredTools;
     })
     .orElse({} as Record<string, VercelAIMcpTool>);
-
 
 export const loadAppDefaultTools = async (opt?: {
   mentions?: ChatMention[];
@@ -244,12 +248,14 @@ export const loadAppDefaultTools = async (opt?: {
   try {
     const allowedAppDefaultToolkit =
       opt?.allowedAppDefaultToolkit ?? Object.values(AppDefaultToolkit);
-    
+
     // Check if academic tools are needed
-    const needsAcademicTools = allowedAppDefaultToolkit.includes(AppDefaultToolkit.Academic);
-    
+    const needsAcademicTools = allowedAppDefaultToolkit.includes(
+      AppDefaultToolkit.Academic,
+    );
+
     // Load appropriate tool kit
-    const tools = needsAcademicTools 
+    const tools = needsAcademicTools
       ? await loadAppDefaultToolKitWithAcademic()
       : APP_DEFAULT_TOOL_KIT;
 
@@ -274,7 +280,7 @@ export const loadAppDefaultTools = async (opt?: {
       ) || {}
     );
   } catch (error) {
-    console.error('[loadAppDefaultTools] Error loading tools:', error);
+    console.error("[loadAppDefaultTools] Error loading tools:", error);
     return {} as Record<string, Tool>;
   }
 };

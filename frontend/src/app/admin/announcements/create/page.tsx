@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -14,10 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Megaphone, Save, Loader2, AlertCircle } from "lucide-react";
+import { AlertCircle, ArrowLeft, Loader2, Megaphone, Save } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface Course {
   id: string;
@@ -74,7 +80,9 @@ export default function CreateAnnouncementPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
+    {},
+  );
   const { toast } = useToast();
   const router = useRouter();
 
@@ -122,18 +130,26 @@ export default function CreateAnnouncementPage() {
     }
 
     if (formData.targetAudience === "course_specific" && !formData.courseId) {
-      newErrors.courseId = "Course is required for course-specific announcements";
+      newErrors.courseId =
+        "Course is required for course-specific announcements";
     }
 
-    if (formData.targetAudience === "department_specific" && !formData.departmentId) {
-      newErrors.departmentId = "Department is required for department-specific announcements";
+    if (
+      formData.targetAudience === "department_specific" &&
+      !formData.departmentId
+    ) {
+      newErrors.departmentId =
+        "Department is required for department-specific announcements";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (field: keyof FormData, value: string | boolean) => {
+  const handleInputChange = (
+    field: keyof FormData,
+    value: string | boolean,
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -144,7 +160,11 @@ export default function CreateAnnouncementPage() {
     e.preventDefault();
 
     if (!validateForm()) {
-      toast({ title: "Validation Error", description: "Please fix the errors in the form", variant: "destructive" });
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors in the form",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -162,7 +182,10 @@ export default function CreateAnnouncementPage() {
       if (formData.targetAudience === "course_specific" && formData.courseId) {
         body.courseId = formData.courseId;
       }
-      if (formData.targetAudience === "department_specific" && formData.departmentId) {
+      if (
+        formData.targetAudience === "department_specific" &&
+        formData.departmentId
+      ) {
         body.departmentId = formData.departmentId;
       }
       if (formData.expiresAt) {
@@ -181,11 +204,19 @@ export default function CreateAnnouncementPage() {
         toast({ title: "Success", description: data.message });
         router.push("/admin/announcements");
       } else {
-        toast({ title: "Error", description: data.message || "Failed to create announcement", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: data.message || "Failed to create announcement",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error creating announcement:", error);
-      toast({ title: "Error", description: "Failed to create announcement. Please try again.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to create announcement. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -274,8 +305,10 @@ export default function CreateAnnouncementPage() {
                   onValueChange={(value) => {
                     handleInputChange("targetAudience", value);
                     // Clear conditional fields when audience changes
-                    if (value !== "course_specific") setFormData((prev) => ({ ...prev, courseId: "" }));
-                    if (value !== "department_specific") setFormData((prev) => ({ ...prev, departmentId: "" }));
+                    if (value !== "course_specific")
+                      setFormData((prev) => ({ ...prev, courseId: "" }));
+                    if (value !== "department_specific")
+                      setFormData((prev) => ({ ...prev, departmentId: "" }));
                   }}
                 >
                   <SelectTrigger>
@@ -301,7 +334,9 @@ export default function CreateAnnouncementPage() {
                 <Label htmlFor="priority">Priority *</Label>
                 <Select
                   value={formData.priority}
-                  onValueChange={(value) => handleInputChange("priority", value)}
+                  onValueChange={(value) =>
+                    handleInputChange("priority", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select priority" />
@@ -323,7 +358,9 @@ export default function CreateAnnouncementPage() {
                 <Label htmlFor="courseId">Course *</Label>
                 <Select
                   value={formData.courseId}
-                  onValueChange={(value) => handleInputChange("courseId", value)}
+                  onValueChange={(value) =>
+                    handleInputChange("courseId", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select course" />
@@ -351,7 +388,9 @@ export default function CreateAnnouncementPage() {
                 <Label htmlFor="departmentId">Department *</Label>
                 <Select
                   value={formData.departmentId}
-                  onValueChange={(value) => handleInputChange("departmentId", value)}
+                  onValueChange={(value) =>
+                    handleInputChange("departmentId", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select department" />
@@ -392,7 +431,9 @@ export default function CreateAnnouncementPage() {
               <Checkbox
                 id="isActive"
                 checked={formData.isActive}
-                onCheckedChange={(checked) => handleInputChange("isActive", !!checked)}
+                onCheckedChange={(checked) =>
+                  handleInputChange("isActive", !!checked)
+                }
               />
               <Label htmlFor="isActive">
                 Publish immediately (uncheck to save as draft)

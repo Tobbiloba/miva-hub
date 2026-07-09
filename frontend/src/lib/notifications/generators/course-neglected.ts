@@ -1,6 +1,6 @@
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { sql } from "drizzle-orm";
-import { existsTodayForStudent, createNotification } from "./helpers";
+import { createNotification, existsTodayForStudent } from "./helpers";
 
 export async function generateCourseNeglectedNotifications(): Promise<number> {
   // Find enrolled students × courses where no activity in 7+ days
@@ -45,7 +45,13 @@ export async function generateCourseNeglectedNotifications(): Promise<number> {
     const daysSince = parseInt(row.days_since);
 
     // Dedup: one per student+course per day
-    if (await existsTodayForStudent(row.student_id, "course_neglected", row.course_id))
+    if (
+      await existsTodayForStudent(
+        row.student_id,
+        "course_neglected",
+        row.course_id,
+      )
+    )
       continue;
 
     await createNotification({

@@ -1,8 +1,8 @@
-import { pgDb as db } from "../db.pg";
-import { McpServerSchema } from "../schema.pg";
+import type { MCPRepository } from "app-types/mcp";
 import { eq } from "drizzle-orm";
 import { generateUUID } from "lib/utils";
-import type { MCPRepository } from "app-types/mcp";
+import { pgDb as db } from "../db.pg";
+import { McpServerSchema } from "../schema.pg";
 
 export const pgMcpRepository: MCPRepository = {
   async save(server) {

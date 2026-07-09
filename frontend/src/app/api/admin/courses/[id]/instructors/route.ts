@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
@@ -7,7 +6,8 @@ import {
   FacultySchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const assignInstructorSchema = z.object({
@@ -20,7 +20,7 @@ const assignInstructorSchema = z.object({
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const adminAccess = await requireAdmin();
@@ -42,7 +42,7 @@ export async function GET(
       .from(CourseInstructorSchema)
       .innerJoin(
         FacultySchema,
-        eq(CourseInstructorSchema.facultyId, FacultySchema.id)
+        eq(CourseInstructorSchema.facultyId, FacultySchema.id),
       )
       .innerJoin(UserSchema, eq(FacultySchema.userId, UserSchema.id))
       .where(eq(CourseInstructorSchema.courseId, courseId))
@@ -56,14 +56,14 @@ export async function GET(
         error: "Failed to fetch instructors",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const adminAccess = await requireAdmin();
@@ -83,7 +83,7 @@ export async function POST(
     if (!course) {
       return NextResponse.json(
         { success: false, error: "Course not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -97,7 +97,7 @@ export async function POST(
     if (!faculty) {
       return NextResponse.json(
         { success: false, error: "Faculty member not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -109,8 +109,8 @@ export async function POST(
         and(
           eq(CourseInstructorSchema.courseId, courseId),
           eq(CourseInstructorSchema.facultyId, validated.facultyId),
-          eq(CourseInstructorSchema.semester, validated.semester)
-        )
+          eq(CourseInstructorSchema.semester, validated.semester),
+        ),
       )
       .limit(1);
 
@@ -121,7 +121,7 @@ export async function POST(
           error:
             "This faculty member is already assigned to this course for this semester",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -142,13 +142,13 @@ export async function POST(
         data: assignment,
         message: "Faculty assigned to course successfully",
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, error: "Validation failed", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
@@ -157,7 +157,7 @@ export async function POST(
         error: "Failed to assign faculty",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

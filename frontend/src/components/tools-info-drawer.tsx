@@ -1,28 +1,28 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import {
+  CATEGORY_DISPLAY_NAMES,
+  TOOLS_INFO_DATA,
+  TOOL_CATEGORIES,
+  ToolCategory,
+  type ToolInfo,
+  getToolsByCategory,
+  searchTools,
+} from "@/lib/tools-info";
+import clsx from "clsx";
+import { Play, Search, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Badge } from "ui/badge";
+import { Button } from "ui/button";
 import {
   Drawer,
+  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerHeader,
   DrawerTitle,
-  DrawerClose,
 } from "ui/drawer";
 import { Input } from "ui/input";
-import { Button } from "ui/button";
-import { Badge } from "ui/badge";
-import {
-  TOOLS_INFO_DATA,
-  ToolCategory,
-  CATEGORY_DISPLAY_NAMES,
-  TOOL_CATEGORIES,
-  searchTools,
-  getToolsByCategory,
-  type ToolInfo,
-} from "@/lib/tools-info";
-import { X, Search, Play } from "lucide-react";
-import clsx from "clsx";
 
 interface ToolsInfoDrawerProps {
   isOpen: boolean;
@@ -121,7 +121,9 @@ export function ToolsInfoDrawer({ isOpen, onClose }: ToolsInfoDrawerProps) {
                 return (
                   <Button
                     key={category}
-                    variant={selectedCategory === category ? "default" : "outline"}
+                    variant={
+                      selectedCategory === category ? "default" : "outline"
+                    }
                     size="sm"
                     onClick={() => setSelectedCategory(category)}
                   >
@@ -245,7 +247,9 @@ function ToolCard({ tool }: ToolCardProps) {
             isHovered ? "opacity-100" : "opacity-75",
           )}
         >
-          <p className="text-xs text-muted-foreground">📹 Demo video coming soon</p>
+          <p className="text-xs text-muted-foreground">
+            📹 Demo video coming soon
+          </p>
         </div>
       )}
     </div>

@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server";
-import { paystackService } from "@/lib/payment/paystack-service";
-import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { UserSchema, SubscriptionPlanSchema } from "@/lib/db/pg/schema.pg";
+import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
+import { SubscriptionPlanSchema, UserSchema } from "@/lib/db/pg/schema.pg";
+import { paystackService } from "@/lib/payment/paystack-service";
 import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
@@ -45,8 +45,7 @@ export async function POST(req: NextRequest) {
     if (!dbPlan || !dbPlan.paystackPlanCode) {
       return NextResponse.json(
         {
-          error:
-            "Plan not configured. Run setup-paystack-plans.ts first.",
+          error: "Plan not configured. Run setup-paystack-plans.ts first.",
         },
         { status: 500 },
       );

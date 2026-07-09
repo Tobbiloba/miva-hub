@@ -1,27 +1,27 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
+import { getFacultyInfo, requireCourseInstructor } from "@/lib/auth/faculty";
+import { getSession } from "@/lib/auth/server";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import {
+  ArrowLeft,
+  Award,
+  BarChart3,
   BookOpen,
-  Users,
-  FileText,
   Calendar,
   Clock,
-  MapPin,
-  Award,
-  TrendingUp,
-  Plus,
   Download,
-  Upload,
-  Settings,
-  ArrowLeft,
+  FileText,
   GraduationCap,
-  BarChart3
+  MapPin,
+  Plus,
+  Settings,
+  TrendingUp,
+  Upload,
+  Users,
 } from "lucide-react";
-import { getSession } from "@/lib/auth/server";
-import { getFacultyInfo, requireCourseInstructor } from "@/lib/auth/faculty";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -34,19 +34,22 @@ interface CoursePageProps {
   }>;
 }
 
-export default async function CourseManagementPage({ params, searchParams }: CoursePageProps) {
+export default async function CourseManagementPage({
+  params,
+  searchParams,
+}: CoursePageProps) {
   const { courseId } = await params;
   const { semester: semesterParam } = await searchParams;
   const session = await getSession();
   const facultyInfo = getFacultyInfo(session);
-  
+
   if (!facultyInfo) {
     return <div>Error: Invalid faculty session</div>;
   }
 
   // Verify faculty can access this course
   const sessionOrError = await requireCourseInstructor(courseId, semesterParam);
-  if (!sessionOrError || typeof sessionOrError !== 'object') {
+  if (!sessionOrError || typeof sessionOrError !== "object") {
     return <div>Error: Access denied to this course</div>;
   }
 
@@ -56,13 +59,23 @@ export default async function CourseManagementPage({ params, searchParams }: Cou
   const semester = semesterParam || currentSemester;
 
   // Get course details
-  const [courseDetails, courseStats, courseSchedule, courseMaterials, courseStudents, courseAssignments] = await Promise.all([
+  const [
+    courseDetails,
+    courseStats,
+    courseSchedule,
+    courseMaterials,
+    courseStudents,
+    courseAssignments,
+  ] = await Promise.all([
     pgAcademicRepository.getCourseWithInstructor(courseId, semester),
     pgAcademicRepository.getCourseStatistics(courseId, semester),
     pgAcademicRepository.getCourseSchedule(courseId, semester),
     pgAcademicRepository.getCourseMaterials(courseId),
     pgAcademicRepository.getCourseEnrollments(courseId, semester),
-    pgAcademicRepository.getFacultyAssignments((await pgAcademicRepository.getFacultyByUserId(facultyInfo.id))!.id, courseId)
+    pgAcademicRepository.getFacultyAssignments(
+      (await pgAcademicRepository.getFacultyByUserId(facultyInfo.id))!.id,
+      courseId,
+    ),
   ]);
 
   if (!courseDetails || courseDetails.length === 0) {
@@ -88,7 +101,9 @@ export default async function CourseManagementPage({ params, searchParams }: Cou
             <div className="flex items-center gap-2 mt-1">
               <Badge variant="outline">{department.name}</Badge>
               <Badge variant="secondary">{course.credits} credits</Badge>
-              <Badge variant="outline" className="capitalize">{semester.replace('-', ' ')}</Badge>
+              <Badge variant="outline" className="capitalize">
+                {semester.replace("-", " ")}
+              </Badge>
             </div>
           </div>
         </div>
@@ -113,13 +128,17 @@ export default async function CourseManagementPage({ params, searchParams }: Cou
                 <Users className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{courseStats.enrolledStudents}</p>
-                <p className="text-sm text-muted-foreground">Enrolled Students</p>
+                <p className="text-2xl font-bold">
+                  {courseStats.enrolledStudents}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Enrolled Students
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -127,13 +146,15 @@ export default async function CourseManagementPage({ params, searchParams }: Cou
                 <FileText className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{courseStats.totalAssignments}</p>
+                <p className="text-2xl font-bold">
+                  {courseStats.totalAssignments}
+                </p>
                 <p className="text-sm text-muted-foreground">Assignments</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -141,13 +162,15 @@ export default async function CourseManagementPage({ params, searchParams }: Cou
                 <Award className="h-6 w-6 text-purple-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{courseStats.averageGrade.toFixed(1)}%</p>
+                <p className="text-2xl font-bold">
+                  {courseStats.averageGrade.toFixed(1)}%
+                </p>
                 <p className="text-sm text-muted-foreground">Average Grade</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -156,7 +179,9 @@ export default async function CourseManagementPage({ params, searchParams }: Cou
               </div>
               <div>
                 <p className="text-2xl font-bold">{courseMaterials.length}</p>
-                <p className="text-sm text-muted-foreground">Course Materials</p>
+                <p className="text-sm text-muted-foreground">
+                  Course Materials
+                </p>
               </div>
             </div>
           </CardContent>
@@ -175,10 +200,10 @@ export default async function CourseManagementPage({ params, searchParams }: Cou
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <CourseOverview 
-            course={course} 
-            department={department} 
-            schedule={courseSchedule} 
+          <CourseOverview
+            course={course}
+            department={department}
+            schedule={courseSchedule}
             instructor={instructor}
             instructorRole={instructorRole}
           />
@@ -189,7 +214,10 @@ export default async function CourseManagementPage({ params, searchParams }: Cou
         </TabsContent>
 
         <TabsContent value="assignments" className="space-y-4">
-          <CourseAssignments assignments={courseAssignments} courseId={courseId} />
+          <CourseAssignments
+            assignments={courseAssignments}
+            courseId={courseId}
+          />
         </TabsContent>
 
         <TabsContent value="materials" className="space-y-4">
@@ -201,14 +229,14 @@ export default async function CourseManagementPage({ params, searchParams }: Cou
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4">
-          <CourseAnalytics courseId={courseId} stats={courseStats} />
+          <CourseAnalytics stats={courseStats} />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function CourseOverview({ course, department, schedule, instructor, instructorRole }: any) {
+function CourseOverview({ course, department, schedule }: any) {
   return (
     <div className="grid gap-6 md:grid-cols-2">
       {/* Course Information */}
@@ -221,21 +249,31 @@ function CourseOverview({ course, department, schedule, instructor, instructorRo
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-muted-foreground">Description</label>
-            <p className="mt-1">{course.description || "No description available"}</p>
+            <label className="text-sm font-medium text-muted-foreground">
+              Description
+            </label>
+            <p className="mt-1">
+              {course.description || "No description available"}
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Credits</label>
+              <label className="text-sm font-medium text-muted-foreground">
+                Credits
+              </label>
               <p className="mt-1 font-medium">{course.credits}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Level</label>
+              <label className="text-sm font-medium text-muted-foreground">
+                Level
+              </label>
               <p className="mt-1 font-medium capitalize">{course.level}</p>
             </div>
           </div>
           <div>
-            <label className="text-sm font-medium text-muted-foreground">Department</label>
+            <label className="text-sm font-medium text-muted-foreground">
+              Department
+            </label>
             <p className="mt-1 font-medium">{department.name}</p>
           </div>
         </CardContent>
@@ -253,17 +291,24 @@ function CourseOverview({ course, department, schedule, instructor, instructorRo
           {schedule && schedule.length > 0 ? (
             <div className="space-y-3">
               {schedule.map((s: any, index: number) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium capitalize">{s.dayOfWeek}</span>
+                      <span className="font-medium capitalize">
+                        {s.dayOfWeek}
+                      </span>
                       <Badge variant="outline">{s.classType}</Badge>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        <span>{s.startTime} - {s.endTime}</span>
+                        <span>
+                          {s.startTime} - {s.endTime}
+                        </span>
                       </div>
                       {s.roomLocation && (
                         <div className="flex items-center gap-1">
@@ -277,7 +322,9 @@ function CourseOverview({ course, department, schedule, instructor, instructorRo
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground">No schedule information available</p>
+            <p className="text-muted-foreground">
+              No schedule information available
+            </p>
           )}
         </CardContent>
       </Card>
@@ -296,43 +343,65 @@ function CourseOverview({ course, department, schedule, instructor, instructorRo
                     <Plus className="h-4 w-4" />
                     <span className="font-medium">New Assignment</span>
                   </div>
-                  <p className="text-sm opacity-80">Create assignments for students</p>
+                  <p className="text-sm opacity-80">
+                    Create assignments for students
+                  </p>
                 </div>
               </Link>
             </Button>
-            
-            <Button variant="outline" className="h-auto p-4 justify-start" asChild>
+
+            <Button
+              variant="outline"
+              className="h-auto p-4 justify-start"
+              asChild
+            >
               <Link href={`/faculty/materials/upload?courseId=${course.id}`}>
                 <div className="text-left">
                   <div className="flex items-center gap-2 mb-1">
                     <Upload className="h-4 w-4" />
                     <span className="font-medium">Upload Materials</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">Add course resources</p>
+                  <p className="text-sm text-muted-foreground">
+                    Add course resources
+                  </p>
                 </div>
               </Link>
             </Button>
-            
-            <Button variant="outline" className="h-auto p-4 justify-start" asChild>
+
+            <Button
+              variant="outline"
+              className="h-auto p-4 justify-start"
+              asChild
+            >
               <Link href={`/faculty/grades?courseId=${course.id}`}>
                 <div className="text-left">
                   <div className="flex items-center gap-2 mb-1">
                     <GraduationCap className="h-4 w-4" />
                     <span className="font-medium">Grade Book</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">View and edit grades</p>
+                  <p className="text-sm text-muted-foreground">
+                    View and edit grades
+                  </p>
                 </div>
               </Link>
             </Button>
-            
-            <Button variant="outline" className="h-auto p-4 justify-start" asChild>
-              <Link href={`/faculty/announcements/create?courseId=${course.id}`}>
+
+            <Button
+              variant="outline"
+              className="h-auto p-4 justify-start"
+              asChild
+            >
+              <Link
+                href={`/faculty/announcements/create?courseId=${course.id}`}
+              >
                 <div className="text-left">
                   <div className="flex items-center gap-2 mb-1">
                     <FileText className="h-4 w-4" />
                     <span className="font-medium">Announcement</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">Post course updates</p>
+                  <p className="text-sm text-muted-foreground">
+                    Post course updates
+                  </p>
                 </div>
               </Link>
             </Button>
@@ -360,20 +429,30 @@ function CourseRoster({ students }: { students: any[] }) {
         {students.length > 0 ? (
           <div className="space-y-2">
             {students.map((enrollment) => (
-              <div key={enrollment.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div
+                key={enrollment.id}
+                className="flex items-center justify-between p-3 border rounded-lg"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
                     <Users className="h-4 w-4 text-blue-600" />
                   </div>
                   <div>
-                    <p className="font-medium">Student {enrollment.studentId}</p>
+                    <p className="font-medium">
+                      Student {enrollment.studentId}
+                    </p>
                     <p className="text-sm text-muted-foreground">
-                      Enrolled: {new Date(enrollment.enrollmentDate).toLocaleDateString()}
+                      Enrolled:{" "}
+                      {new Date(enrollment.enrollmentDate).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant={enrollment.status === "enrolled" ? "default" : "secondary"}>
+                  <Badge
+                    variant={
+                      enrollment.status === "enrolled" ? "default" : "secondary"
+                    }
+                  >
                     {enrollment.status}
                   </Badge>
                   {enrollment.finalGrade && (
@@ -394,7 +473,10 @@ function CourseRoster({ students }: { students: any[] }) {
   );
 }
 
-function CourseAssignments({ assignments, courseId }: { assignments: any[]; courseId: string }) {
+function CourseAssignments({
+  assignments,
+  courseId,
+}: { assignments: any[]; courseId: string }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -413,7 +495,10 @@ function CourseAssignments({ assignments, courseId }: { assignments: any[]; cour
         {assignments.length > 0 ? (
           <div className="space-y-3">
             {assignments.map(({ assignment }) => (
-              <div key={assignment.id} className="flex items-center justify-between p-4 border rounded-lg">
+              <div
+                key={assignment.id}
+                className="flex items-center justify-between p-4 border rounded-lg"
+              >
                 <div className="flex-1">
                   <h4 className="font-medium">{assignment.title}</h4>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -421,7 +506,9 @@ function CourseAssignments({ assignments, courseId }: { assignments: any[]; cour
                   </p>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge variant="outline">{assignment.assignmentType}</Badge>
-                    <Badge variant="secondary">{assignment.totalPoints} pts</Badge>
+                    <Badge variant="secondary">
+                      {assignment.totalPoints} pts
+                    </Badge>
                     <span className="text-xs text-muted-foreground">
                       Due: {new Date(assignment.dueDate).toLocaleDateString()}
                     </span>
@@ -458,13 +545,19 @@ function CourseAssignments({ assignments, courseId }: { assignments: any[]; cour
   );
 }
 
-function CourseMaterials({ materials, courseId }: { materials: any[]; courseId: string }) {
-  const materialsByWeek = materials.reduce((acc, material) => {
-    const week = material.weekNumber || 0;
-    if (!acc[week]) acc[week] = [];
-    acc[week].push(material);
-    return acc;
-  }, {} as Record<number, any[]>);
+function CourseMaterials({
+  materials,
+  courseId,
+}: { materials: any[]; courseId: string }) {
+  const materialsByWeek = materials.reduce(
+    (acc, material) => {
+      const week = material.weekNumber || 0;
+      if (!acc[week]) acc[week] = [];
+      acc[week].push(material);
+      return acc;
+    },
+    {} as Record<number, any[]>,
+  );
 
   return (
     <Card>
@@ -492,7 +585,10 @@ function CourseMaterials({ materials, courseId }: { materials: any[]; courseId: 
                   </h4>
                   <div className="space-y-2">
                     {weekMaterials.map((material) => (
-                      <div key={material.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div
+                        key={material.id}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
                         <div className="flex items-center gap-3">
                           <FileText className="h-4 w-4 text-muted-foreground" />
                           <div>
@@ -503,7 +599,8 @@ function CourseMaterials({ materials, courseId }: { materials: any[]; courseId: 
                               </Badge>
                               {material.fileSize && (
                                 <span className="text-xs text-muted-foreground">
-                                  {(material.fileSize / 1024 / 1024).toFixed(2)} MB
+                                  {(material.fileSize / 1024 / 1024).toFixed(2)}{" "}
+                                  MB
                                 </span>
                               )}
                             </div>
@@ -512,7 +609,11 @@ function CourseMaterials({ materials, courseId }: { materials: any[]; courseId: 
                         <div className="flex gap-2">
                           {material.contentUrl && (
                             <Button variant="outline" size="sm" asChild>
-                              <a href={material.contentUrl} target="_blank" rel="noopener noreferrer">
+                              <a
+                                href={material.contentUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
                                 <Download className="h-3 w-3" />
                               </a>
                             </Button>
@@ -530,7 +631,9 @@ function CourseMaterials({ materials, courseId }: { materials: any[]; courseId: 
         ) : (
           <div className="text-center py-8">
             <BookOpen className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-            <p className="text-muted-foreground">No course materials uploaded yet</p>
+            <p className="text-muted-foreground">
+              No course materials uploaded yet
+            </p>
             <Button className="mt-2" asChild>
               <Link href={`/faculty/materials/upload?courseId=${courseId}`}>
                 Upload First Material
@@ -555,7 +658,9 @@ function CourseGrades({ courseId }: { courseId: string }) {
       <CardContent>
         <div className="text-center py-8">
           <GraduationCap className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-          <p className="text-muted-foreground">Grade book interface coming soon</p>
+          <p className="text-muted-foreground">
+            Grade book interface coming soon
+          </p>
           <Button className="mt-2" asChild>
             <Link href={`/faculty/grades?courseId=${courseId}`}>
               Open Grade Book
@@ -567,7 +672,7 @@ function CourseGrades({ courseId }: { courseId: string }) {
   );
 }
 
-function CourseAnalytics({ courseId, stats }: { courseId: string; stats: any }) {
+function CourseAnalytics({ stats }: { stats: any }) {
   return (
     <Card>
       <CardHeader>
@@ -583,19 +688,23 @@ function CourseAnalytics({ courseId, stats }: { courseId: string; stats: any }) 
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Average Grade:</span>
-                <span className="font-medium">{stats.averageGrade.toFixed(1)}%</span>
+                <span className="font-medium">
+                  {stats.averageGrade.toFixed(1)}%
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total Students:</span>
                 <span className="font-medium">{stats.enrolledStudents}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Assignments:</span>
+                <span className="text-muted-foreground">
+                  Total Assignments:
+                </span>
                 <span className="font-medium">{stats.totalAssignments}</span>
               </div>
             </div>
           </div>
-          
+
           <div className="p-4 border rounded-lg">
             <h4 className="font-medium mb-2">Course Health</h4>
             <div className="text-center py-4">

@@ -153,7 +153,6 @@ export default function LectureStudyPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {/* biome-ignore lint/a11y/useMediaCaption: recap transcript is rendered below */}
                 <audio
                   controls
                   preload="none"

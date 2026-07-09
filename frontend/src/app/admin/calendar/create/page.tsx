@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -14,10 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Save, Loader2, AlertCircle } from "lucide-react";
+import { AlertCircle, ArrowLeft, Calendar, Loader2, Save } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface Department {
   id: string;
@@ -96,7 +102,9 @@ export default function CreateCalendarEventPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
+    {},
+  );
   const { toast } = useToast();
   const router = useRouter();
 
@@ -134,12 +142,19 @@ export default function CreateCalendarEventPage() {
       newErrors.endDate = "End date is required";
     }
 
-    if (formData.startDate && formData.endDate && formData.endDate < formData.startDate) {
+    if (
+      formData.startDate &&
+      formData.endDate &&
+      formData.endDate < formData.startDate
+    ) {
       newErrors.endDate = "End date must be on or after start date";
     }
 
     if (!formData.isAllDay && formData.startTime && formData.endTime) {
-      if (formData.startDate === formData.endDate && formData.endTime <= formData.startTime) {
+      if (
+        formData.startDate === formData.endDate &&
+        formData.endTime <= formData.startTime
+      ) {
         newErrors.endTime = "End time must be after start time on the same day";
       }
     }
@@ -148,7 +163,10 @@ export default function CreateCalendarEventPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (field: keyof FormData, value: string | boolean) => {
+  const handleInputChange = (
+    field: keyof FormData,
+    value: string | boolean,
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -159,7 +177,11 @@ export default function CreateCalendarEventPage() {
     e.preventDefault();
 
     if (!validateForm()) {
-      toast({ title: "Validation Error", description: "Please fix the errors in the form", variant: "destructive" });
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors in the form",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -180,8 +202,10 @@ export default function CreateCalendarEventPage() {
 
       if (formData.description) body.description = formData.description;
       if (formData.location) body.location = formData.location;
-      if (!formData.isAllDay && formData.startTime) body.startTime = formData.startTime;
-      if (!formData.isAllDay && formData.endTime) body.endTime = formData.endTime;
+      if (!formData.isAllDay && formData.startTime)
+        body.startTime = formData.startTime;
+      if (!formData.isAllDay && formData.endTime)
+        body.endTime = formData.endTime;
       if (formData.affectedUsers === "specific" && formData.departmentId) {
         body.departmentId = formData.departmentId;
       }
@@ -198,11 +222,19 @@ export default function CreateCalendarEventPage() {
         toast({ title: "Success", description: data.message });
         router.push("/admin/calendar");
       } else {
-        toast({ title: "Error", description: data.message || "Failed to create event", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: data.message || "Failed to create event",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error creating calendar event:", error);
-      toast({ title: "Error", description: "Failed to create event. Please try again.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to create event. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -253,7 +285,9 @@ export default function CreateCalendarEventPage() {
                 <Label htmlFor="eventType">Event Type *</Label>
                 <Select
                   value={formData.eventType}
-                  onValueChange={(value) => handleInputChange("eventType", value)}
+                  onValueChange={(value) =>
+                    handleInputChange("eventType", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select event type" />
@@ -278,7 +312,9 @@ export default function CreateCalendarEventPage() {
                 <Label htmlFor="priority">Priority</Label>
                 <Select
                   value={formData.priority}
-                  onValueChange={(value) => handleInputChange("priority", value)}
+                  onValueChange={(value) =>
+                    handleInputChange("priority", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select priority" />
@@ -319,7 +355,9 @@ export default function CreateCalendarEventPage() {
                 placeholder="Event description and additional details"
                 rows={3}
                 value={formData.description}
-                onChange={(e) => handleInputChange("description", e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("description", e.target.value)
+                }
               />
             </div>
 
@@ -328,7 +366,9 @@ export default function CreateCalendarEventPage() {
               <Checkbox
                 id="isAllDay"
                 checked={formData.isAllDay}
-                onCheckedChange={(checked) => handleInputChange("isAllDay", !!checked)}
+                onCheckedChange={(checked) =>
+                  handleInputChange("isAllDay", !!checked)
+                }
               />
               <Label htmlFor="isAllDay">All day event</Label>
             </div>
@@ -341,7 +381,9 @@ export default function CreateCalendarEventPage() {
                   id="startDate"
                   type="date"
                   value={formData.startDate}
-                  onChange={(e) => handleInputChange("startDate", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("startDate", e.target.value)
+                  }
                 />
                 {errors.startDate && (
                   <p className="text-sm text-red-500 flex items-center gap-1">
@@ -377,7 +419,9 @@ export default function CreateCalendarEventPage() {
                     id="startTime"
                     type="time"
                     value={formData.startTime}
-                    onChange={(e) => handleInputChange("startTime", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("startTime", e.target.value)
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -386,7 +430,9 @@ export default function CreateCalendarEventPage() {
                     id="endTime"
                     type="time"
                     value={formData.endTime}
-                    onChange={(e) => handleInputChange("endTime", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("endTime", e.target.value)
+                    }
                   />
                   {errors.endTime && (
                     <p className="text-sm text-red-500 flex items-center gap-1">
@@ -436,7 +482,8 @@ export default function CreateCalendarEventPage() {
                   value={formData.affectedUsers}
                   onValueChange={(value) => {
                     handleInputChange("affectedUsers", value);
-                    if (value !== "specific") setFormData((prev) => ({ ...prev, departmentId: "" }));
+                    if (value !== "specific")
+                      setFormData((prev) => ({ ...prev, departmentId: "" }));
                   }}
                 >
                   <SelectTrigger>
@@ -459,7 +506,9 @@ export default function CreateCalendarEventPage() {
                 <Label htmlFor="departmentId">Department</Label>
                 <Select
                   value={formData.departmentId}
-                  onValueChange={(value) => handleInputChange("departmentId", value)}
+                  onValueChange={(value) =>
+                    handleInputChange("departmentId", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select department" />
@@ -480,7 +529,9 @@ export default function CreateCalendarEventPage() {
               <Checkbox
                 id="remindersEnabled"
                 checked={formData.remindersEnabled}
-                onCheckedChange={(checked) => handleInputChange("remindersEnabled", !!checked)}
+                onCheckedChange={(checked) =>
+                  handleInputChange("remindersEnabled", !!checked)
+                }
               />
               <Label htmlFor="remindersEnabled">
                 Enable reminders for this event

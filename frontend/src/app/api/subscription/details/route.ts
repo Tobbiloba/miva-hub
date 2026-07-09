@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server";
 import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: req.headers });
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     console.error("Error fetching subscription details:", error);
     return NextResponse.json(
       { error: "Failed to fetch subscription details" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

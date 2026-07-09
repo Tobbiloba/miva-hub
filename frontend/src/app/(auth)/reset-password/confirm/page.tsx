@@ -1,11 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -13,7 +8,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Loader, Eye, EyeOff } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Eye, EyeOff, Loader } from "lucide-react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function ConfirmResetPasswordPage() {
@@ -72,8 +72,7 @@ export default function ConfirmResetPasswordPage() {
 
       if (!response.ok) {
         toast.error(
-          data.error ||
-            "Failed to reset password. The link may have expired."
+          data.error || "Failed to reset password. The link may have expired.",
         );
         return;
       }
@@ -193,7 +192,9 @@ export default function ConfirmResetPasswordPage() {
             </Button>
 
             <div className="text-center text-sm">
-              <span className="text-muted-foreground">Remember your password? </span>
+              <span className="text-muted-foreground">
+                Remember your password?{" "}
+              </span>
               <Link
                 href="/sign-in"
                 className="text-primary hover:underline font-medium"

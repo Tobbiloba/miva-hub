@@ -1,21 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,15 +11,26 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  ArrowUp,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ArrowDown,
+  ArrowUp,
   GraduationCap,
-  Pause,
   Loader2,
+  Pause,
   Settings,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface Props {
   studentId: string;
@@ -58,8 +53,6 @@ type OverrideAction = {
 export function StudentAcademicActions({
   studentId,
   currentLevel,
-  currentSemester,
-  academicYear,
   enrollmentStatus,
   programId,
   programs,
@@ -68,7 +61,10 @@ export function StudentAcademicActions({
   const [executing, setExecuting] = useState<string | null>(null);
   const [selectedProgram, setSelectedProgram] = useState(programId ?? "");
 
-  const executeOverride = async (action: string, payload: Record<string, unknown>) => {
+  const executeOverride = async (
+    action: string,
+    payload: Record<string, unknown>,
+  ) => {
     setExecuting(action);
     try {
       const res = await fetch(`/api/admin/students/${studentId}/academic`, {
@@ -126,15 +122,9 @@ export function StudentAcademicActions({
   // Don't show actions that don't make sense
   const filteredActions = quickActions.filter((action) => {
     if (action.label === "Demote Level" && level <= 100) return false;
-    if (
-      action.label === "Mark on Leave" &&
-      enrollmentStatus === "inactive"
-    )
+    if (action.label === "Mark on Leave" && enrollmentStatus === "inactive")
       return false;
-    if (
-      action.label === "Mark Graduated" &&
-      enrollmentStatus === "graduated"
-    )
+    if (action.label === "Mark Graduated" && enrollmentStatus === "graduated")
       return false;
     return true;
   });
@@ -231,10 +221,7 @@ export function StudentAcademicActions({
         {/* Change Program */}
         <div className="flex items-center gap-3 pt-3 border-t">
           <span className="text-sm font-medium">Change Program:</span>
-          <Select
-            value={selectedProgram}
-            onValueChange={setSelectedProgram}
-          >
+          <Select value={selectedProgram} onValueChange={setSelectedProgram}>
             <SelectTrigger className="w-64">
               <SelectValue placeholder="Select program" />
             </SelectTrigger>

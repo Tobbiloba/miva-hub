@@ -1,6 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -9,13 +9,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FolderOpen, Plus, ExternalLink } from "lucide-react";
-import Link from "next/link";
-import { getSession } from "@/lib/auth/server";
 import { getFacultyInfo } from "@/lib/auth/faculty";
+import { getSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { CourseMaterialSchema, CourseSchema } from "@/lib/db/pg/schema.pg";
-import { eq, desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
+import { ExternalLink, FolderOpen, Plus } from "lucide-react";
+import Link from "next/link";
 
 export default async function FacultyMaterialsPage() {
   const session = await getSession();
@@ -51,7 +51,8 @@ export default async function FacultyMaterialsPage() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const isExternalUrl = (m: typeof materials[number]) => !m.fileName && m.contentUrl?.startsWith("http");
+  const isExternalUrl = (m: (typeof materials)[number]) =>
+    !m.fileName && m.contentUrl?.startsWith("http");
 
   return (
     <div className="space-y-6">
@@ -61,7 +62,9 @@ export default async function FacultyMaterialsPage() {
             <FolderOpen className="h-8 w-8 text-blue-600" />
             Course Materials
           </h1>
-          <p className="text-muted-foreground">Materials you&apos;ve uploaded to your courses</p>
+          <p className="text-muted-foreground">
+            Materials you&apos;ve uploaded to your courses
+          </p>
         </div>
         <Button asChild>
           <Link href="/faculty/materials/upload">
@@ -99,7 +102,11 @@ export default async function FacultyMaterialsPage() {
                       <div className="flex items-center gap-2">
                         {m.title}
                         {isExternalUrl(m) && (
-                          <a href={m.contentUrl!} target="_blank" rel="noopener noreferrer">
+                          <a
+                            href={m.contentUrl!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
                             <ExternalLink className="h-3 w-3 text-muted-foreground" />
                           </a>
                         )}
@@ -108,8 +115,12 @@ export default async function FacultyMaterialsPage() {
                     <TableCell>
                       <Badge variant="outline">{m.courseCode}</Badge>
                     </TableCell>
-                    <TableCell className="capitalize">{m.materialType}</TableCell>
-                    <TableCell>{m.weekNumber ? `Week ${m.weekNumber}` : "—"}</TableCell>
+                    <TableCell className="capitalize">
+                      {m.materialType}
+                    </TableCell>
+                    <TableCell>
+                      {m.weekNumber ? `Week ${m.weekNumber}` : "—"}
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {isExternalUrl(m) ? "URL" : formatFileSize(m.fileSize)}
                     </TableCell>

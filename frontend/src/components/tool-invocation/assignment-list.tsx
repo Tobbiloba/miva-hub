@@ -1,7 +1,13 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Calendar, Clock, Target, FileText, AlertCircle } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { AlertCircle, Calendar, Clock, FileText, Target } from "lucide-react";
 
 type AssignmentListProps = {
   student_id?: string;
@@ -27,12 +33,24 @@ export function AssignmentList(props: AssignmentListProps) {
 
   const getUrgencyIndicator = (urgency?: string) => {
     switch (urgency) {
-      case 'urgent':
-        return { icon: '🚨', label: 'Urgent', color: 'text-red-600 border-red-200' };
-      case 'soon':
-        return { icon: '⚠️', label: 'Soon', color: 'text-yellow-600 border-yellow-200' };
+      case "urgent":
+        return {
+          icon: "🚨",
+          label: "Urgent",
+          color: "text-red-600 border-red-200",
+        };
+      case "soon":
+        return {
+          icon: "⚠️",
+          label: "Soon",
+          color: "text-yellow-600 border-yellow-200",
+        };
       default:
-        return { icon: '✅', label: 'Later', color: 'text-green-600 border-green-200' };
+        return {
+          icon: "✅",
+          label: "Later",
+          color: "text-green-600 border-green-200",
+        };
     }
   };
 
@@ -41,8 +59,12 @@ export function AssignmentList(props: AssignmentListProps) {
       <Card className="bg-card">
         <CardContent className="py-12 text-center">
           <div className="text-6xl mb-4">🎉</div>
-          <h3 className="text-lg font-semibold mb-2">No Upcoming Assignments!</h3>
-          <p className="text-sm text-muted-foreground">You&apos;re all caught up. Great work!</p>
+          <h3 className="text-lg font-semibold mb-2">
+            No Upcoming Assignments!
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            You&apos;re all caught up. Great work!
+          </p>
         </CardContent>
       </Card>
     );
@@ -54,7 +76,8 @@ export function AssignmentList(props: AssignmentListProps) {
         <CardHeader>
           <CardTitle>Upcoming Assignments</CardTitle>
           <CardDescription>
-            You have {totalCount} {totalCount === 1 ? 'assignment' : 'assignments'} due soon
+            You have {totalCount}{" "}
+            {totalCount === 1 ? "assignment" : "assignments"} due soon
           </CardDescription>
         </CardHeader>
       </Card>
@@ -62,16 +85,23 @@ export function AssignmentList(props: AssignmentListProps) {
       <div className="space-y-3">
         {props.assignments.map((assignment, index) => {
           const urgency = getUrgencyIndicator(assignment.urgency);
-          
+
           return (
-            <Card key={index} className="bg-card hover:bg-secondary/20 transition-colors">
+            <Card
+              key={index}
+              className="bg-card hover:bg-secondary/20 transition-colors"
+            >
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h4 className="font-semibold text-sm">{assignment.title}</h4>
+                      <h4 className="font-semibold text-sm">
+                        {assignment.title}
+                      </h4>
                       {assignment.urgency && (
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${urgency.color}`}>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium border ${urgency.color}`}
+                        >
                           {urgency.icon} {urgency.label}
                         </span>
                       )}
@@ -108,30 +138,32 @@ export function AssignmentList(props: AssignmentListProps) {
                     {assignment.assignment_type && (
                       <div className="flex items-center gap-2">
                         <FileText className="w-4 h-4" />
-                        <span className="capitalize">{assignment.assignment_type}</span>
+                        <span className="capitalize">
+                          {assignment.assignment_type}
+                        </span>
                       </div>
                     )}
                     {assignment.days_until_due !== undefined && (
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4" />
                         <span>
-                          {assignment.days_until_due === 0 
-                            ? 'Due today' 
+                          {assignment.days_until_due === 0
+                            ? "Due today"
                             : assignment.days_until_due === 1
-                            ? '1 day remaining'
-                            : `${assignment.days_until_due} days remaining`}
+                              ? "1 day remaining"
+                              : `${assignment.days_until_due} days remaining`}
                         </span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {assignment.status && assignment.status !== 'not_started' && (
+                {assignment.status && assignment.status !== "not_started" && (
                   <div className="mt-3 pt-3 border-t">
                     <div className="flex items-center gap-2 text-sm">
                       <AlertCircle className="w-4 h-4 text-muted-foreground" />
                       <span className="text-muted-foreground capitalize">
-                        Status: {assignment.status.replace('_', ' ')}
+                        Status: {assignment.status.replace("_", " ")}
                       </span>
                     </div>
                   </div>

@@ -1,10 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -12,16 +8,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useObjectState } from "@/hooks/use-object-state";
+import Link from "next/link";
+import { useState } from "react";
 
-import { Loader } from "lucide-react";
-import { safe } from "ts-safe";
-import { authClient } from "auth/client";
-import { toast } from "sonner";
-import { GithubIcon } from "ui/github-icon";
-import { useTranslations } from "next-intl";
-import { MicrosoftIcon } from "ui/microsoft-icon";
 import { SocialAuthenticationProvider } from "app-types/authentication";
+import { authClient } from "auth/client";
+import { Loader } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { toast } from "sonner";
+import { safe } from "ts-safe";
+import { GithubIcon } from "ui/github-icon";
+import { MicrosoftIcon } from "ui/microsoft-icon";
 
 export default function SignIn({
   emailAndPasswordEnabled,

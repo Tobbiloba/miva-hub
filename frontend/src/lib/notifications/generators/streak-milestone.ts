@@ -1,16 +1,25 @@
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { StudyActivitySchema } from "@/lib/db/pg/schema.pg";
 import { sql } from "drizzle-orm";
-import { existsTodayForStudent, createNotification } from "./helpers";
+import { createNotification, existsTodayForStudent } from "./helpers";
 
 const MILESTONES = [3, 7, 14, 30, 60];
 
 const MESSAGES: Record<number, { title: string; body: string }> = {
   3: { title: "3-day streak!", body: "Three days in a row. Keep it going." },
   7: { title: "7-day streak!", body: "A full week of studying. Solid work." },
-  14: { title: "14-day streak!", body: "Two weeks straight. That's commitment." },
-  30: { title: "30-day streak!", body: "A whole month of daily studying. Impressive." },
-  60: { title: "60-day streak!", body: "Sixty days. You've built a real habit." },
+  14: {
+    title: "14-day streak!",
+    body: "Two weeks straight. That's commitment.",
+  },
+  30: {
+    title: "30-day streak!",
+    body: "A whole month of daily studying. Impressive.",
+  },
+  60: {
+    title: "60-day streak!",
+    body: "Sixty days. You've built a real habit.",
+  },
 };
 
 export async function generateStreakMilestoneNotifications(): Promise<number> {

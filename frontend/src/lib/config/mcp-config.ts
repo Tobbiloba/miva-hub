@@ -1,6 +1,6 @@
 /**
  * MCP Server Configuration
- * 
+ *
  * This file handles the configuration of the MCP (Model Context Protocol) server URL
  * based on the environment (local development vs production).
  */
@@ -36,14 +36,14 @@ export const MCP_CONFIG = {
 
 /**
  * Environment-specific MCP server URLs:
- * 
+ *
  * Local Development:
  *   NEXT_PUBLIC_MCP_SERVER_URL=http://localhost:8080/sse
  *   (or set MCP_SERVER_URL for server-side usage)
- * 
+ *
  * Production:
  *   NEXT_PUBLIC_MCP_SERVER_URL=https://your-mcp-server-domain.com/sse
- * 
+ *
  * Example:
  *   NEXT_PUBLIC_MCP_SERVER_URL=https://miva-hub-mcp-production.up.railway.app/sse
  */

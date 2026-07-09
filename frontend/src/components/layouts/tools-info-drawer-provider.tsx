@@ -1,9 +1,9 @@
 "use client";
 
-import { ReactNode, useMemo } from "react";
 import { appStore } from "@/app/store";
-import { useShallow } from "zustand/shallow";
 import { ToolsInfoDrawer } from "@/components/tools-info-drawer";
+import { ReactNode, useMemo } from "react";
+import { useShallow } from "zustand/shallow";
 
 export function ToolsInfoDrawerProvider({ children }: { children: ReactNode }) {
   const [toolsInfoDrawer, appStoreMutate] = appStore(
@@ -24,10 +24,7 @@ export function ToolsInfoDrawerProvider({ children }: { children: ReactNode }) {
   return (
     <>
       {children}
-      <ToolsInfoDrawer
-        isOpen={toolsInfoDrawer.isOpen}
-        onClose={handleClose}
-      />
+      <ToolsInfoDrawer isOpen={toolsInfoDrawer.isOpen} onClose={handleClose} />
     </>
   );
 }

@@ -1,10 +1,10 @@
 "use client";
 
-import { VideoPlayer } from "./video-player";
-import { PDFViewer } from "./pdf-viewer";
-import { AudioPlayer } from "./audio-player";
-import { FileIcon, ExternalLink, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Download, ExternalLink, FileIcon } from "lucide-react";
+import { AudioPlayer } from "./audio-player";
+import { PDFViewer } from "./pdf-viewer";
+import { VideoPlayer } from "./video-player";
 
 interface FileDisplayProps {
   publicUrl: string;
@@ -15,39 +15,38 @@ interface FileDisplayProps {
   className?: string;
 }
 
-export function FileDisplay({ 
-  publicUrl, 
-  title, 
-  materialType, 
-  mimeType, 
-  fileName, 
-  className = "" 
+export function FileDisplay({
+  publicUrl,
+  title,
+  materialType,
+  mimeType,
+  fileName,
+  className = "",
 }: FileDisplayProps) {
-  
   // Determine file type from mimeType or fileName
-  const getFileType = (): 'video' | 'pdf' | 'audio' | 'other' => {
+  const getFileType = (): "video" | "pdf" | "audio" | "other" => {
     if (mimeType) {
-      if (mimeType.startsWith('video/')) return 'video';
-      if (mimeType === 'application/pdf') return 'pdf';
-      if (mimeType.startsWith('audio/')) return 'audio';
+      if (mimeType.startsWith("video/")) return "video";
+      if (mimeType === "application/pdf") return "pdf";
+      if (mimeType.startsWith("audio/")) return "audio";
     }
-    
+
     // Fallback to file extension
     if (fileName) {
-      const ext = fileName.toLowerCase().split('.').pop();
-      if (['mp4', 'mov', 'avi', 'webm'].includes(ext || '')) return 'video';
-      if (ext === 'pdf') return 'pdf';
-      if (['mp3', 'wav', 'm4a', 'ogg'].includes(ext || '')) return 'audio';
+      const ext = fileName.toLowerCase().split(".").pop();
+      if (["mp4", "mov", "avi", "webm"].includes(ext || "")) return "video";
+      if (ext === "pdf") return "pdf";
+      if (["mp3", "wav", "m4a", "ogg"].includes(ext || "")) return "audio";
     }
-    
-    return 'other';
+
+    return "other";
   };
 
   const fileType = getFileType();
-  const displayTitle = title || fileName || 'Course Material';
+  const displayTitle = title || fileName || "Course Material";
 
   // For unsupported file types, show a simple link
-  if (fileType === 'other') {
+  if (fileType === "other") {
     return (
       <div className={`border rounded-lg p-4 bg-muted/50 ${className}`}>
         <div className="flex items-center justify-between">
@@ -55,14 +54,16 @@ export function FileDisplay({
             <FileIcon className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium">{displayTitle}</span>
             {materialType && (
-              <span className="text-xs text-muted-foreground">({materialType})</span>
+              <span className="text-xs text-muted-foreground">
+                ({materialType})
+              </span>
             )}
           </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(publicUrl, '_blank')}
+              onClick={() => window.open(publicUrl, "_blank")}
             >
               <ExternalLink className="h-3 w-3 mr-1" />
               Open
@@ -71,9 +72,9 @@ export function FileDisplay({
               variant="outline"
               size="sm"
               onClick={() => {
-                const link = document.createElement('a');
+                const link = document.createElement("a");
                 link.href = publicUrl;
-                link.download = fileName || 'download';
+                link.download = fileName || "download";
                 link.click();
               }}
             >
@@ -88,12 +89,26 @@ export function FileDisplay({
 
   // Render appropriate component based on file type
   switch (fileType) {
-    case 'video':
-      return <VideoPlayer src={publicUrl} title={displayTitle} className={className} />;
-    case 'pdf':
-      return <PDFViewer src={publicUrl} title={displayTitle} className={className} />;
-    case 'audio':
-      return <AudioPlayer src={publicUrl} title={displayTitle} className={className} />;
+    case "video":
+      return (
+        <VideoPlayer
+          src={publicUrl}
+          title={displayTitle}
+          className={className}
+        />
+      );
+    case "pdf":
+      return (
+        <PDFViewer src={publicUrl} title={displayTitle} className={className} />
+      );
+    case "audio":
+      return (
+        <AudioPlayer
+          src={publicUrl}
+          title={displayTitle}
+          className={className}
+        />
+      );
     default:
       return null;
   }

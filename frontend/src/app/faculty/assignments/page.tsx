@@ -1,52 +1,61 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getFacultyInfo } from "@/lib/auth/faculty";
+import { getSession } from "@/lib/auth/server";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import {
-  FileText,
-  Plus,
-  Calendar,
-  Clock,
-  Users,
+  AlertCircle,
   Award,
+  Calendar,
+  CheckCircle,
+  Clock,
   Edit3,
   Eye,
-  AlertCircle,
-  CheckCircle,
+  FileText,
+  Plus,
+  Users,
 } from "lucide-react";
-import { getSession } from "@/lib/auth/server";
-import { getFacultyInfo } from "@/lib/auth/faculty";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import Link from "next/link";
 
 export default async function FacultyAssignmentsPage() {
   const session = await getSession();
   const facultyInfo = getFacultyInfo(session);
-  
+
   if (!facultyInfo) {
     return <div>Error: Invalid faculty session</div>;
   }
 
   // Get faculty database record
-  const facultyRecord = await pgAcademicRepository.getFacultyByUserId(facultyInfo.id);
-  
+  const facultyRecord = await pgAcademicRepository.getFacultyByUserId(
+    facultyInfo.id,
+  );
+
   if (!facultyRecord) {
     return <div>Error: Faculty record not found</div>;
   }
 
   // Fetch assignment data with statistics
-  const allAssignments = await pgAcademicRepository.getFacultyAssignmentsWithStatistics(facultyRecord.id);
+  const allAssignments =
+    await pgAcademicRepository.getFacultyAssignmentsWithStatistics(
+      facultyRecord.id,
+    );
 
   // Categorize assignments
   const now = new Date();
   const categorizedAssignments = {
-    published: allAssignments.filter(({ assignment }) => assignment.isPublished),
-    drafts: allAssignments.filter(({ assignment }) => !assignment.isPublished),
-    upcoming: allAssignments.filter(({ assignment }) => 
-      assignment.isPublished && new Date(assignment.dueDate) > now
+    published: allAssignments.filter(
+      ({ assignment }) => assignment.isPublished,
     ),
-    past: allAssignments.filter(({ assignment }) => 
-      assignment.isPublished && new Date(assignment.dueDate) <= now
+    drafts: allAssignments.filter(({ assignment }) => !assignment.isPublished),
+    upcoming: allAssignments.filter(
+      ({ assignment }) =>
+        assignment.isPublished && new Date(assignment.dueDate) > now,
+    ),
+    past: allAssignments.filter(
+      ({ assignment }) =>
+        assignment.isPublished && new Date(assignment.dueDate) <= now,
     ),
   };
 
@@ -92,12 +101,14 @@ export default async function FacultyAssignmentsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-sm text-muted-foreground">Total Assignments</p>
+                <p className="text-sm text-muted-foreground">
+                  Total Assignments
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -111,7 +122,7 @@ export default async function FacultyAssignmentsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -125,7 +136,7 @@ export default async function FacultyAssignmentsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -167,40 +178,40 @@ export default async function FacultyAssignmentsPage() {
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
-          <AssignmentsList 
-            assignments={allAssignments} 
+          <AssignmentsList
+            assignments={allAssignments}
             showCourse={true}
             emptyMessage="No assignments created yet. Create your first assignment to get started."
           />
         </TabsContent>
 
         <TabsContent value="published" className="space-y-4">
-          <AssignmentsList 
-            assignments={categorizedAssignments.published} 
+          <AssignmentsList
+            assignments={categorizedAssignments.published}
             showCourse={true}
             emptyMessage="No published assignments. Publish your drafts to make them available to students."
           />
         </TabsContent>
 
         <TabsContent value="drafts" className="space-y-4">
-          <AssignmentsList 
-            assignments={categorizedAssignments.drafts} 
+          <AssignmentsList
+            assignments={categorizedAssignments.drafts}
             showCourse={true}
             emptyMessage="No draft assignments. Create a new assignment and save it as a draft."
           />
         </TabsContent>
 
         <TabsContent value="upcoming" className="space-y-4">
-          <AssignmentsList 
-            assignments={categorizedAssignments.upcoming} 
+          <AssignmentsList
+            assignments={categorizedAssignments.upcoming}
             showCourse={true}
             emptyMessage="No upcoming assignments. All current assignments have passed their due dates."
           />
         </TabsContent>
 
         <TabsContent value="past" className="space-y-4">
-          <AssignmentsList 
-            assignments={categorizedAssignments.past} 
+          <AssignmentsList
+            assignments={categorizedAssignments.past}
             showCourse={true}
             emptyMessage="No past assignments found."
           />
@@ -210,11 +221,11 @@ export default async function FacultyAssignmentsPage() {
   );
 }
 
-function AssignmentsList({ 
-  assignments, 
+function AssignmentsList({
+  assignments,
   showCourse = true,
-  emptyMessage 
-}: { 
+  emptyMessage,
+}: {
   assignments: any[];
   showCourse?: boolean;
   emptyMessage: string;
@@ -243,10 +254,15 @@ function AssignmentsList({
         const dueDate = new Date(assignment.dueDate);
         const now = new Date();
         const isOverdue = dueDate < now && assignment.isPublished;
-        const isDueSoon = dueDate > now && dueDate <= new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-        
+        const isDueSoon =
+          dueDate > now &&
+          dueDate <= new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+
         return (
-          <Card key={assignment.id} className={`hover:shadow-md transition-shadow ${isOverdue ? 'border-red-200 dark:border-red-800' : ''}`}>
+          <Card
+            key={assignment.id}
+            className={`hover:shadow-md transition-shadow ${isOverdue ? "border-red-200 dark:border-red-800" : ""}`}
+          >
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
                 <div className="mt-1">
@@ -260,15 +276,17 @@ function AssignmentsList({
                     <Edit3 className="h-5 w-5 text-orange-600" />
                   )}
                 </div>
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold">{assignment.title}</h3>
+                      <h3 className="text-lg font-semibold">
+                        {assignment.title}
+                      </h3>
                       <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                         {assignment.description || "No description provided"}
                       </p>
-                      
+
                       <div className="flex items-center gap-2 mt-3">
                         {showCourse && (
                           <Badge variant="outline" className="text-xs">
@@ -282,26 +300,38 @@ function AssignmentsList({
                           {assignment.totalPoints} pts
                         </Badge>
                         {!assignment.isPublished && (
-                          <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300">
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
+                          >
                             Draft
                           </Badge>
                         )}
                         {isDueSoon && assignment.isPublished && (
-                          <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300">
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300"
+                          >
                             Due Soon
                           </Badge>
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="text-right shrink-0">
-                      <p className={`text-sm font-medium ${isOverdue ? 'text-red-600' : isDueSoon ? 'text-yellow-600' : ''}`}>
-                        {isOverdue ? 'Overdue' : 'Due'}: {dueDate.toLocaleDateString()}
+                      <p
+                        className={`text-sm font-medium ${isOverdue ? "text-red-600" : isDueSoon ? "text-yellow-600" : ""}`}
+                      >
+                        {isOverdue ? "Overdue" : "Due"}:{" "}
+                        {dueDate.toLocaleDateString()}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {dueDate.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </p>
-                      
+
                       {assignment.weekNumber && (
                         <p className="text-xs text-muted-foreground mt-1">
                           Week {assignment.weekNumber}
@@ -309,26 +339,40 @@ function AssignmentsList({
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center justify-between mt-4">
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
-                        <span>{Number(submissionStats?.totalSubmissions) || 0} submission{Number(submissionStats?.totalSubmissions) !== 1 ? 's' : ''}</span>
+                        <span>
+                          {Number(submissionStats?.totalSubmissions) || 0}{" "}
+                          submission
+                          {Number(submissionStats?.totalSubmissions) !== 1
+                            ? "s"
+                            : ""}
+                        </span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Award className="h-3 w-3" />
-                        <span>{Number(submissionStats?.gradedSubmissions) || 0} graded</span>
+                        <span>
+                          {Number(submissionStats?.gradedSubmissions) || 0}{" "}
+                          graded
+                        </span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        <span>Created {new Date(assignment.createdAt).toLocaleDateString()}</span>
+                        <span>
+                          Created{" "}
+                          {new Date(assignment.createdAt).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/faculty/assignments/${assignment.id}/grade`}>
+                        <Link
+                          href={`/faculty/assignments/${assignment.id}/grade`}
+                        >
                           <Award className="mr-2 h-3 w-3" />
                           Grade
                         </Link>

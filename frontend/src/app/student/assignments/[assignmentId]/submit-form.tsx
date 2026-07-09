@@ -1,21 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Upload,
-  Save,
-  Send,
+import { Textarea } from "@/components/ui/textarea";
+import {
   AlertCircle,
   CheckCircle,
   Loader2,
+  Save,
+  Send,
+  Upload,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 interface SubmitFormProps {
   assignment: any;
@@ -23,7 +23,7 @@ interface SubmitFormProps {
   studentId: string;
 }
 
-export default function SubmitForm({ assignment, isOverdue, studentId }: SubmitFormProps) {
+export default function SubmitForm({ assignment, isOverdue }: SubmitFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionText, setSubmissionText] = useState("");
@@ -31,7 +31,7 @@ export default function SubmitForm({ assignment, isOverdue, studentId }: SubmitF
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const submissionType = assignment.submissionType || 'file_upload';
+  const submissionType = assignment.submissionType || "file_upload";
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -44,16 +44,18 @@ export default function SubmitForm({ assignment, isOverdue, studentId }: SubmitF
 
       // Validate file type
       const allowedTypes = [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'text/plain',
-        'application/zip',
-        'application/x-zip-compressed'
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "text/plain",
+        "application/zip",
+        "application/x-zip-compressed",
       ];
 
       if (!allowedTypes.includes(file.type)) {
-        setError("Invalid file type. Please upload PDF, DOC, DOCX, TXT, or ZIP files.");
+        setError(
+          "Invalid file type. Please upload PDF, DOC, DOCX, TXT, or ZIP files.",
+        );
         return;
       }
 
@@ -69,14 +71,14 @@ export default function SubmitForm({ assignment, isOverdue, studentId }: SubmitF
 
     try {
       // Validate submission
-      if (submissionType === 'text_entry' || submissionType === 'online_test') {
+      if (submissionType === "text_entry" || submissionType === "online_test") {
         if (!submissionText.trim()) {
           setError("Text submission is required");
           return;
         }
       }
 
-      if (submissionType === 'file_upload') {
+      if (submissionType === "file_upload") {
         if (!selectedFile) {
           setError("File upload is required");
           return;
@@ -93,26 +95,32 @@ export default function SubmitForm({ assignment, isOverdue, studentId }: SubmitF
       }
 
       // Submit assignment
-      const response = await fetch(`/api/student/assignments/${assignment.id}/submit`, {
-        method: 'POST',
-        body: formData,
-      });
+      const response = await fetch(
+        `/api/student/assignments/${assignment.id}/submit`,
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Submission failed');
+        throw new Error(result.error || "Submission failed");
       }
 
       setSuccess(true);
-      
+
       // Redirect after successful submission
       setTimeout(() => {
-        router.push('/student/assignments');
+        router.push("/student/assignments");
       }, 2000);
-
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred during submission');
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred during submission",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -134,7 +142,8 @@ export default function SubmitForm({ assignment, isOverdue, studentId }: SubmitF
         </CardHeader>
         <CardContent>
           <p className="text-green-700 dark:text-green-300">
-            Your assignment has been submitted successfully. You will be redirected to the assignments page.
+            Your assignment has been submitted successfully. You will be
+            redirected to the assignments page.
           </p>
         </CardContent>
       </Card>
@@ -165,7 +174,8 @@ export default function SubmitForm({ assignment, isOverdue, studentId }: SubmitF
             </div>
           )}
 
-          {(submissionType === 'text_entry' || submissionType === 'online_test') && (
+          {(submissionType === "text_entry" ||
+            submissionType === "online_test") && (
             <div>
               <Label htmlFor="submissionText">Your Response</Label>
               <Textarea
@@ -180,8 +190,8 @@ export default function SubmitForm({ assignment, isOverdue, studentId }: SubmitF
               />
             </div>
           )}
-          
-          {submissionType === 'file_upload' && (
+
+          {submissionType === "file_upload" && (
             <div>
               <Label htmlFor="submissionFile">Upload File</Label>
               <Input
@@ -198,27 +208,24 @@ export default function SubmitForm({ assignment, isOverdue, studentId }: SubmitF
               </p>
               {selectedFile && (
                 <p className="text-sm text-green-600 mt-1">
-                  Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                  Selected: {selectedFile.name} (
+                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
                 </p>
               )}
             </div>
           )}
-          
+
           <div className="flex gap-2">
-            <Button 
-              type="submit" 
-              className="flex-1"
-              disabled={isSubmitting}
-            >
+            <Button type="submit" className="flex-1" disabled={isSubmitting}>
               {isSubmitting ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Send className="mr-2 h-4 w-4" />
               )}
-              {isSubmitting ? 'Submitting...' : 'Submit Assignment'}
+              {isSubmitting ? "Submitting..." : "Submit Assignment"}
             </Button>
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               variant="outline"
               onClick={handleSaveDraft}
               disabled={isSubmitting}
@@ -227,11 +234,12 @@ export default function SubmitForm({ assignment, isOverdue, studentId }: SubmitF
               Save Draft
             </Button>
           </div>
-          
+
           {isOverdue && assignment.lateSubmissionPenalty && (
             <div className="text-sm text-orange-600 bg-orange-50 dark:bg-orange-950 p-3 rounded-lg">
               <AlertCircle className="h-4 w-4 inline mr-1" />
-              Late submission penalty: {assignment.lateSubmissionPenalty}% will be deducted from your grade.
+              Late submission penalty: {assignment.lateSubmissionPenalty}% will
+              be deducted from your grade.
             </div>
           )}
         </form>

@@ -146,10 +146,7 @@ export async function listAIDecisions(query: LedgerQuery) {
 }
 
 /** Aggregate stats for the operations dashboard — tenant-scoped. */
-export async function getAIDecisionStats(
-  universityId: string,
-  sinceDays = 30,
-) {
+export async function getAIDecisionStats(universityId: string, sinceDays = 30) {
   const since = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000);
   const base = and(
     eq(AIDecisionSchema.universityId, universityId),

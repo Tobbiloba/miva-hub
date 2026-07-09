@@ -1,4 +1,4 @@
-import { generateText, type ModelMessage } from "ai";
+import { type ModelMessage, generateText } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 

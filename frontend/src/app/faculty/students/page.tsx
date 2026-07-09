@@ -1,8 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -11,14 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Users, Loader2, GraduationCap } from "lucide-react";
+import { GraduationCap, Loader2, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface Course {
@@ -88,7 +88,9 @@ export default function FacultyStudentsPage() {
           <Users className="h-8 w-8 text-blue-600" />
           Students
         </h1>
-        <p className="text-muted-foreground">Students enrolled in your courses</p>
+        <p className="text-muted-foreground">
+          Students enrolled in your courses
+        </p>
       </div>
 
       <Card>
@@ -115,7 +117,9 @@ export default function FacultyStudentsPage() {
           {!selectedCourse ? (
             <div className="text-center py-12">
               <GraduationCap className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <p className="text-muted-foreground">Select a course to view enrolled students</p>
+              <p className="text-muted-foreground">
+                Select a course to view enrolled students
+              </p>
             </div>
           ) : loadingStudents ? (
             <div className="flex items-center justify-center py-12">
@@ -140,11 +144,19 @@ export default function FacultyStudentsPage() {
                 {students.map((s, i) => (
                   <TableRow key={i}>
                     <TableCell className="font-medium">{s.name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{s.email}</TableCell>
-                    <TableCell className="font-mono text-sm">{s.studentId || "—"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {s.email}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {s.studentId || "—"}
+                    </TableCell>
                     <TableCell>
                       <Badge
-                        variant={s.enrollmentStatus === "enrolled" ? "default" : "secondary"}
+                        variant={
+                          s.enrollmentStatus === "enrolled"
+                            ? "default"
+                            : "secondary"
+                        }
                       >
                         {s.enrollmentStatus}
                       </Badge>

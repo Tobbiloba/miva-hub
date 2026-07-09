@@ -1,6 +1,12 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Clock, MapPin, User } from "lucide-react";
 
 type ScheduleProps = {
@@ -57,7 +63,9 @@ export function Schedule(props: ScheduleProps) {
                     className="p-3 rounded-lg bg-secondary/40 hover:bg-secondary/60 transition-colors"
                   >
                     <div className="flex items-start justify-between mb-2">
-                      <span className="font-medium text-xs">{classItem.course_code}</span>
+                      <span className="font-medium text-xs">
+                        {classItem.course_code}
+                      </span>
                       {classItem.class_type && (
                         <span className="px-2 py-0.5 rounded-full bg-card text-xs border">
                           {classItem.class_type}

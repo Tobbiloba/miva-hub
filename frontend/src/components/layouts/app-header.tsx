@@ -1,26 +1,26 @@
 "use client";
 
-import { useSidebar } from "ui/sidebar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
-import { Toggle } from "ui/toggle";
 import {
   AudioWaveformIcon,
   ChevronDown,
+  Info,
   MessageCircleDashed,
   PanelLeft,
-  Info,
 } from "lucide-react";
 import { Button } from "ui/button";
 import { Separator } from "ui/separator";
+import { useSidebar } from "ui/sidebar";
+import { Toggle } from "ui/toggle";
+import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
 
-import { useEffect, useMemo } from "react";
-import { ThreadDropdown } from "../thread-dropdown";
 import { appStore } from "@/app/store";
-import { usePathname } from "next/navigation";
-import { useShallow } from "zustand/shallow";
-import { getShortcutKeyList, Shortcuts } from "lib/keyboard-shortcuts";
+import { Shortcuts, getShortcutKeyList } from "lib/keyboard-shortcuts";
 import { useTranslations } from "next-intl";
+import { usePathname } from "next/navigation";
+import { useEffect, useMemo } from "react";
 import { TextShimmer } from "ui/text-shimmer";
+import { useShallow } from "zustand/shallow";
+import { ThreadDropdown } from "../thread-dropdown";
 
 export function AppHeader() {
   const t = useTranslations();

@@ -1,5 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -8,17 +9,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { getSession } from "@/lib/auth/server";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import {
-  FolderOpen,
+  BookOpen,
   Download,
   ExternalLink,
   FileText,
+  FolderOpen,
   Video,
-  BookOpen,
 } from "lucide-react";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-import { getSession } from "@/lib/auth/server";
 
 const TYPE_LABELS: Record<string, string> = {
   syllabus: "Syllabus",
@@ -64,9 +64,7 @@ export default async function StudentMaterialsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>
-            All Materials ({materials.length})
-          </CardTitle>
+          <CardTitle>All Materials ({materials.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {materials.length === 0 ? (

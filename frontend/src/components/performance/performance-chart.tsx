@@ -1,23 +1,23 @@
 "use client";
 
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  AreaChart,
   Area,
-  XAxis,
-  YAxis,
+  AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
-  Tooltip,
   Legend,
-  ResponsiveContainer,
-  RadarChart,
-  PolarGrid,
+  Line,
+  LineChart,
   PolarAngleAxis,
+  PolarGrid,
   PolarRadiusAxis,
   Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
 
 export type ChartType = "line" | "bar" | "area" | "radar";
@@ -100,7 +100,9 @@ export function PerformanceChart({
               <Tooltip />
               <Legend />
               <Bar dataKey={dataKey} fill={color} />
-              {secondaryDataKey && <Bar dataKey={secondaryDataKey} fill={secondaryColor} />}
+              {secondaryDataKey && (
+                <Bar dataKey={secondaryDataKey} fill={secondaryColor} />
+              )}
             </BarChart>
           </ResponsiveContainer>
         );
@@ -172,7 +174,10 @@ interface WeeklyGradeChartProps {
   height?: number;
 }
 
-export function WeeklyGradeChart({ data, height = 300 }: WeeklyGradeChartProps) {
+export function WeeklyGradeChart({
+  data,
+  height = 300,
+}: WeeklyGradeChartProps) {
   return (
     <PerformanceChart
       data={data}
@@ -210,7 +215,10 @@ interface CompletionRateChartProps {
   height?: number;
 }
 
-export function CompletionRateChart({ data, height = 300 }: CompletionRateChartProps) {
+export function CompletionRateChart({
+  data,
+  height = 300,
+}: CompletionRateChartProps) {
   const chartData = data.map((item) => ({
     ...item,
     completionRate:
@@ -289,7 +297,10 @@ interface CombinedPerformanceChartProps {
   height?: number;
 }
 
-export function CombinedPerformanceChart({ data, height = 350 }: CombinedPerformanceChartProps) {
+export function CombinedPerformanceChart({
+  data,
+  height = 350,
+}: CombinedPerformanceChartProps) {
   const normalizedData = data.map((item) => ({
     week: item.week,
     grade: item.averageGrade,
@@ -298,7 +309,9 @@ export function CombinedPerformanceChart({ data, height = 350 }: CombinedPerform
 
   return (
     <div className="w-full">
-      <h3 className="text-lg font-semibold mb-4">Grade vs Study Time Correlation</h3>
+      <h3 className="text-lg font-semibold mb-4">
+        Grade vs Study Time Correlation
+      </h3>
       <ResponsiveContainer width="100%" height={height}>
         <LineChart data={normalizedData}>
           <CartesianGrid strokeDasharray="3 3" />

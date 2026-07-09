@@ -1,33 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,22 +10,56 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  BookOpen,
-  Search,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  MoreHorizontal,
-  GraduationCap,
-  Building2,
-  Award,
-  Loader2
-} from "lucide-react";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Award,
+  BookOpen,
+  Building2,
+  Edit,
+  Eye,
+  GraduationCap,
+  Loader2,
+  MoreHorizontal,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface Course {
   id: string;
@@ -91,7 +97,7 @@ export default function CoursesManagePage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   const { toast } = useToast();
   const router = useRouter();
 
@@ -100,11 +106,11 @@ export default function CoursesManagePage() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        
+
         // Fetch courses and departments in parallel
         const [coursesResponse, departmentsResponse] = await Promise.all([
-          fetch('/api/admin/courses'),
-          fetch('/api/admin/departments')
+          fetch("/api/admin/courses"),
+          fetch("/api/admin/departments"),
         ]);
 
         const coursesData = await coursesResponse.json();
@@ -116,20 +122,19 @@ export default function CoursesManagePage() {
           toast({
             title: "Error",
             description: "Failed to load courses",
-            variant: "destructive"
+            variant: "destructive",
           });
         }
 
         if (departmentsData.success) {
           setDepartments(departmentsData.data);
         }
-
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error("Error fetching data:", error);
         toast({
           title: "Error",
           description: "Failed to load data",
-          variant: "destructive"
+          variant: "destructive",
         });
       } finally {
         setIsLoading(false);
@@ -140,15 +145,25 @@ export default function CoursesManagePage() {
   }, []); // Remove toast from dependencies to prevent infinite loop
 
   // Filter courses based on search and filters
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = searchTerm === "" || 
+  const filteredCourses = courses.filter((course) => {
+    const matchesSearch =
+      searchTerm === "" ||
       course.courseCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (course.description && course.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      (course.description &&
+        course.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const matchesDepartment = selectedDepartment === "" || selectedDepartment === "all" || course.departmentId === selectedDepartment;
-    const matchesLevel = selectedLevel === "" || selectedLevel === "all" || course.level === selectedLevel;
-    const matchesStatus = selectedStatus === "" || selectedStatus === "all" || 
+    const matchesDepartment =
+      selectedDepartment === "" ||
+      selectedDepartment === "all" ||
+      course.departmentId === selectedDepartment;
+    const matchesLevel =
+      selectedLevel === "" ||
+      selectedLevel === "all" ||
+      course.level === selectedLevel;
+    const matchesStatus =
+      selectedStatus === "" ||
+      selectedStatus === "all" ||
       (selectedStatus === "active" && course.isActive) ||
       (selectedStatus === "inactive" && !course.isActive);
 
@@ -157,11 +172,11 @@ export default function CoursesManagePage() {
 
   const handleDeleteCourse = async () => {
     if (!courseToDelete) return;
-    
+
     setIsDeleting(true);
     try {
       const response = await fetch(`/api/admin/courses/${courseToDelete.id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       const data = await response.json();
@@ -171,22 +186,22 @@ export default function CoursesManagePage() {
           title: "Success",
           description: data.message,
         });
-        
+
         // Remove course from state
-        setCourses(prev => prev.filter(c => c.id !== courseToDelete.id));
+        setCourses((prev) => prev.filter((c) => c.id !== courseToDelete.id));
       } else {
         toast({
           title: "Error",
           description: data.message || "Failed to delete course",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('Error deleting course:', error);
+      console.error("Error deleting course:", error);
       toast({
         title: "Error",
         description: "Failed to delete course",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsDeleting(false);
@@ -197,31 +212,45 @@ export default function CoursesManagePage() {
 
   const getLevelColor = (level: string) => {
     switch (level) {
-      case "100L": return "bg-green-100 text-green-800";
-      case "200L": return "bg-blue-100 text-blue-800";
-      case "300L": return "bg-purple-100 text-purple-800";
-      case "400L": return "bg-orange-100 text-orange-800";
-      case "graduate": return "bg-indigo-100 text-indigo-800";
-      case "doctoral": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "100L":
+        return "bg-green-100 text-green-800";
+      case "200L":
+        return "bg-blue-100 text-blue-800";
+      case "300L":
+        return "bg-purple-100 text-purple-800";
+      case "400L":
+        return "bg-orange-100 text-orange-800";
+      case "graduate":
+        return "bg-indigo-100 text-indigo-800";
+      case "doctoral":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getLevelLabel = (level: string) => {
     switch (level) {
-      case "100L": return "100 Level";
-      case "200L": return "200 Level";
-      case "300L": return "300 Level";
-      case "400L": return "400 Level";
-      case "graduate": return "Graduate";
-      case "doctoral": return "Doctoral";
-      default: return level;
+      case "100L":
+        return "100 Level";
+      case "200L":
+        return "200 Level";
+      case "300L":
+        return "300 Level";
+      case "400L":
+        return "400 Level";
+      case "graduate":
+        return "Graduate";
+      case "doctoral":
+        return "Doctoral";
+      default:
+        return level;
     }
   };
 
   // Calculate statistics
   const totalCourses = courses.length;
-  const activeCourses = courses.filter(course => course.isActive).length;
+  const activeCourses = courses.filter((course) => course.isActive).length;
   const totalCredits = courses.reduce((sum, course) => sum + course.credits, 0);
 
   if (isLoading) {
@@ -245,7 +274,7 @@ export default function CoursesManagePage() {
             Manage academic courses, enrollments, and scheduling
           </p>
         </div>
-        
+
         <div className="flex gap-2">
           <Link href="/admin/courses/create">
             <Button>
@@ -269,7 +298,7 @@ export default function CoursesManagePage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -281,7 +310,7 @@ export default function CoursesManagePage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -293,7 +322,7 @@ export default function CoursesManagePage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -314,15 +343,18 @@ export default function CoursesManagePage() {
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search courses by code, name, or description..." 
+                <Input
+                  placeholder="Search courses by code, name, or description..."
                   className="pl-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
-            <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+            <Select
+              value={selectedDepartment}
+              onValueChange={setSelectedDepartment}
+            >
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Department" />
               </SelectTrigger>
@@ -366,7 +398,9 @@ export default function CoursesManagePage() {
       {/* Course Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Course Catalog ({filteredCourses.length} courses)</CardTitle>
+          <CardTitle>
+            Course Catalog ({filteredCourses.length} courses)
+          </CardTitle>
           <CardDescription>
             All academic courses and their current status
           </CardDescription>
@@ -390,7 +424,9 @@ export default function CoursesManagePage() {
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8">
                       <div className="text-muted-foreground">
-                        {courses.length === 0 ? "No courses found" : "No courses match your filters"}
+                        {courses.length === 0
+                          ? "No courses found"
+                          : "No courses match your filters"}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -404,46 +440,59 @@ export default function CoursesManagePage() {
                           </div>
                           <div>
                             <p className="font-medium">{course.courseCode}</p>
-                            <p className="text-sm text-muted-foreground">{course.title}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {course.title}
+                            </p>
                           </div>
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Building2 className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm">
-                            {course.department ? course.department.name : 'Unknown'}
+                            {course.department
+                              ? course.department.name
+                              : "Unknown"}
                           </span>
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
-                        <Badge variant="secondary" className={getLevelColor(course.level)}>
+                        <Badge
+                          variant="secondary"
+                          className={getLevelColor(course.level)}
+                        >
                           {getLevelLabel(course.level)}
                         </Badge>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Award className="h-3 w-3 text-muted-foreground" />
                           <span className="text-sm">{course.credits}</span>
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
-                        <span className="text-sm capitalize">{course.semesterOffered}</span>
+                        <span className="text-sm capitalize">
+                          {course.semesterOffered}
+                        </span>
                       </TableCell>
-                      
+
                       <TableCell>
-                        <Badge 
-                          variant="outline" 
-                          className={course.isActive ? "bg-green-100 text-green-800 border-green-200" : "bg-gray-100 text-gray-800 border-gray-200"}
+                        <Badge
+                          variant="outline"
+                          className={
+                            course.isActive
+                              ? "bg-green-100 text-green-800 border-green-200"
+                              : "bg-gray-100 text-gray-800 border-gray-200"
+                          }
                         >
                           {course.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
-                      
+
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -453,20 +502,24 @@ export default function CoursesManagePage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem 
-                              onClick={() => router.push(`/admin/courses/${course.id}`)}
+                            <DropdownMenuItem
+                              onClick={() =>
+                                router.push(`/admin/courses/${course.id}`)
+                              }
                             >
                               <Eye className="mr-2 h-4 w-4" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => router.push(`/admin/courses/${course.id}/edit`)}
+                            <DropdownMenuItem
+                              onClick={() =>
+                                router.push(`/admin/courses/${course.id}/edit`)
+                              }
                             >
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Course
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="text-destructive"
                               onClick={() => {
                                 setCourseToDelete(course);
@@ -494,13 +547,14 @@ export default function CoursesManagePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Course</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the course &quot;{courseToDelete?.courseCode} - {courseToDelete?.title}&quot;? 
-              This action cannot be undone and will remove all associated data.
+              Are you sure you want to delete the course &quot;
+              {courseToDelete?.courseCode} - {courseToDelete?.title}&quot;? This
+              action cannot be undone and will remove all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDeleteCourse}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

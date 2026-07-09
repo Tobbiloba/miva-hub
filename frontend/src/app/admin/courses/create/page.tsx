@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -14,10 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, BookOpen, Save, Loader2, AlertCircle } from "lucide-react";
+import { AlertCircle, ArrowLeft, BookOpen, Loader2, Save } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface Department {
   id: string;
@@ -44,7 +50,7 @@ const initialFormData: CourseFormData = {
   departmentId: "",
   level: "100L",
   semesterOffered: "both",
-  isActive: true
+  isActive: true,
 };
 
 const academicLevels = [
@@ -53,14 +59,14 @@ const academicLevels = [
   { value: "300L", label: "300 Level (Junior)" },
   { value: "400L", label: "400 Level (Senior)" },
   { value: "graduate", label: "Graduate Level" },
-  { value: "doctoral", label: "Doctoral Level" }
+  { value: "doctoral", label: "Doctoral Level" },
 ];
 
 const semesterOptions = [
   { value: "fall", label: "Fall Semester" },
   { value: "spring", label: "Spring Semester" },
   { value: "summer", label: "Summer Semester" },
-  { value: "both", label: "Both Fall & Spring" }
+  { value: "both", label: "Both Fall & Spring" },
 ];
 
 export default function CreateCoursePage() {
@@ -68,7 +74,9 @@ export default function CreateCoursePage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(true);
-  const [errors, setErrors] = useState<Partial<Record<keyof CourseFormData, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof CourseFormData, string>>
+  >({});
   const { toast } = useToast();
   const router = useRouter();
 
@@ -76,24 +84,24 @@ export default function CreateCoursePage() {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const response = await fetch('/api/admin/departments');
+        const response = await fetch("/api/admin/departments");
         const data = await response.json();
-        
+
         if (data.success) {
           setDepartments(data.data);
         } else {
           toast({
             title: "Error",
             description: "Failed to load departments",
-            variant: "destructive"
+            variant: "destructive",
           });
         }
       } catch (error) {
-        console.error('Error fetching departments:', error);
+        console.error("Error fetching departments:", error);
         toast({
           title: "Error",
           description: "Failed to load departments",
-          variant: "destructive"
+          variant: "destructive",
         });
       } finally {
         setIsLoadingDepartments(false);
@@ -131,28 +139,28 @@ export default function CreateCoursePage() {
   };
 
   const handleInputChange = (field: keyof CourseFormData, value: any) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
 
     // Clear error for this field if it exists
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [field]: undefined
+        [field]: undefined,
       }));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       toast({
         title: "Validation Error",
         description: "Please fix the errors in the form",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -160,10 +168,10 @@ export default function CreateCoursePage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/admin/courses', {
-        method: 'POST',
+      const response = await fetch("/api/admin/courses", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       });
@@ -175,22 +183,22 @@ export default function CreateCoursePage() {
           title: "Success",
           description: data.message,
         });
-        
+
         // Redirect to courses list
-        router.push('/admin/courses');
+        router.push("/admin/courses");
       } else {
         toast({
           title: "Error",
           description: data.message || "Failed to create course",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('Error creating course:', error);
+      console.error("Error creating course:", error);
       toast({
         title: "Error",
         description: "Failed to create course. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -244,7 +252,12 @@ export default function CreateCoursePage() {
                   id="courseCode"
                   placeholder="e.g., CS101, MATH201"
                   value={formData.courseCode}
-                  onChange={(e) => handleInputChange('courseCode', e.target.value.toUpperCase())}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "courseCode",
+                      e.target.value.toUpperCase(),
+                    )
+                  }
                 />
                 {errors.courseCode && (
                   <p className="text-sm text-red-500 flex items-center gap-1">
@@ -258,7 +271,9 @@ export default function CreateCoursePage() {
                 <Label htmlFor="credits">Credits *</Label>
                 <Select
                   value={formData.credits.toString()}
-                  onValueChange={(value) => handleInputChange('credits', parseInt(value))}
+                  onValueChange={(value) =>
+                    handleInputChange("credits", parseInt(value))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select credits" />
@@ -266,7 +281,7 @@ export default function CreateCoursePage() {
                   <SelectContent>
                     {[1, 2, 3, 4, 5, 6].map((credit) => (
                       <SelectItem key={credit} value={credit.toString()}>
-                        {credit} Credit{credit > 1 ? 's' : ''}
+                        {credit} Credit{credit > 1 ? "s" : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -287,7 +302,7 @@ export default function CreateCoursePage() {
                 id="title"
                 placeholder="e.g., Introduction to Computer Science"
                 value={formData.title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
+                onChange={(e) => handleInputChange("title", e.target.value)}
               />
               {errors.title && (
                 <p className="text-sm text-red-500 flex items-center gap-1">
@@ -305,7 +320,9 @@ export default function CreateCoursePage() {
                 placeholder="Brief description of the course content and objectives"
                 rows={3}
                 value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("description", e.target.value)
+                }
               />
             </div>
 
@@ -315,7 +332,9 @@ export default function CreateCoursePage() {
                 <Label htmlFor="department">Department *</Label>
                 <Select
                   value={formData.departmentId}
-                  onValueChange={(value) => handleInputChange('departmentId', value)}
+                  onValueChange={(value) =>
+                    handleInputChange("departmentId", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select department" />
@@ -340,7 +359,7 @@ export default function CreateCoursePage() {
                 <Label htmlFor="level">Academic Level *</Label>
                 <Select
                   value={formData.level}
-                  onValueChange={(value) => handleInputChange('level', value)}
+                  onValueChange={(value) => handleInputChange("level", value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select level" />
@@ -361,7 +380,9 @@ export default function CreateCoursePage() {
               <Label htmlFor="semester">Semester Offered</Label>
               <Select
                 value={formData.semesterOffered}
-                onValueChange={(value) => handleInputChange('semesterOffered', value)}
+                onValueChange={(value) =>
+                  handleInputChange("semesterOffered", value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select semester" />
@@ -381,7 +402,9 @@ export default function CreateCoursePage() {
               <Checkbox
                 id="isActive"
                 checked={formData.isActive}
-                onCheckedChange={(checked) => handleInputChange('isActive', checked)}
+                onCheckedChange={(checked) =>
+                  handleInputChange("isActive", checked)
+                }
               />
               <Label htmlFor="isActive">
                 Course is active and available for enrollment

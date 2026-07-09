@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
-  UserSchema,
-  CourseSchema,
   AcademicSessionSchema,
-  IngestionJobSchema,
   CourseMaterialSchema,
+  CourseSchema,
+  IngestionJobSchema,
+  UserSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and, isNull, ilike, sql } from "drizzle-orm";
+import { and, eq, ilike, isNull, sql } from "drizzle-orm";
 import { headers } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     if (!session?.user) {
       return NextResponse.json(
         { error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -31,8 +31,11 @@ export async function POST(request: NextRequest) {
 
     if (!userRow?.isVolunteer) {
       return NextResponse.json(
-        { error: "Volunteer access required. Contact admin to enable volunteer status." },
-        { status: 403 }
+        {
+          error:
+            "Volunteer access required. Contact admin to enable volunteer status.",
+        },
+        { status: 403 },
       );
     }
 
@@ -61,29 +64,37 @@ export async function POST(request: NextRequest) {
 
     if (!source_url || !course_code || !lesson_title || !content_type) {
       return NextResponse.json(
-        { error: "Missing required fields: source_url, course_code, lesson_title, content_type" },
-        { status: 400 }
+        {
+          error:
+            "Missing required fields: source_url, course_code, lesson_title, content_type",
+        },
+        { status: 400 },
       );
     }
 
-    if (!["video", "pdf", "quiz", "assignment_external"].includes(content_type)) {
+    if (
+      !["video", "pdf", "quiz", "assignment_external"].includes(content_type)
+    ) {
       return NextResponse.json(
-        { error: "content_type must be 'video', 'pdf', 'quiz', or 'assignment_external'" },
-        { status: 400 }
+        {
+          error:
+            "content_type must be 'video', 'pdf', 'quiz', or 'assignment_external'",
+        },
+        { status: 400 },
       );
     }
 
     if (content_type === "video" && !vimeo_video_id) {
       return NextResponse.json(
         { error: "vimeo_video_id is required for video content" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (content_type === "pdf" && !pdf_url) {
       return NextResponse.json(
         { error: "pdf_url is required for PDF content" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -97,7 +108,7 @@ export async function POST(request: NextRequest) {
     if (!course) {
       return NextResponse.json(
         { error: `Course '${course_code}' not found` },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -119,9 +130,10 @@ export async function POST(request: NextRequest) {
         : { pdf_url, pdf_filename: pdf_filename || null };
 
     // 6. Duplicate detection — check for existing course_material matching this capture
-    const weekMatch = week_number != null
-      ? eq(CourseMaterialSchema.weekNumber, week_number)
-      : isNull(CourseMaterialSchema.weekNumber);
+    const weekMatch =
+      week_number != null
+        ? eq(CourseMaterialSchema.weekNumber, week_number)
+        : isNull(CourseMaterialSchema.weekNumber);
 
     const sessionMatch = sessionId
       ? eq(CourseMaterialSchema.sessionId, sessionId)
@@ -148,8 +160,8 @@ export async function POST(request: NextRequest) {
           weekMatch,
           sessionMatch,
           isNull(CourseMaterialSchema.deletedAt),
-          contentMatch
-        )
+          contentMatch,
+        ),
       )
       .limit(1);
 
@@ -157,32 +169,35 @@ export async function POST(request: NextRequest) {
       if (existingDup.isPublished) {
         return NextResponse.json(
           {
-            error: "This lesson has already been added by another volunteer and approved. No action needed.",
+            error:
+              "This lesson has already been added by another volunteer and approved. No action needed.",
             duplicate: true,
             existing_material_id: existingDup.id,
           },
-          { status: 409 }
+          { status: 409 },
         );
       }
 
       if (existingDup.volunteerId === session.user.id) {
         return NextResponse.json(
           {
-            error: "You already captured this lesson. It's pending admin review.",
+            error:
+              "You already captured this lesson. It's pending admin review.",
             duplicate: true,
             existing_material_id: existingDup.id,
           },
-          { status: 409 }
+          { status: 409 },
         );
       }
 
       return NextResponse.json(
         {
-          error: "This lesson is already in the moderation queue. Admin will review the existing capture.",
+          error:
+            "This lesson is already in the moderation queue. Admin will review the existing capture.",
           duplicate: true,
           existing_material_id: existingDup.id,
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -190,12 +205,23 @@ export async function POST(request: NextRequest) {
     if (content_type === "quiz" || content_type === "assignment_external") {
       const transcriptText =
         content_type === "quiz"
-          ? formatQuizTranscript(lesson_title, quiz_instructions, quiz_questions)
-          : formatAssignmentTranscript(lesson_title, assignment_instructions, assignment_requirements, assignment_metadata);
+          ? formatQuizTranscript(
+              lesson_title,
+              quiz_instructions,
+              quiz_questions,
+            )
+          : formatAssignmentTranscript(
+              lesson_title,
+              assignment_instructions,
+              assignment_requirements,
+              assignment_metadata,
+            );
 
       const wordCount = transcriptText.split(/\s+/).filter(Boolean).length;
       const extMeta =
-        content_type === "quiz" ? (quiz_metadata || {}) : (assignment_metadata || {});
+        content_type === "quiz"
+          ? quiz_metadata || {}
+          : assignment_metadata || {};
       if (content_type === "quiz" && quiz_questions?.length) {
         extMeta.question_count = quiz_questions.length;
       }
@@ -204,9 +230,13 @@ export async function POST(request: NextRequest) {
         .insert(CourseMaterialSchema)
         .values({
           courseId: course.id,
-          materialType: content_type === "quiz" ? "quiz" : "assignment_external",
+          materialType:
+            content_type === "quiz" ? "quiz" : "assignment_external",
           title: lesson_title,
-          description: content_type === "quiz" ? quiz_instructions : assignment_instructions,
+          description:
+            content_type === "quiz"
+              ? quiz_instructions
+              : assignment_instructions,
           mimeType: "text/plain",
           weekNumber: week_number ?? null,
           isPublic: false,
@@ -226,7 +256,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         { material_id: material.id, status: "captured", content_type },
-        { status: 201 }
+        { status: 201 },
       );
     }
 
@@ -244,17 +274,20 @@ export async function POST(request: NextRequest) {
         payload,
         status: "queued",
       })
-      .returning({ id: IngestionJobSchema.id, status: IngestionJobSchema.status });
+      .returning({
+        id: IngestionJobSchema.id,
+        status: IngestionJobSchema.status,
+      });
 
     return NextResponse.json(
       { job_id: job.id, status: job.status },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("[ingest/lesson] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -264,7 +297,7 @@ export async function POST(request: NextRequest) {
 function formatQuizTranscript(
   title: string,
   instructions: string | null,
-  questions: Array<{ text: string; options?: string[] }> | null
+  questions: Array<{ text: string; options?: string[] }> | null,
 ): string {
   const parts: string[] = [`Quiz: ${title}`];
 
@@ -289,7 +322,7 @@ function formatAssignmentTranscript(
   title: string,
   instructions: string | null,
   requirements: string | null,
-  metadata: Record<string, any> | null
+  metadata: Record<string, any> | null,
 ): string {
   const parts: string[] = [`Assignment: ${title}`];
 

@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Layers, BookOpen, Clock } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BookOpen, Clock, Layers } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 interface Deck {
   id: string;
@@ -91,7 +91,10 @@ export default function FlashcardsPage() {
                   </span>
                 </div>
                 <Link href={`/student/flashcards/${deck.id}`}>
-                  <Button className="w-full" variant={deck.dueCount > 0 ? "default" : "outline"}>
+                  <Button
+                    className="w-full"
+                    variant={deck.dueCount > 0 ? "default" : "outline"}
+                  >
                     {deck.dueCount > 0
                       ? `Review ${deck.dueCount} card${deck.dueCount !== 1 ? "s" : ""}`
                       : "View deck"}

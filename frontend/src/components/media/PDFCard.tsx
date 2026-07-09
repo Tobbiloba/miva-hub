@@ -1,13 +1,10 @@
 "use client";
 
-import { useState, useMemo } from 'react';
-import { FileText, ChevronDown, ChevronUp } from 'lucide-react';
-import { 
-  getVideoDisplayName, 
-  formatVideoDate 
-} from 'lib/video-utils';
-import { AnimatePresence, motion } from 'framer-motion';
-import { PDFViewer } from './PDFViewer';
+import { AnimatePresence, motion } from "framer-motion";
+import { formatVideoDate, getVideoDisplayName } from "lib/video-utils";
+import { ChevronDown, ChevronUp, FileText } from "lucide-react";
+import { useMemo, useState } from "react";
+import { PDFViewer } from "./PDFViewer";
 
 interface PDFMaterial {
   id: string;
@@ -41,17 +38,17 @@ const variants = {
 
 export function PDFCard({ material, className }: PDFCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  
+
   const pdfUrl = material.file_url;
-  
+
   const displayName = useMemo(() => {
     return getVideoDisplayName(material);
   }, [material]);
-  
+
   const formattedDate = useMemo(() => {
     return formatVideoDate(material.upload_date);
   }, [material.upload_date]);
-  
+
   return (
     <div className={className}>
       <div
@@ -65,11 +62,12 @@ export function PDFCard({ material, className }: PDFCardProps) {
           <div>
             <div className="font-medium text-sm">{displayName}</div>
             <div className="text-xs text-muted-foreground">
-              PDF • {formattedDate} • Click to {isExpanded ? 'collapse' : 'expand'}
+              PDF • {formattedDate} • Click to{" "}
+              {isExpanded ? "collapse" : "expand"}
             </div>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           {!isExpanded && (
             <div className="p-1.5 bg-blue-100 dark:bg-blue-900 rounded-full">
@@ -108,18 +106,20 @@ export function PDFCard({ material, className }: PDFCardProps) {
                     </p>
                   )}
                 </div>
-                
+
                 {material.ai_summary && (
                   <div className="border-t pt-3">
-                    <h5 className="text-xs font-medium mb-2 text-muted-foreground">Summary</h5>
+                    <h5 className="text-xs font-medium mb-2 text-muted-foreground">
+                      Summary
+                    </h5>
                     <p className="text-xs text-foreground leading-relaxed">
-                      {material.ai_summary.length > 200 
-                        ? `${material.ai_summary.substring(0, 200)}...` 
+                      {material.ai_summary.length > 200
+                        ? `${material.ai_summary.substring(0, 200)}...`
                         : material.ai_summary}
                     </p>
                   </div>
                 )}
-                
+
                 <div className="h-[600px] border-t pt-2">
                   <PDFViewer url={pdfUrl} title={displayName} />
                 </div>

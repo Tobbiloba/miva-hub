@@ -1,7 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireFaculty, checkCourseInstructorAccess } from "@/lib/auth/faculty";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import {
+  checkCourseInstructorAccess,
+  requireFaculty,
+} from "@/lib/auth/faculty";
 import { s3Service } from "@/lib/aws/s3-service";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,15 +22,21 @@ export async function POST(request: NextRequest) {
     const description = (formData.get("description") as string) || "";
 
     if (!courseId || !materialType || !weekNumber || !title) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 },
+      );
     }
 
     // Verify faculty teaches this course
-    const hasAccess = await checkCourseInstructorAccess(session.user.id, courseId);
+    const hasAccess = await checkCourseInstructorAccess(
+      session.user.id,
+      courseId,
+    );
     if (!hasAccess) {
       return NextResponse.json(
         { error: "You are not assigned to teach this course" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -36,17 +45,29 @@ export async function POST(request: NextRequest) {
       try {
         const parsed = new URL(externalUrl);
         if (!["http:", "https:"].includes(parsed.protocol)) {
-          return NextResponse.json({ error: "URL must use http:// or https://" }, { status: 400 });
+          return NextResponse.json(
+            { error: "URL must use http:// or https://" },
+            { status: 400 },
+          );
         }
       } catch {
-        return NextResponse.json({ error: "Invalid URL format" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid URL format" },
+          { status: 400 },
+        );
       }
 
       const insertedMaterial = await pgAcademicRepository.insertCourseMaterial({
         courseId,
         title,
         description,
-        materialType: materialType as "syllabus" | "lecture" | "assignment" | "resource" | "reading" | "exam",
+        materialType: materialType as
+          | "syllabus"
+          | "lecture"
+          | "assignment"
+          | "resource"
+          | "reading"
+          | "exam",
         weekNumber: parseInt(weekNumber),
         contentUrl: externalUrl,
         publicUrl: externalUrl,
@@ -57,14 +78,20 @@ export async function POST(request: NextRequest) {
       });
 
       return NextResponse.json(
-        { message: "External URL added as material", materialId: insertedMaterial.id },
-        { status: 201 }
+        {
+          message: "External URL added as material",
+          materialId: insertedMaterial.id,
+        },
+        { status: 201 },
       );
     }
 
     // ── File upload mode ───────────────────────────────────────────
     if (!file) {
-      return NextResponse.json({ error: "Missing file or externalUrl" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing file or externalUrl" },
+        { status: 400 },
+      );
     }
 
     const allowedTypes = [
@@ -79,12 +106,18 @@ export async function POST(request: NextRequest) {
     ];
 
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: "File type not supported" }, { status: 400 });
+      return NextResponse.json(
+        { error: "File type not supported" },
+        { status: 400 },
+      );
     }
 
     const maxSize = 100 * 1024 * 1024;
     if (file.size > maxSize) {
-      return NextResponse.json({ error: "File size exceeds 100MB limit" }, { status: 400 });
+      return NextResponse.json(
+        { error: "File size exceeds 100MB limit" },
+        { status: 400 },
+      );
     }
 
     const course = await pgAcademicRepository.getCourseById(courseId);
@@ -92,15 +125,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
 
-    const department = await pgAcademicRepository.getDepartmentById(course.departmentId);
+    const department = await pgAcademicRepository.getDepartmentById(
+      course.departmentId,
+    );
     if (!department) {
-      return NextResponse.json({ error: "Department not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Department not found" },
+        { status: 404 },
+      );
     }
 
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1;
-    const semester = currentMonth >= 8 || currentMonth <= 1 ? `${currentYear}-fall` : `${currentYear}-spring`;
+    const semester =
+      currentMonth >= 8 || currentMonth <= 1
+        ? `${currentYear}-fall`
+        : `${currentYear}-spring`;
 
     const s3Key = s3Service.generateS3Key(
       {
@@ -113,7 +154,7 @@ export async function POST(request: NextRequest) {
         uploadedBy: session.user.id,
         userRole: "faculty" as const,
       },
-      file.name
+      file.name,
     );
 
     const uploadResult = await s3Service.uploadFile(file, s3Key, {
@@ -123,14 +164,23 @@ export async function POST(request: NextRequest) {
     });
 
     if (!uploadResult.success) {
-      return NextResponse.json({ error: uploadResult.error || "Upload failed" }, { status: 500 });
+      return NextResponse.json(
+        { error: uploadResult.error || "Upload failed" },
+        { status: 500 },
+      );
     }
 
     const insertedMaterial = await pgAcademicRepository.insertCourseMaterial({
       courseId,
       title,
       description,
-      materialType: materialType as "syllabus" | "lecture" | "assignment" | "resource" | "reading" | "exam",
+      materialType: materialType as
+        | "syllabus"
+        | "lecture"
+        | "assignment"
+        | "resource"
+        | "reading"
+        | "exam",
       weekNumber: parseInt(weekNumber),
       fileName: file.name,
       contentUrl: uploadResult.s3Url,
@@ -140,7 +190,9 @@ export async function POST(request: NextRequest) {
     });
 
     const publicUrl = `/api/files/${insertedMaterial.id}`;
-    await pgAcademicRepository.updateCourseMaterial(insertedMaterial.id, { publicUrl });
+    await pgAcademicRepository.updateCourseMaterial(insertedMaterial.id, {
+      publicUrl,
+    });
 
     return NextResponse.json({
       message: "File uploaded successfully",
@@ -152,7 +204,7 @@ export async function POST(request: NextRequest) {
     console.error("Faculty upload error:", error);
     return NextResponse.json(
       { error: "Failed to upload content" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,7 +1,7 @@
 import "server-only";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { UserSubscriptionSchema } from "@/lib/db/pg/schema.pg";
-import { eq, and, gt } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 import logger from "logger";
 
 /**
@@ -20,8 +20,8 @@ export async function hasActiveSubscription(userId: string): Promise<boolean> {
         and(
           eq(UserSubscriptionSchema.userId, userId),
           eq(UserSubscriptionSchema.status, "active"),
-          gt(UserSubscriptionSchema.currentPeriodEnd, now)
-        )
+          gt(UserSubscriptionSchema.currentPeriodEnd, now),
+        ),
       )
       .limit(1);
 
@@ -56,8 +56,8 @@ export async function getActiveSubscription(userId: string) {
         and(
           eq(UserSubscriptionSchema.userId, userId),
           eq(UserSubscriptionSchema.status, "active"),
-          gt(UserSubscriptionSchema.currentPeriodEnd, now)
-        )
+          gt(UserSubscriptionSchema.currentPeriodEnd, now),
+        ),
       )
       .limit(1);
 

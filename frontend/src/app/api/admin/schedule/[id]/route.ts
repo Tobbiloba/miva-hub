@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { ClassScheduleSchema } from "@/lib/db/pg/schema.pg";
 import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const updateScheduleSchema = z.object({
@@ -33,7 +33,7 @@ const updateScheduleSchema = z.object({
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const adminAccess = await requireAdmin();
@@ -50,7 +50,7 @@ export async function GET(
     if (!schedule) {
       return NextResponse.json(
         { success: false, error: "Schedule not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -62,14 +62,14 @@ export async function GET(
         error: "Failed to fetch schedule",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const adminAccess = await requireAdmin();
@@ -88,7 +88,7 @@ export async function PUT(
     if (!existing) {
       return NextResponse.json(
         { success: false, error: "Schedule not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -98,7 +98,7 @@ export async function PUT(
     if (end <= start) {
       return NextResponse.json(
         { success: false, error: "End time must be after start time" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -117,7 +117,7 @@ export async function PUT(
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, error: "Validation failed", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
@@ -126,14 +126,14 @@ export async function PUT(
         error: "Failed to update schedule",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const adminAccess = await requireAdmin();
@@ -150,7 +150,7 @@ export async function DELETE(
     if (!existing) {
       return NextResponse.json(
         { success: false, error: "Schedule not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -169,7 +169,7 @@ export async function DELETE(
         error: "Failed to delete schedule",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

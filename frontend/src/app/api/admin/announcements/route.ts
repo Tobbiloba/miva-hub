@@ -1,8 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { AnnouncementSchema, UserSchema, CourseSchema, DepartmentSchema, FacultySchema, StudentEnrollmentSchema, type AnnouncementEntity } from "@/lib/db/pg/schema.pg";
-import { eq, and, sql, desc, ilike, or, inArray, type SQL } from "drizzle-orm";
+import {
+  type AnnouncementEntity,
+  AnnouncementSchema,
+  CourseSchema,
+  DepartmentSchema,
+  FacultySchema,
+  StudentEnrollmentSchema,
+  UserSchema,
+} from "@/lib/db/pg/schema.pg";
+import { type SQL, and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,12 +19,12 @@ export async function GET(request: NextRequest) {
     if (sessionOrError instanceof NextResponse) return sessionOrError;
 
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search');
-    const audience = searchParams.get('audience');
-    const priority = searchParams.get('priority');
-    const status = searchParams.get('status');
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const search = searchParams.get("search");
+    const audience = searchParams.get("audience");
+    const priority = searchParams.get("priority");
+    const status = searchParams.get("status");
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const offset = parseInt(searchParams.get("offset") || "0");
 
     // Apply filters
     const conditions: (SQL | undefined)[] = [];
@@ -25,30 +33,40 @@ export async function GET(request: NextRequest) {
       conditions.push(
         or(
           ilike(AnnouncementSchema.title, `%${search}%`),
-          ilike(AnnouncementSchema.content, `%${search}%`)
-        )
+          ilike(AnnouncementSchema.content, `%${search}%`),
+        ),
       );
     }
 
-    if (audience && audience !== 'all') {
-      conditions.push(eq(AnnouncementSchema.targetAudience, audience as AnnouncementEntity["targetAudience"]));
+    if (audience && audience !== "all") {
+      conditions.push(
+        eq(
+          AnnouncementSchema.targetAudience,
+          audience as AnnouncementEntity["targetAudience"],
+        ),
+      );
     }
 
-    if (priority && priority !== 'all') {
-      conditions.push(eq(AnnouncementSchema.priority, priority as AnnouncementEntity["priority"]));
+    if (priority && priority !== "all") {
+      conditions.push(
+        eq(
+          AnnouncementSchema.priority,
+          priority as AnnouncementEntity["priority"],
+        ),
+      );
     }
 
-    if (status && status !== 'all') {
-      if (status === 'published') {
+    if (status && status !== "all") {
+      if (status === "published") {
         conditions.push(eq(AnnouncementSchema.isActive, true));
-      } else if (status === 'draft') {
+      } else if (status === "draft") {
         conditions.push(eq(AnnouncementSchema.isActive, false));
-      } else if (status === 'expired') {
+      } else if (status === "expired") {
         conditions.push(
           and(
             eq(AnnouncementSchema.isActive, true),
-            sql`${AnnouncementSchema.expiresAt} < NOW()`
-          )
+            sql`${AnnouncementSchema.expiresAt} < NOW()`,
+          ),
         );
       }
     }
@@ -64,30 +82,46 @@ export async function GET(request: NextRequest) {
       .from(AnnouncementSchema)
       .leftJoin(UserSchema, eq(AnnouncementSchema.createdById, UserSchema.id))
       .leftJoin(CourseSchema, eq(AnnouncementSchema.courseId, CourseSchema.id))
-      .leftJoin(DepartmentSchema, eq(AnnouncementSchema.departmentId, DepartmentSchema.id))
+      .leftJoin(
+        DepartmentSchema,
+        eq(AnnouncementSchema.departmentId, DepartmentSchema.id),
+      )
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(AnnouncementSchema.createdAt))
       .limit(limit)
       .offset(offset);
 
     // Compute real audience counts for totalTargeted
-    const [totalUsersResult, studentCountResult, activeFacultyResult] = await Promise.all([
-      pgDb.select({ count: sql<number>`count(*)::int` }).from(UserSchema),
-      pgDb.select({ count: sql<number>`count(*)::int` }).from(UserSchema).where(eq(UserSchema.role, 'student')),
-      pgDb.select({ count: sql<number>`count(*)::int` }).from(FacultySchema).where(eq(FacultySchema.isActive, true)),
-    ]);
+    const [totalUsersResult, studentCountResult, activeFacultyResult] =
+      await Promise.all([
+        pgDb.select({ count: sql<number>`count(*)::int` }).from(UserSchema),
+        pgDb
+          .select({ count: sql<number>`count(*)::int` })
+          .from(UserSchema)
+          .where(eq(UserSchema.role, "student")),
+        pgDb
+          .select({ count: sql<number>`count(*)::int` })
+          .from(FacultySchema)
+          .where(eq(FacultySchema.isActive, true)),
+      ]);
     const totalUsers: number = totalUsersResult[0]?.count ?? 0;
     const studentCount: number = studentCountResult[0]?.count ?? 0;
     const activeFacultyCount: number = activeFacultyResult[0]?.count ?? 0;
 
     // For course_specific announcements, batch-fetch enrollment counts in one query
     const courseSpecificIds = announcements
-      .filter(({ announcement: a }) => a.targetAudience === 'course_specific' && a.courseId)
+      .filter(
+        ({ announcement: a }) =>
+          a.targetAudience === "course_specific" && a.courseId,
+      )
       .map(({ announcement: a }) => a.courseId!);
     const courseEnrollmentCounts = new Map<string, number>();
     if (courseSpecificIds.length > 0) {
       const rows = await pgDb
-        .select({ courseId: StudentEnrollmentSchema.courseId, count: sql<number>`count(*)::int` })
+        .select({
+          courseId: StudentEnrollmentSchema.courseId,
+          count: sql<number>`count(*)::int`,
+        })
         .from(StudentEnrollmentSchema)
         .where(inArray(StudentEnrollmentSchema.courseId, courseSpecificIds))
         .groupBy(StudentEnrollmentSchema.courseId);
@@ -97,36 +131,47 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform data to match frontend interface
-    const transformedAnnouncements = announcements.map(({ announcement, author, course, department }) => ({
-      id: announcement.id,
-      title: announcement.title,
-      content: announcement.content,
-      author: author?.name || 'Unknown',
-      audience: announcement.targetAudience,
-      department: department?.code || announcement.departmentId || 'all',
-      priority: announcement.priority,
-      status: announcement.isActive ? 'published' : 'draft',
-      publishedAt: announcement.isActive ? announcement.createdAt.toISOString() : null,
-      scheduledFor: null, // Would need additional scheduling logic
-      // readCount removed: no read-tracking table exists yet (Sprint 3)
-      totalTargeted: (() => {
-        switch (announcement.targetAudience) {
-          case 'all':              return totalUsers;
-          case 'students':         return studentCount;
-          case 'faculty':          return activeFacultyCount;
-          case 'course_specific':  return announcement.courseId
-            ? (courseEnrollmentCounts.get(announcement.courseId) ?? null)
-            : null;
-          default:                 return null; // department_specific — Sprint 1
-        }
-      })(),
-      isPinned: announcement.priority === 'high' || announcement.priority === 'urgent',
-      expiresAt: announcement.expiresAt?.toISOString() || null,
-      courses: course ? [course.courseCode] : [],
-      attachments: [], // Would need separate attachments table
-      createdAt: announcement.createdAt.toISOString(),
-      updatedAt: announcement.updatedAt.toISOString(),
-    }));
+    const transformedAnnouncements = announcements.map(
+      ({ announcement, author, course, department }) => ({
+        id: announcement.id,
+        title: announcement.title,
+        content: announcement.content,
+        author: author?.name || "Unknown",
+        audience: announcement.targetAudience,
+        department: department?.code || announcement.departmentId || "all",
+        priority: announcement.priority,
+        status: announcement.isActive ? "published" : "draft",
+        publishedAt: announcement.isActive
+          ? announcement.createdAt.toISOString()
+          : null,
+        scheduledFor: null, // Would need additional scheduling logic
+        // readCount removed: no read-tracking table exists yet (Sprint 3)
+        totalTargeted: (() => {
+          switch (announcement.targetAudience) {
+            case "all":
+              return totalUsers;
+            case "students":
+              return studentCount;
+            case "faculty":
+              return activeFacultyCount;
+            case "course_specific":
+              return announcement.courseId
+                ? (courseEnrollmentCounts.get(announcement.courseId) ?? null)
+                : null;
+            default:
+              return null; // department_specific — Sprint 1
+          }
+        })(),
+        isPinned:
+          announcement.priority === "high" ||
+          announcement.priority === "urgent",
+        expiresAt: announcement.expiresAt?.toISOString() || null,
+        courses: course ? [course.courseCode] : [],
+        attachments: [], // Would need separate attachments table
+        createdAt: announcement.createdAt.toISOString(),
+        updatedAt: announcement.updatedAt.toISOString(),
+      }),
+    );
 
     // Get total count
     const totalCount = await pgDb
@@ -140,18 +185,17 @@ export async function GET(request: NextRequest) {
         total: totalCount[0]?.count || 0,
         limit,
         offset,
-        hasMore: offset + limit < (totalCount[0]?.count || 0)
-      }
+        hasMore: offset + limit < (totalCount[0]?.count || 0),
+      },
     });
-
   } catch (error) {
     console.error("Error fetching announcements:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: "Failed to fetch announcements" 
+      {
+        success: false,
+        message: "Failed to fetch announcements",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -164,22 +208,25 @@ export async function POST(request: NextRequest) {
     const session = sessionOrError;
 
     const body = await request.json();
-    const { 
-      title, 
-      content, 
+    const {
+      title,
+      content,
       targetAudience,
       priority,
       courseId,
       departmentId,
       expiresAt,
-      isActive 
+      isActive,
     } = body;
 
     // Validate required fields
     if (!title || !content || !targetAudience) {
       return NextResponse.json(
-        { success: false, message: "Title, content, and target audience are required" },
-        { status: 400 }
+        {
+          success: false,
+          message: "Title, content, and target audience are required",
+        },
+        { status: 400 },
       );
     }
 
@@ -193,7 +240,7 @@ export async function POST(request: NextRequest) {
     if (user.length === 0) {
       return NextResponse.json(
         { success: false, message: "User not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -204,7 +251,7 @@ export async function POST(request: NextRequest) {
         title,
         content,
         targetAudience,
-        priority: priority || 'medium',
+        priority: priority || "medium",
         courseId: courseId || null,
         departmentId: departmentId || null,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
@@ -216,17 +263,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Announcement created successfully",
-      data: newAnnouncement[0]
+      data: newAnnouncement[0],
     });
-
   } catch (error) {
     console.error("Error creating announcement:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: "Failed to create announcement" 
+      {
+        success: false,
+        message: "Failed to create announcement",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

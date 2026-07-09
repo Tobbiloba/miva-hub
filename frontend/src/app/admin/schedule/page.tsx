@@ -1,30 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,9 +11,34 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Plus, Loader2, Trash2 } from "lucide-react";
+import { Calendar, Loader2, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 interface Schedule {
   id: string;
@@ -110,7 +110,11 @@ export default function ScheduleListPage() {
       const data = await res.json();
       if (data.success) setSchedules(data.data);
     } catch {
-      toast({ title: "Error", description: "Failed to load schedules", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to load schedules",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -143,10 +147,18 @@ export default function ScheduleListPage() {
         toast({ title: "Success", description: data.message });
         setSchedules((prev) => prev.filter((s) => s.id !== id));
       } else {
-        toast({ title: "Error", description: data.error || "Failed to delete", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: data.error || "Failed to delete",
+          variant: "destructive",
+        });
       }
     } catch {
-      toast({ title: "Error", description: "Failed to delete schedule", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to delete schedule",
+        variant: "destructive",
+      });
     } finally {
       setDeletingId(null);
     }
@@ -178,10 +190,7 @@ export default function ScheduleListPage() {
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
             <div className="flex-1">
-              <Select
-                value={filterCourse}
-                onValueChange={setFilterCourse}
-              >
+              <Select value={filterCourse} onValueChange={setFilterCourse}>
                 <SelectTrigger>
                   <SelectValue placeholder="Filter by course" />
                 </SelectTrigger>
@@ -266,7 +275,9 @@ export default function ScheduleListPage() {
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell>{dayLabels[s.dayOfWeek] ?? s.dayOfWeek}</TableCell>
+                    <TableCell>
+                      {dayLabels[s.dayOfWeek] ?? s.dayOfWeek}
+                    </TableCell>
                     <TableCell>
                       {s.startTime} - {s.endTime}
                     </TableCell>
@@ -302,9 +313,7 @@ export default function ScheduleListPage() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Delete Schedule
-                            </AlertDialogTitle>
+                            <AlertDialogTitle>Delete Schedule</AlertDialogTitle>
                             <AlertDialogDescription>
                               Delete the {dayLabels[s.dayOfWeek]} {s.startTime}-
                               {s.endTime} schedule for {s.courseCode}?

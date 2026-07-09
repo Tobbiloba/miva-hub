@@ -1,23 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import {
-  FlashcardSchema,
-  FlashcardDeckSchema,
-} from "@/lib/db/pg/schema.pg";
-import { eq, sql } from "drizzle-orm";
+import { FlashcardDeckSchema, FlashcardSchema } from "@/lib/db/pg/schema.pg";
 import { recordActivity } from "@/lib/progress/record-activity";
+import { eq, sql } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ cardId: string }> }
+  { params }: { params: Promise<{ cardId: string }> },
 ) {
   try {
     const session = await getSession();
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -28,7 +25,7 @@ export async function POST(
     if (rating !== "again" && rating !== "good") {
       return NextResponse.json(
         { success: false, message: "rating must be 'again' or 'good'" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -47,7 +44,7 @@ export async function POST(
       .from(FlashcardSchema)
       .innerJoin(
         FlashcardDeckSchema,
-        eq(FlashcardSchema.deckId, FlashcardDeckSchema.id)
+        eq(FlashcardSchema.deckId, FlashcardDeckSchema.id),
       )
       .where(eq(FlashcardSchema.id, cardId))
       .limit(1);
@@ -55,14 +52,14 @@ export async function POST(
     if (!card) {
       return NextResponse.json(
         { success: false, message: "Card not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     if (card.studentId !== session.user.id) {
       return NextResponse.json(
         { success: false, message: "Access denied" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -127,7 +124,7 @@ export async function POST(
     console.error("POST /api/flashcards/cards/[cardId]/review error:", error);
     return NextResponse.json(
       { success: false, message: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

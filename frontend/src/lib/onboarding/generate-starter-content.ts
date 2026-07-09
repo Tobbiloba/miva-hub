@@ -6,13 +6,13 @@
 
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
+  CourseMaterialSchema,
+  CourseSchema,
   FlashcardDeckSchema,
   FlashcardSchema,
-  CourseSchema,
-  CourseMaterialSchema,
   StudentEnrollmentSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and, asc, isNotNull, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, sql } from "drizzle-orm";
 
 const CARD_COUNT = 5;
 
@@ -32,7 +32,9 @@ async function doGenerate(studentId: string) {
     .limit(1);
 
   if (existingDeck) {
-    console.log(`starter_content: skipped, student ${studentId} already has decks`);
+    console.log(
+      `starter_content: skipped, student ${studentId} already has decks`,
+    );
     return;
   }
 
@@ -44,13 +46,18 @@ async function doGenerate(studentId: string) {
       courseTitle: CourseSchema.title,
     })
     .from(StudentEnrollmentSchema)
-    .innerJoin(CourseSchema, eq(StudentEnrollmentSchema.courseId, CourseSchema.id))
+    .innerJoin(
+      CourseSchema,
+      eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
+    )
     .where(eq(StudentEnrollmentSchema.studentId, studentId))
     .orderBy(asc(CourseSchema.courseCode))
     .limit(1);
 
   if (!enrollment) {
-    console.log(`starter_content: skipped, student ${studentId} has no enrolled courses`);
+    console.log(
+      `starter_content: skipped, student ${studentId} has no enrolled courses`,
+    );
     return;
   }
 
@@ -160,22 +167,30 @@ The back should be a clear, concise answer.`;
   try {
     cards = JSON.parse(raw);
   } catch {
-    console.warn(`starter_content: failed to parse LLM response for ${enrollment.courseCode}`);
+    console.warn(
+      `starter_content: failed to parse LLM response for ${enrollment.courseCode}`,
+    );
     return;
   }
 
   if (!Array.isArray(cards) || cards.length === 0) {
-    console.warn(`starter_content: LLM returned no valid cards for ${enrollment.courseCode}`);
+    console.warn(
+      `starter_content: LLM returned no valid cards for ${enrollment.courseCode}`,
+    );
     return;
   }
 
   // Validate and cap
   const validated = cards
-    .filter((c) => c && typeof c.front === "string" && typeof c.back === "string")
+    .filter(
+      (c) => c && typeof c.front === "string" && typeof c.back === "string",
+    )
     .slice(0, CARD_COUNT);
 
   if (validated.length === 0) {
-    console.warn(`starter_content: no valid front/back cards for ${enrollment.courseCode}`);
+    console.warn(
+      `starter_content: no valid front/back cards for ${enrollment.courseCode}`,
+    );
     return;
   }
 
@@ -196,7 +211,9 @@ The back should be a clear, concise answer.`;
     .returning({ id: FlashcardDeckSchema.id });
 
   if (!deck) {
-    console.warn(`starter_content: failed to insert deck for ${enrollment.courseCode}`);
+    console.warn(
+      `starter_content: failed to insert deck for ${enrollment.courseCode}`,
+    );
     return;
   }
 

@@ -1,9 +1,9 @@
-import { agentRepository } from "lib/db/repository";
-import { getSession } from "auth/server";
-import { z } from "zod";
 import { AgentUpdateSchema } from "app-types/agent";
+import { getSession } from "auth/server";
 import { serverCache } from "lib/cache";
 import { CacheKeys } from "lib/cache/cache-keys";
+import { agentRepository } from "lib/db/repository";
+import { z } from "zod";
 
 export async function GET(
   _request: Request,

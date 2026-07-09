@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { s3Service } from "@/lib/aws/s3-service";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,18 +13,18 @@ export async function POST(request: NextRequest) {
     const session = sessionOrError;
 
     const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    const externalUrl = formData.get('externalUrl') as string | null;
-    const courseId = formData.get('courseId') as string;
-    const materialType = formData.get('materialType') as string;
-    const weekNumber = formData.get('weekNumber') as string;
-    const title = formData.get('title') as string;
-    const description = formData.get('description') as string || '';
+    const file = formData.get("file") as File | null;
+    const externalUrl = formData.get("externalUrl") as string | null;
+    const courseId = formData.get("courseId") as string;
+    const materialType = formData.get("materialType") as string;
+    const weekNumber = formData.get("weekNumber") as string;
+    const title = formData.get("title") as string;
+    const description = (formData.get("description") as string) || "";
 
     if (!courseId || !materialType || !weekNumber || !title) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -32,16 +32,16 @@ export async function POST(request: NextRequest) {
     if (externalUrl) {
       try {
         const parsed = new URL(externalUrl);
-        if (!['http:', 'https:'].includes(parsed.protocol)) {
+        if (!["http:", "https:"].includes(parsed.protocol)) {
           return NextResponse.json(
             { error: "URL must use http:// or https://" },
-            { status: 400 }
+            { status: 400 },
           );
         }
       } catch {
         return NextResponse.json(
           { error: "Invalid URL format" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       if (!course) {
         return NextResponse.json(
           { error: "Course not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -57,7 +57,13 @@ export async function POST(request: NextRequest) {
         courseId,
         title,
         description,
-        materialType: materialType as "syllabus" | "lecture" | "assignment" | "resource" | "reading" | "exam",
+        materialType: materialType as
+          | "syllabus"
+          | "lecture"
+          | "assignment"
+          | "resource"
+          | "reading"
+          | "exam",
         weekNumber: parseInt(weekNumber),
         contentUrl: externalUrl,
         publicUrl: externalUrl,
@@ -67,37 +73,40 @@ export async function POST(request: NextRequest) {
         uploadedById: session.user.id,
       });
 
-      return NextResponse.json({
-        message: "External URL added as material",
-        materialId: insertedMaterial.id,
-      }, { status: 201 });
+      return NextResponse.json(
+        {
+          message: "External URL added as material",
+          materialId: insertedMaterial.id,
+        },
+        { status: 201 },
+      );
     }
 
     // ── File upload mode ───────────────────────────────────────────
     if (!file) {
       return NextResponse.json(
         { error: "Missing required fields: file or externalUrl" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Validate file type
     const allowedTypes = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'video/mp4',
-      'video/quicktime',
-      'video/x-msvideo',
-      'audio/mpeg',
-      'audio/wav',
-      'audio/x-m4a'
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "video/mp4",
+      "video/quicktime",
+      "video/x-msvideo",
+      "audio/mpeg",
+      "audio/wav",
+      "audio/x-m4a",
     ];
 
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
         { error: "File type not supported" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -106,24 +115,23 @@ export async function POST(request: NextRequest) {
     if (file.size > maxSize) {
       return NextResponse.json(
         { error: "File size exceeds 100MB limit" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Get course and department information for S3 path generation
     const course = await pgAcademicRepository.getCourseById(courseId);
     if (!course) {
-      return NextResponse.json(
-        { error: "Course not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
 
-    const department = await pgAcademicRepository.getDepartmentById(course.departmentId);
+    const department = await pgAcademicRepository.getDepartmentById(
+      course.departmentId,
+    );
     if (!department) {
       return NextResponse.json(
         { error: "Department not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -131,7 +139,10 @@ export async function POST(request: NextRequest) {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1; // 0-indexed, so add 1
-    const semester = currentMonth >= 8 || currentMonth <= 1 ? `${currentYear}-fall` : `${currentYear}-spring`;
+    const semester =
+      currentMonth >= 8 || currentMonth <= 1
+        ? `${currentYear}-fall`
+        : `${currentYear}-spring`;
 
     // Upload file to S3 with intelligent path structure
     const s3UploadOptions = {
@@ -142,27 +153,23 @@ export async function POST(request: NextRequest) {
       weekNumber: parseInt(weekNumber),
       materialType: materialType as any,
       uploadedBy: session.user.id,
-      userRole: 'admin' as const
+      userRole: "admin" as const,
     };
 
     const s3Key = s3Service.generateS3Key(s3UploadOptions, file.name);
     console.log(`Uploading file to S3: ${s3Key}`);
 
     // Upload to S3 with progress tracking
-    const uploadResult = await s3Service.uploadFile(
-      file,
-      s3Key,
-      {
-        userId: session.user.id,
-        userRole: 'admin',
-        userEmail: session.user.email
-      }
-    );
+    const uploadResult = await s3Service.uploadFile(file, s3Key, {
+      userId: session.user.id,
+      userRole: "admin",
+      userEmail: session.user.email,
+    });
 
     if (!uploadResult.success) {
       return NextResponse.json(
         { error: uploadResult.error || "Failed to upload file to S3" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -171,7 +178,13 @@ export async function POST(request: NextRequest) {
       courseId,
       title,
       description,
-      materialType: materialType as "syllabus" | "lecture" | "assignment" | "resource" | "reading" | "exam",
+      materialType: materialType as
+        | "syllabus"
+        | "lecture"
+        | "assignment"
+        | "resource"
+        | "reading"
+        | "exam",
       weekNumber: parseInt(weekNumber),
       fileName: file.name,
       contentUrl: uploadResult.s3Url, // Store S3 URL instead of local path
@@ -180,20 +193,21 @@ export async function POST(request: NextRequest) {
       uploadedById: session.user.id,
     };
 
-    const insertedMaterial = await pgAcademicRepository.insertCourseMaterial(materialData);
-    console.log('Material saved to database:', insertedMaterial);
+    const insertedMaterial =
+      await pgAcademicRepository.insertCourseMaterial(materialData);
+    console.log("Material saved to database:", insertedMaterial);
 
     // Generate public URL and update the material with CloudFront URL if available
     const publicUrl = `/api/files/${insertedMaterial.id}`;
     const cloudFrontUrl = uploadResult.cloudFrontUrl;
-    
-    await pgAcademicRepository.updateCourseMaterial(insertedMaterial.id, { 
+
+    await pgAcademicRepository.updateCourseMaterial(insertedMaterial.id, {
       publicUrl,
       // Store CloudFront URL in a metadata field if your schema supports it
     });
-    console.log('Public URL generated:', publicUrl);
+    console.log("Public URL generated:", publicUrl);
     if (cloudFrontUrl) {
-      console.log('CloudFront URL available:', cloudFrontUrl);
+      console.log("CloudFront URL available:", cloudFrontUrl);
     }
 
     // Create AI processing job
@@ -212,18 +226,22 @@ export async function POST(request: NextRequest) {
     });
 
     // Trigger AI processing (async) with S3 information
-    triggerContentProcessing(insertedMaterial.id, s3Key, file.type, processingJob.id)
-      .catch(error => {
-        console.error('Processing failed:', error);
-        // Update job status to failed
-        pgAcademicRepository.updateAIProcessingJobStatus(
-          processingJob.id, 
-          "failed", 
-          undefined, 
-          new Date(), 
-          error.message
-        );
-      });
+    triggerContentProcessing(
+      insertedMaterial.id,
+      s3Key,
+      file.type,
+      processingJob.id,
+    ).catch((error) => {
+      console.error("Processing failed:", error);
+      // Update job status to failed
+      pgAcademicRepository.updateAIProcessingJobStatus(
+        processingJob.id,
+        "failed",
+        undefined,
+        new Date(),
+        error.message,
+      );
+    });
 
     return NextResponse.json({
       message: "File uploaded successfully to AWS S3",
@@ -234,25 +252,30 @@ export async function POST(request: NextRequest) {
       cloudFrontUrl: cloudFrontUrl,
       publicUrl: publicUrl,
       processingJobId: processingJob.id,
-      processingStatus: "pending"
+      processingStatus: "pending",
     });
-
   } catch (error) {
     console.error("Error uploading content:", error);
     return NextResponse.json(
       { error: "Failed to upload content" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 // Helper function to determine job type from file type
-function getJobTypeFromFileType(fileType: string): "pdf_processing" | "video_transcription" | "interactive_parsing" | "text_analysis" {
-  if (fileType === 'application/pdf') {
+function getJobTypeFromFileType(
+  fileType: string,
+):
+  | "pdf_processing"
+  | "video_transcription"
+  | "interactive_parsing"
+  | "text_analysis" {
+  if (fileType === "application/pdf") {
     return "pdf_processing";
-  } else if (fileType.startsWith('video/')) {
+  } else if (fileType.startsWith("video/")) {
     return "video_transcription";
-  } else if (fileType.includes('word') || fileType.includes('presentation')) {
+  } else if (fileType.includes("word") || fileType.includes("presentation")) {
     return "interactive_parsing";
   } else {
     return "text_analysis";
@@ -262,51 +285,58 @@ function getJobTypeFromFileType(fileType: string): "pdf_processing" | "video_tra
 // Trigger AI content processing via FastAPI with S3 integration
 async function triggerContentProcessing(
   materialId: string,
-  s3Key: string, 
+  s3Key: string,
   fileType: string,
-  processingJobId: string
+  processingJobId: string,
 ): Promise<void> {
   try {
     // Update job status to processing
     await pgAcademicRepository.updateAIProcessingJobStatus(
       processingJobId,
       "processing",
-      new Date()
+      new Date(),
     );
 
-    const CONTENT_PROCESSOR_URL = process.env.CONTENT_PROCESSOR_URL || 'http://localhost:8082';
-    
+    const CONTENT_PROCESSOR_URL =
+      process.env.CONTENT_PROCESSOR_URL || "http://localhost:8082";
+
     // Prepare form data for the FastAPI endpoint with S3 information
     const formData = new FormData();
-    formData.append('material_id', materialId);
-    formData.append('s3_key', s3Key); // Use S3 key instead of file path
-    formData.append('s3_bucket', process.env.AWS_S3_BUCKET || 'miva-university-content');
-    formData.append('file_type', fileType);
-    formData.append('processing_job_id', processingJobId);
+    formData.append("material_id", materialId);
+    formData.append("s3_key", s3Key); // Use S3 key instead of file path
+    formData.append(
+      "s3_bucket",
+      process.env.AWS_S3_BUCKET || "miva-university-content",
+    );
+    formData.append("file_type", fileType);
+    formData.append("processing_job_id", processingJobId);
 
-    console.log(`Starting AI processing for material ${materialId} from S3: ${s3Key} via ${CONTENT_PROCESSOR_URL}/process-material`);
+    console.log(
+      `Starting AI processing for material ${materialId} from S3: ${s3Key} via ${CONTENT_PROCESSOR_URL}/process-material`,
+    );
 
     // Call the FastAPI content processor using the new unified endpoint
     const response = await fetch(`${CONTENT_PROCESSOR_URL}/process-material`, {
-      method: 'POST',
+      method: "POST",
       body: formData,
       headers: {
-        'Accept': 'application/json',
+        Accept: "application/json",
       },
     });
 
     if (!response.ok) {
-      throw new Error(`Content processor returned ${response.status}: ${response.statusText}`);
+      throw new Error(
+        `Content processor returned ${response.status}: ${response.statusText}`,
+      );
     }
 
     const result = await response.json();
-    console.log('S3-based content processing initiated:', result);
+    console.log("S3-based content processing initiated:", result);
 
     // The FastAPI processor will handle downloading from S3, processing,
     // and updating the job status and saving results via its own database operations
-    
   } catch (error) {
-    console.error('Failed to trigger S3-based content processing:', error);
+    console.error("Failed to trigger S3-based content processing:", error);
     throw error;
   }
 }

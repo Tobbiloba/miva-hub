@@ -1,20 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  FileText,
-  ArrowLeft,
-  AlertCircle,
-  Save,
-  Loader2,
-  Trash2,
-} from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,8 +11,23 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertCircle,
+  ArrowLeft,
+  FileText,
+  Loader2,
+  Save,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
-import { useRouter, useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function EditAssignmentPage() {
@@ -38,7 +38,10 @@ export default function EditAssignmentPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [courseInfo, setCourseInfo] = useState({ courseCode: "", courseTitle: "" });
+  const [courseInfo, setCourseInfo] = useState({
+    courseCode: "",
+    courseTitle: "",
+  });
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -67,7 +70,10 @@ export default function EditAssignmentPage() {
       const a = data.assignment;
       const dueDate = new Date(a.dueDate);
 
-      setCourseInfo({ courseCode: data.courseCode, courseTitle: data.courseTitle });
+      setCourseInfo({
+        courseCode: data.courseCode,
+        courseTitle: data.courseTitle,
+      });
       setFormData({
         title: a.title || "",
         description: a.description || "",
@@ -80,7 +86,9 @@ export default function EditAssignmentPage() {
         lateSubmissionPenalty: parseFloat(a.lateSubmissionPenalty) || 10,
       });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load assignment");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to load assignment",
+      );
     } finally {
       setLoading(false);
     }
@@ -113,7 +121,9 @@ export default function EditAssignmentPage() {
           description: formData.description,
           instructions: formData.instructions,
           totalPoints: formData.totalPoints,
-          dueDate: new Date(`${formData.dueDate}T${formData.dueTime}`).toISOString(),
+          dueDate: new Date(
+            `${formData.dueDate}T${formData.dueTime}`,
+          ).toISOString(),
           isPublished: formData.isPublished,
           allowLateSubmission: formData.allowLateSubmission,
           lateSubmissionPenalty: formData.lateSubmissionPenalty,
@@ -128,7 +138,9 @@ export default function EditAssignmentPage() {
       toast.success("Assignment updated");
       router.push("/faculty/assignments");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update assignment");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update assignment",
+      );
     } finally {
       setSaving(false);
     }
@@ -149,7 +161,9 @@ export default function EditAssignmentPage() {
       toast.success("Assignment deleted");
       router.push("/faculty/assignments");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete assignment");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete assignment",
+      );
     } finally {
       setDeleting(false);
     }
@@ -195,19 +209,25 @@ export default function EditAssignmentPage() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete assignment?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete &quot;{formData.title}&quot;. This
-                  cannot be undone. If students have already submitted, deletion
-                  will be blocked.
+                  This will permanently delete &quot;{formData.title}&quot;.
+                  This cannot be undone. If students have already submitted,
+                  deletion will be blocked.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                <AlertDialogAction onClick={handleDelete}>
+                  Delete
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
           <Button onClick={handleSave} disabled={saving}>
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {saving ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
             Save Changes
           </Button>
         </div>
@@ -248,7 +268,9 @@ export default function EditAssignmentPage() {
             <Textarea
               id="instructions"
               value={formData.instructions}
-              onChange={(e) => handleInputChange("instructions", e.target.value)}
+              onChange={(e) =>
+                handleInputChange("instructions", e.target.value)
+              }
               rows={5}
             />
           </div>
@@ -268,7 +290,12 @@ export default function EditAssignmentPage() {
                 type="number"
                 min="1"
                 value={formData.totalPoints}
-                onChange={(e) => handleInputChange("totalPoints", parseInt(e.target.value) || 0)}
+                onChange={(e) =>
+                  handleInputChange(
+                    "totalPoints",
+                    parseInt(e.target.value) || 0,
+                  )
+                }
                 className={errors.totalPoints ? "border-red-500" : ""}
               />
             </div>
@@ -278,7 +305,9 @@ export default function EditAssignmentPage() {
                 <Checkbox
                   id="isPublished"
                   checked={formData.isPublished}
-                  onCheckedChange={(checked) => handleInputChange("isPublished", checked === true)}
+                  onCheckedChange={(checked) =>
+                    handleInputChange("isPublished", checked === true)
+                  }
                 />
                 <Label htmlFor="isPublished" className="cursor-pointer">
                   Published (visible to students)
@@ -314,9 +343,13 @@ export default function EditAssignmentPage() {
               <Checkbox
                 id="allowLateSubmission"
                 checked={formData.allowLateSubmission}
-                onCheckedChange={(checked) => handleInputChange("allowLateSubmission", checked === true)}
+                onCheckedChange={(checked) =>
+                  handleInputChange("allowLateSubmission", checked === true)
+                }
               />
-              <Label htmlFor="allowLateSubmission">Allow late submissions</Label>
+              <Label htmlFor="allowLateSubmission">
+                Allow late submissions
+              </Label>
             </div>
             {formData.allowLateSubmission && (
               <div className="ml-6 space-y-2">
@@ -327,7 +360,12 @@ export default function EditAssignmentPage() {
                   min="0"
                   max="100"
                   value={formData.lateSubmissionPenalty}
-                  onChange={(e) => handleInputChange("lateSubmissionPenalty", parseInt(e.target.value) || 0)}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "lateSubmissionPenalty",
+                      parseInt(e.target.value) || 0,
+                    )
+                  }
                 />
               </div>
             )}

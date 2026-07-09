@@ -1,8 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { ReportConfigSchema, ReportInstanceSchema, UserSchema, type ReportConfigEntity } from "@/lib/db/pg/schema.pg";
-import { eq, and, sql, desc, ilike, or, type SQL } from "drizzle-orm";
+import {
+  type ReportConfigEntity,
+  ReportConfigSchema,
+  ReportInstanceSchema,
+  UserSchema,
+} from "@/lib/db/pg/schema.pg";
+import { type SQL, and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,13 +16,13 @@ export async function GET(request: NextRequest) {
     if (sessionOrError instanceof NextResponse) return sessionOrError;
 
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search');
-    const category = searchParams.get('category');
-    const reportType = searchParams.get('reportType');
-    const status = searchParams.get('status');
-    const schedule = searchParams.get('schedule');
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const search = searchParams.get("search");
+    const category = searchParams.get("category");
+    const reportType = searchParams.get("reportType");
+    const status = searchParams.get("status");
+    const schedule = searchParams.get("schedule");
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const offset = parseInt(searchParams.get("offset") || "0");
 
     // Apply filters
     const conditions: (SQL | undefined)[] = [];
@@ -26,29 +31,44 @@ export async function GET(request: NextRequest) {
       conditions.push(
         or(
           ilike(ReportConfigSchema.name, `%${search}%`),
-          ilike(ReportConfigSchema.description, `%${search}%`)
-        )
+          ilike(ReportConfigSchema.description, `%${search}%`),
+        ),
       );
     }
 
-    if (category && category !== 'all') {
-      conditions.push(eq(ReportConfigSchema.category, category as ReportConfigEntity["category"]));
+    if (category && category !== "all") {
+      conditions.push(
+        eq(
+          ReportConfigSchema.category,
+          category as ReportConfigEntity["category"],
+        ),
+      );
     }
 
-    if (reportType && reportType !== 'all') {
-      conditions.push(eq(ReportConfigSchema.reportType, reportType as ReportConfigEntity["reportType"]));
+    if (reportType && reportType !== "all") {
+      conditions.push(
+        eq(
+          ReportConfigSchema.reportType,
+          reportType as ReportConfigEntity["reportType"],
+        ),
+      );
     }
 
-    if (status && status !== 'all') {
-      if (status === 'active') {
+    if (status && status !== "all") {
+      if (status === "active") {
         conditions.push(eq(ReportConfigSchema.isActive, true));
-      } else if (status === 'inactive') {
+      } else if (status === "inactive") {
         conditions.push(eq(ReportConfigSchema.isActive, false));
       }
     }
 
-    if (schedule && schedule !== 'all') {
-      conditions.push(eq(ReportConfigSchema.schedule, schedule as ReportConfigEntity["schedule"]));
+    if (schedule && schedule !== "all") {
+      conditions.push(
+        eq(
+          ReportConfigSchema.schedule,
+          schedule as ReportConfigEntity["schedule"],
+        ),
+      );
     }
 
     // Build query for report configs with latest instance info
@@ -64,16 +84,20 @@ export async function GET(request: NextRequest) {
         ReportInstanceSchema,
         and(
           eq(ReportConfigSchema.id, ReportInstanceSchema.reportConfigId),
-          eq(ReportInstanceSchema.id,
-            pgDb.select({
-              id: ReportInstanceSchema.id
-            })
-            .from(ReportInstanceSchema)
-            .where(eq(ReportInstanceSchema.reportConfigId, ReportConfigSchema.id))
-            .orderBy(desc(ReportInstanceSchema.generatedAt))
-            .limit(1)
-          )
-        )
+          eq(
+            ReportInstanceSchema.id,
+            pgDb
+              .select({
+                id: ReportInstanceSchema.id,
+              })
+              .from(ReportInstanceSchema)
+              .where(
+                eq(ReportInstanceSchema.reportConfigId, ReportConfigSchema.id),
+              )
+              .orderBy(desc(ReportInstanceSchema.generatedAt))
+              .limit(1),
+          ),
+        ),
       )
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(ReportConfigSchema.createdAt))
@@ -81,25 +105,29 @@ export async function GET(request: NextRequest) {
       .offset(offset);
 
     // Transform data to match frontend interface
-    const transformedReports = reports.map(({ config, creator, latestInstance }) => ({
-      id: config.id,
-      name: config.name,
-      description: config.description || '',
-      category: config.category,
-      type: config.reportType,
-      format: config.format,
-      schedule: config.schedule,
-      status: config.isActive ? 'active' : 'paused',
-      createdBy: creator?.name || 'System',
-      lastGenerated: config.lastGenerated?.toISOString() || null,
-      nextScheduled: config.nextScheduled?.toISOString() || null,
-      downloads: latestInstance?.downloadCount || 0,
-      size: latestInstance?.fileSize ? formatFileSize(latestInstance.fileSize) : '0 MB',
-      recipients: config.recipients || [],
-      generationCount: config.generationCount,
-      createdAt: config.createdAt.toISOString(),
-      updatedAt: config.updatedAt.toISOString(),
-    }));
+    const transformedReports = reports.map(
+      ({ config, creator, latestInstance }) => ({
+        id: config.id,
+        name: config.name,
+        description: config.description || "",
+        category: config.category,
+        type: config.reportType,
+        format: config.format,
+        schedule: config.schedule,
+        status: config.isActive ? "active" : "paused",
+        createdBy: creator?.name || "System",
+        lastGenerated: config.lastGenerated?.toISOString() || null,
+        nextScheduled: config.nextScheduled?.toISOString() || null,
+        downloads: latestInstance?.downloadCount || 0,
+        size: latestInstance?.fileSize
+          ? formatFileSize(latestInstance.fileSize)
+          : "0 MB",
+        recipients: config.recipients || [],
+        generationCount: config.generationCount,
+        createdAt: config.createdAt.toISOString(),
+        updatedAt: config.updatedAt.toISOString(),
+      }),
+    );
 
     // Get total count
     const totalCount = await pgDb
@@ -113,18 +141,17 @@ export async function GET(request: NextRequest) {
         total: totalCount[0]?.count || 0,
         limit,
         offset,
-        hasMore: offset + limit < (totalCount[0]?.count || 0)
-      }
+        hasMore: offset + limit < (totalCount[0]?.count || 0),
+      },
     });
-
   } catch (error) {
     console.error("Error fetching reports:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: "Failed to fetch reports" 
+      {
+        success: false,
+        message: "Failed to fetch reports",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -137,9 +164,9 @@ export async function POST(request: NextRequest) {
     const session = sessionOrError;
 
     const body = await request.json();
-    const { 
-      name, 
-      description, 
+    const {
+      name,
+      description,
       category,
       reportType,
       format,
@@ -147,14 +174,17 @@ export async function POST(request: NextRequest) {
       recipients,
       parameters,
       queryTemplate,
-      isActive
+      isActive,
     } = body;
 
     // Validate required fields
     if (!name || !category || !reportType) {
       return NextResponse.json(
-        { success: false, message: "Name, category, and report type are required" },
-        { status: 400 }
+        {
+          success: false,
+          message: "Name, category, and report type are required",
+        },
+        { status: 400 },
       );
     }
 
@@ -168,7 +198,7 @@ export async function POST(request: NextRequest) {
     if (user.length === 0) {
       return NextResponse.json(
         { success: false, message: "User not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -179,70 +209,70 @@ export async function POST(request: NextRequest) {
         name,
         description,
         category,
-        reportType: reportType || 'custom',
-        format: format || 'pdf',
-        schedule: schedule || 'manual',
+        reportType: reportType || "custom",
+        format: format || "pdf",
+        schedule: schedule || "manual",
         recipients: recipients || [],
         parameters: parameters || {},
         queryTemplate,
         isActive: isActive !== false,
         createdById: user[0].id,
-        nextScheduled: schedule !== 'manual' ? getNextScheduledDate(schedule) : null,
+        nextScheduled:
+          schedule !== "manual" ? getNextScheduledDate(schedule) : null,
       })
       .returning();
 
     return NextResponse.json({
       success: true,
       message: "Report configuration created successfully",
-      data: newReport[0]
+      data: newReport[0],
     });
-
   } catch (error) {
     console.error("Error creating report:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: "Failed to create report" 
+      {
+        success: false,
+        message: "Failed to create report",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) return "0 Bytes";
   const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const sizes = ["Bytes", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
 function getNextScheduledDate(schedule: string): Date {
   const now = new Date();
   const next = new Date(now);
-  
+
   switch (schedule) {
-    case 'daily':
+    case "daily":
       next.setDate(now.getDate() + 1);
       break;
-    case 'weekly':
+    case "weekly":
       next.setDate(now.getDate() + 7);
       break;
-    case 'monthly':
+    case "monthly":
       next.setMonth(now.getMonth() + 1);
       break;
-    case 'quarterly':
+    case "quarterly":
       next.setMonth(now.getMonth() + 3);
       break;
-    case 'semester':
+    case "semester":
       next.setMonth(now.getMonth() + 6);
       break;
-    case 'yearly':
+    case "yearly":
       next.setFullYear(now.getFullYear() + 1);
       break;
     default:
       return now;
   }
-  
+
   return next;
 }

@@ -43,7 +43,11 @@ export const pgAcademicRepository = {
     const rows = await db
       .select()
       .from(DepartmentSchema)
-      .where(universityId ? eq(DepartmentSchema.universityId, universityId) : undefined)
+      .where(
+        universityId
+          ? eq(DepartmentSchema.universityId, universityId)
+          : undefined,
+      )
       .orderBy(asc(DepartmentSchema.name));
     return rows as DepartmentEntity[];
   },
@@ -118,11 +122,18 @@ export const pgAcademicRepository = {
     ];
 
     if (filters?.level) {
-      conditions.push(eq(CourseSchema.level, filters.level as CourseEntity["level"]));
+      conditions.push(
+        eq(CourseSchema.level, filters.level as CourseEntity["level"]),
+      );
     }
 
     if (filters?.semester) {
-      conditions.push(eq(CourseSchema.semesterOffered, filters.semester as CourseEntity["semesterOffered"]));
+      conditions.push(
+        eq(
+          CourseSchema.semesterOffered,
+          filters.semester as CourseEntity["semesterOffered"],
+        ),
+      );
     }
 
     return db
@@ -147,11 +158,18 @@ export const pgAcademicRepository = {
     const conditions = [eq(CourseSchema.isActive, true)];
 
     if (filters?.level) {
-      conditions.push(eq(CourseSchema.level, filters.level as CourseEntity["level"]));
+      conditions.push(
+        eq(CourseSchema.level, filters.level as CourseEntity["level"]),
+      );
     }
 
     if (filters?.semester) {
-      conditions.push(eq(CourseSchema.semesterOffered, filters.semester as CourseEntity["semesterOffered"]));
+      conditions.push(
+        eq(
+          CourseSchema.semesterOffered,
+          filters.semester as CourseEntity["semesterOffered"],
+        ),
+      );
     }
 
     return db
@@ -1805,9 +1823,10 @@ export const pgAcademicRepository = {
           assignment: AssignmentSchema,
           course: CourseSchema,
           submissionStats: {
-            totalSubmissions: sql<number>`count(${AssignmentSubmissionSchema.id})`.as(
-              "totalSubmissions",
-            ),
+            totalSubmissions:
+              sql<number>`count(${AssignmentSubmissionSchema.id})`.as(
+                "totalSubmissions",
+              ),
             gradedSubmissions:
               sql<number>`count(case when ${AssignmentSubmissionSchema.grade} is not null then 1 end)`.as(
                 "gradedSubmissions",

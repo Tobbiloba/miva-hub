@@ -62,8 +62,8 @@ export interface DepartmentAnalytics {
 }
 
 export interface LearningInsights {
-  popularCourses: Array<{ courseCode: string; enrollmentCount: number; }>;
-  difficultCourses: Array<{ courseCode: string; averageGrade: number; }>;
+  popularCourses: Array<{ courseCode: string; enrollmentCount: number }>;
+  difficultCourses: Array<{ courseCode: string; averageGrade: number }>;
   engagementMetrics: {
     averageSubmissionRate: number;
     onTimeSubmissionRate: number;
@@ -98,10 +98,10 @@ class AcademicAnalyticsService {
    * Get system overview analytics
    */
   async getSystemOverview(): Promise<SystemOverview> {
-    return this.cached('system-overview', async () => {
+    return this.cached("system-overview", async () => {
       const [systemStats, currentSemester] = await Promise.all([
         pgAcademicRepository.getSystemStats(),
-        getCurrentSemester()
+        getCurrentSemester(),
       ]);
 
       return {
@@ -110,7 +110,7 @@ class AcademicAnalyticsService {
         totalFaculty: systemStats.faculty,
         totalDepartments: systemStats.departments,
         totalMaterials: systemStats.materials,
-        activeSemester: currentSemester
+        activeSemester: currentSemester,
       };
     });
   }
@@ -119,22 +119,28 @@ class AcademicAnalyticsService {
    * Get course analytics for all courses or specific department
    */
   async getCourseAnalytics(departmentId?: string): Promise<CourseAnalytics[]> {
-    const cacheKey = `course-analytics-${departmentId || 'all'}`;
-    
+    const cacheKey = `course-analytics-${departmentId || "all"}`;
+
     return this.cached(cacheKey, async () => {
       try {
         const currentSemester = await getCurrentSemester();
-        
+
         // Get all active courses
-        const courses = departmentId 
+        const courses = departmentId
           ? await pgAcademicRepository.getCoursesByDepartment(departmentId)
           : await pgAcademicRepository.getActiveCourses();
 
         const courseAnalytics = await Promise.all(
           courses.map(async (course) => {
             const [stats, instructors] = await Promise.all([
-              pgAcademicRepository.getCourseStatistics(course.id, currentSemester),
-              pgAcademicRepository.getCourseInstructors(course.id, currentSemester)
+              pgAcademicRepository.getCourseStatistics(
+                course.id,
+                currentSemester,
+              ),
+              pgAcademicRepository.getCourseInstructors(
+                course.id,
+                currentSemester,
+              ),
             ]);
 
             return {
@@ -146,14 +152,14 @@ class AcademicAnalyticsService {
               averageGrade: stats.averageGrade,
               submissionRate: stats.submissionRate,
               departmentName: course.departmentId, // Would need to join with department
-              facultyName: instructors?.[0]?.user?.name || 'TBA'
+              facultyName: instructors?.[0]?.user?.name || "TBA",
             };
-          })
+          }),
         );
 
         return courseAnalytics;
       } catch (error) {
-        console.error('[Analytics] Failed to get course analytics:', error);
+        console.error("[Analytics] Failed to get course analytics:", error);
         return [];
       }
     });
@@ -162,17 +168,21 @@ class AcademicAnalyticsService {
   /**
    * Get student performance analytics
    */
-  async getStudentPerformance(limit: number = 50): Promise<StudentPerformance[]> {
+  async getStudentPerformance(
+    limit: number = 50,
+  ): Promise<StudentPerformance[]> {
     const cacheKey = `student-performance-${limit}`;
-    
+
     return this.cached(cacheKey, async () => {
       try {
         // This would need to be implemented in the academic repository
         // For now, return empty array
-        console.log('[Analytics] Student performance analytics not yet implemented');
+        console.log(
+          "[Analytics] Student performance analytics not yet implemented",
+        );
         return [];
       } catch (error) {
-        console.error('[Analytics] Failed to get student performance:', error);
+        console.error("[Analytics] Failed to get student performance:", error);
         return [];
       }
     });
@@ -181,9 +191,11 @@ class AcademicAnalyticsService {
   /**
    * Get faculty analytics
    */
-  async getFacultyAnalytics(departmentId?: string): Promise<FacultyAnalytics[]> {
-    const cacheKey = `faculty-analytics-${departmentId || 'all'}`;
-    
+  async getFacultyAnalytics(
+    departmentId?: string,
+  ): Promise<FacultyAnalytics[]> {
+    const cacheKey = `faculty-analytics-${departmentId || "all"}`;
+
     return this.cached(cacheKey, async () => {
       try {
         // Get faculty members
@@ -193,32 +205,40 @@ class AcademicAnalyticsService {
 
         const facultyAnalytics = await Promise.all(
           faculty.map(async (member) => {
-            const assignments = await pgAcademicRepository.getFacultyAssignmentsWithStatistics(member.id);
+            const assignments =
+              await pgAcademicRepository.getFacultyAssignmentsWithStatistics(
+                member.id,
+              );
 
             // Calculate metrics
-            const coursesTeaching = [...new Set(assignments.map(a => a.assignment.courseId))].length;
+            const coursesTeaching = [
+              ...new Set(assignments.map((a) => a.assignment.courseId)),
+            ].length;
             // Enrollment counts are not returned by getFacultyAssignmentsWithStatistics;
             // computing this requires a dedicated enrollment query (not yet implemented).
             const totalStudents = 0;
             const assignmentsCreated = assignments.length;
-            const gradingWorkload = assignments.reduce((sum, a) => sum + (a.submissionStats?.pendingSubmissions || 0), 0);
+            const gradingWorkload = assignments.reduce(
+              (sum, a) => sum + (a.submissionStats?.pendingSubmissions || 0),
+              0,
+            );
 
             return {
               facultyId: member.id,
-              facultyName: member.name || 'Unknown',
-              department: member.departmentId || 'Unknown', // Would need to join with department name
+              facultyName: member.name || "Unknown",
+              department: member.departmentId || "Unknown", // Would need to join with department name
               coursesTeaching,
               totalStudents,
               assignmentsCreated,
               gradingWorkload,
-              averageResponseTime: 2.5 // Placeholder - would calculate from grading timestamps
+              averageResponseTime: 2.5, // Placeholder - would calculate from grading timestamps
             };
-          })
+          }),
         );
 
         return facultyAnalytics;
       } catch (error) {
-        console.error('[Analytics] Failed to get faculty analytics:', error);
+        console.error("[Analytics] Failed to get faculty analytics:", error);
         return [];
       }
     });
@@ -228,7 +248,7 @@ class AcademicAnalyticsService {
    * Get department analytics
    */
   async getDepartmentAnalytics(): Promise<DepartmentAnalytics[]> {
-    return this.cached('department-analytics', async () => {
+    return this.cached("department-analytics", async () => {
       try {
         const departments = await pgAcademicRepository.getDepartments();
         const currentSemester = await getCurrentSemester();
@@ -237,20 +257,30 @@ class AcademicAnalyticsService {
           departments.map(async (dept) => {
             const [courses, faculty] = await Promise.all([
               pgAcademicRepository.getCoursesByDepartment(dept.id),
-              pgAcademicRepository.getFacultyByDepartment(dept.id)
+              pgAcademicRepository.getFacultyByDepartment(dept.id),
             ]);
 
             // Calculate course statistics
             const courseStats = await Promise.all(
-              courses.map(course => 
-                pgAcademicRepository.getCourseStatistics(course.id, currentSemester)
-              )
+              courses.map((course) =>
+                pgAcademicRepository.getCourseStatistics(
+                  course.id,
+                  currentSemester,
+                ),
+              ),
             );
 
-            const totalStudents = courseStats.reduce((sum, stats) => sum + stats.enrolledStudents, 0);
-            const averageGrade = courseStats.length > 0 
-              ? courseStats.reduce((sum, stats) => sum + stats.averageGrade, 0) / courseStats.length
-              : 0;
+            const totalStudents = courseStats.reduce(
+              (sum, stats) => sum + stats.enrolledStudents,
+              0,
+            );
+            const averageGrade =
+              courseStats.length > 0
+                ? courseStats.reduce(
+                    (sum, stats) => sum + stats.averageGrade,
+                    0,
+                  ) / courseStats.length
+                : 0;
 
             return {
               departmentId: dept.id,
@@ -259,14 +289,14 @@ class AcademicAnalyticsService {
               totalStudents,
               totalFaculty: faculty.length,
               averageGrade,
-              enrollmentTrend: "stable" as const // Would calculate from historical data
+              enrollmentTrend: "stable" as const, // Would calculate from historical data
             };
-          })
+          }),
         );
 
         return departmentAnalytics;
       } catch (error) {
-        console.error('[Analytics] Failed to get department analytics:', error);
+        console.error("[Analytics] Failed to get department analytics:", error);
         return [];
       }
     });
@@ -276,7 +306,7 @@ class AcademicAnalyticsService {
    * Get learning insights and trends
    */
   async getLearningInsights(): Promise<LearningInsights> {
-    return this.cached('learning-insights', async () => {
+    return this.cached("learning-insights", async () => {
       try {
         const currentSemester = await getCurrentSemester();
         const courses = await pgAcademicRepository.getActiveCourses();
@@ -284,42 +314,53 @@ class AcademicAnalyticsService {
         // Get course statistics for insights
         const courseStats = await Promise.all(
           courses.map(async (course) => {
-            const stats = await pgAcademicRepository.getCourseStatistics(course.id, currentSemester);
+            const stats = await pgAcademicRepository.getCourseStatistics(
+              course.id,
+              currentSemester,
+            );
             return {
               courseCode: course.courseCode,
               title: course.title,
               enrollmentCount: stats.enrolledStudents,
               averageGrade: stats.averageGrade,
-              submissionRate: stats.submissionRate
+              submissionRate: stats.submissionRate,
             };
-          })
+          }),
         );
 
         // Calculate insights
         const popularCourses = courseStats
           .sort((a, b) => b.enrollmentCount - a.enrollmentCount)
           .slice(0, 5)
-          .map(course => ({
+          .map((course) => ({
             courseCode: course.courseCode,
-            enrollmentCount: course.enrollmentCount
+            enrollmentCount: course.enrollmentCount,
           }));
 
         const difficultCourses = courseStats
-          .filter(course => course.averageGrade > 0)
+          .filter((course) => course.averageGrade > 0)
           .sort((a, b) => a.averageGrade - b.averageGrade)
           .slice(0, 5)
-          .map(course => ({
+          .map((course) => ({
             courseCode: course.courseCode,
-            averageGrade: course.averageGrade
+            averageGrade: course.averageGrade,
           }));
 
-        const averageSubmissionRate = courseStats.length > 0
-          ? courseStats.reduce((sum, course) => sum + course.submissionRate, 0) / courseStats.length
-          : 0;
+        const averageSubmissionRate =
+          courseStats.length > 0
+            ? courseStats.reduce(
+                (sum, course) => sum + course.submissionRate,
+                0,
+              ) / courseStats.length
+            : 0;
 
-        const currentSemesterAverage = courseStats.length > 0
-          ? courseStats.reduce((sum, course) => sum + course.averageGrade, 0) / courseStats.length
-          : 0;
+        const currentSemesterAverage =
+          courseStats.length > 0
+            ? courseStats.reduce(
+                (sum, course) => sum + course.averageGrade,
+                0,
+              ) / courseStats.length
+            : 0;
 
         return {
           popularCourses,
@@ -327,29 +368,29 @@ class AcademicAnalyticsService {
           engagementMetrics: {
             averageSubmissionRate,
             onTimeSubmissionRate: 85, // Placeholder - would calculate from late submissions
-            studentParticipation: 78   // Placeholder - would calculate from activity data
+            studentParticipation: 78, // Placeholder - would calculate from activity data
           },
           performanceTrends: {
             currentSemesterAverage,
             previousSemesterAverage: currentSemesterAverage * 0.95, // Placeholder
-            improvementRate: 5.2 // Placeholder
-          }
+            improvementRate: 5.2, // Placeholder
+          },
         };
       } catch (error) {
-        console.error('[Analytics] Failed to get learning insights:', error);
+        console.error("[Analytics] Failed to get learning insights:", error);
         return {
           popularCourses: [],
           difficultCourses: [],
           engagementMetrics: {
             averageSubmissionRate: 0,
             onTimeSubmissionRate: 0,
-            studentParticipation: 0
+            studentParticipation: 0,
           },
           performanceTrends: {
             currentSemesterAverage: 0,
             previousSemesterAverage: 0,
-            improvementRate: 0
-          }
+            improvementRate: 0,
+          },
         };
       }
     });
@@ -358,16 +399,20 @@ class AcademicAnalyticsService {
   /**
    * Get assignment analytics
    */
-  async getAssignmentAnalytics(courseId?: string): Promise<AssignmentAnalytics[]> {
-    const cacheKey = `assignment-analytics-${courseId || 'all'}`;
-    
+  async getAssignmentAnalytics(
+    courseId?: string,
+  ): Promise<AssignmentAnalytics[]> {
+    const cacheKey = `assignment-analytics-${courseId || "all"}`;
+
     return this.cached(cacheKey, async () => {
       try {
         // This would need implementation in academic repository
-        console.log('[Analytics] Assignment analytics not yet fully implemented');
+        console.log(
+          "[Analytics] Assignment analytics not yet fully implemented",
+        );
         return [];
       } catch (error) {
-        console.error('[Analytics] Failed to get assignment analytics:', error);
+        console.error("[Analytics] Failed to get assignment analytics:", error);
         return [];
       }
     });
@@ -377,11 +422,11 @@ class AcademicAnalyticsService {
    * Get real-time statistics for dashboard
    */
   async getRealTimeStats() {
-    return this.cached('realtime-stats', async () => {
+    return this.cached("realtime-stats", async () => {
       try {
         const [systemStats, currentSemester] = await Promise.all([
           pgAcademicRepository.getSystemStats(),
-          getCurrentSemester()
+          getCurrentSemester(),
         ]);
 
         // Get today's activity (placeholder - would track actual activity)
@@ -389,16 +434,16 @@ class AcademicAnalyticsService {
           newSubmissions: 12,
           gradesPosted: 8,
           newEnrollments: 3,
-          activeUsers: 45
+          activeUsers: 45,
         };
 
         return {
           ...systemStats,
           currentSemester,
-          todaysActivity
+          todaysActivity,
         };
       } catch (error) {
-        console.error('[Analytics] Failed to get real-time stats:', error);
+        console.error("[Analytics] Failed to get real-time stats:", error);
         return null;
       }
     });
@@ -416,14 +461,14 @@ class AcademicAnalyticsService {
    */
   private async cached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
     const cached = this.cache.get(key);
-    
+
     if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
       return cached.data;
     }
 
     const data = await fetcher();
     this.cache.set(key, { data, timestamp: Date.now() });
-    
+
     // Auto-expire cache
     setTimeout(() => {
       this.cache.delete(key);
@@ -439,14 +484,14 @@ export const academicAnalytics = new AcademicAnalyticsService();
 /**
  * Helper functions for safe analytics calls
  */
-export const getSystemOverview = () => 
+export const getSystemOverview = () =>
   safe(() => academicAnalytics.getSystemOverview()).orElse({
     totalStudents: 0,
     totalCourses: 0,
     totalFaculty: 0,
     totalDepartments: 0,
     totalMaterials: 0,
-    activeSemester: "N/A"
+    activeSemester: "N/A",
   });
 
 export const getCourseAnalytics = (departmentId?: string) =>
@@ -456,8 +501,16 @@ export const getLearningInsights = () =>
   safe(() => academicAnalytics.getLearningInsights()).orElse({
     popularCourses: [],
     difficultCourses: [],
-    engagementMetrics: { averageSubmissionRate: 0, onTimeSubmissionRate: 0, studentParticipation: 0 },
-    performanceTrends: { currentSemesterAverage: 0, previousSemesterAverage: 0, improvementRate: 0 }
+    engagementMetrics: {
+      averageSubmissionRate: 0,
+      onTimeSubmissionRate: 0,
+      studentParticipation: 0,
+    },
+    performanceTrends: {
+      currentSemesterAverage: 0,
+      previousSemesterAverage: 0,
+      improvementRate: 0,
+    },
   });
 
 export const getDepartmentAnalytics = () =>

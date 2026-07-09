@@ -1,3 +1,5 @@
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -5,8 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -15,16 +15,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { BookOpen, Building2, FileText } from "lucide-react";
-import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
-  ProgramSchema,
   DepartmentSchema,
   ProgramCurriculumSchema,
+  ProgramSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, sql, asc } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
+import { BookOpen, Building2, FileText } from "lucide-react";
+import Link from "next/link";
 
 export default async function ProgramsListPage() {
   const adminAccess = await requireAdmin();
@@ -46,11 +46,11 @@ export default async function ProgramsListPage() {
     .from(ProgramSchema)
     .innerJoin(
       DepartmentSchema,
-      eq(ProgramSchema.departmentId, DepartmentSchema.id)
+      eq(ProgramSchema.departmentId, DepartmentSchema.id),
     )
     .leftJoin(
       ProgramCurriculumSchema,
-      eq(ProgramSchema.id, ProgramCurriculumSchema.programId)
+      eq(ProgramSchema.id, ProgramCurriculumSchema.programId),
     )
     .groupBy(ProgramSchema.id, DepartmentSchema.name)
     .orderBy(asc(ProgramSchema.name));
@@ -59,7 +59,7 @@ export default async function ProgramsListPage() {
   const activePrograms = programs.filter((p) => p.isActive).length;
   const totalMappings = programs.reduce(
     (sum, p) => sum + Number(p.curriculumCount),
-    0
+    0,
   );
 
   return (

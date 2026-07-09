@@ -1,11 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -13,26 +19,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  BookOpen, 
-  Calendar, 
-  ChevronLeft, 
-  ChevronRight, 
-  Save, 
-  Loader2, 
+import {
   AlertCircle,
-  Settings,
-  List,
+  BookOpen,
+  Calendar,
   CheckCircle,
-  Upload,
+  ChevronLeft,
+  ChevronRight,
   File,
-  Video,
   FileText,
-  X
+  List,
+  Loader2,
+  Save,
+  Settings,
+  Upload,
+  Video,
+  X,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface Department {
   id: string;
@@ -62,7 +68,7 @@ interface UploadedFile {
   s3Key?: string;
   s3Url?: string;
   publicUrl?: string;
-  uploadStatus: 'pending' | 'uploading' | 'completed' | 'error';
+  uploadStatus: "pending" | "uploading" | "completed" | "error";
   uploadProgress: number;
   error?: string;
 }
@@ -87,7 +93,7 @@ const initialFormData: CourseFormData = {
   isActive: true,
   totalWeeks: 16,
   startDate: "",
-  endDate: ""
+  endDate: "",
 };
 
 const academicLevels = [
@@ -96,21 +102,37 @@ const academicLevels = [
   { value: "300L", label: "300 Level (Junior)" },
   { value: "400L", label: "400 Level (Senior)" },
   { value: "graduate", label: "Graduate Level" },
-  { value: "doctoral", label: "Doctoral Level" }
+  { value: "doctoral", label: "Doctoral Level" },
 ];
 
 const semesterOptions = [
   { value: "fall", label: "Fall Semester" },
   { value: "spring", label: "Spring Semester" },
   { value: "summer", label: "Summer Semester" },
-  { value: "both", label: "Both Fall & Spring" }
+  { value: "both", label: "Both Fall & Spring" },
 ];
 
 const steps = [
-  { id: 1, title: "Basic Information", description: "Course details and metadata" },
-  { id: 2, title: "Course Planning", description: "Duration and academic structure" },
-  { id: 3, title: "Weekly Structure", description: "Week-by-week course planning" },
-  { id: 4, title: "Review & Create", description: "Review and finalize course" }
+  {
+    id: 1,
+    title: "Basic Information",
+    description: "Course details and metadata",
+  },
+  {
+    id: 2,
+    title: "Course Planning",
+    description: "Duration and academic structure",
+  },
+  {
+    id: 3,
+    title: "Weekly Structure",
+    description: "Week-by-week course planning",
+  },
+  {
+    id: 4,
+    title: "Review & Create",
+    description: "Review and finalize course",
+  },
 ];
 
 interface CourseCreationWizardProps {
@@ -118,7 +140,10 @@ interface CourseCreationWizardProps {
   onCancel: () => void;
 }
 
-export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWizardProps) {
+export function CourseCreationWizard({
+  onComplete,
+  onCancel,
+}: CourseCreationWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<CourseFormData>(initialFormData);
   const [weeklyPlans, setWeeklyPlans] = useState<WeekPlan[]>([]);
@@ -132,24 +157,24 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const response = await fetch('/api/admin/departments');
+        const response = await fetch("/api/admin/departments");
         const data = await response.json();
-        
+
         if (data.success) {
           setDepartments(data.data);
         } else {
           toast({
             title: "Error",
             description: "Failed to load departments",
-            variant: "destructive"
+            variant: "destructive",
           });
         }
       } catch (error) {
-        console.error('Error fetching departments:', error);
+        console.error("Error fetching departments:", error);
         toast({
           title: "Error",
           description: "Failed to load departments",
-          variant: "destructive"
+          variant: "destructive",
         });
       } finally {
         setIsLoadingDepartments(false);
@@ -162,39 +187,46 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
   // Initialize weekly plans when total weeks changes
   useEffect(() => {
     if (formData.totalWeeks && formData.totalWeeks > 0) {
-      const plans: WeekPlan[] = Array.from({ length: formData.totalWeeks }, (_, i) => ({
-        weekNumber: i + 1,
-        title: `Week ${i + 1}`,
-        description: "",
-        learningObjectives: [],
-        topics: [],
-        uploadedFiles: []
-      }));
+      const plans: WeekPlan[] = Array.from(
+        { length: formData.totalWeeks },
+        (_, i) => ({
+          weekNumber: i + 1,
+          title: `Week ${i + 1}`,
+          description: "",
+          learningObjectives: [],
+          topics: [],
+          uploadedFiles: [],
+        }),
+      );
       setWeeklyPlans(plans);
     }
   }, [formData.totalWeeks]);
 
   const handleInputChange = (field: keyof CourseFormData, value: any) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
 
     // Clear error for this field if it exists
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [field]: ""
+        [field]: "",
       }));
     }
   };
 
-  const updateWeekPlan = (weekNumber: number, field: keyof WeekPlan, value: any) => {
-    setWeeklyPlans(prev => prev.map(week => 
-      week.weekNumber === weekNumber 
-        ? { ...week, [field]: value }
-        : week
-    ));
+  const updateWeekPlan = (
+    weekNumber: number,
+    field: keyof WeekPlan,
+    value: any,
+  ) => {
+    setWeeklyPlans((prev) =>
+      prev.map((week) =>
+        week.weekNumber === weekNumber ? { ...week, [field]: value } : week,
+      ),
+    );
   };
 
   // Handle file uploads for a specific week with S3 integration
@@ -203,34 +235,38 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
       toast({
         title: "Error",
         description: "Please complete course basic information first",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
-    const validFiles = Array.from(files).filter(file => {
+    const validFiles = Array.from(files).filter((file) => {
       const allowedTypes = [
-        'application/pdf',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'video/mp4', 'video/quicktime', 'video/x-msvideo',
-        'audio/mpeg', 'audio/wav', 'audio/x-m4a'
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "video/mp4",
+        "video/quicktime",
+        "video/x-msvideo",
+        "audio/mpeg",
+        "audio/wav",
+        "audio/x-m4a",
       ];
-      
+
       if (!allowedTypes.includes(file.type)) {
         toast({
           title: "Invalid file type",
           description: `${file.name} is not supported`,
-          variant: "destructive"
+          variant: "destructive",
         });
         return false;
       }
 
       if (file.size > 100 * 1024 * 1024) {
         toast({
-          title: "File too large", 
+          title: "File too large",
           description: `${file.name} exceeds 100MB limit`,
-          variant: "destructive"
+          variant: "destructive",
         });
         return false;
       }
@@ -240,42 +276,42 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
     if (validFiles.length === 0) return;
 
     // Add files with pending status
-    const newFiles: UploadedFile[] = validFiles.map(file => ({
+    const newFiles: UploadedFile[] = validFiles.map((file) => ({
       id: `${Date.now()}_${file.name}`,
       name: file.name,
       size: file.size,
       type: file.type,
-      uploadStatus: 'pending' as const,
-      uploadProgress: 0
+      uploadStatus: "pending" as const,
+      uploadProgress: 0,
     }));
 
-    const currentWeek = weeklyPlans.find(w => w.weekNumber === weekNumber);
-    updateWeekPlan(weekNumber, 'uploadedFiles', [
+    const currentWeek = weeklyPlans.find((w) => w.weekNumber === weekNumber);
+    updateWeekPlan(weekNumber, "uploadedFiles", [
       ...(currentWeek?.uploadedFiles || []),
-      ...newFiles
+      ...newFiles,
     ]);
 
     // Upload to S3 (simplified for course creation)
     for (const fileData of newFiles) {
-      const file = validFiles.find(f => f.name === fileData.name);
+      const file = validFiles.find((f) => f.name === fileData.name);
       if (!file) continue;
 
       try {
-        updateFileStatus(weekNumber, fileData.id, 'uploading', 0);
+        updateFileStatus(weekNumber, fileData.id, "uploading", 0);
 
         // Simulate S3 upload (in real implementation, this would use s3Service)
         await new Promise((resolve) => {
           let progress = 0;
           const interval = setInterval(() => {
             progress += 10;
-            updateFileStatus(weekNumber, fileData.id, 'uploading', progress);
-            
+            updateFileStatus(weekNumber, fileData.id, "uploading", progress);
+
             if (progress >= 100) {
               clearInterval(interval);
-              updateFileStatus(weekNumber, fileData.id, 'completed', 100, {
+              updateFileStatus(weekNumber, fileData.id, "completed", 100, {
                 s3Key: `temp-course/week-${weekNumber}/${file.name}`,
                 s3Url: `s3://temp-bucket/temp-course/week-${weekNumber}/${file.name}`,
-                publicUrl: `/api/files/temp-${fileData.id}`
+                publicUrl: `/api/files/temp-${fileData.id}`,
               });
               resolve(void 0);
             }
@@ -287,11 +323,18 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
           description: `${file.name} uploaded to week ${weekNumber}`,
         });
       } catch (_error) {
-        updateFileStatus(weekNumber, fileData.id, 'error', 0, {}, 'Upload failed');
+        updateFileStatus(
+          weekNumber,
+          fileData.id,
+          "error",
+          0,
+          {},
+          "Upload failed",
+        );
         toast({
           title: "Upload failed",
           description: `Failed to upload ${file.name}`,
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     }
@@ -299,45 +342,55 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
 
   // Update file upload status
   const updateFileStatus = (
-    weekNumber: number, 
-    fileId: string, 
-    status: UploadedFile['uploadStatus'], 
+    weekNumber: number,
+    fileId: string,
+    status: UploadedFile["uploadStatus"],
     progress: number = 0,
     additionalData: Partial<UploadedFile> = {},
-    error?: string
+    error?: string,
   ) => {
-    const currentWeek = weeklyPlans.find(w => w.weekNumber === weekNumber);
-    updateWeekPlan(weekNumber, 'uploadedFiles', 
-      currentWeek?.uploadedFiles.map(file =>
-        file.id === fileId 
-          ? { ...file, uploadStatus: status, uploadProgress: progress, error, ...additionalData }
-          : file
-      ) || []
+    const currentWeek = weeklyPlans.find((w) => w.weekNumber === weekNumber);
+    updateWeekPlan(
+      weekNumber,
+      "uploadedFiles",
+      currentWeek?.uploadedFiles.map((file) =>
+        file.id === fileId
+          ? {
+              ...file,
+              uploadStatus: status,
+              uploadProgress: progress,
+              error,
+              ...additionalData,
+            }
+          : file,
+      ) || [],
     );
   };
 
   // Remove uploaded file
   const removeUploadedFile = (weekNumber: number, fileId: string) => {
-    const currentWeek = weeklyPlans.find(w => w.weekNumber === weekNumber);
-    updateWeekPlan(weekNumber, 'uploadedFiles',
-      currentWeek?.uploadedFiles.filter(file => file.id !== fileId) || []
+    const currentWeek = weeklyPlans.find((w) => w.weekNumber === weekNumber);
+    updateWeekPlan(
+      weekNumber,
+      "uploadedFiles",
+      currentWeek?.uploadedFiles.filter((file) => file.id !== fileId) || [],
     );
   };
 
   // Get file icon
   const getFileIcon = (fileType: string) => {
-    if (fileType.startsWith('video/')) return Video;
-    if (fileType === 'application/pdf') return FileText;
+    if (fileType.startsWith("video/")) return Video;
+    if (fileType === "application/pdf") return FileText;
     return File;
   };
 
   // Format file size
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const validateCurrentStep = (): boolean => {
@@ -363,13 +416,20 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
         if (!formData.endDate) {
           newErrors.endDate = "End date is required";
         }
-        if (formData.startDate && formData.endDate && formData.startDate >= formData.endDate) {
+        if (
+          formData.startDate &&
+          formData.endDate &&
+          formData.startDate >= formData.endDate
+        ) {
           newErrors.endDate = "End date must be after start date";
         }
         break;
 
       case 3: // Weekly Structure
-        const emptyWeeks = weeklyPlans.filter(week => !week.title.trim() || week.title === `Week ${week.weekNumber}`);
+        const emptyWeeks = weeklyPlans.filter(
+          (week) =>
+            !week.title.trim() || week.title === `Week ${week.weekNumber}`,
+        );
         if (emptyWeeks.length > 0) {
           newErrors.weeklyPlans = `Please provide titles for all ${emptyWeeks.length} weeks`;
         }
@@ -399,9 +459,9 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
 
     try {
       // First create the course
-      const courseResponse = await fetch('/api/admin/courses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const courseResponse = await fetch("/api/admin/courses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
@@ -413,18 +473,18 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
 
       // Then create the weekly structure
       const courseId = courseData.data.id;
-      
+
       for (const week of weeklyPlans) {
-        const weekResponse = await fetch('/api/admin/course-weeks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const weekResponse = await fetch("/api/admin/course-weeks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             courseId,
             weekNumber: week.weekNumber,
             title: week.title,
             description: week.description,
             learningObjectives: JSON.stringify(week.learningObjectives),
-            topics: JSON.stringify(week.topics)
+            topics: JSON.stringify(week.topics),
           }),
         });
 
@@ -440,11 +500,12 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
 
       onComplete();
     } catch (error) {
-      console.error('Error creating course:', error);
+      console.error("Error creating course:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create course",
-        variant: "destructive"
+        description:
+          error instanceof Error ? error.message : "Failed to create course",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -474,9 +535,9 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
             Step {currentStep} of {steps.length}
           </div>
         </div>
-        
+
         <Progress value={progressValue} className="mb-4" />
-        
+
         <div className="flex justify-between text-xs text-muted-foreground">
           {steps.map((step) => (
             <div
@@ -490,8 +551,8 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                   step.id < currentStep
                     ? "bg-green-100 text-green-600"
                     : step.id === currentStep
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted"
                 }`}
               >
                 {step.id < currentStep ? (
@@ -531,7 +592,12 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                     id="courseCode"
                     placeholder="e.g., CS101, MATH201"
                     value={formData.courseCode}
-                    onChange={(e) => handleInputChange('courseCode', e.target.value.toUpperCase())}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "courseCode",
+                        e.target.value.toUpperCase(),
+                      )
+                    }
                   />
                   {errors.courseCode && (
                     <p className="text-sm text-red-500 flex items-center gap-1">
@@ -545,7 +611,9 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                   <Label htmlFor="credits">Credits *</Label>
                   <Select
                     value={formData.credits.toString()}
-                    onValueChange={(value) => handleInputChange('credits', parseInt(value))}
+                    onValueChange={(value) =>
+                      handleInputChange("credits", parseInt(value))
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select credits" />
@@ -553,7 +621,7 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                     <SelectContent>
                       {[1, 2, 3, 4, 5, 6].map((credit) => (
                         <SelectItem key={credit} value={credit.toString()}>
-                          {credit} Credit{credit > 1 ? 's' : ''}
+                          {credit} Credit{credit > 1 ? "s" : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -567,7 +635,7 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                   id="title"
                   placeholder="e.g., Introduction to Computer Science"
                   value={formData.title}
-                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  onChange={(e) => handleInputChange("title", e.target.value)}
                 />
                 {errors.title && (
                   <p className="text-sm text-red-500 flex items-center gap-1">
@@ -584,7 +652,9 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                   placeholder="Brief description of the course content and objectives"
                   rows={3}
                   value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("description", e.target.value)
+                  }
                 />
               </div>
 
@@ -593,7 +663,9 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                   <Label htmlFor="department">Department *</Label>
                   <Select
                     value={formData.departmentId}
-                    onValueChange={(value) => handleInputChange('departmentId', value)}
+                    onValueChange={(value) =>
+                      handleInputChange("departmentId", value)
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select department" />
@@ -618,7 +690,7 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                   <Label htmlFor="level">Academic Level</Label>
                   <Select
                     value={formData.level}
-                    onValueChange={(value) => handleInputChange('level', value)}
+                    onValueChange={(value) => handleInputChange("level", value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select level" />
@@ -638,7 +710,9 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                 <Label htmlFor="semester">Semester Offered</Label>
                 <Select
                   value={formData.semesterOffered}
-                  onValueChange={(value) => handleInputChange('semesterOffered', value)}
+                  onValueChange={(value) =>
+                    handleInputChange("semesterOffered", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select semester" />
@@ -657,7 +731,9 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                 <Checkbox
                   id="isActive"
                   checked={formData.isActive}
-                  onCheckedChange={(checked) => handleInputChange('isActive', checked)}
+                  onCheckedChange={(checked) =>
+                    handleInputChange("isActive", checked)
+                  }
                 />
                 <Label htmlFor="isActive">
                   Course is active and available for enrollment
@@ -673,7 +749,9 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                 <Label htmlFor="totalWeeks">Total Weeks</Label>
                 <Select
                   value={formData.totalWeeks.toString()}
-                  onValueChange={(value) => handleInputChange('totalWeeks', parseInt(value))}
+                  onValueChange={(value) =>
+                    handleInputChange("totalWeeks", parseInt(value))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select total weeks" />
@@ -695,7 +773,9 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                     id="startDate"
                     type="date"
                     value={formData.startDate}
-                    onChange={(e) => handleInputChange('startDate', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("startDate", e.target.value)
+                    }
                   />
                   {errors.startDate && (
                     <p className="text-sm text-red-500 flex items-center gap-1">
@@ -711,7 +791,9 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                     id="endDate"
                     type="date"
                     value={formData.endDate}
-                    onChange={(e) => handleInputChange('endDate', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("endDate", e.target.value)
+                    }
                   />
                   {errors.endDate && (
                     <p className="text-sm text-red-500 flex items-center gap-1">
@@ -723,12 +805,27 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
               </div>
 
               <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Course Structure Overview</h4>
+                <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+                  Course Structure Overview
+                </h4>
                 <ul className="text-sm text-blue-700 dark:text-blue-200 space-y-1">
                   <li>• Duration: {formData.totalWeeks} weeks</li>
                   <li>• Credits: {formData.credits}</li>
-                  <li>• Level: {academicLevels.find(l => l.value === formData.level)?.label}</li>
-                  <li>• Semester: {semesterOptions.find(s => s.value === formData.semesterOffered)?.label}</li>
+                  <li>
+                    • Level:{" "}
+                    {
+                      academicLevels.find((l) => l.value === formData.level)
+                        ?.label
+                    }
+                  </li>
+                  <li>
+                    • Semester:{" "}
+                    {
+                      semesterOptions.find(
+                        (s) => s.value === formData.semesterOffered,
+                      )?.label
+                    }
+                  </li>
                 </ul>
               </div>
             </div>
@@ -755,25 +852,41 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                           Week {week.weekNumber}
                         </span>
                       </div>
-                      
+
                       <div className="space-y-2">
-                        <Label htmlFor={`week-${week.weekNumber}-title`}>Week Title *</Label>
+                        <Label htmlFor={`week-${week.weekNumber}-title`}>
+                          Week Title *
+                        </Label>
                         <Input
                           id={`week-${week.weekNumber}-title`}
                           placeholder={`Week ${week.weekNumber} topic...`}
                           value={week.title}
-                          onChange={(e) => updateWeekPlan(week.weekNumber, 'title', e.target.value)}
+                          onChange={(e) =>
+                            updateWeekPlan(
+                              week.weekNumber,
+                              "title",
+                              e.target.value,
+                            )
+                          }
                         />
                       </div>
-                      
+
                       <div className="space-y-2">
-                        <Label htmlFor={`week-${week.weekNumber}-description`}>Description</Label>
+                        <Label htmlFor={`week-${week.weekNumber}-description`}>
+                          Description
+                        </Label>
                         <Textarea
                           id={`week-${week.weekNumber}-description`}
                           placeholder="Brief description of this week's content..."
                           rows={2}
                           value={week.description}
-                          onChange={(e) => updateWeekPlan(week.weekNumber, 'description', e.target.value)}
+                          onChange={(e) =>
+                            updateWeekPlan(
+                              week.weekNumber,
+                              "description",
+                              e.target.value,
+                            )
+                          }
                         />
                       </div>
 
@@ -781,35 +894,53 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                       <div className="space-y-3 border-t pt-3">
                         <div className="flex items-center gap-2">
                           <Upload className="h-4 w-4" />
-                          <Label className="text-sm font-medium">Course Materials</Label>
+                          <Label className="text-sm font-medium">
+                            Course Materials
+                          </Label>
                         </div>
-                        
+
                         {/* Upload Drop Zone */}
                         <div
                           className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center hover:border-muted-foreground/50 transition-colors cursor-pointer"
                           onDragOver={(e) => {
                             e.preventDefault();
-                            e.currentTarget.classList.add('border-primary', 'bg-primary/5');
+                            e.currentTarget.classList.add(
+                              "border-primary",
+                              "bg-primary/5",
+                            );
                           }}
                           onDragLeave={(e) => {
-                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5');
+                            e.currentTarget.classList.remove(
+                              "border-primary",
+                              "bg-primary/5",
+                            );
                           }}
                           onDrop={(e) => {
                             e.preventDefault();
-                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5');
+                            e.currentTarget.classList.remove(
+                              "border-primary",
+                              "bg-primary/5",
+                            );
                             if (e.dataTransfer.files.length > 0) {
-                              handleWeekFileUpload(week.weekNumber, e.dataTransfer.files);
+                              handleWeekFileUpload(
+                                week.weekNumber,
+                                e.dataTransfer.files,
+                              );
                             }
                           }}
                           onClick={() => {
-                            const input = document.createElement('input');
-                            input.type = 'file';
+                            const input = document.createElement("input");
+                            input.type = "file";
                             input.multiple = true;
-                            input.accept = '.pdf,.docx,.pptx,.mp4,.mov,.avi,.mp3,.wav,.m4a';
+                            input.accept =
+                              ".pdf,.docx,.pptx,.mp4,.mov,.avi,.mp3,.wav,.m4a";
                             input.onchange = (e) => {
                               const target = e.target as HTMLInputElement;
                               if (target.files && target.files.length > 0) {
-                                handleWeekFileUpload(week.weekNumber, target.files);
+                                handleWeekFileUpload(
+                                  week.weekNumber,
+                                  target.files,
+                                );
                               }
                             };
                             input.click();
@@ -820,7 +951,9 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                               <Upload className="h-6 w-6 text-muted-foreground" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium">Drop files here or click to browse</p>
+                              <p className="text-sm font-medium">
+                                Drop files here or click to browse
+                              </p>
                               <p className="text-xs text-muted-foreground">
                                 PDF, DOCX, PPTX, Videos, Audio (max 100MB)
                               </p>
@@ -829,60 +962,77 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                         </div>
 
                         {/* Uploaded Files List */}
-                        {week.uploadedFiles && week.uploadedFiles.length > 0 && (
-                          <div className="space-y-2">
-                            <Label className="text-xs text-muted-foreground">
-                              Uploaded Files ({week.uploadedFiles.length})
-                            </Label>
-                            <div className="space-y-2 max-h-32 overflow-y-auto">
-                              {week.uploadedFiles.map((file) => {
-                                const Icon = getFileIcon(file.type);
-                                return (
-                                  <div key={file.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded text-xs">
-                                    <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-medium truncate">{file.name}</p>
-                                      <p className="text-muted-foreground">{formatFileSize(file.size)}</p>
-                                      {file.uploadStatus === 'uploading' && (
-                                        <div className="w-full bg-muted rounded-full h-1 mt-1">
-                                          <div 
-                                            className="bg-primary h-1 rounded-full transition-all duration-300"
-                                            style={{ width: `${file.uploadProgress}%` }}
-                                          />
-                                        </div>
-                                      )}
-                                      {file.uploadStatus === 'error' && (
-                                        <p className="text-destructive text-xs">{file.error}</p>
-                                      )}
+                        {week.uploadedFiles &&
+                          week.uploadedFiles.length > 0 && (
+                            <div className="space-y-2">
+                              <Label className="text-xs text-muted-foreground">
+                                Uploaded Files ({week.uploadedFiles.length})
+                              </Label>
+                              <div className="space-y-2 max-h-32 overflow-y-auto">
+                                {week.uploadedFiles.map((file) => {
+                                  const Icon = getFileIcon(file.type);
+                                  return (
+                                    <div
+                                      key={file.id}
+                                      className="flex items-center gap-2 p-2 bg-muted/50 rounded text-xs"
+                                    >
+                                      <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium truncate">
+                                          {file.name}
+                                        </p>
+                                        <p className="text-muted-foreground">
+                                          {formatFileSize(file.size)}
+                                        </p>
+                                        {file.uploadStatus === "uploading" && (
+                                          <div className="w-full bg-muted rounded-full h-1 mt-1">
+                                            <div
+                                              className="bg-primary h-1 rounded-full transition-all duration-300"
+                                              style={{
+                                                width: `${file.uploadProgress}%`,
+                                              }}
+                                            />
+                                          </div>
+                                        )}
+                                        {file.uploadStatus === "error" && (
+                                          <p className="text-destructive text-xs">
+                                            {file.error}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        {file.uploadStatus === "pending" && (
+                                          <div className="w-2 h-2 bg-yellow-500 rounded-full" />
+                                        )}
+                                        {file.uploadStatus === "uploading" && (
+                                          <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+                                        )}
+                                        {file.uploadStatus === "completed" && (
+                                          <CheckCircle className="h-3 w-3 text-green-500" />
+                                        )}
+                                        {file.uploadStatus === "error" && (
+                                          <AlertCircle className="h-3 w-3 text-destructive" />
+                                        )}
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-5 w-5"
+                                          onClick={() =>
+                                            removeUploadedFile(
+                                              week.weekNumber,
+                                              file.id,
+                                            )
+                                          }
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      </div>
                                     </div>
-                                    <div className="flex items-center gap-1">
-                                      {file.uploadStatus === 'pending' && (
-                                        <div className="w-2 h-2 bg-yellow-500 rounded-full" />
-                                      )}
-                                      {file.uploadStatus === 'uploading' && (
-                                        <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
-                                      )}
-                                      {file.uploadStatus === 'completed' && (
-                                        <CheckCircle className="h-3 w-3 text-green-500" />
-                                      )}
-                                      {file.uploadStatus === 'error' && (
-                                        <AlertCircle className="h-3 w-3 text-destructive" />
-                                      )}
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-5 w-5"
-                                        onClick={() => removeUploadedFile(week.weekNumber, file.id)}
-                                      >
-                                        <X className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                );
-                              })}
+                                  );
+                                })}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
                       </div>
                     </div>
                   </Card>
@@ -911,20 +1061,30 @@ export function CourseCreationWizard({ onComplete, onCancel }: CourseCreationWiz
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Duration:</span>
-                    <span className="font-medium">{formData.totalWeeks} weeks</span>
+                    <span className="font-medium">
+                      {formData.totalWeeks} weeks
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Department:</span>
                     <span className="font-medium">
-                      {departments.find(d => d.id === formData.departmentId)?.name}
+                      {
+                        departments.find((d) => d.id === formData.departmentId)
+                          ?.name
+                      }
                     </span>
                   </div>
                 </div>
 
-                <h4 className="font-medium mt-6">Weekly Structure ({weeklyPlans.length} weeks)</h4>
+                <h4 className="font-medium mt-6">
+                  Weekly Structure ({weeklyPlans.length} weeks)
+                </h4>
                 <div className="max-h-64 overflow-y-auto space-y-2">
                   {weeklyPlans.map((week) => (
-                    <div key={week.weekNumber} className="flex justify-between items-center p-2 bg-muted rounded">
+                    <div
+                      key={week.weekNumber}
+                      className="flex justify-between items-center p-2 bg-muted rounded"
+                    >
                       <span className="text-sm">Week {week.weekNumber}</span>
                       <span className="text-sm font-medium">{week.title}</span>
                     </div>

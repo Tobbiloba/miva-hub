@@ -1,28 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  User,
-  Settings,
-  LogOut,
-  Bell,
-  Search,
-  GraduationCap,
-  Menu,
-  Home,
-} from "lucide-react";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import {
+  Bell,
+  GraduationCap,
+  Home,
+  LogOut,
+  Menu,
+  Search,
+  Settings,
+  User,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
 
 interface FacultyHeaderProps {
   facultyInfo: {
@@ -40,14 +40,17 @@ interface FacultyHeaderProps {
   } | null;
 }
 
-export function FacultyHeader({ facultyInfo, facultyRecord }: FacultyHeaderProps) {
+export function FacultyHeader({
+  facultyInfo,
+  facultyRecord,
+}: FacultyHeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
   const formatPosition = (position: string) => {
     return position
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -72,7 +75,7 @@ export function FacultyHeader({ facultyInfo, facultyRecord }: FacultyHeaderProps
             />
           </Link>
           <Badge variant="secondary" className="text-xs">
-            {facultyRecord ? formatPosition(facultyRecord.position) : 'Faculty'}
+            {facultyRecord ? formatPosition(facultyRecord.position) : "Faculty"}
           </Badge>
         </div>
 
@@ -95,14 +98,10 @@ export function FacultyHeader({ facultyInfo, facultyRecord }: FacultyHeaderProps
           {/* Quick Actions */}
           <div className="hidden md:flex items-center space-x-2">
             <Button variant="outline" size="sm" asChild>
-              <Link href="/faculty/assignments/create">
-                + Assignment
-              </Link>
+              <Link href="/faculty/assignments/create">+ Assignment</Link>
             </Button>
             <Button variant="outline" size="sm" asChild>
-              <Link href="/faculty/announcements/create">
-                + Announcement
-              </Link>
+              <Link href="/faculty/announcements/create">+ Announcement</Link>
             </Button>
           </div>
 
@@ -124,15 +123,21 @@ export function FacultyHeader({ facultyInfo, facultyRecord }: FacultyHeaderProps
                 <div className="space-y-2">
                   <div className="p-2 text-sm border rounded">
                     <p className="font-medium">New assignment submission</p>
-                    <p className="text-muted-foreground">John Doe submitted CS101 Assignment 1</p>
+                    <p className="text-muted-foreground">
+                      John Doe submitted CS101 Assignment 1
+                    </p>
                   </div>
                   <div className="p-2 text-sm border rounded">
                     <p className="font-medium">Grading reminder</p>
-                    <p className="text-muted-foreground">5 assignments pending grade</p>
+                    <p className="text-muted-foreground">
+                      5 assignments pending grade
+                    </p>
                   </div>
                   <div className="p-2 text-sm border rounded">
                     <p className="font-medium">Course enrollment</p>
-                    <p className="text-muted-foreground">3 new students enrolled in MATH201</p>
+                    <p className="text-muted-foreground">
+                      3 new students enrolled in MATH201
+                    </p>
                   </div>
                 </div>
                 <Button variant="outline" className="w-full mt-2" size="sm">
@@ -163,31 +168,38 @@ export function FacultyHeader({ facultyInfo, facultyRecord }: FacultyHeaderProps
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                Help & Support
-              </DropdownMenuItem>
+              <DropdownMenuItem>Help & Support</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
           {/* User Profile Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-2 px-3">
+              <Button
+                variant="ghost"
+                className="flex items-center space-x-2 px-3"
+              >
                 <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
                   <User className="h-4 w-4" />
                 </div>
                 <div className="hidden md:block text-left">
                   <p className="text-sm font-medium">{facultyInfo.name}</p>
-                  <p className="text-xs text-muted-foreground">{facultyInfo.email}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {facultyInfo.email}
+                  </p>
                 </div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <div className="p-2">
                 <p className="text-sm font-medium">{facultyInfo.name}</p>
-                <p className="text-xs text-muted-foreground">{facultyInfo.email}</p>
+                <p className="text-xs text-muted-foreground">
+                  {facultyInfo.email}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {facultyRecord ? formatPosition(facultyRecord.position) : 'Faculty Member'}
+                  {facultyRecord
+                    ? formatPosition(facultyRecord.position)
+                    : "Faculty Member"}
                 </p>
               </div>
               <DropdownMenuSeparator />

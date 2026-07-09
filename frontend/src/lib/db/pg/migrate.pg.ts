@@ -1,5 +1,5 @@
-import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { join } from "path";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { pgDb } from "lib/db/pg/db.pg";
 
 export const runMigrate = async () => {

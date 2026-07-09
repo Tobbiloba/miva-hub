@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { BookOpen, GraduationCap, Loader2, Send } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { cn } from "lib/utils";
 import { Badge } from "ui/badge";
 import { Button } from "ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "ui/card";
@@ -15,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "ui/select";
-import { cn } from "lib/utils";
 
 interface TutorCourse {
   id: string;
@@ -216,8 +216,8 @@ export function CourseTutor() {
                       variant="outline"
                       className="text-xs font-normal gap-1"
                     >
-                      <BookOpen className="size-3" />
-                      S{source.index}: {source.title}
+                      <BookOpen className="size-3" />S{source.index}:{" "}
+                      {source.title}
                       {source.weekNumber != null &&
                         ` (wk ${source.weekNumber})`}
                     </Badge>
@@ -244,9 +244,7 @@ export function CourseTutor() {
               send();
             }
           }}
-          placeholder={
-            courseId ? "Ask your tutor…" : "Pick a course first…"
-          }
+          placeholder={courseId ? "Ask your tutor…" : "Pick a course first…"}
           aria-label="Tutor question"
           disabled={loading || !courseId}
         />

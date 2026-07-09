@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/server";
-import { paystackService } from "@/lib/payment/paystack-service";
-import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
 import { pgDb as db } from "@/lib/db/pg/db.pg";
+import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
 import { UserSchema } from "@/lib/db/pg/schema.pg";
+import { paystackService } from "@/lib/payment/paystack-service";
 import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
     if (!reference) {
       return NextResponse.redirect(
-        new URL("/pricing?error=invalid_reference", req.url)
+        new URL("/pricing?error=invalid_reference", req.url),
       );
     }
 
@@ -30,32 +30,34 @@ export async function GET(req: NextRequest) {
       });
 
       return NextResponse.redirect(
-        new URL("/pricing?error=payment_failed", req.url)
+        new URL("/pricing?error=payment_failed", req.url),
       );
     }
 
-    const transaction = await subscriptionRepository.getTransactionByReference(reference);
+    const transaction =
+      await subscriptionRepository.getTransactionByReference(reference);
 
     if (!transaction) {
       return NextResponse.redirect(
-        new URL("/pricing?error=transaction_not_found", req.url)
+        new URL("/pricing?error=transaction_not_found", req.url),
       );
     }
 
     // The browser completing checkout must be the user who initiated it
     if (transaction.userId !== session.user.id) {
       return NextResponse.redirect(
-        new URL("/pricing?error=transaction_not_found", req.url)
+        new URL("/pricing?error=transaction_not_found", req.url),
       );
     }
 
-    const existingSubscription = await subscriptionRepository.getUserActiveSubscription(
-      transaction.userId
-    );
+    const existingSubscription =
+      await subscriptionRepository.getUserActiveSubscription(
+        transaction.userId,
+      );
 
     if (existingSubscription) {
       return NextResponse.redirect(
-        new URL("/pricing?error=already_subscribed", req.url)
+        new URL("/pricing?error=already_subscribed", req.url),
       );
     }
 
@@ -64,7 +66,7 @@ export async function GET(req: NextRequest) {
 
     if (!planId) {
       return NextResponse.redirect(
-        new URL("/pricing?error=invalid_plan", req.url)
+        new URL("/pricing?error=invalid_plan", req.url),
       );
     }
 
@@ -72,7 +74,7 @@ export async function GET(req: NextRequest) {
 
     if (!plan) {
       return NextResponse.redirect(
-        new URL("/pricing?error=plan_not_found", req.url)
+        new URL("/pricing?error=plan_not_found", req.url),
       );
     }
 
@@ -83,12 +85,14 @@ export async function GET(req: NextRequest) {
     const subscription = await subscriptionRepository.createSubscription({
       userId: transaction.userId,
       planId: plan.id,
-      paystackSubscriptionCode: verification.data.subscription?.subscription_code || "",
+      paystackSubscriptionCode:
+        verification.data.subscription?.subscription_code || "",
       paystackCustomerCode: verification.data.customer.customer_code,
-      paystackAuthorizationCode: verification.data.authorization.authorization_code,
+      paystackAuthorizationCode:
+        verification.data.authorization.authorization_code,
       currentPeriodStart: currentDate,
       currentPeriodEnd: nextMonth,
-      nextPaymentDate: verification.data.subscription?.next_payment_date 
+      nextPaymentDate: verification.data.subscription?.next_payment_date
         ? new Date(verification.data.subscription.next_payment_date)
         : nextMonth,
     });
@@ -118,12 +122,12 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.redirect(
-      new URL(`/pricing?success=true&plan=${plan.name}`, req.url)
+      new URL(`/pricing?success=true&plan=${plan.name}`, req.url),
     );
   } catch (error) {
     console.error("Error processing callback:", error);
     return NextResponse.redirect(
-      new URL("/pricing?error=processing_failed", req.url)
+      new URL("/pricing?error=processing_failed", req.url),
     );
   }
 }

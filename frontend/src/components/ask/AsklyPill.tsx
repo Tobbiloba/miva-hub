@@ -40,7 +40,9 @@ export function AsklyPill({
         fontSize,
         fontWeight: 500,
         letterSpacing: "0.01em",
-        color: active ? "var(--askly-amber-100)" : "var(--askly-text-secondary)",
+        color: active
+          ? "var(--askly-amber-100)"
+          : "var(--askly-text-secondary)",
         cursor: "pointer",
         transition: "all 0.15s ease",
         outline: "none",
@@ -51,7 +53,9 @@ export function AsklyPill({
         <Icon
           size={iconSize}
           style={{
-            color: active ? "var(--askly-amber-400)" : "var(--askly-text-tertiary)",
+            color: active
+              ? "var(--askly-amber-400)"
+              : "var(--askly-text-tertiary)",
             flexShrink: 0,
           }}
         />

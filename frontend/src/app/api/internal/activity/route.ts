@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { recordActivity } from "@/lib/progress/record-activity";
+import { NextRequest, NextResponse } from "next/server";
 
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET || "miva-internal-2026";
 
@@ -18,7 +18,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { studentId, activityType, courseId, weekNumber, entityId, entityMetadata } = body;
+    const {
+      studentId,
+      activityType,
+      courseId,
+      weekNumber,
+      entityId,
+      entityMetadata,
+    } = body;
 
     if (!studentId || !activityType) {
       return NextResponse.json(
@@ -37,7 +44,10 @@ export async function POST(request: NextRequest) {
     ];
     if (!validTypes.includes(activityType)) {
       return NextResponse.json(
-        { success: false, message: `Invalid activityType. Must be one of: ${validTypes.join(", ")}` },
+        {
+          success: false,
+          message: `Invalid activityType. Must be one of: ${validTypes.join(", ")}`,
+        },
         { status: 400 },
       );
     }

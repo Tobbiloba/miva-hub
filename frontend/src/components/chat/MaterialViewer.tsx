@@ -1,10 +1,10 @@
 "use client";
 
-import { PDFViewer } from '../media/PDFViewer';
-import { VideoPlayer } from '../media/VideoPlayer';
-import { Button } from 'ui/button';
-import { X, Download, MessageCircle, BookOpen, Target } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader } from 'ui/dialog';
+import { BookOpen, Download, MessageCircle, Target, X } from "lucide-react";
+import { Button } from "ui/button";
+import { Dialog, DialogContent, DialogHeader } from "ui/dialog";
+import { PDFViewer } from "../media/PDFViewer";
+import { VideoPlayer } from "../media/VideoPlayer";
 
 interface MaterialViewerProps {
   material: any;
@@ -15,38 +15,38 @@ interface MaterialViewerProps {
   onAskQuestion?: () => void;
 }
 
-export function MaterialViewer({ 
-  material, 
-  isOpen, 
-  onClose, 
+export function MaterialViewer({
+  material,
+  isOpen,
+  onClose,
   onGenerateStudyGuide,
   onCreateFlashcards,
-  onAskQuestion
+  onAskQuestion,
 }: MaterialViewerProps) {
   if (!material) return null;
 
-  const getFileType = () => material.file_url.split('.').pop()?.toLowerCase();
-  
+  const getFileType = () => material.file_url.split(".").pop()?.toLowerCase();
+
   const renderContent = () => {
     const fileType = getFileType();
-    
+
     switch (fileType) {
-      case 'pdf':
+      case "pdf":
         return <PDFViewer url={material.file_url} title={material.title} />;
-      case 'mp4':
-      case 'avi':
-      case 'mov':
+      case "mp4":
+      case "avi":
+      case "mov":
         return <VideoPlayer url={material.file_url} title={material.title} />;
-      case 'mp3':
-      case 'wav':
-      case 'm4a':
+      case "mp3":
+      case "wav":
+      case "m4a":
         return (
           <div className="h-full flex items-center justify-center bg-card">
             <div className="text-center max-w-md">
               <div className="text-6xl mb-4">🎵</div>
               <h3 className="text-xl font-semibold mb-4">{material.title}</h3>
-              <audio 
-                controls 
+              <audio
+                controls
                 className="w-full mb-4"
                 src={`/api/files/stream?url=${encodeURIComponent(material.file_url)}`}
               >
@@ -58,7 +58,7 @@ export function MaterialViewer({
             </div>
           </div>
         );
-      case 'docx':
+      case "docx":
         return (
           <div className="h-full flex items-center justify-center bg-card">
             <div className="text-center max-w-md">
@@ -68,7 +68,12 @@ export function MaterialViewer({
                 Word documents need to be downloaded to view their full content.
               </p>
               <Button
-                onClick={() => window.open(`/api/files/stream?url=${encodeURIComponent(material.file_url)}`, '_blank')}
+                onClick={() =>
+                  window.open(
+                    `/api/files/stream?url=${encodeURIComponent(material.file_url)}`,
+                    "_blank",
+                  )
+                }
                 className="mb-2"
               >
                 <Download className="w-4 h-4 mr-2" />
@@ -77,17 +82,23 @@ export function MaterialViewer({
             </div>
           </div>
         );
-      case 'pptx':
+      case "pptx":
         return (
           <div className="h-full flex items-center justify-center bg-card">
             <div className="text-center max-w-md">
               <div className="text-6xl mb-4">📊</div>
               <h3 className="text-xl font-semibold mb-4">{material.title}</h3>
               <p className="text-gray-600 mb-4">
-                PowerPoint presentations need to be downloaded to view their full content.
+                PowerPoint presentations need to be downloaded to view their
+                full content.
               </p>
               <Button
-                onClick={() => window.open(`/api/files/stream?url=${encodeURIComponent(material.file_url)}`, '_blank')}
+                onClick={() =>
+                  window.open(
+                    `/api/files/stream?url=${encodeURIComponent(material.file_url)}`,
+                    "_blank",
+                  )
+                }
                 className="mb-2"
               >
                 <Download className="w-4 h-4 mr-2" />
@@ -103,11 +114,17 @@ export function MaterialViewer({
               <div className="text-6xl mb-4">📁</div>
               <h3 className="text-xl font-semibold mb-4">{material.title}</h3>
               <p className="text-gray-600 mb-4">
-                Preview not available for this file type ({fileType?.toUpperCase()}).
+                Preview not available for this file type (
+                {fileType?.toUpperCase()}).
               </p>
               <div className="space-y-2">
                 <Button
-                  onClick={() => window.open(`/api/files/stream?url=${encodeURIComponent(material.file_url)}`, '_blank')}
+                  onClick={() =>
+                    window.open(
+                      `/api/files/stream?url=${encodeURIComponent(material.file_url)}`,
+                      "_blank",
+                    )
+                  }
                   className="w-full"
                 >
                   <Download className="w-4 h-4 mr-2" />
@@ -138,28 +155,23 @@ export function MaterialViewer({
               <span>{material.material_type}</span>
             </div>
           </div>
-          
-          <Button 
-            onClick={onClose}
-            variant="ghost"
-            size="sm"
-            className="ml-2"
-          >
+
+          <Button onClick={onClose} variant="ghost" size="sm" className="ml-2">
             <X className="w-4 h-4" />
           </Button>
         </DialogHeader>
-        
+
         {/* Content */}
-        <div className="flex-1 overflow-hidden">
-          {renderContent()}
-        </div>
-        
+        <div className="flex-1 overflow-hidden">{renderContent()}</div>
+
         {/* Footer with AI Summary and Actions */}
         <div className="border-t bg-card p-4 rounded-b-lg max-h-48 overflow-y-auto">
           {/* AI Summary */}
           {material.ai_summary && (
             <div className="mb-4">
-              <h4 className="font-medium text-sm text-gray-700 mb-2">📋 AI Summary:</h4>
+              <h4 className="font-medium text-sm text-gray-700 mb-2">
+                📋 AI Summary:
+              </h4>
               <p className="text-sm text-gray-600 leading-relaxed bg-card p-3 rounded border">
                 {material.ai_summary}
               </p>
@@ -169,16 +181,20 @@ export function MaterialViewer({
           {/* Key Concepts */}
           {material.key_concepts && material.key_concepts.length > 0 && (
             <div className="mb-4">
-              <h4 className="font-medium text-sm text-gray-700 mb-2">🔑 Key Concepts:</h4>
+              <h4 className="font-medium text-sm text-gray-700 mb-2">
+                🔑 Key Concepts:
+              </h4>
               <div className="flex flex-wrap gap-1">
-                {material.key_concepts.slice(0, 12).map((concept: string, index: number) => (
-                  <span 
-                    key={index}
-                    className="border text-muted-foreground px-2 py-1 rounded-full text-xs"
-                  >
-                    {concept}
-                  </span>
-                ))}
+                {material.key_concepts
+                  .slice(0, 12)
+                  .map((concept: string, index: number) => (
+                    <span
+                      key={index}
+                      className="border text-muted-foreground px-2 py-1 rounded-full text-xs"
+                    >
+                      {concept}
+                    </span>
+                  ))}
                 {material.key_concepts.length > 12 && (
                   <span className="text-xs text-gray-500 px-2 py-1">
                     +{material.key_concepts.length - 12} more
@@ -191,7 +207,12 @@ export function MaterialViewer({
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2">
             <Button
-              onClick={() => window.open(`/api/files/stream?url=${encodeURIComponent(material.file_url)}`, '_blank')}
+              onClick={() =>
+                window.open(
+                  `/api/files/stream?url=${encodeURIComponent(material.file_url)}`,
+                  "_blank",
+                )
+              }
               size="sm"
               variant="outline"
               className="hover:bg-secondary"
@@ -199,7 +220,7 @@ export function MaterialViewer({
               <Download className="w-4 h-4 mr-1" />
               Download
             </Button>
-            
+
             {onGenerateStudyGuide && (
               <Button
                 onClick={onGenerateStudyGuide}
@@ -211,7 +232,7 @@ export function MaterialViewer({
                 Study Guide
               </Button>
             )}
-            
+
             {onCreateFlashcards && (
               <Button
                 onClick={onCreateFlashcards}
@@ -223,7 +244,7 @@ export function MaterialViewer({
                 Flashcards
               </Button>
             )}
-            
+
             {onAskQuestion && (
               <Button
                 onClick={onAskQuestion}

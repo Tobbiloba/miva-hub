@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -13,9 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Megaphone, Loader2, AlertCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { AlertCircle, ArrowLeft, Loader2, Megaphone } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const PRIORITIES = [
@@ -28,7 +28,9 @@ const PRIORITIES = [
 export default function CreateAnnouncementPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [courses, setCourses] = useState<{ id: string; courseCode: string; title: string }[]>([]);
+  const [courses, setCourses] = useState<
+    { id: string; courseCode: string; title: string }[]
+  >([]);
   const [courseId, setCourseId] = useState("");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -85,7 +87,11 @@ export default function CreateAnnouncementPage() {
       toast.success("Announcement created");
       router.push("/faculty/announcements");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to create announcement");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to create announcement",
+      );
     } finally {
       setLoading(false);
     }
@@ -116,8 +122,16 @@ export default function CreateAnnouncementPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Course *</Label>
-            <Select value={courseId} onValueChange={(v) => { setCourseId(v); if (errors.courseId) setErrors((p) => ({ ...p, courseId: "" })); }}>
-              <SelectTrigger className={errors.courseId ? "border-red-500" : ""}>
+            <Select
+              value={courseId}
+              onValueChange={(v) => {
+                setCourseId(v);
+                if (errors.courseId) setErrors((p) => ({ ...p, courseId: "" }));
+              }}
+            >
+              <SelectTrigger
+                className={errors.courseId ? "border-red-500" : ""}
+              >
                 <SelectValue placeholder="Select a course" />
               </SelectTrigger>
               <SelectContent>
@@ -128,7 +142,12 @@ export default function CreateAnnouncementPage() {
                 ))}
               </SelectContent>
             </Select>
-            {errors.courseId && <p className="text-sm text-red-500 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{errors.courseId}</p>}
+            {errors.courseId && (
+              <p className="text-sm text-red-500 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                {errors.courseId}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -136,11 +155,19 @@ export default function CreateAnnouncementPage() {
             <Input
               id="title"
               value={title}
-              onChange={(e) => { setTitle(e.target.value); if (errors.title) setErrors((p) => ({ ...p, title: "" })); }}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                if (errors.title) setErrors((p) => ({ ...p, title: "" }));
+              }}
               placeholder="Announcement title"
               className={errors.title ? "border-red-500" : ""}
             />
-            {errors.title && <p className="text-sm text-red-500 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{errors.title}</p>}
+            {errors.title && (
+              <p className="text-sm text-red-500 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                {errors.title}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -148,12 +175,20 @@ export default function CreateAnnouncementPage() {
             <Textarea
               id="content"
               value={content}
-              onChange={(e) => { setContent(e.target.value); if (errors.content) setErrors((p) => ({ ...p, content: "" })); }}
+              onChange={(e) => {
+                setContent(e.target.value);
+                if (errors.content) setErrors((p) => ({ ...p, content: "" }));
+              }}
               placeholder="Write your announcement..."
               rows={6}
               className={errors.content ? "border-red-500" : ""}
             />
-            {errors.content && <p className="text-sm text-red-500 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{errors.content}</p>}
+            {errors.content && (
+              <p className="text-sm text-red-500 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                {errors.content}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

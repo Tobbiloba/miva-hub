@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server";
+import { s3Service } from "@/lib/aws/s3-service";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
-  UserSchema,
-  IngestionJobSchema,
   CourseMaterialSchema,
+  IngestionJobSchema,
+  UserSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq } from "drizzle-orm";
-import { s3Service } from "@/lib/aws/s3-service";
-import { headers } from "next/headers";
 import { extractTranscriptForMaterial } from "@/lib/extraction/transcript-extractor";
+import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
 
 /**
  * Process queued ingestion jobs.
@@ -23,7 +23,7 @@ export async function POST(_request: NextRequest) {
     if (!session?.user) {
       return NextResponse.json(
         { error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -36,7 +36,7 @@ export async function POST(_request: NextRequest) {
     if (!userRow?.isVolunteer) {
       return NextResponse.json(
         { error: "Volunteer access required" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -83,19 +83,20 @@ export async function POST(_request: NextRequest) {
 
           const pdfRes = await fetch(pdfUrl);
           if (!pdfRes.ok) {
-            throw new Error(`PDF download failed: ${pdfRes.status} ${pdfRes.statusText}`);
+            throw new Error(
+              `PDF download failed: ${pdfRes.status} ${pdfRes.statusText}`,
+            );
           }
 
           const pdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
-          const pdfFilename =
-            payload.pdf_filename || `${slug}.pdf`;
+          const pdfFilename = payload.pdf_filename || `${slug}.pdf`;
           const s3Key = `materials/${sessionDir}/${job.courseId}/${weekStr}/${pdfFilename}`;
 
           // Upload to S3
           const s3Result = await s3Service.uploadFile(
             new File([pdfBuffer], pdfFilename, { type: "application/pdf" }),
             s3Key,
-            { userId: job.volunteerId, userRole: "student" }
+            { userId: job.volunteerId, userRole: "student" },
           );
 
           if (!s3Result.success) {
@@ -139,11 +140,13 @@ export async function POST(_request: NextRequest) {
           const pdfExtraction = await extractTranscriptForMaterial(
             material.id,
             "application/pdf",
-            { pdfBuffer }
+            { pdfBuffer },
           );
           console.log(
             `[ingest/process-jobs] PDF transcript extraction: ${pdfExtraction.status}` +
-            (pdfExtraction.wordCount ? ` (${pdfExtraction.wordCount} words)` : "")
+              (pdfExtraction.wordCount
+                ? ` (${pdfExtraction.wordCount} words)`
+                : ""),
           );
 
           results.push({ job_id: job.id, status: "completed" });
@@ -157,7 +160,7 @@ export async function POST(_request: NextRequest) {
             : `https://player.vimeo.com/video/${vimeoId}`;
 
           console.log(
-            `[ingest/process-jobs] yt-dlp STUB — would download: yt-dlp "${vimeoUrl}" -o /tmp/${job.id}.mp4`
+            `[ingest/process-jobs] yt-dlp STUB — would download: yt-dlp "${vimeoUrl}" -o /tmp/${job.id}.mp4`,
           );
 
           const s3Key = `materials/${sessionDir}/${job.courseId}/${weekStr}/${slug}.mp4`;
@@ -202,11 +205,13 @@ export async function POST(_request: NextRequest) {
             const vttExtraction = await extractTranscriptForMaterial(
               material.id,
               "video/mp4",
-              { vimeoVideoId: vimeoId, vimeoHash: vimeoHash || undefined }
+              { vimeoVideoId: vimeoId, vimeoHash: vimeoHash || undefined },
             );
             console.log(
               `[ingest/process-jobs] Vimeo VTT extraction: ${vttExtraction.status}` +
-              (vttExtraction.wordCount ? ` (${vttExtraction.wordCount} words)` : "")
+                (vttExtraction.wordCount
+                  ? ` (${vttExtraction.wordCount} words)`
+                  : ""),
             );
           }
 
@@ -244,7 +249,7 @@ export async function POST(_request: NextRequest) {
     console.error("[ingest/process-jobs] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

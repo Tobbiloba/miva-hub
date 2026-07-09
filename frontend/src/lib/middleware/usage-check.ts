@@ -1,6 +1,6 @@
-import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth/server";
 import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
+import { NextRequest } from "next/server";
 
 export interface UsageCheckResult {
   allowed: boolean;
@@ -19,7 +19,7 @@ export interface UsageCheckResult {
 export async function checkUsageLimit(
   req: NextRequest,
   usageType: string,
-  periodType: "daily" | "weekly" | "monthly" = "daily"
+  periodType: "daily" | "weekly" | "monthly" = "daily",
 ): Promise<UsageCheckResult> {
   try {
     const session = await auth.api.getSession({
@@ -37,12 +37,12 @@ export async function checkUsageLimit(
     const usageStatus = await subscriptionRepository.checkUsageLimit(
       session.user.id,
       usageType,
-      periodType
+      periodType,
     );
 
     if (!usageStatus.allowed) {
       const plan = await subscriptionRepository.getUserPlan(session.user.id);
-      
+
       return {
         allowed: false,
         error: "Usage limit exceeded",
@@ -76,14 +76,14 @@ export async function incrementUsageCount(
   userId: string,
   usageType: string,
   periodType: "daily" | "weekly" | "monthly" = "daily",
-  increment = 1
+  increment = 1,
 ): Promise<boolean> {
   try {
     const success = await subscriptionRepository.incrementUsage(
       userId,
       usageType,
       periodType,
-      increment
+      increment,
     );
     return success || false;
   } catch (error) {
@@ -95,24 +95,25 @@ export async function incrementUsageCount(
 export async function getUserUsageInfo(userId: string) {
   try {
     const plan = await subscriptionRepository.getUserPlan(userId);
-    const hasActiveSubscription = await subscriptionRepository.hasActiveSubscription(userId);
-    
+    const hasActiveSubscription =
+      await subscriptionRepository.hasActiveSubscription(userId);
+
     const aiMessages = await subscriptionRepository.checkUsageLimit(
       userId,
       "ai_messages_per_day",
-      "daily"
+      "daily",
     );
-    
+
     const quizzes = await subscriptionRepository.checkUsageLimit(
       userId,
       "quizzes_per_week",
-      "weekly"
+      "weekly",
     );
-    
+
     const exams = await subscriptionRepository.checkUsageLimit(
       userId,
       "exams_per_month",
-      "monthly"
+      "monthly",
     );
 
     return {

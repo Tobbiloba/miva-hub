@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { requireFaculty } from "@/lib/auth/faculty";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
@@ -8,12 +8,19 @@ export async function GET() {
     if (sessionOrError instanceof NextResponse) return sessionOrError;
     const session = sessionOrError;
 
-    const facultyRecord = await pgAcademicRepository.getFacultyByUserId(session.user.id);
+    const facultyRecord = await pgAcademicRepository.getFacultyByUserId(
+      session.user.id,
+    );
     if (!facultyRecord) {
-      return NextResponse.json({ error: "Faculty record not found" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Faculty record not found" },
+        { status: 403 },
+      );
     }
 
-    const facultyCourses = await pgAcademicRepository.getFacultyCourses(facultyRecord.id);
+    const facultyCourses = await pgAcademicRepository.getFacultyCourses(
+      facultyRecord.id,
+    );
 
     const courses = facultyCourses.map(({ course, courseInstructor }) => ({
       id: course.id,
@@ -27,8 +34,11 @@ export async function GET() {
     return NextResponse.json({ success: true, data: courses });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch courses", message: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      {
+        error: "Failed to fetch courses",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }

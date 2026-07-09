@@ -1,18 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { getToolName, isToolUIPart, UIMessage } from 'ai';
-import { 
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerClose
-} from 'ui/drawer';
-import { Button } from 'ui/button';
-import { X, ChevronDown, ChevronUp, HammerIcon } from 'lucide-react';
-import { extractMCPToolId } from 'lib/ai/mcp/mcp-tool-id';
-import { cn } from 'lib/utils';
-import { MIVAContentRenderer } from './MIVAContentRenderer';
+import { UIMessage, getToolName, isToolUIPart } from "ai";
+import { extractMCPToolId } from "lib/ai/mcp/mcp-tool-id";
+import { cn } from "lib/utils";
+import { ChevronDown, ChevronUp, HammerIcon, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Button } from "ui/button";
+import { Drawer, DrawerClose, DrawerContent, DrawerHeader } from "ui/drawer";
+import { MIVAContentRenderer } from "./MIVAContentRenderer";
 
 interface ToolCallData {
   id: string;
@@ -31,21 +26,24 @@ interface ChatDrawerProps {
 }
 
 export function ChatDrawer({ messages, open, onOpenChange }: ChatDrawerProps) {
-  const [selectedToolCall, setSelectedToolCall] = useState<ToolCallData | null>(null);
+  const [selectedToolCall, setSelectedToolCall] = useState<ToolCallData | null>(
+    null,
+  );
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
   // Extract MIVA tool calls from messages
   const toolCalls = useMemo(() => {
     const calls: ToolCallData[] = [];
-    
+
     messages.forEach((message) => {
       message.parts.forEach((part) => {
-        if (isToolUIPart(part) && part.state.startsWith('output')) {
+        if (isToolUIPart(part) && part.state.startsWith("output")) {
           const toolName = getToolName(part);
-          const { serverName: mcpServerName, toolName: mcpToolName } = extractMCPToolId(toolName);
-          
+          const { serverName: mcpServerName, toolName: mcpToolName } =
+            extractMCPToolId(toolName);
+
           // Only include MIVA academic tool calls
-          if (mcpServerName === 'miva-academic' && part.output) {
+          if (mcpServerName === "miva-academic" && part.output) {
             calls.push({
               id: part.toolCallId,
               toolName,
@@ -59,7 +57,7 @@ export function ChatDrawer({ messages, open, onOpenChange }: ChatDrawerProps) {
         }
       });
     });
-    
+
     return calls.reverse(); // Most recent first
   }, [messages]);
 
@@ -86,7 +84,9 @@ export function ChatDrawer({ messages, open, onOpenChange }: ChatDrawerProps) {
             <div className="flex items-center space-x-2">
               <HammerIcon className="w-4 h-4 text-muted-foreground" />
               <span className="font-medium text-sm">Tool Results</span>
-              <span className="text-xs text-muted-foreground">({toolCalls.length})</span>
+              <span className="text-xs text-muted-foreground">
+                ({toolCalls.length})
+              </span>
             </div>
             <DrawerClose asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -103,9 +103,15 @@ export function ChatDrawer({ messages, open, onOpenChange }: ChatDrawerProps) {
               <div
                 className={cn(
                   "min-w-0 w-full p-4 rounded-lg bg-card border text-xs transition-colors cursor-pointer",
-                  expandedItem === toolCall.id ? "bg-secondary" : "hover:bg-secondary"
+                  expandedItem === toolCall.id
+                    ? "bg-secondary"
+                    : "hover:bg-secondary",
                 )}
-                onClick={() => setExpandedItem(expandedItem === toolCall.id ? null : toolCall.id)}
+                onClick={() =>
+                  setExpandedItem(
+                    expandedItem === toolCall.id ? null : toolCall.id,
+                  )
+                }
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">

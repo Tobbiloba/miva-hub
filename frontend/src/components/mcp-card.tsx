@@ -2,39 +2,39 @@
 import {
   ChevronRight,
   FlaskConical,
-  ShieldAlertIcon,
   Loader,
   Pencil,
   RotateCw,
   Settings,
   Settings2,
+  ShieldAlertIcon,
   Trash,
   Wrench,
 } from "lucide-react";
+import Link from "next/link";
+import { memo, useCallback, useMemo, useState } from "react";
+import { mutate } from "swr";
+import { safe } from "ts-safe";
 import { Alert, AlertDescription, AlertTitle } from "ui/alert";
 import { Button } from "ui/button";
 import { Card, CardContent, CardHeader } from "ui/card";
 import JsonView from "ui/json-view";
 import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
-import { memo, useCallback, useMemo, useState } from "react";
-import Link from "next/link";
-import { mutate } from "swr";
-import { safe } from "ts-safe";
 
-import { handleErrorWithToast } from "ui/shared-toast";
 import {
   refreshMcpClientAction,
   removeMcpClientAction,
 } from "@/app/api/mcp/actions";
+import { handleErrorWithToast } from "ui/shared-toast";
 
 import type { MCPServerInfo, MCPToolInfo } from "app-types/mcp";
 
-import { ToolDetailPopup } from "./tool-detail-popup";
+import { appStore } from "@/app/store";
+import { redriectMcpOauth } from "lib/ai/mcp/oauth-redirect";
+import { isString } from "lib/utils";
 import { useTranslations } from "next-intl";
 import { Separator } from "ui/separator";
-import { appStore } from "@/app/store";
-import { isString } from "lib/utils";
-import { redriectMcpOauth } from "lib/ai/mcp/oauth-redirect";
+import { ToolDetailPopup } from "./tool-detail-popup";
 
 // Main MCPCard component
 export const MCPCard = memo(function MCPCard({

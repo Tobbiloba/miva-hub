@@ -1,6 +1,6 @@
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { sql } from "drizzle-orm";
-import { existsTodayForStudent, createNotification } from "./helpers";
+import { createNotification, existsTodayForStudent } from "./helpers";
 
 export async function generateFlashcardsDueNotifications(): Promise<number> {
   // Find decks with due cards where the student hasn't reviewed in 24h
@@ -38,7 +38,9 @@ export async function generateFlashcardsDueNotifications(): Promise<number> {
     const dueCount = parseInt(row.due_count);
 
     // Dedup: one per student+deck per day
-    if (await existsTodayForStudent(row.student_id, "flashcards_due", row.deck_id))
+    if (
+      await existsTodayForStudent(row.student_id, "flashcards_due", row.deck_id)
+    )
       continue;
 
     await createNotification({

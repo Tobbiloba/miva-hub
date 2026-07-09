@@ -1,9 +1,9 @@
-import { getSession } from "@/lib/auth/server";
-import { isActiveStudent } from "@/lib/auth/student";
-import { redirect } from "next/navigation";
 import { StudentLayoutShell } from "@/components/student/student-layout-shell";
 import { SupportWidget } from "@/components/support/support-widget";
+import { getSession } from "@/lib/auth/server";
+import { isActiveStudent } from "@/lib/auth/student";
 import { getBillingStatus } from "@/lib/billing/status";
+import { redirect } from "next/navigation";
 
 export default async function StudentLayout({
   children,

@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { AcademicSessionSchema } from "@/lib/db/pg/schema.pg";
 import { getUserUniversity } from "@/lib/tenant";
-import { and, eq, desc } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const createSessionSchema = z.object({
@@ -41,7 +41,7 @@ export async function GET() {
         error: "Failed to fetch academic sessions",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
           message:
             "Academic session creation requires a university-scoped admin. Super admins must act within a specific university.",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -77,15 +77,18 @@ export async function POST(request: NextRequest) {
       .where(
         and(
           eq(AcademicSessionSchema.sessionName, validatedData.sessionName),
-          eq(AcademicSessionSchema.universityId, university.id)
-        )
+          eq(AcademicSessionSchema.universityId, university.id),
+        ),
       )
       .limit(1);
 
     if (existing.length > 0) {
       return NextResponse.json(
-        { success: false, error: `Session "${validatedData.sessionName}" already exists` },
-        { status: 400 }
+        {
+          success: false,
+          error: `Session "${validatedData.sessionName}" already exists`,
+        },
+        { status: 400 },
       );
     }
 
@@ -99,8 +102,8 @@ export async function POST(request: NextRequest) {
           .where(
             and(
               eq(AcademicSessionSchema.isCurrent, true),
-              eq(AcademicSessionSchema.universityId, university.id)
-            )
+              eq(AcademicSessionSchema.universityId, university.id),
+            ),
           );
 
         return tx
@@ -114,7 +117,10 @@ export async function POST(request: NextRequest) {
             firstSemEnd: validatedData.firstSemEnd || null,
             secondSemStart: validatedData.secondSemStart || null,
             secondSemEnd: validatedData.secondSemEnd || null,
-            status: validatedData.status === "upcoming" ? "active" : validatedData.status,
+            status:
+              validatedData.status === "upcoming"
+                ? "active"
+                : validatedData.status,
             createdAt: new Date(),
             updatedAt: new Date(),
           })
@@ -122,8 +128,12 @@ export async function POST(request: NextRequest) {
       });
 
       return NextResponse.json(
-        { success: true, data: newSession, message: "Academic session created and set as current" },
-        { status: 201 }
+        {
+          success: true,
+          data: newSession,
+          message: "Academic session created and set as current",
+        },
+        { status: 201 },
       );
     }
 
@@ -145,14 +155,18 @@ export async function POST(request: NextRequest) {
       .returning();
 
     return NextResponse.json(
-      { success: true, data: newSession, message: "Academic session created successfully" },
-      { status: 201 }
+      {
+        success: true,
+        data: newSession,
+        message: "Academic session created successfully",
+      },
+      { status: 201 },
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, error: "Validation failed", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
@@ -161,7 +175,7 @@ export async function POST(request: NextRequest) {
         error: "Failed to create academic session",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

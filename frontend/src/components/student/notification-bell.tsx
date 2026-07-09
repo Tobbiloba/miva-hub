@@ -1,16 +1,23 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import useSWR from "swr";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Bell, BookOpen, Flame, AlertTriangle, Layers, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  AlertTriangle,
+  Bell,
+  BookOpen,
+  FileText,
+  Flame,
+  Layers,
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
+import useSWR from "swr";
 
 interface Notification {
   id: string;

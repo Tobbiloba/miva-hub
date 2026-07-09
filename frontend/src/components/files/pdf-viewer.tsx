@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { FileText, ExternalLink, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Download, ExternalLink, FileText } from "lucide-react";
+import { useState } from "react";
 
 interface PDFViewerProps {
   src: string;
@@ -24,14 +24,14 @@ export function PDFViewer({ src, title, className = "" }: PDFViewerProps) {
   };
 
   const handleDownload = () => {
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = src;
-    link.download = title || 'document.pdf';
+    link.download = title || "document.pdf";
     link.click();
   };
 
   const handleOpenInNewTab = () => {
-    window.open(src, '_blank');
+    window.open(src, "_blank");
   };
 
   if (error) {
@@ -74,7 +74,7 @@ export function PDFViewer({ src, title, className = "" }: PDFViewerProps) {
           </div>
         </div>
       )}
-      
+
       <div className="relative">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted/50 h-96">
@@ -84,7 +84,7 @@ export function PDFViewer({ src, title, className = "" }: PDFViewerProps) {
             </div>
           </div>
         )}
-        
+
         <iframe
           src={`${src}#toolbar=1&navpanes=1&scrollbar=1`}
           className="w-full h-96 border-0"

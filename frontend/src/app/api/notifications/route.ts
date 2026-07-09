@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { NotificationSchema } from "@/lib/db/pg/schema.pg";
-import { eq, and, desc, count } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,10 +17,7 @@ export async function GET(request: NextRequest) {
     const studentId = session.user.id;
     const { searchParams } = new URL(request.url);
     const unreadOnly = searchParams.get("unread") === "true";
-    const limit = Math.min(
-      parseInt(searchParams.get("limit") || "20"),
-      100,
-    );
+    const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
     const offset = parseInt(searchParams.get("offset") || "0");
 
     const conditions = [eq(NotificationSchema.studentId, studentId)];

@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { AutoHeight } from "ui/auto-height";
 
 import { appStore } from "@/app/store";
-import { useShallow } from "zustand/shallow";
-import { isShortcutEvent, Shortcuts } from "lib/keyboard-shortcuts";
+import { Shortcuts, isShortcutEvent } from "lib/keyboard-shortcuts";
+import { UserIcon, X } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Button } from "ui/button";
 import {
   Drawer,
   DrawerContent,
@@ -13,14 +15,12 @@ import {
   DrawerPortal,
   DrawerTitle,
 } from "ui/drawer";
+import { MCPIcon } from "ui/mcp-icon";
+import { useShallow } from "zustand/shallow";
 import {
   MCPInstructionsContent,
   UserInstructionsContent,
 } from "./chat-preferences-content";
-import { UserIcon, X } from "lucide-react";
-import { Button } from "ui/button";
-import { useTranslations } from "next-intl";
-import { MCPIcon } from "ui/mcp-icon";
 
 export function ChatPreferencesPopup() {
   const [openChatPreferences, appStoreMutate] = appStore(

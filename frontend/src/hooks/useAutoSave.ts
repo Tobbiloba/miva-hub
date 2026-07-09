@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface AutoSaveOptions {
   key: string;
@@ -10,7 +10,7 @@ interface AutoSaveOptions {
 }
 
 export interface SaveStatus {
-  status: 'idle' | 'saving' | 'saved' | 'error' | 'offline';
+  status: "idle" | "saving" | "saved" | "error" | "offline";
   lastSavedAt?: string;
   error?: string;
 }
@@ -21,9 +21,9 @@ export function useAutoSave({
   studentId,
   onSave,
   debounceMs = 1000,
-  localStorageOnly = false
+  localStorageOnly = false,
 }: AutoSaveOptions) {
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>({ status: 'idle' });
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>({ status: "idle" });
   const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const dataRef = useRef(data);
 
@@ -33,13 +33,16 @@ export function useAutoSave({
 
   const saveToLocalStorage = useCallback(() => {
     try {
-      localStorage.setItem(key, JSON.stringify({
-        data: dataRef.current,
-        timestamp: new Date().toISOString()
-      }));
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          data: dataRef.current,
+          timestamp: new Date().toISOString(),
+        }),
+      );
       return true;
     } catch (error) {
-      console.error('localStorage save failed:', error);
+      console.error("localStorage save failed:", error);
       return false;
     }
   }, [key]);
@@ -48,35 +51,38 @@ export function useAutoSave({
     if (!studentId) return false;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/save`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          key,
-          student_id: studentId,
-          data: dataRef.current
-        })
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/save`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            key,
+            student_id: studentId,
+            data: dataRef.current,
+          }),
+        },
+      );
 
-      if (!response.ok) throw new Error('Backend save failed');
-      
+      if (!response.ok) throw new Error("Backend save failed");
+
       const result = await response.json();
       return result.success;
     } catch (error) {
-      console.error('Backend save failed:', error);
+      console.error("Backend save failed:", error);
       return false;
     }
   }, [key, studentId]);
 
   const performSave = useCallback(async () => {
-    setSaveStatus({ status: 'saving' });
+    setSaveStatus({ status: "saving" });
 
     const localSaved = saveToLocalStorage();
 
     if (localStorageOnly || !studentId) {
       setSaveStatus({
-        status: localSaved ? 'saved' : 'error',
-        lastSavedAt: new Date().toISOString()
+        status: localSaved ? "saved" : "error",
+        lastSavedAt: new Date().toISOString(),
       });
       onSave?.(localSaved);
       return;
@@ -86,15 +92,15 @@ export function useAutoSave({
 
     if (backendSaved) {
       setSaveStatus({
-        status: 'saved',
-        lastSavedAt: new Date().toISOString()
+        status: "saved",
+        lastSavedAt: new Date().toISOString(),
       });
       onSave?.(true);
     } else {
       setSaveStatus({
-        status: localSaved ? 'offline' : 'error',
+        status: localSaved ? "offline" : "error",
         lastSavedAt: new Date().toISOString(),
-        error: 'Saved locally only'
+        error: "Saved locally only",
       });
       onSave?.(localSaved);
     }
@@ -120,7 +126,7 @@ export function useAutoSave({
 
   return {
     saveStatus,
-    forceSave: performSave
+    forceSave: performSave,
   };
 }
 
@@ -137,9 +143,12 @@ export function useLoadProgress(key: string, studentId?: string) {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 500);
 
-          const response = await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/load?key=${key}&student_id=${studentId}`, {
-            signal: controller.signal
-          });
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/load?key=${key}&student_id=${studentId}`,
+            {
+              signal: controller.signal,
+            },
+          );
 
           clearTimeout(timeout);
 
@@ -152,7 +161,7 @@ export function useLoadProgress(key: string, studentId?: string) {
             }
           }
         } catch (error) {
-          console.warn('Backend load failed, using localStorage:', error);
+          console.warn("Backend load failed, using localStorage:", error);
         }
       }
 
@@ -163,7 +172,7 @@ export function useLoadProgress(key: string, studentId?: string) {
           setProgress(data);
         }
       } catch (error) {
-        console.error('localStorage load failed:', error);
+        console.error("localStorage load failed:", error);
       }
 
       setLoading(false);
@@ -177,14 +186,17 @@ export function useLoadProgress(key: string, studentId?: string) {
 
 export async function clearProgress(key: string, studentId?: string) {
   localStorage.removeItem(key);
-  
+
   if (studentId) {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/clear?key=${key}&student_id=${studentId}`, {
-        method: 'DELETE'
-      });
+      await fetch(
+        `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/clear?key=${key}&student_id=${studentId}`,
+        {
+          method: "DELETE",
+        },
+      );
     } catch (error) {
-      console.error('Backend clear failed:', error);
+      console.error("Backend clear failed:", error);
     }
   }
 }

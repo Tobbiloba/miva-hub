@@ -1,15 +1,29 @@
 "use client";
 
-import { useState } from 'react';
-import { Button } from 'ui/button';
-import { cn } from 'lib/utils';
-import { Download, Eye, FileText, Video, Music, Image, File } from 'lucide-react';
+import { cn } from "lib/utils";
+import {
+  Download,
+  Eye,
+  File,
+  FileText,
+  Image,
+  Music,
+  Video,
+} from "lucide-react";
+import { useState } from "react";
+import { Button } from "ui/button";
 
 interface MaterialCardProps {
   material: {
     id: string;
     title: string;
-    material_type: 'resource' | 'assignment' | 'lecture' | 'quiz' | 'video' | 'audio';
+    material_type:
+      | "resource"
+      | "assignment"
+      | "lecture"
+      | "quiz"
+      | "video"
+      | "audio";
     file_url: string;
     ai_summary?: string;
     key_concepts?: string[];
@@ -25,34 +39,34 @@ interface MaterialCardProps {
   onAskQuestion?: () => void;
 }
 
-export function MaterialCard({ 
-  material, 
-  onView, 
-  onDownload, 
+export function MaterialCard({
+  material,
+  onView,
+  onDownload,
   isViewed = false,
   onGenerateStudyGuide,
   onCreateFlashcards,
-  onAskQuestion
+  onAskQuestion,
 }: MaterialCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const getIcon = () => {
-    const fileExtension = material.file_url.split('.').pop()?.toLowerCase();
-    
+    const fileExtension = material.file_url.split(".").pop()?.toLowerCase();
+
     switch (fileExtension) {
-      case 'pdf':
+      case "pdf":
         return <FileText className="w-6 h-6 text-red-500" />;
-      case 'mp4':
-      case 'avi':
-      case 'mov':
+      case "mp4":
+      case "avi":
+      case "mov":
         return <Video className="w-6 h-6 text-blue-500" />;
-      case 'mp3':
-      case 'wav':
-      case 'm4a':
+      case "mp3":
+      case "wav":
+      case "m4a":
         return <Music className="w-6 h-6 text-green-500" />;
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
+      case "jpg":
+      case "jpeg":
+      case "png":
         return <Image className="w-6 h-6 text-purple-500" />;
       default:
         return <File className="w-6 h-6 text-gray-500" />;
@@ -60,28 +74,28 @@ export function MaterialCard({
   };
 
   const getFileType = () => {
-    const ext = material.file_url.split('.').pop()?.toLowerCase();
-    return ext?.toUpperCase() || 'FILE';
+    const ext = material.file_url.split(".").pop()?.toLowerCase();
+    return ext?.toUpperCase() || "FILE";
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
   const getBadgeColor = () => {
     switch (material.material_type) {
-      case 'lecture':
-        return 'border text-muted-foreground';
-      case 'assignment':
-        return 'border text-muted-foreground';
-      case 'quiz':
-        return 'border text-muted-foreground';
+      case "lecture":
+        return "border text-muted-foreground";
+      case "assignment":
+        return "border text-muted-foreground";
+      case "quiz":
+        return "border text-muted-foreground";
       default:
-        return 'border text-muted-foreground';
+        return "border text-muted-foreground";
     }
   };
 
@@ -90,19 +104,25 @@ export function MaterialCard({
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-start space-x-3 flex-1">
-          <div className="flex-shrink-0 mt-1">
-            {getIcon()}
-          </div>
+          <div className="flex-shrink-0 mt-1">{getIcon()}</div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-sm mb-1 overflow-hidden" style={{
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-            }}>
+            <h3
+              className="font-medium text-sm mb-1 overflow-hidden"
+              style={{
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+              }}
+            >
               {material.title}
             </h3>
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <span className={cn("px-2 py-1 rounded-full text-xs font-medium", getBadgeColor())}>
+              <span
+                className={cn(
+                  "px-2 py-1 rounded-full text-xs font-medium",
+                  getBadgeColor(),
+                )}
+              >
                 {material.material_type}
               </span>
               <span>Week {material.week_number}</span>
@@ -118,20 +138,23 @@ export function MaterialCard({
               )}
             </div>
             {material.description && (
-              <p className="text-sm text-muted-foreground mt-2 overflow-hidden" style={{
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-              }}>
+              <p
+                className="text-sm text-muted-foreground mt-2 overflow-hidden"
+                style={{
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                }}
+              >
                 {material.description}
               </p>
             )}
           </div>
         </div>
-        
+
         {/* Action buttons */}
         <div className="flex space-x-2 flex-shrink-0 ml-3">
-          <Button 
+          <Button
             onClick={() => onView(material)}
             size="sm"
             variant="outline"
@@ -140,7 +163,7 @@ export function MaterialCard({
             <Eye className="w-4 h-4 mr-1" />
             View
           </Button>
-          <Button 
+          <Button
             onClick={() => onDownload(material)}
             size="sm"
             variant="outline"
@@ -160,11 +183,9 @@ export function MaterialCard({
             className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors"
           >
             <span>📋 AI Summary</span>
-            <span className="text-xs">
-              {isExpanded ? '▼' : '▶'}
-            </span>
+            <span className="text-xs">{isExpanded ? "▼" : "▶"}</span>
           </button>
-          
+
           {isExpanded && (
             <div className="mt-2 p-3 bg-card rounded-lg border-l-4 border-border">
               <p className="text-sm text-gray-700 leading-relaxed">
@@ -181,7 +202,7 @@ export function MaterialCard({
           <p className="text-xs font-medium mb-2">🔑 Key Concepts:</p>
           <div className="flex flex-wrap gap-1">
             {material.key_concepts.slice(0, 8).map((concept, index) => (
-              <span 
+              <span
                 key={index}
                 className="border text-foreground px-2 py-1 rounded-full text-xs cursor-pointer hover:bg-secondary transition-colors"
                 title={`Click to learn more about ${concept}`}

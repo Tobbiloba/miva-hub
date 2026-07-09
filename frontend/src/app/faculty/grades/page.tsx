@@ -1,26 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { 
-  GraduationCap,
-  Users,
-  Search,
-  Filter,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  FileText,
-  Download,
-  BarChart3,
-  Award,
-  Eye,
-} from "lucide-react";
-import { getSession } from "@/lib/auth/server";
-import { getFacultyInfo } from "@/lib/auth/faculty";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-import Link from "next/link";
 import {
   Select,
   SelectContent,
@@ -28,6 +9,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getFacultyInfo } from "@/lib/auth/faculty";
+import { getSession } from "@/lib/auth/server";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import {
+  AlertCircle,
+  Award,
+  BarChart3,
+  CheckCircle,
+  Clock,
+  Download,
+  Eye,
+  FileText,
+  Filter,
+  GraduationCap,
+  Search,
+  Users,
+} from "lucide-react";
+import Link from "next/link";
 
 interface PageProps {
   searchParams: Promise<{ courseId?: string; semester?: string }>;
@@ -37,33 +37,43 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
   const { courseId } = await searchParams;
   const session = await getSession();
   const facultyInfo = getFacultyInfo(session);
-  
+
   if (!facultyInfo) {
     return <div>Error: Invalid faculty session</div>;
   }
 
-  const facultyRecord = await pgAcademicRepository.getFacultyByUserId(facultyInfo.id);
-  
+  const facultyRecord = await pgAcademicRepository.getFacultyByUserId(
+    facultyInfo.id,
+  );
+
   if (!facultyRecord) {
     return <div>Error: Faculty record not found</div>;
   }
 
   // Get faculty courses for filter dropdown
-  const facultyCourses = await pgAcademicRepository.getFacultyCourses(facultyRecord.id);
-  
+  const facultyCourses = await pgAcademicRepository.getFacultyCourses(
+    facultyRecord.id,
+  );
+
   // Get grading queue (pending assignments)
-  const gradingQueue = await pgAcademicRepository.getFacultyGradingQueue(facultyRecord.id, 20);
+  const gradingQueue = await pgAcademicRepository.getFacultyGradingQueue(
+    facultyRecord.id,
+    20,
+  );
 
   // If specific course selected, get gradebook data
-  let gradebookData: Awaited<ReturnType<typeof pgAcademicRepository.getCourseGradebook>> | null = null;
-  let selectedCourse: typeof facultyCourses[0] | null = null;
-  
+  let gradebookData: Awaited<
+    ReturnType<typeof pgAcademicRepository.getCourseGradebook>
+  > | null = null;
+  let selectedCourse: (typeof facultyCourses)[0] | null = null;
+
   if (courseId) {
-    selectedCourse = facultyCourses.find(fc => fc.course.id === courseId) || null;
+    selectedCourse =
+      facultyCourses.find((fc) => fc.course.id === courseId) || null;
     if (selectedCourse) {
       gradebookData = await pgAcademicRepository.getCourseGradebook(
-        courseId, 
-        facultyRecord.id
+        courseId,
+        facultyRecord.id,
       );
     }
   }
@@ -73,8 +83,7 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
     totalPending: gradingQueue.length,
     coursesCount: facultyCourses.length,
     totalStudents: gradebookData ? gradebookData.students.length : 0,
-    averageGrade: gradebookData ? 
-      calculateAverageGrade(gradebookData) : 0,
+    averageGrade: gradebookData ? calculateAverageGrade(gradebookData) : 0,
   };
 
   return (
@@ -107,7 +116,7 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -121,7 +130,7 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -135,7 +144,7 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -143,7 +152,9 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
                 <BarChart3 className="h-6 w-6 text-purple-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.averageGrade.toFixed(1)}%</p>
+                <p className="text-2xl font-bold">
+                  {stats.averageGrade.toFixed(1)}%
+                </p>
                 <p className="text-sm text-muted-foreground">Average Grade</p>
               </div>
             </div>
@@ -164,21 +175,21 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
                 />
               </div>
             </div>
-            
+
             <Select value={courseId || "all"}>
               <SelectTrigger className="w-[280px]">
                 <SelectValue placeholder="Select course" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Courses</SelectItem>
-                {facultyCourses.map(({ course, department }) => (
+                {facultyCourses.map(({ course }) => (
                   <SelectItem key={course.id} value={course.id}>
                     {course.courseCode} - {course.title}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            
+
             <Button variant="outline">
               <Filter className="mr-2 h-4 w-4" />
               More Filters
@@ -188,7 +199,10 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
       </Card>
 
       {/* Main Content */}
-      <Tabs defaultValue={gradebookData ? "gradebook" : "pending"} className="w-full">
+      <Tabs
+        defaultValue={gradebookData ? "gradebook" : "pending"}
+        className="w-full"
+      >
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="pending" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
@@ -210,7 +224,7 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
 
         <TabsContent value="gradebook" className="space-y-4">
           {gradebookData && selectedCourse ? (
-            <CourseGradebook 
+            <CourseGradebook
               course={selectedCourse.course}
               gradebookData={gradebookData}
             />
@@ -220,8 +234,8 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4">
-          <GradeAnalytics 
-            courses={facultyCourses} 
+          <GradeAnalytics
+            courses={facultyCourses}
             selectedCourseId={courseId}
           />
         </TabsContent>
@@ -250,11 +264,15 @@ function PendingGrades({ gradingQueue }: { gradingQueue: any[] }) {
       {gradingQueue.map(({ submission, assignment, course, student }) => {
         const isLate = submission.isLateSubmission;
         const daysSinceSubmitted = Math.floor(
-          (new Date().getTime() - new Date(submission.submittedAt).getTime()) / (1000 * 60 * 60 * 24)
+          (new Date().getTime() - new Date(submission.submittedAt).getTime()) /
+            (1000 * 60 * 60 * 24),
         );
-        
+
         return (
-          <Card key={submission.id} className={`hover:shadow-md transition-shadow ${isLate ? 'border-red-200 dark:border-red-800' : ''}`}>
+          <Card
+            key={submission.id}
+            className={`hover:shadow-md transition-shadow ${isLate ? "border-red-200 dark:border-red-800" : ""}`}
+          >
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
                 <div className="mt-1">
@@ -264,15 +282,17 @@ function PendingGrades({ gradingQueue }: { gradingQueue: any[] }) {
                     <Clock className="h-5 w-5 text-orange-600" />
                   )}
                 </div>
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold">{assignment.title}</h3>
+                      <h3 className="text-lg font-semibold">
+                        {assignment.title}
+                      </h3>
                       <p className="text-sm text-muted-foreground mt-1">
                         Student: {student.name} ({student.email})
                       </p>
-                      
+
                       <div className="flex items-center gap-2 mt-3">
                         <Badge variant="outline" className="text-xs">
                           {course.courseCode}
@@ -284,32 +304,42 @@ function PendingGrades({ gradingQueue }: { gradingQueue: any[] }) {
                           {assignment.totalPoints} pts
                         </Badge>
                         {isLate && (
-                          <Badge variant="outline" className="text-xs bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300">
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"
+                          >
                             Late Submission
                           </Badge>
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="text-right shrink-0">
                       <p className="text-sm font-medium">
-                        Submitted {daysSinceSubmitted === 0 ? 'Today' : `${daysSinceSubmitted} days ago`}
+                        Submitted{" "}
+                        {daysSinceSubmitted === 0
+                          ? "Today"
+                          : `${daysSinceSubmitted} days ago`}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(submission.submittedAt).toLocaleDateString()}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(submission.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(submission.submittedAt).toLocaleTimeString(
+                          [],
+                          { hour: "2-digit", minute: "2-digit" },
+                        )}
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center justify-between mt-4">
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <FileText className="h-3 w-3" />
                         <span>
-                          Due: {new Date(assignment.dueDate).toLocaleDateString()}
+                          Due:{" "}
+                          {new Date(assignment.dueDate).toLocaleDateString()}
                         </span>
                       </div>
                       {submission.fileUrl && (
@@ -319,17 +349,21 @@ function PendingGrades({ gradingQueue }: { gradingQueue: any[] }) {
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/faculty/assignments/${assignment.id}/submissions/${submission.id}`}>
+                        <Link
+                          href={`/faculty/assignments/${assignment.id}/submissions/${submission.id}`}
+                        >
                           <Eye className="mr-2 h-3 w-3" />
                           Review
                         </Link>
                       </Button>
-                      
+
                       <Button size="sm" asChild>
-                        <Link href={`/faculty/assignments/${assignment.id}/grade?submissionId=${submission.id}`}>
+                        <Link
+                          href={`/faculty/assignments/${assignment.id}/grade?submissionId=${submission.id}`}
+                        >
                           <Award className="mr-2 h-3 w-3" />
                           Grade Now
                         </Link>
@@ -366,7 +400,9 @@ function CourseSelector({ courses }: { courses: any[] }) {
               <Link href={`/faculty/grades?courseId=${course.id}`}>
                 <div className="text-left">
                   <div className="font-medium">{course.courseCode}</div>
-                  <div className="text-sm text-muted-foreground">{course.title}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {course.title}
+                  </div>
                   <div className="text-xs text-muted-foreground mt-1">
                     {department.name}
                   </div>
@@ -380,7 +416,10 @@ function CourseSelector({ courses }: { courses: any[] }) {
   );
 }
 
-function CourseGradebook({ course, gradebookData }: { course: any; gradebookData: any }) {
+function CourseGradebook({
+  course,
+  gradebookData,
+}: { course: any; gradebookData: any }) {
   const { students, assignments, submissions } = gradebookData;
 
   return (
@@ -399,7 +438,10 @@ function CourseGradebook({ course, gradebookData }: { course: any; gradebookData
                 <tr className="border-b">
                   <th className="text-left p-2 font-medium">Student</th>
                   {assignments.map((assignment: any) => (
-                    <th key={assignment.id} className="text-center p-2 font-medium min-w-[80px]">
+                    <th
+                      key={assignment.id}
+                      className="text-center p-2 font-medium min-w-[80px]"
+                    >
                       <div className="text-xs">{assignment.title}</div>
                       <div className="text-xs text-muted-foreground">
                         ({assignment.totalPoints} pts)
@@ -410,30 +452,41 @@ function CourseGradebook({ course, gradebookData }: { course: any; gradebookData
                 </tr>
               </thead>
               <tbody>
-                {students.map(({ student, enrollment }: any) => {
-                  const studentSubmissions = submissions.get(student.id) || new Map();
+                {students.map(({ student }: any) => {
+                  const studentSubmissions =
+                    submissions.get(student.id) || new Map();
                   const grades = assignments.map((assignment: any) => {
                     const submission = studentSubmissions.get(assignment.id);
-                    return submission?.submission.grade ? Number(submission.submission.grade) : null;
+                    return submission?.submission.grade
+                      ? Number(submission.submission.grade)
+                      : null;
                   });
-                  
-                  const validGrades = grades.filter(g => g !== null) as number[];
-                  const average = validGrades.length > 0 
-                    ? validGrades.reduce((sum, grade) => sum + grade, 0) / validGrades.length 
-                    : null;
+
+                  const validGrades = grades.filter(
+                    (g) => g !== null,
+                  ) as number[];
+                  const average =
+                    validGrades.length > 0
+                      ? validGrades.reduce((sum, grade) => sum + grade, 0) /
+                        validGrades.length
+                      : null;
 
                   return (
                     <tr key={student.id} className="border-b hover:bg-muted/50">
                       <td className="p-2">
                         <div>
                           <div className="font-medium">{student.name}</div>
-                          <div className="text-xs text-muted-foreground">{student.email}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {student.email}
+                          </div>
                         </div>
                       </td>
                       {assignments.map((assignment: any) => {
-                        const submission = studentSubmissions.get(assignment.id);
+                        const submission = studentSubmissions.get(
+                          assignment.id,
+                        );
                         const grade = submission?.submission.grade;
-                        
+
                         return (
                           <td key={assignment.id} className="p-2 text-center">
                             {submission ? (
@@ -443,7 +496,9 @@ function CourseGradebook({ course, gradebookData }: { course: any; gradebookData
                                 className="h-auto p-1"
                                 asChild
                               >
-                                <Link href={`/faculty/assignments/${assignment.id}/grade?submissionId=${submission.submission.id}`}>
+                                <Link
+                                  href={`/faculty/assignments/${assignment.id}/grade?submissionId=${submission.submission.id}`}
+                                >
                                   {grade ? (
                                     <div className="text-center">
                                       <div className="font-medium">{grade}</div>
@@ -468,9 +523,13 @@ function CourseGradebook({ course, gradebookData }: { course: any; gradebookData
                       })}
                       <td className="p-2 text-center">
                         {average ? (
-                          <div className="font-medium">{average.toFixed(1)}%</div>
+                          <div className="font-medium">
+                            {average.toFixed(1)}%
+                          </div>
                         ) : (
-                          <div className="text-muted-foreground text-xs">N/A</div>
+                          <div className="text-muted-foreground text-xs">
+                            N/A
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -485,7 +544,10 @@ function CourseGradebook({ course, gradebookData }: { course: any; gradebookData
   );
 }
 
-function GradeAnalytics({ courses, selectedCourseId }: { courses: any[]; selectedCourseId?: string }) {
+function GradeAnalytics(_props: {
+  courses: any[];
+  selectedCourseId?: string;
+}) {
   return (
     <Card className="text-center py-12">
       <CardContent>
@@ -501,10 +563,10 @@ function GradeAnalytics({ courses, selectedCourseId }: { courses: any[]; selecte
 
 function calculateAverageGrade(gradebookData: any): number {
   const { students, assignments, submissions } = gradebookData;
-  
+
   let totalGrades = 0;
   let gradeCount = 0;
-  
+
   students.forEach(({ student }: any) => {
     const studentSubmissions = submissions.get(student.id) || new Map();
     assignments.forEach((assignment: any) => {
@@ -515,6 +577,6 @@ function calculateAverageGrade(gradebookData: any): number {
       }
     });
   });
-  
+
   return gradeCount > 0 ? totalGrades / gradeCount : 0;
 }

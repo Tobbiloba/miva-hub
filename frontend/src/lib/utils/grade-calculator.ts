@@ -71,7 +71,10 @@ export type DegreeClassification =
 /**
  * Nigerian University Grading Scale (5-point system)
  */
-export const GRADING_SCALE: Record<LetterGrade, { min: number; max: number; points: number }> = {
+export const GRADING_SCALE: Record<
+  LetterGrade,
+  { min: number; max: number; points: number }
+> = {
   A: { min: 70, max: 100, points: 5.0 },
   B: { min: 60, max: 69, points: 4.0 },
   C: { min: 50, max: 59, points: 3.0 },
@@ -169,7 +172,7 @@ export function calculateGPA(courses: CourseGrade[]): GPACalculation {
  */
 export function calculateSemesterGPA(
   currentSemesterCourses: CourseGrade[],
-  allCourses: CourseGrade[]
+  allCourses: CourseGrade[],
 ): GPACalculation {
   const semesterGPA = calculateGPA(currentSemesterCourses);
   const cumulativeGPA = calculateGPA(allCourses);
@@ -189,7 +192,7 @@ export function calculateSemesterGPA(
  * @returns CGPA on 5.0 scale
  */
 export function calculateCumulativeGPA(
-  enrollments: { gradePoints: number; credits: number }[]
+  enrollments: { gradePoints: number; credits: number }[],
 ): number {
   if (enrollments.length === 0) return 0;
 
@@ -201,7 +204,9 @@ export function calculateCumulativeGPA(
     totalCredits += e.credits;
   }
 
-  return totalCredits > 0 ? Math.round((totalWeighted / totalCredits) * 100) / 100 : 0;
+  return totalCredits > 0
+    ? Math.round((totalWeighted / totalCredits) * 100) / 100
+    : 0;
 }
 
 // ─── Degree Classification ────────────────────────────────────────────────────
@@ -212,11 +217,11 @@ export function calculateCumulativeGPA(
  * @returns Degree classification string
  */
 export function classifyDegree(cgpa: number): DegreeClassification {
-  if (cgpa >= 4.50) return "First Class";
-  if (cgpa >= 3.50) return "Second Class Upper";
-  if (cgpa >= 2.40) return "Second Class Lower";
-  if (cgpa >= 1.50) return "Third Class";
-  if (cgpa >= 1.00) return "Pass";
+  if (cgpa >= 4.5) return "First Class";
+  if (cgpa >= 3.5) return "Second Class Upper";
+  if (cgpa >= 2.4) return "Second Class Lower";
+  if (cgpa >= 1.5) return "Third Class";
+  if (cgpa >= 1.0) return "Pass";
   return "Fail";
 }
 
@@ -227,7 +232,10 @@ export function classifyDegree(cgpa: number): DegreeClassification {
  * @param gpa - Current GPA (0-5.0)
  * @param creditHours - Total credit hours enrolled
  */
-export function calculateAcademicStanding(gpa: number, creditHours: number): {
+export function calculateAcademicStanding(
+  gpa: number,
+  creditHours: number,
+): {
   standing: string;
   description: string;
   warning?: string;
@@ -239,28 +247,28 @@ export function calculateAcademicStanding(gpa: number, creditHours: number): {
     };
   }
 
-  if (gpa >= 4.50) {
+  if (gpa >= 4.5) {
     return {
       standing: "Dean's List",
       description: "Outstanding academic performance (First Class standing)",
     };
   }
 
-  if (gpa >= 3.50) {
+  if (gpa >= 3.5) {
     return {
       standing: "Good Standing",
       description: "Strong academic performance (Second Class Upper)",
     };
   }
 
-  if (gpa >= 2.40) {
+  if (gpa >= 2.4) {
     return {
       standing: "Satisfactory",
       description: "Meeting minimum academic requirements",
     };
   }
 
-  if (gpa >= 1.50) {
+  if (gpa >= 1.5) {
     return {
       standing: "Academic Warning",
       description: "Below expected academic performance",
@@ -286,7 +294,7 @@ export function calculateAcademicStanding(gpa: number, creditHours: number): {
 export function calculateDegreeProgress(
   completedCreditHours: number,
   totalRequiredHours: number,
-  currentGPA: number
+  currentGPA: number,
 ): {
   percentageComplete: number;
   remainingHours: number;
@@ -297,7 +305,7 @@ export function calculateDegreeProgress(
   const percentageComplete = (completedCreditHours / totalRequiredHours) * 100;
   const remainingHours = Math.max(0, totalRequiredHours - completedCreditHours);
   const estimatedSemestersRemaining = Math.ceil(remainingHours / 18); // ~18 credits per semester typical in Nigerian unis
-  const minGPAForGraduation = 1.00; // Minimum CGPA to graduate (Pass)
+  const minGPAForGraduation = 1.0; // Minimum CGPA to graduate (Pass)
 
   return {
     percentageComplete: Math.round(percentageComplete * 100) / 100,
@@ -336,9 +344,16 @@ export function calculateWeightedAverage(grades: GradeEntry[]): number {
  * @param percentages - Array of grade percentages
  * @returns Grade distribution breakdown (A through F)
  */
-export function calculateGradeDistribution(percentages: number[]): GradeDistribution {
+export function calculateGradeDistribution(
+  percentages: number[],
+): GradeDistribution {
   const distribution: GradeDistribution = {
-    A: 0, B: 0, C: 0, D: 0, E: 0, F: 0,
+    A: 0,
+    B: 0,
+    C: 0,
+    D: 0,
+    E: 0,
+    F: 0,
     totalStudents: percentages.length,
   };
 
@@ -361,7 +376,7 @@ export function calculateCourseFinalGrade(
     dropLowest?: number;
     extraCredit?: number;
     curve?: number;
-  }
+  },
 ): { percentage: number; letterGrade: string; gradePoints: number } {
   if (assignments.length === 0) {
     return { percentage: 0, letterGrade: "F", gradePoints: 0 };
@@ -373,7 +388,9 @@ export function calculateCourseFinalGrade(
     const sorted = workingAssignments
       .map((a) => ({ ...a, pct: (a.points / a.totalPoints) * 100 }))
       .sort((a, b) => a.pct - b.pct);
-    workingAssignments = sorted.slice(courseSettings.dropLowest).map(({ pct, ...rest }) => rest);
+    workingAssignments = sorted
+      .slice(courseSettings.dropLowest)
+      .map(({ pct, ...rest }) => rest);
   }
 
   let percentage = calculateWeightedAverage(workingAssignments);
@@ -398,7 +415,13 @@ export function calculateCourseFinalGrade(
  */
 export function generateGradeAnalytics(studentGrades: number[]): {
   distribution: GradeDistribution;
-  statistics: { mean: number; median: number; standardDeviation: number; min: number; max: number };
+  statistics: {
+    mean: number;
+    median: number;
+    standardDeviation: number;
+    min: number;
+    max: number;
+  };
   insights: string[];
 } {
   if (studentGrades.length === 0) {
@@ -412,9 +435,12 @@ export function generateGradeAnalytics(studentGrades: number[]): {
   const distribution = calculateGradeDistribution(studentGrades);
 
   const sorted = [...studentGrades].sort((a, b) => a - b);
-  const mean = studentGrades.reduce((sum, g) => sum + g, 0) / studentGrades.length;
+  const mean =
+    studentGrades.reduce((sum, g) => sum + g, 0) / studentGrades.length;
   const median = sorted[Math.floor(sorted.length / 2)];
-  const variance = studentGrades.reduce((sum, g) => sum + (g - mean) ** 2, 0) / studentGrades.length;
+  const variance =
+    studentGrades.reduce((sum, g) => sum + (g - mean) ** 2, 0) /
+    studentGrades.length;
   const standardDeviation = Math.sqrt(variance);
 
   const insights: string[] = [];
@@ -426,9 +452,18 @@ export function generateGradeAnalytics(studentGrades: number[]): {
   else if (mean >= 50) insights.push("Class performance is average");
   else insights.push("Class performance may need attention");
 
-  if (aPercentage > 30) insights.push("High percentage of A grades — consider if standards are appropriate");
-  if (fPercentage > 20) insights.push("High failure rate — consider additional support for struggling students");
-  if (standardDeviation > 20) insights.push("Wide grade distribution — students have varied performance levels");
+  if (aPercentage > 30)
+    insights.push(
+      "High percentage of A grades — consider if standards are appropriate",
+    );
+  if (fPercentage > 20)
+    insights.push(
+      "High failure rate — consider additional support for struggling students",
+    );
+  if (standardDeviation > 20)
+    insights.push(
+      "Wide grade distribution — students have varied performance levels",
+    );
 
   return {
     distribution,

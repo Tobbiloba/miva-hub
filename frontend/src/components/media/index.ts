@@ -1,2 +1,2 @@
-export { PDFViewer } from './PDFViewer';
-export { VideoPlayer } from './VideoPlayer';
+export { PDFViewer } from "./PDFViewer";
+export { VideoPlayer } from "./VideoPlayer";

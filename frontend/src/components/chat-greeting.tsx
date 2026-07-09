@@ -1,10 +1,10 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { authClient } from "auth/client";
+import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import { FlipWords } from "ui/flip-words";
-import { useTranslations } from "next-intl";
 
 function getGreetingByTime() {
   const hour = new Date().getHours();

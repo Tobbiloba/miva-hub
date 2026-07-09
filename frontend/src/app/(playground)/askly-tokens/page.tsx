@@ -115,28 +115,73 @@ export default function AsklyTokensPage() {
             >
               Glass surfaces
             </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr 1fr",
+                gap: "1rem",
+              }}
+            >
               <AsklyGlassCard>
-                <p style={{ fontSize: "0.8125rem", color: "var(--askly-text-secondary)" }}>
+                <p
+                  style={{
+                    fontSize: "0.8125rem",
+                    color: "var(--askly-text-secondary)",
+                  }}
+                >
                   .askly-glass
                 </p>
-                <p style={{ fontSize: "0.75rem", color: "var(--askly-text-muted)", marginTop: "0.25rem" }}>
+                <p
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "var(--askly-text-muted)",
+                    marginTop: "0.25rem",
+                  }}
+                >
                   Primary card surface
                 </p>
               </AsklyGlassCard>
-              <div className="askly-glass-subtle" style={{ borderRadius: "18px", padding: "1.25rem" }}>
-                <p style={{ fontSize: "0.8125rem", color: "var(--askly-text-secondary)" }}>
+              <div
+                className="askly-glass-subtle"
+                style={{ borderRadius: "18px", padding: "1.25rem" }}
+              >
+                <p
+                  style={{
+                    fontSize: "0.8125rem",
+                    color: "var(--askly-text-secondary)",
+                  }}
+                >
                   .askly-glass-subtle
                 </p>
-                <p style={{ fontSize: "0.75rem", color: "var(--askly-text-muted)", marginTop: "0.25rem" }}>
+                <p
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "var(--askly-text-muted)",
+                    marginTop: "0.25rem",
+                  }}
+                >
                   Pills & buttons (hover me)
                 </p>
               </div>
-              <div className="askly-glass-active" style={{ borderRadius: "18px", padding: "1.25rem" }}>
-                <p style={{ fontSize: "0.8125rem", color: "var(--askly-amber-100)" }}>
+              <div
+                className="askly-glass-active"
+                style={{ borderRadius: "18px", padding: "1.25rem" }}
+              >
+                <p
+                  style={{
+                    fontSize: "0.8125rem",
+                    color: "var(--askly-amber-100)",
+                  }}
+                >
                   .askly-glass-active
                 </p>
-                <p style={{ fontSize: "0.75rem", color: "var(--askly-text-muted)", marginTop: "0.25rem" }}>
+                <p
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "var(--askly-text-muted)",
+                    marginTop: "0.25rem",
+                  }}
+                >
                   Selected state
                 </p>
               </div>

@@ -1,13 +1,13 @@
 "use client";
 
-import type { UIMessage } from "ai";
-import { Button } from "./ui/button";
-import { type Dispatch, type SetStateAction, useState } from "react";
-import { Textarea } from "./ui/textarea";
 import { deleteMessagesByChatIdAfterTimestampAction } from "@/app/api/chat/actions";
 import type { UseChatHelpers } from "@ai-sdk/react";
-import { useTranslations } from "next-intl";
+import type { UIMessage } from "ai";
 import { Loader } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { type Dispatch, type SetStateAction, useState } from "react";
+import { Button } from "./ui/button";
+import { Textarea } from "./ui/textarea";
 
 type TextUIPart = {
   type: "text";

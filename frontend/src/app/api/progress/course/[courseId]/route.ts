@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
-  StudyActivitySchema,
-  StudentEnrollmentSchema,
-  CourseSchema,
   CourseMaterialSchema,
+  CourseSchema,
+  StudentEnrollmentSchema,
+  StudyActivitySchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   _request: NextRequest,

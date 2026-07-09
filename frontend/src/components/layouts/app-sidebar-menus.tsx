@@ -1,22 +1,17 @@
 "use client";
-import {
-  SidebarMenuButton,
-  useSidebar,
-} from "ui/sidebar";
-import { Tooltip } from "ui/tooltip";
+import { SidebarMenuButton, useSidebar } from "ui/sidebar";
 import { SidebarMenu, SidebarMenuItem } from "ui/sidebar";
 import { SidebarGroupContent } from "ui/sidebar";
+import { Tooltip } from "ui/tooltip";
 
-import { SidebarGroup } from "ui/sidebar";
-import Link from "next/link";
-import { getShortcutKeyList, Shortcuts } from "lib/keyboard-shortcuts";
-import { useRouter } from "next/navigation";
+import { Shortcuts, getShortcutKeyList } from "lib/keyboard-shortcuts";
+import { FolderOpenIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { MCPIcon } from "ui/mcp-icon";
+import { SidebarGroup } from "ui/sidebar";
 import { WriteIcon } from "ui/write-icon";
-import {
-  FolderOpenIcon,
-} from "lucide-react";
 
 export function AppSidebarMenus() {
   const router = useRouter();

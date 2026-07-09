@@ -1,31 +1,31 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  FileText,
-  Calendar,
-  Save,
-  Eye,
-  ArrowLeft,
+import { Textarea } from "@/components/ui/textarea";
+import {
   AlertCircle,
-  CheckCircle
+  ArrowLeft,
+  Calendar,
+  CheckCircle,
+  Eye,
+  FileText,
+  Save,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface AssignmentFormData {
@@ -86,13 +86,13 @@ export default function CreateAssignmentPage() {
   useEffect(() => {
     // Fetch faculty courses for course selection
     fetchFacultyCourses();
-    
+
     // Set default due date to next week
     const nextWeek = new Date();
     nextWeek.setDate(nextWeek.getDate() + 7);
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      dueDate: nextWeek.toISOString().split('T')[0]
+      dueDate: nextWeek.toISOString().split("T")[0],
     }));
   }, []);
 
@@ -108,10 +108,10 @@ export default function CreateAssignmentPage() {
   };
 
   const handleInputChange = (field: keyof AssignmentFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
@@ -139,7 +139,11 @@ export default function CreateAssignmentPage() {
       newErrors.totalPoints = "Points must be greater than 0";
     }
 
-    if (formData.allowLateSubmission && (formData.lateSubmissionPenalty < 0 || formData.lateSubmissionPenalty > 100)) {
+    if (
+      formData.allowLateSubmission &&
+      (formData.lateSubmissionPenalty < 0 ||
+        formData.lateSubmissionPenalty > 100)
+    ) {
       newErrors.lateSubmissionPenalty = "Penalty must be between 0 and 100";
     }
 
@@ -157,7 +161,9 @@ export default function CreateAssignmentPage() {
     try {
       const assignmentData = {
         ...formData,
-        dueDate: new Date(`${formData.dueDate}T${formData.dueTime}`).toISOString(),
+        dueDate: new Date(
+          `${formData.dueDate}T${formData.dueTime}`,
+        ).toISOString(),
         isPublished: !isDraft,
       };
 
@@ -169,14 +175,20 @@ export default function CreateAssignmentPage() {
       });
 
       if (response.ok) {
-        toast.success(isDraft ? "Assignment saved as draft" : "Assignment created successfully");
+        toast.success(
+          isDraft
+            ? "Assignment saved as draft"
+            : "Assignment created successfully",
+        );
         router.push("/faculty/assignments");
       } else {
         const errData = await response.json().catch(() => ({}));
         throw new Error(errData.error || "Failed to create assignment");
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to create assignment");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create assignment",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -198,11 +210,17 @@ export default function CreateAssignmentPage() {
               <FileText className="h-8 w-8 text-blue-600" />
               Create Assignment
             </h1>
-            <p className="text-muted-foreground">Create a new assignment for your students</p>
+            <p className="text-muted-foreground">
+              Create a new assignment for your students
+            </p>
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => handleSubmit(true)} disabled={isLoading}>
+          <Button
+            variant="outline"
+            onClick={() => handleSubmit(true)}
+            disabled={isLoading}
+          >
             <Save className="mr-2 h-4 w-4" />
             Save as Draft
           </Button>
@@ -242,8 +260,15 @@ export default function CreateAssignmentPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="courseId">Course *</Label>
-                  <Select value={formData.courseId} onValueChange={(value) => handleInputChange("courseId", value)}>
-                    <SelectTrigger className={errors.courseId ? "border-red-500" : ""}>
+                  <Select
+                    value={formData.courseId}
+                    onValueChange={(value) =>
+                      handleInputChange("courseId", value)
+                    }
+                  >
+                    <SelectTrigger
+                      className={errors.courseId ? "border-red-500" : ""}
+                    >
                       <SelectValue placeholder="Select a course" />
                     </SelectTrigger>
                     <SelectContent>
@@ -261,7 +286,12 @@ export default function CreateAssignmentPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="assignmentType">Assignment Type</Label>
-                  <Select value={formData.assignmentType} onValueChange={(value) => handleInputChange("assignmentType", value)}>
+                  <Select
+                    value={formData.assignmentType}
+                    onValueChange={(value) =>
+                      handleInputChange("assignmentType", value)
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -281,7 +311,9 @@ export default function CreateAssignmentPage() {
                 <Textarea
                   id="description"
                   value={formData.description}
-                  onChange={(e) => handleInputChange("description", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("description", e.target.value)
+                  }
                   placeholder="Brief description of the assignment"
                   rows={3}
                 />
@@ -292,7 +324,9 @@ export default function CreateAssignmentPage() {
                 <Textarea
                   id="instructions"
                   value={formData.instructions}
-                  onChange={(e) => handleInputChange("instructions", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("instructions", e.target.value)
+                  }
                   placeholder="Detailed instructions for students"
                   rows={6}
                 />
@@ -314,7 +348,9 @@ export default function CreateAssignmentPage() {
                     type="number"
                     min="1"
                     value={formData.totalPoints}
-                    onChange={(e) => handleInputChange("totalPoints", parseInt(e.target.value))}
+                    onChange={(e) =>
+                      handleInputChange("totalPoints", parseInt(e.target.value))
+                    }
                     className={errors.totalPoints ? "border-red-500" : ""}
                   />
                   {errors.totalPoints && (
@@ -324,7 +360,12 @@ export default function CreateAssignmentPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="submissionType">Submission Type</Label>
-                  <Select value={formData.submissionType} onValueChange={(value) => handleInputChange("submissionType", value)}>
+                  <Select
+                    value={formData.submissionType}
+                    onValueChange={(value) =>
+                      handleInputChange("submissionType", value)
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -344,25 +385,40 @@ export default function CreateAssignmentPage() {
                   <Checkbox
                     id="allowLateSubmission"
                     checked={formData.allowLateSubmission}
-                    onCheckedChange={(checked) => handleInputChange("allowLateSubmission", checked)}
+                    onCheckedChange={(checked) =>
+                      handleInputChange("allowLateSubmission", checked)
+                    }
                   />
-                  <Label htmlFor="allowLateSubmission">Allow late submissions</Label>
+                  <Label htmlFor="allowLateSubmission">
+                    Allow late submissions
+                  </Label>
                 </div>
 
                 {formData.allowLateSubmission && (
                   <div className="ml-6 space-y-2">
-                    <Label htmlFor="lateSubmissionPenalty">Late Submission Penalty (%)</Label>
+                    <Label htmlFor="lateSubmissionPenalty">
+                      Late Submission Penalty (%)
+                    </Label>
                     <Input
                       id="lateSubmissionPenalty"
                       type="number"
                       min="0"
                       max="100"
                       value={formData.lateSubmissionPenalty}
-                      onChange={(e) => handleInputChange("lateSubmissionPenalty", parseInt(e.target.value))}
-                      className={errors.lateSubmissionPenalty ? "border-red-500" : ""}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "lateSubmissionPenalty",
+                          parseInt(e.target.value),
+                        )
+                      }
+                      className={
+                        errors.lateSubmissionPenalty ? "border-red-500" : ""
+                      }
                     />
                     {errors.lateSubmissionPenalty && (
-                      <p className="text-sm text-red-500">{errors.lateSubmissionPenalty}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.lateSubmissionPenalty}
+                      </p>
                     )}
                   </div>
                 )}
@@ -383,7 +439,9 @@ export default function CreateAssignmentPage() {
                     id="dueDate"
                     type="date"
                     value={formData.dueDate}
-                    onChange={(e) => handleInputChange("dueDate", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("dueDate", e.target.value)
+                    }
                     className={errors.dueDate ? "border-red-500" : ""}
                   />
                   {errors.dueDate && (
@@ -397,7 +455,9 @@ export default function CreateAssignmentPage() {
                     id="dueTime"
                     type="time"
                     value={formData.dueTime}
-                    onChange={(e) => handleInputChange("dueTime", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("dueTime", e.target.value)
+                    }
                   />
                 </div>
               </div>
@@ -411,7 +471,12 @@ export default function CreateAssignmentPage() {
                     min="1"
                     max="16"
                     value={formData.weekNumber || ""}
-                    onChange={(e) => handleInputChange("weekNumber", e.target.value ? parseInt(e.target.value) : undefined)}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "weekNumber",
+                        e.target.value ? parseInt(e.target.value) : undefined,
+                      )
+                    }
                     placeholder="e.g., 3"
                   />
                 </div>
@@ -423,7 +488,12 @@ export default function CreateAssignmentPage() {
                     type="number"
                     min="1"
                     value={formData.moduleNumber || ""}
-                    onChange={(e) => handleInputChange("moduleNumber", e.target.value ? parseInt(e.target.value) : undefined)}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "moduleNumber",
+                        e.target.value ? parseInt(e.target.value) : undefined,
+                      )
+                    }
                     placeholder="e.g., 2"
                   />
                 </div>
@@ -444,27 +514,41 @@ export default function CreateAssignmentPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <h4 className="font-medium">{formData.title || "Assignment Title"}</h4>
+                <h4 className="font-medium">
+                  {formData.title || "Assignment Title"}
+                </h4>
                 <p className="text-sm text-muted-foreground">
                   {formData.description || "Assignment description"}
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
-                <Badge variant="outline">{ASSIGNMENT_TYPES.find(t => t.value === formData.assignmentType)?.label}</Badge>
+                <Badge variant="outline">
+                  {
+                    ASSIGNMENT_TYPES.find(
+                      (t) => t.value === formData.assignmentType,
+                    )?.label
+                  }
+                </Badge>
                 <Badge variant="secondary">{formData.totalPoints} pts</Badge>
               </div>
 
               {formData.dueDate && (
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>Due: {new Date(`${formData.dueDate}T${formData.dueTime}`).toLocaleString()}</span>
+                  <span>
+                    Due:{" "}
+                    {new Date(
+                      `${formData.dueDate}T${formData.dueTime}`,
+                    ).toLocaleString()}
+                  </span>
                 </div>
               )}
 
               {formData.allowLateSubmission && (
                 <div className="text-sm text-orange-600">
-                  Late submissions allowed ({formData.lateSubmissionPenalty}% penalty)
+                  Late submissions allowed ({formData.lateSubmissionPenalty}%
+                  penalty)
                 </div>
               )}
             </CardContent>
@@ -473,20 +557,30 @@ export default function CreateAssignmentPage() {
           {/* Quick Tips */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm">💡 Tips for Better Assignments</CardTitle>
+              <CardTitle className="text-sm">
+                💡 Tips for Better Assignments
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div className="space-y-1">
                 <p className="font-medium">Clear Instructions</p>
-                <p className="text-muted-foreground">Provide detailed, step-by-step instructions to avoid confusion.</p>
+                <p className="text-muted-foreground">
+                  Provide detailed, step-by-step instructions to avoid
+                  confusion.
+                </p>
               </div>
               <div className="space-y-1">
                 <p className="font-medium">Realistic Timeline</p>
-                <p className="text-muted-foreground">Give students adequate time to complete quality work.</p>
+                <p className="text-muted-foreground">
+                  Give students adequate time to complete quality work.
+                </p>
               </div>
               <div className="space-y-1">
                 <p className="font-medium">Point Distribution</p>
-                <p className="text-muted-foreground">Align points with the assignment&apos;s complexity and importance.</p>
+                <p className="text-muted-foreground">
+                  Align points with the assignment&apos;s complexity and
+                  importance.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -498,8 +592,8 @@ export default function CreateAssignmentPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full justify-start"
                   onClick={() => handleSubmit(true)}
                   disabled={isLoading}
@@ -513,7 +607,7 @@ export default function CreateAssignmentPage() {
               </div>
 
               <div className="space-y-2">
-                <Button 
+                <Button
                   className="w-full justify-start"
                   onClick={() => handleSubmit(false)}
                   disabled={isLoading || !formData.title || !formData.courseId}

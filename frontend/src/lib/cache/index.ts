@@ -1,8 +1,8 @@
 import { MemoryCache } from "./memory-cache";
 
-import { Cache } from "./cache.interface";
 import { IS_DEV } from "lib/const";
 import logger from "logger";
+import { Cache } from "./cache.interface";
 
 declare global {
   // eslint-disable-next-line no-var

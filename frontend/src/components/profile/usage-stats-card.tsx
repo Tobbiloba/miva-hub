@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Activity, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface UsageStat {
   label: string;
@@ -20,8 +26,8 @@ export function UsageStatsCard() {
 
   useEffect(() => {
     fetch("/api/subscription/usage")
-      .then(res => res.json())
-      .then(data => setUsage(data.usage || []))
+      .then((res) => res.json())
+      .then((data) => setUsage(data.usage || []))
       .finally(() => setLoading(false));
   }, []);
 
@@ -36,7 +42,7 @@ export function UsageStatsCard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {[1, 2, 3].map(i => (
+            {[1, 2, 3].map((i) => (
               <div key={i} className="animate-pulse">
                 <div className="h-4 bg-muted/30 rounded w-1/3 mb-2"></div>
                 <div className="h-2 bg-muted/30 rounded"></div>
@@ -60,10 +66,11 @@ export function UsageStatsCard() {
       <CardContent>
         <div className="space-y-4">
           {usage.map((stat) => {
-            const percentage = stat.limit === -1 ? 0 : (stat.current / stat.limit) * 100;
+            const percentage =
+              stat.limit === -1 ? 0 : (stat.current / stat.limit) * 100;
             const isUnlimited = stat.limit === -1;
             const isNearLimit = percentage > 80 && !isUnlimited;
-            
+
             return (
               <div key={stat.type} className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -72,7 +79,9 @@ export function UsageStatsCard() {
                   </label>
                   <span className="text-sm text-muted-foreground">
                     {isUnlimited ? (
-                      <span className="text-green-600 font-medium">Unlimited</span>
+                      <span className="text-green-600 font-medium">
+                        Unlimited
+                      </span>
                     ) : (
                       <>
                         {stat.current} / {stat.limit}
@@ -82,9 +91,9 @@ export function UsageStatsCard() {
                 </div>
                 {!isUnlimited && (
                   <>
-                    <Progress 
-                      value={percentage} 
-                      className={`h-2 ${isNearLimit ? '[&>div]:bg-orange-500' : ''}`}
+                    <Progress
+                      value={percentage}
+                      className={`h-2 ${isNearLimit ? "[&>div]:bg-orange-500" : ""}`}
                     />
                     {isNearLimit && (
                       <div className="flex items-center gap-1 text-xs text-orange-600">

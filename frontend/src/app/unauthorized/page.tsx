@@ -1,7 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "ui/card";
-import { Button } from "ui/button";
 import { ShieldX } from "lucide-react";
 import Link from "next/link";
+import { Button } from "ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "ui/card";
 
 export default function UnauthorizedPage() {
   return (
@@ -15,18 +15,15 @@ export default function UnauthorizedPage() {
         </CardHeader>
         <CardContent className="text-center space-y-4">
           <p className="text-muted-foreground">
-            You don&apos;t have permission to access this area. Only authorized administrators can access the admin panel.
+            You don&apos;t have permission to access this area. Only authorized
+            administrators can access the admin panel.
           </p>
           <div className="flex flex-col gap-2">
             <Button asChild>
-              <Link href="/">
-                Return to Dashboard
-              </Link>
+              <Link href="/">Return to Dashboard</Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/sign-in">
-                Sign In with Different Account
-              </Link>
+              <Link href="/sign-in">Sign In with Different Account</Link>
             </Button>
           </div>
         </CardContent>

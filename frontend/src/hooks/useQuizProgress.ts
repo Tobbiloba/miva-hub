@@ -1,10 +1,10 @@
-import { useEffect, useCallback, useState, useRef } from 'react';
-import type { SaveStatus } from './useAutoSave';
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { SaveStatus } from "./useAutoSave";
 
 interface QuizProgressData {
   answers: Record<number, string>;
   currentQuestion: number;
-  mode: 'preview' | 'interactive' | 'results';
+  mode: "preview" | "interactive" | "results";
 }
 
 interface UseQuizProgressOptions {
@@ -18,9 +18,9 @@ export function useQuizProgress({
   quizId,
   studentId,
   data,
-  debounceMs = 1000
+  debounceMs = 1000,
 }: UseQuizProgressOptions) {
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>({ status: 'idle' });
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>({ status: "idle" });
   const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const dataRef = useRef(data);
 
@@ -28,17 +28,22 @@ export function useQuizProgress({
     dataRef.current = data;
   }, [data]);
 
-  const storageKey = quizId ? `quiz-progress-${quizId}` : `quiz-progress-temp-${Date.now()}`;
+  const storageKey = quizId
+    ? `quiz-progress-${quizId}`
+    : `quiz-progress-temp-${Date.now()}`;
 
   const saveToLocalStorage = useCallback(() => {
     try {
-      localStorage.setItem(storageKey, JSON.stringify({
-        ...dataRef.current,
-        timestamp: new Date().toISOString()
-      }));
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          ...dataRef.current,
+          timestamp: new Date().toISOString(),
+        }),
+      );
       return true;
     } catch (error) {
-      console.error('localStorage save failed:', error);
+      console.error("localStorage save failed:", error);
       return false;
     }
   }, [storageKey]);
@@ -47,37 +52,40 @@ export function useQuizProgress({
     if (!quizId || !studentId) return false;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/quiz/save`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          quiz_id: quizId,
-          student_id: studentId,
-          answers: dataRef.current.answers,
-          current_question: dataRef.current.currentQuestion,
-          mode: dataRef.current.mode
-        })
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/quiz/save`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            quiz_id: quizId,
+            student_id: studentId,
+            answers: dataRef.current.answers,
+            current_question: dataRef.current.currentQuestion,
+            mode: dataRef.current.mode,
+          }),
+        },
+      );
 
-      if (!response.ok) throw new Error('Backend save failed');
-      
+      if (!response.ok) throw new Error("Backend save failed");
+
       const result = await response.json();
       return result.success;
     } catch (error) {
-      console.error('Backend save failed:', error);
+      console.error("Backend save failed:", error);
       return false;
     }
   }, [quizId, studentId]);
 
   const performSave = useCallback(async () => {
-    setSaveStatus({ status: 'saving' });
+    setSaveStatus({ status: "saving" });
 
     const localSaved = saveToLocalStorage();
 
     if (!quizId || !studentId) {
       setSaveStatus({
-        status: localSaved ? 'saved' : 'error',
-        lastSavedAt: new Date().toISOString()
+        status: localSaved ? "saved" : "error",
+        lastSavedAt: new Date().toISOString(),
       });
       return;
     }
@@ -86,22 +94,23 @@ export function useQuizProgress({
 
     if (backendSaved) {
       setSaveStatus({
-        status: 'saved',
-        lastSavedAt: new Date().toISOString()
+        status: "saved",
+        lastSavedAt: new Date().toISOString(),
       });
     } else {
       setSaveStatus({
-        status: localSaved ? 'offline' : 'error',
+        status: localSaved ? "offline" : "error",
         lastSavedAt: new Date().toISOString(),
-        error: 'Saved locally only'
+        error: "Saved locally only",
       });
     }
   }, [saveToLocalStorage, saveToBackend, quizId, studentId]);
 
   useEffect(() => {
     if (data.mode === "results") return;
-    
-    if (!data || !data.answers || Object.keys(data.answers).length === 0) return;
+
+    if (!data || !data.answers || Object.keys(data.answers).length === 0)
+      return;
 
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -121,7 +130,7 @@ export function useQuizProgress({
   return {
     saveStatus,
     forceSave: performSave,
-    storageKey
+    storageKey,
   };
 }
 
@@ -138,9 +147,12 @@ export function useLoadQuizProgress(quizId?: string, studentId?: string) {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 500);
 
-          const response = await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/quiz/load/${quizId}/${studentId}`, {
-            signal: controller.signal
-          });
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/quiz/load/${quizId}/${studentId}`,
+            {
+              signal: controller.signal,
+            },
+          );
 
           clearTimeout(timeout);
 
@@ -150,14 +162,14 @@ export function useLoadQuizProgress(quizId?: string, studentId?: string) {
               setProgress({
                 answers: result.answers,
                 currentQuestion: result.current_question,
-                mode: result.mode
+                mode: result.mode,
               });
               setLoading(false);
               return;
             }
           }
         } catch (error) {
-          console.warn('Backend load failed, using localStorage:', error);
+          console.warn("Backend load failed, using localStorage:", error);
         }
       }
 
@@ -170,11 +182,11 @@ export function useLoadQuizProgress(quizId?: string, studentId?: string) {
             setProgress({
               answers: data.answers,
               currentQuestion: data.currentQuestion,
-              mode: data.mode
+              mode: data.mode,
             });
           }
         } catch (error) {
-          console.error('localStorage load failed:', error);
+          console.error("localStorage load failed:", error);
         }
       }
 
@@ -192,14 +204,17 @@ export async function clearQuizProgress(quizId?: string, studentId?: string) {
   if (storageKey) {
     localStorage.removeItem(storageKey);
   }
-  
+
   if (quizId && studentId) {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_PROGRESS_API_URL || 'http://localhost:8083'}/progress/quiz/clear/${quizId}/${studentId}`, {
-        method: 'DELETE'
-      });
+      await fetch(
+        `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/quiz/clear/${quizId}/${studentId}`,
+        {
+          method: "DELETE",
+        },
+      );
     } catch (error) {
-      console.error('Backend clear failed:', error);
+      console.error("Backend clear failed:", error);
     }
   }
 }

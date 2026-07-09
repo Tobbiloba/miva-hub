@@ -1,7 +1,13 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { GraduationCap, User, Calendar, TrendingUp } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Calendar, GraduationCap, TrendingUp, User } from "lucide-react";
 
 type CourseListProps = {
   student_id?: string;
@@ -21,7 +27,8 @@ type CourseListProps = {
 
 export function CourseList(props: CourseListProps) {
   const totalCourses = props.total_courses || props.courses.length;
-  const totalCredits = props.total_credits || props.courses.reduce((sum, c) => sum + c.credits, 0);
+  const totalCredits =
+    props.total_credits || props.courses.reduce((sum, c) => sum + c.credits, 0);
 
   return (
     <div className="space-y-4">
@@ -68,17 +75,25 @@ export function CourseList(props: CourseListProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {props.courses.map((course, index) => (
-          <Card key={index} className="bg-card hover:bg-secondary/20 transition-colors">
+          <Card
+            key={index}
+            className="bg-card hover:bg-secondary/20 transition-colors"
+          >
             <CardContent className="p-5">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <h4 className="font-semibold text-sm">{course.course_code}</h4>
+                    <h4 className="font-semibold text-sm">
+                      {course.course_code}
+                    </h4>
                     <span className="px-2 py-0.5 rounded-full bg-secondary/40 text-xs border">
-                      {course.credits} {course.credits === 1 ? 'credit' : 'credits'}
+                      {course.credits}{" "}
+                      {course.credits === 1 ? "credit" : "credits"}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-3">{course.course_name}</p>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {course.course_name}
+                  </p>
                 </div>
               </div>
 
@@ -92,16 +107,23 @@ export function CourseList(props: CourseListProps) {
                 {course.enrollment_date && (
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
-                    <span>Enrolled: {new Date(course.enrollment_date).toLocaleDateString()}</span>
+                    <span>
+                      Enrolled:{" "}
+                      {new Date(course.enrollment_date).toLocaleDateString()}
+                    </span>
                   </div>
                 )}
                 {course.status && (
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      course.status === 'enrolled' ? 'bg-green-500' : 
-                      course.status === 'completed' ? 'bg-blue-500' : 
-                      'bg-gray-400'
-                    }`} />
+                    <div
+                      className={`w-2 h-2 rounded-full ${
+                        course.status === "enrolled"
+                          ? "bg-green-500"
+                          : course.status === "completed"
+                            ? "bg-blue-500"
+                            : "bg-gray-400"
+                      }`}
+                    />
                     <span className="capitalize">{course.status}</span>
                   </div>
                 )}

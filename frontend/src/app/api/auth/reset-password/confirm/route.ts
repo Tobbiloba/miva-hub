@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { deleteResetToken, getResetToken } from "@/lib/auth/reset-token-store";
 import { pgDb as db } from "@/lib/db/pg/db.pg";
-import { UserSchema, AccountSchema } from "@/lib/db/pg/schema.pg";
-import { eq, and } from "drizzle-orm";
+import { AccountSchema, UserSchema } from "@/lib/db/pg/schema.pg";
 import bcrypt from "bcryptjs";
-import { getResetToken, deleteResetToken } from "@/lib/auth/reset-token-store";
+import { and, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     if (!token || !email || !password) {
       return NextResponse.json(
         { error: "Token, email, and password are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     if (!tokenData || tokenData.email !== email.toLowerCase()) {
       return NextResponse.json(
         { error: "Invalid or expired reset token" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     if (password.length < 8) {
       return NextResponse.json(
         { error: "Password must be at least 8 characters" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -42,10 +42,7 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Hash new password
@@ -68,8 +65,8 @@ export async function POST(request: NextRequest) {
       .where(
         and(
           eq(AccountSchema.userId, user.id),
-          eq(AccountSchema.providerId, "credential")
-        )
+          eq(AccountSchema.providerId, "credential"),
+        ),
       );
 
     // Delete used token
@@ -79,13 +76,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { message: "Password reset successfully" },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Password confirm error:", error);
     return NextResponse.json(
       { error: "An error occurred while processing your request" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

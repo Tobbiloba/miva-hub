@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireFaculty, checkCourseInstructorAccess } from "@/lib/auth/faculty";
+import {
+  checkCourseInstructorAccess,
+  requireFaculty,
+} from "@/lib/auth/faculty";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
   AssignmentSchema,
@@ -7,6 +9,7 @@ import {
   CourseSchema,
 } from "@/lib/db/pg/schema.pg";
 import { eq, sql } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const updateAssignmentSchema = z.object({
@@ -22,7 +25,7 @@ const updateAssignmentSchema = z.object({
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const sessionOrError = await requireFaculty();
@@ -43,13 +46,16 @@ export async function GET(
       .limit(1);
 
     if (!assignment) {
-      return NextResponse.json({ error: "Assignment not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Assignment not found" },
+        { status: 404 },
+      );
     }
 
     // Verify faculty teaches this course
     const hasAccess = await checkCourseInstructorAccess(
       session.user.id,
-      assignment.assignment.courseId
+      assignment.assignment.courseId,
     );
     if (!hasAccess) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
@@ -58,15 +64,18 @@ export async function GET(
     return NextResponse.json({ success: true, data: assignment });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch assignment", message: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      {
+        error: "Failed to fetch assignment",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const sessionOrError = await requireFaculty();
@@ -85,11 +94,17 @@ export async function PUT(
       .limit(1);
 
     if (!existing) {
-      return NextResponse.json({ error: "Assignment not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Assignment not found" },
+        { status: 404 },
+      );
     }
 
     // Verify faculty teaches this course
-    const hasAccess = await checkCourseInstructorAccess(session.user.id, existing.courseId);
+    const hasAccess = await checkCourseInstructorAccess(
+      session.user.id,
+      existing.courseId,
+    );
     if (!hasAccess) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
@@ -98,19 +113,30 @@ export async function PUT(
     if (validated.dueDate) {
       const dueDate = new Date(validated.dueDate);
       if (isNaN(dueDate.getTime())) {
-        return NextResponse.json({ error: "Invalid due date format" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid due date format" },
+          { status: 400 },
+        );
       }
     }
 
     const updateData: Record<string, unknown> = { updatedAt: new Date() };
     if (validated.title !== undefined) updateData.title = validated.title;
-    if (validated.description !== undefined) updateData.description = validated.description;
-    if (validated.instructions !== undefined) updateData.instructions = validated.instructions;
-    if (validated.totalPoints !== undefined) updateData.totalPoints = validated.totalPoints;
-    if (validated.dueDate !== undefined) updateData.dueDate = new Date(validated.dueDate);
-    if (validated.isPublished !== undefined) updateData.isPublished = validated.isPublished;
-    if (validated.allowLateSubmission !== undefined) updateData.allowLateSubmission = validated.allowLateSubmission;
-    if (validated.lateSubmissionPenalty !== undefined) updateData.lateSubmissionPenalty = validated.lateSubmissionPenalty.toString();
+    if (validated.description !== undefined)
+      updateData.description = validated.description;
+    if (validated.instructions !== undefined)
+      updateData.instructions = validated.instructions;
+    if (validated.totalPoints !== undefined)
+      updateData.totalPoints = validated.totalPoints;
+    if (validated.dueDate !== undefined)
+      updateData.dueDate = new Date(validated.dueDate);
+    if (validated.isPublished !== undefined)
+      updateData.isPublished = validated.isPublished;
+    if (validated.allowLateSubmission !== undefined)
+      updateData.allowLateSubmission = validated.allowLateSubmission;
+    if (validated.lateSubmissionPenalty !== undefined)
+      updateData.lateSubmissionPenalty =
+        validated.lateSubmissionPenalty.toString();
 
     const [updated] = await pgDb
       .update(AssignmentSchema)
@@ -118,24 +144,31 @@ export async function PUT(
       .where(eq(AssignmentSchema.id, id))
       .returning();
 
-    return NextResponse.json({ success: true, data: updated, message: "Assignment updated" });
+    return NextResponse.json({
+      success: true,
+      data: updated,
+      message: "Assignment updated",
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Validation failed", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
-      { error: "Failed to update assignment", message: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      {
+        error: "Failed to update assignment",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const sessionOrError = await requireFaculty();
@@ -151,10 +184,16 @@ export async function DELETE(
       .limit(1);
 
     if (!existing) {
-      return NextResponse.json({ error: "Assignment not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Assignment not found" },
+        { status: 404 },
+      );
     }
 
-    const hasAccess = await checkCourseInstructorAccess(session.user.id, existing.courseId);
+    const hasAccess = await checkCourseInstructorAccess(
+      session.user.id,
+      existing.courseId,
+    );
     if (!hasAccess) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
@@ -167,8 +206,10 @@ export async function DELETE(
 
     if (Number(submissionCount.count) > 0) {
       return NextResponse.json(
-        { error: `Cannot delete: ${submissionCount.count} student submissions exist. Unpublish it instead.` },
-        { status: 400 }
+        {
+          error: `Cannot delete: ${submissionCount.count} student submissions exist. Unpublish it instead.`,
+        },
+        { status: 400 },
       );
     }
 
@@ -177,8 +218,11 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: "Assignment deleted" });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to delete assignment", message: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      {
+        error: "Failed to delete assignment",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }

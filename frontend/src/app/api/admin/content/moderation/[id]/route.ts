@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { CourseMaterialSchema } from "@/lib/db/pg/schema.pg";
-import { eq } from "drizzle-orm";
 import { extractTranscriptForMaterial } from "@/lib/extraction/transcript-extractor";
 import { generateNewContentNotification } from "@/lib/notifications/generators/new-content";
+import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 /**
  * PATCH /api/admin/content/moderation/:id
@@ -12,7 +12,7 @@ import { generateNewContentNotification } from "@/lib/notifications/generators/n
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const adminAccess = await requireAdmin();
   if (adminAccess instanceof NextResponse) return adminAccess;
@@ -29,10 +29,7 @@ export async function PATCH(
     .limit(1);
 
   if (!material) {
-    return NextResponse.json(
-      { error: "Material not found" },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "Material not found" }, { status: 404 });
   }
 
   switch (action) {
@@ -67,8 +64,10 @@ export async function PATCH(
     case "edit": {
       const updates: Record<string, any> = { updatedAt: new Date() };
       if (body.title !== undefined) updates.title = body.title;
-      if (body.description !== undefined) updates.description = body.description;
-      if (body.materialType !== undefined) updates.materialType = body.materialType;
+      if (body.description !== undefined)
+        updates.description = body.description;
+      if (body.materialType !== undefined)
+        updates.materialType = body.materialType;
       if (body.weekNumber !== undefined) updates.weekNumber = body.weekNumber;
 
       await pgDb
@@ -91,11 +90,9 @@ export async function PATCH(
         .where(eq(CourseMaterialSchema.id, id))
         .limit(1);
 
-      const result = await extractTranscriptForMaterial(
-        id,
-        mat.mimeType,
-        { s3Key: mat.contentUrl ?? undefined }
-      );
+      const result = await extractTranscriptForMaterial(id, mat.mimeType, {
+        s3Key: mat.contentUrl ?? undefined,
+      });
 
       return NextResponse.json({
         success: result.status !== "failed",
@@ -119,14 +116,18 @@ export async function PATCH(
       return NextResponse.json({
         success: true,
         action: "force-recaptured",
-        message: "Existing capture removed. Volunteers can now re-capture this lesson.",
+        message:
+          "Existing capture removed. Volunteers can now re-capture this lesson.",
       });
     }
 
     default:
       return NextResponse.json(
-        { error: "Invalid action. Use 'approve', 'reject', 'edit', 're-extract', or 'force-recapture'" },
-        { status: 400 }
+        {
+          error:
+            "Invalid action. Use 'approve', 'reject', 'edit', 're-extract', or 'force-recapture'",
+        },
+        { status: 400 },
       );
   }
 }
@@ -137,7 +138,7 @@ export async function PATCH(
  */
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const adminAccess = await requireAdmin();
   if (adminAccess instanceof NextResponse) return adminAccess;

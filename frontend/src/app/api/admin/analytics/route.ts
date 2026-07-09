@@ -1,22 +1,33 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth/admin";
 import {
   academicAnalytics,
-  getSystemOverview,
   getCourseAnalytics,
-  getLearningInsights,
   getDepartmentAnalytics,
   getFacultyAnalytics,
-  getRealTimeStats
+  getLearningInsights,
+  getRealTimeStats,
+  getSystemOverview,
 } from "@/lib/analytics/academic-analytics";
+import { requireAdmin } from "@/lib/auth/admin";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 // Request schema for analytics queries
 const analyticsQuerySchema = z.object({
-  type: z.enum(['overview', 'courses', 'departments', 'faculty', 'insights', 'realtime', 'all']).optional().default('all'),
+  type: z
+    .enum([
+      "overview",
+      "courses",
+      "departments",
+      "faculty",
+      "insights",
+      "realtime",
+      "all",
+    ])
+    .optional()
+    .default("all"),
   departmentId: z.string().optional(),
   courseId: z.string().optional(),
-  refresh: z.boolean().optional().default(false)
+  refresh: z.boolean().optional().default(false),
 });
 
 export async function GET(request: NextRequest) {
@@ -30,10 +41,10 @@ export async function GET(request: NextRequest) {
     // Parse query parameters
     const { searchParams } = new URL(request.url);
     const query = analyticsQuerySchema.parse({
-      type: searchParams.get('type') || 'all',
-      departmentId: searchParams.get('departmentId') || undefined,
-      courseId: searchParams.get('courseId') || undefined,
-      refresh: searchParams.get('refresh') === 'true'
+      type: searchParams.get("type") || "all",
+      departmentId: searchParams.get("departmentId") || undefined,
+      courseId: searchParams.get("courseId") || undefined,
+      refresh: searchParams.get("refresh") === "true",
     });
 
     // Clear cache if refresh requested
@@ -45,31 +56,31 @@ export async function GET(request: NextRequest) {
     let responseData: any = {};
 
     switch (query.type) {
-      case 'overview':
+      case "overview":
         responseData = await getSystemOverview();
         break;
 
-      case 'courses':
+      case "courses":
         responseData = await getCourseAnalytics(query.departmentId);
         break;
 
-      case 'departments':
+      case "departments":
         responseData = await getDepartmentAnalytics();
         break;
 
-      case 'faculty':
+      case "faculty":
         responseData = await getFacultyAnalytics(query.departmentId);
         break;
 
-      case 'insights':
+      case "insights":
         responseData = await getLearningInsights();
         break;
 
-      case 'realtime':
+      case "realtime":
         responseData = await getRealTimeStats();
         break;
 
-      case 'all':
+      case "all":
       default:
         const [
           systemOverview,
@@ -77,14 +88,14 @@ export async function GET(request: NextRequest) {
           learningInsights,
           departmentAnalytics,
           facultyAnalytics,
-          realTimeStats
+          realTimeStats,
         ] = await Promise.all([
           getSystemOverview(),
           getCourseAnalytics(query.departmentId),
           getLearningInsights(),
           getDepartmentAnalytics(),
           getFacultyAnalytics(query.departmentId),
-          getRealTimeStats()
+          getRealTimeStats(),
         ]);
 
         responseData = {
@@ -94,7 +105,7 @@ export async function GET(request: NextRequest) {
           departmentAnalytics,
           facultyAnalytics,
           realTimeStats,
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
         };
         break;
     }
@@ -103,17 +114,19 @@ export async function GET(request: NextRequest) {
       success: true,
       data: responseData,
       timestamp: new Date().toISOString(),
-      query
+      query,
     });
-
   } catch (error) {
-    console.error('[Analytics API] Error:', error);
-    
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to fetch analytics data',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error("[Analytics API] Error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch analytics data",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }
 
@@ -130,22 +143,22 @@ export async function POST(request: NextRequest) {
     const action = body.action;
 
     switch (action) {
-      case 'refresh':
+      case "refresh":
         // Clear all analytics cache
         academicAnalytics.clearCache();
         return NextResponse.json({
           success: true,
-          message: 'Analytics cache cleared successfully'
+          message: "Analytics cache cleared successfully",
         });
 
-      case 'generate_report':
+      case "generate_report":
         // Generate comprehensive analytics report
         const reportData = await Promise.all([
           getSystemOverview(),
           getCourseAnalytics(),
           getLearningInsights(),
           getDepartmentAnalytics(),
-          getFacultyAnalytics()
+          getFacultyAnalytics(),
         ]);
 
         return NextResponse.json({
@@ -156,24 +169,29 @@ export async function POST(request: NextRequest) {
             courseAnalytics: reportData[1],
             learningInsights: reportData[2],
             departmentAnalytics: reportData[3],
-            facultyAnalytics: reportData[4]
-          }
+            facultyAnalytics: reportData[4],
+          },
         });
 
       default:
-        return NextResponse.json({
-          success: false,
-          error: 'Invalid action'
-        }, { status: 400 });
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Invalid action",
+          },
+          { status: 400 },
+        );
     }
-
   } catch (error) {
-    console.error('[Analytics API] POST Error:', error);
-    
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to process analytics request',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error("[Analytics API] POST Error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to process analytics request",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }

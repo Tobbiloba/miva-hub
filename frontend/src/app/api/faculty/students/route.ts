@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireFaculty, checkCourseInstructorAccess } from "@/lib/auth/faculty";
-import { pgDb } from "@/lib/db/pg/db.pg";
 import {
-  StudentEnrollmentSchema,
-  UserSchema,
-} from "@/lib/db/pg/schema.pg";
-import { eq, asc } from "drizzle-orm";
+  checkCourseInstructorAccess,
+  requireFaculty,
+} from "@/lib/auth/faculty";
+import { pgDb } from "@/lib/db/pg/db.pg";
+import { StudentEnrollmentSchema, UserSchema } from "@/lib/db/pg/schema.pg";
+import { asc, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,11 +17,17 @@ export async function GET(request: NextRequest) {
     const courseId = searchParams.get("courseId");
 
     if (!courseId) {
-      return NextResponse.json({ error: "courseId is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "courseId is required" },
+        { status: 400 },
+      );
     }
 
     // Verify faculty teaches this course
-    const hasAccess = await checkCourseInstructorAccess(session.user.id, courseId);
+    const hasAccess = await checkCourseInstructorAccess(
+      session.user.id,
+      courseId,
+    );
     if (!hasAccess) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
@@ -35,15 +41,21 @@ export async function GET(request: NextRequest) {
         finalGrade: StudentEnrollmentSchema.finalGrade,
       })
       .from(StudentEnrollmentSchema)
-      .innerJoin(UserSchema, eq(StudentEnrollmentSchema.studentId, UserSchema.id))
+      .innerJoin(
+        UserSchema,
+        eq(StudentEnrollmentSchema.studentId, UserSchema.id),
+      )
       .where(eq(StudentEnrollmentSchema.courseId, courseId))
       .orderBy(asc(UserSchema.name));
 
     return NextResponse.json({ success: true, data: enrollments });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch students", message: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      {
+        error: "Failed to fetch students",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }

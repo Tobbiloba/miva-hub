@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { requireAdmin } from "@/lib/auth/admin";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(_request: NextRequest) {
   try {
@@ -11,13 +11,13 @@ export async function GET(_request: NextRequest) {
     }
 
     const departments = await pgAcademicRepository.getDepartments();
-    
+
     // Format for dropdown consumption
-    const formattedDepartments = departments.map(dept => ({
-      value: dept.code.toLowerCase().replace(/\s+/g, '-'),
+    const formattedDepartments = departments.map((dept) => ({
+      value: dept.code.toLowerCase().replace(/\s+/g, "-"),
       label: dept.name,
       code: dept.code,
-      id: dept.id
+      id: dept.id,
     }));
 
     return NextResponse.json(formattedDepartments);
@@ -25,7 +25,7 @@ export async function GET(_request: NextRequest) {
     console.error("Error fetching departments:", error);
     return NextResponse.json(
       { error: "Failed to fetch departments" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

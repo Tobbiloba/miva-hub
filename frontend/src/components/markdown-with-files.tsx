@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { Markdown } from "./markdown";
 import { FileDisplay } from "./files";
+import { Markdown } from "./markdown";
 
 interface MarkdownWithFilesProps {
   children: string;
@@ -15,12 +15,15 @@ interface ParsedFile {
   materialType?: string;
 }
 
-export function MarkdownWithFiles({ children, className }: MarkdownWithFilesProps) {
+export function MarkdownWithFiles({
+  children,
+  className,
+}: MarkdownWithFilesProps) {
   // Parse the markdown text to extract file URLs and information
   const { cleanedMarkdown, files } = useMemo(() => {
     const text = children;
     const files: ParsedFile[] = [];
-    
+
     // Regex patterns to match our file links from MCP tools
     const patterns = [
       // Pattern: - 🔗 [View Material](/api/files/abc123)
@@ -32,22 +35,22 @@ export function MarkdownWithFiles({ children, className }: MarkdownWithFilesProp
     ];
 
     let cleanedText = text;
-    
+
     // Extract files from each pattern
-    patterns.forEach(pattern => {
+    patterns.forEach((pattern) => {
       let match;
       while ((match = pattern.exec(text)) !== null) {
         const [fullMatch, title, url] = match;
-        
+
         // Check if it's one of our file URLs
-        if (url && url.startsWith('/api/files/')) {
+        if (url && url.startsWith("/api/files/")) {
           files.push({
             url,
-            title: title || 'Course Material',
+            title: title || "Course Material",
           });
-          
+
           // Remove the file link from markdown to avoid duplication
-          cleanedText = cleanedText.replace(fullMatch, '');
+          cleanedText = cleanedText.replace(fullMatch, "");
         }
       }
     });
@@ -59,15 +62,15 @@ export function MarkdownWithFiles({ children, className }: MarkdownWithFilesProp
       const [fullMatch, beforeSpace, url, afterSpace] = urlMatch;
       files.push({
         url,
-        title: 'Course Material',
+        title: "Course Material",
       });
       cleanedText = cleanedText.replace(fullMatch, beforeSpace + afterSpace);
     }
 
     // Clean up any remaining empty lines or bullet points
     cleanedText = cleanedText
-      .replace(/^\s*-\s*$/gm, '') // Remove empty bullet points
-      .replace(/\n\s*\n\s*\n/g, '\n\n') // Reduce multiple empty lines
+      .replace(/^\s*-\s*$/gm, "") // Remove empty bullet points
+      .replace(/\n\s*\n\s*\n/g, "\n\n") // Reduce multiple empty lines
       .trim();
 
     return { cleanedMarkdown: cleanedText, files };
@@ -77,7 +80,7 @@ export function MarkdownWithFiles({ children, className }: MarkdownWithFilesProp
     <div className={className}>
       {/* Render the cleaned markdown */}
       <Markdown>{cleanedMarkdown}</Markdown>
-      
+
       {/* Render file displays */}
       {files.length > 0 && (
         <div className="mt-4 space-y-3">

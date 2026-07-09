@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
   AcademicSessionSchema,
-  UserSchema,
   ProgramSchema,
+  UserSchema,
 } from "@/lib/db/pg/schema.pg";
 import { getUserUniversity } from "@/lib/tenant";
-import { eq, and, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const endSessionSchema = z.object({
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
           message:
             "Ending an academic session requires a university-scoped admin. Super admins must act within a specific university.",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -55,15 +55,15 @@ export async function POST(request: NextRequest) {
       .where(
         and(
           eq(AcademicSessionSchema.isCurrent, true),
-          eq(AcademicSessionSchema.universityId, university.id)
-        )
+          eq(AcademicSessionSchema.universityId, university.id),
+        ),
       )
       .limit(1);
 
     if (!currentSession) {
       return NextResponse.json(
         { success: false, error: "No active academic session found" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -84,14 +84,14 @@ export async function POST(request: NextRequest) {
           eq(UserSchema.universityId, university.id),
           eq(UserSchema.enrollmentStatus, "active"),
           eq(UserSchema.role, "student"),
-          sql`${UserSchema.currentLevel} >= ${gradLevelExpr}`
-        )
+          sql`${UserSchema.currentLevel} >= ${gradLevelExpr}`,
+        ),
       )
       .groupBy(UserSchema.currentLevel, ProgramSchema.name);
 
     const totalGraduating = graduatingStudents.reduce(
       (sum, row) => sum + Number(row.count),
-      0
+      0,
     );
 
     // Count advancing students (active, level < graduation level)
@@ -108,14 +108,14 @@ export async function POST(request: NextRequest) {
           eq(UserSchema.universityId, university.id),
           eq(UserSchema.enrollmentStatus, "active"),
           eq(UserSchema.role, "student"),
-          sql`${UserSchema.currentLevel} < ${gradLevelExpr}`
-        )
+          sql`${UserSchema.currentLevel} < ${gradLevelExpr}`,
+        ),
       )
       .groupBy(UserSchema.currentLevel, ProgramSchema.name);
 
     const totalAdvancing = advancingStudents.reduce(
       (sum, row) => sum + Number(row.count),
-      0
+      0,
     );
 
     // Build level advancement breakdown
@@ -135,8 +135,8 @@ export async function POST(request: NextRequest) {
         and(
           eq(UserSchema.universityId, university.id),
           eq(UserSchema.enrollmentStatus, "active"),
-          eq(UserSchema.role, "student")
-        )
+          eq(UserSchema.role, "student"),
+        ),
       );
     const totalActive = Number(totalActiveResult.count);
 
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
               acc[name] = (acc[name] || 0) + Number(row.count);
               return acc;
             },
-            {} as Record<string, number>
+            {} as Record<string, number>,
           ),
         },
       });
@@ -179,8 +179,8 @@ export async function POST(request: NextRequest) {
             eq(UserSchema.universityId, university.id),
             eq(UserSchema.enrollmentStatus, "active"),
             eq(UserSchema.role, "student"),
-            sql`${UserSchema.currentLevel} >= COALESCE((SELECT p.duration_years * 100 FROM program p WHERE p.id = ${UserSchema.programId}), ${DEFAULT_GRADUATION_LEVEL})`
-          )
+            sql`${UserSchema.currentLevel} >= COALESCE((SELECT p.duration_years * 100 FROM program p WHERE p.id = ${UserSchema.programId}), ${DEFAULT_GRADUATION_LEVEL})`,
+          ),
         )
         .returning({ id: UserSchema.id });
 
@@ -197,8 +197,8 @@ export async function POST(request: NextRequest) {
           and(
             eq(UserSchema.universityId, university.id),
             eq(UserSchema.enrollmentStatus, "active"),
-            eq(UserSchema.role, "student")
-          )
+            eq(UserSchema.role, "student"),
+          ),
         )
         .returning({ id: UserSchema.id });
 
@@ -213,8 +213,8 @@ export async function POST(request: NextRequest) {
         .where(
           and(
             eq(AcademicSessionSchema.isCurrent, true),
-            eq(AcademicSessionSchema.universityId, university.id)
-          )
+            eq(AcademicSessionSchema.universityId, university.id),
+          ),
         );
 
       // Step 4: Create or activate next session
@@ -225,8 +225,8 @@ export async function POST(request: NextRequest) {
         .where(
           and(
             eq(AcademicSessionSchema.sessionName, nextSessionName),
-            eq(AcademicSessionSchema.universityId, university.id)
-          )
+            eq(AcademicSessionSchema.universityId, university.id),
+          ),
         )
         .limit(1);
 
@@ -274,7 +274,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, error: "Validation failed", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
@@ -283,7 +283,7 @@ export async function POST(request: NextRequest) {
         error: "Failed to end session",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server";
-import { paystackService } from "@/lib/payment/paystack-service";
 import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
+import { paystackService } from "@/lib/payment/paystack-service";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,7 +30,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Disable on Paystack side
-    if (subscription.paystackSubscriptionCode && subscription.paystackEmailToken) {
+    if (
+      subscription.paystackSubscriptionCode &&
+      subscription.paystackEmailToken
+    ) {
       try {
         await paystackService.disableSubscription(
           subscription.paystackSubscriptionCode,
@@ -53,7 +56,8 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({
-      message: "Subscription will be canceled at the end of your current billing period.",
+      message:
+        "Subscription will be canceled at the end of your current billing period.",
       current_period_end: subscription.currentPeriodEnd.toISOString(),
     });
   } catch (error) {

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgAcademicRepository as academicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,27 +9,35 @@ export async function POST(request: NextRequest) {
     if (sessionOrError instanceof NextResponse) return sessionOrError;
 
     const data = await request.json();
-    const { courseId, weekNumber, title, description, learningObjectives, topics } = data;
+    const {
+      courseId,
+      weekNumber,
+      title,
+      description,
+      learningObjectives,
+      topics,
+    } = data;
 
     // Validate required fields
     if (!courseId || !weekNumber || !title) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: "Missing required fields: courseId, weekNumber, and title are required" 
+        {
+          success: false,
+          message:
+            "Missing required fields: courseId, weekNumber, and title are required",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Validate week number
     if (weekNumber < 1 || weekNumber > 52) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: "Week number must be between 1 and 52" 
+        {
+          success: false,
+          message: "Week number must be between 1 and 52",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,35 +51,34 @@ export async function POST(request: NextRequest) {
       topics: topics || null,
       isPublished: false, // Default to unpublished
       plannedStartDate: null, // Will be calculated later based on course dates
-      plannedEndDate: null
+      plannedEndDate: null,
     });
 
     return NextResponse.json({
       success: true,
       message: "Course week created successfully",
-      data: courseWeek
+      data: courseWeek,
     });
-
   } catch (error) {
     console.error("Error creating course week:", error);
-    
+
     // Handle unique constraint violations (duplicate week numbers for same course)
-    if (error instanceof Error && error.message.includes('unique constraint')) {
+    if (error instanceof Error && error.message.includes("unique constraint")) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: "A week with this number already exists for this course" 
+        {
+          success: false,
+          message: "A week with this number already exists for this course",
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
     return NextResponse.json(
-      { 
-        success: false, 
-        message: "Failed to create course week. Please try again." 
+      {
+        success: false,
+        message: "Failed to create course week. Please try again.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -83,15 +90,15 @@ export async function GET(request: NextRequest) {
     if (sessionOrError instanceof NextResponse) return sessionOrError;
 
     const { searchParams } = new URL(request.url);
-    const courseId = searchParams.get('courseId');
+    const courseId = searchParams.get("courseId");
 
     if (!courseId) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: "courseId parameter is required" 
+        {
+          success: false,
+          message: "courseId parameter is required",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -100,17 +107,16 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: courseWeeks
+      data: courseWeeks,
     });
-
   } catch (error) {
     console.error("Error fetching course weeks:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: "Failed to fetch course weeks" 
+      {
+        success: false,
+        message: "Failed to fetch course weeks",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

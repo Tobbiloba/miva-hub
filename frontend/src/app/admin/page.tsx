@@ -1,23 +1,27 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { 
-  Users, 
-  BookOpen, 
-  FileText, 
-  Building2, 
-  UserCheck, 
-  Activity,
-  Upload,
-  TrendingUp,
-  BarChart3
-} from "lucide-react";
-import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { StatsCard } from "@/components/admin/stats-card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import {
+  Activity,
+  BarChart3,
+  BookOpen,
+  Building2,
+  FileText,
+  TrendingUp,
+  Upload,
+  UserCheck,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 
 export default async function AdminDashboard() {
   const stats = await pgAcademicRepository.getSystemStats();
-  const recentAnnouncements = await pgAcademicRepository.getAnnouncements(undefined, undefined, 5);
+  const recentAnnouncements = await pgAcademicRepository.getAnnouncements(
+    undefined,
+    undefined,
+    5,
+  );
   const departments = await pgAcademicRepository.getDepartments();
 
   return (
@@ -131,7 +135,10 @@ export default async function AdminDashboard() {
             {recentAnnouncements.length > 0 ? (
               <div className="space-y-3">
                 {recentAnnouncements.map((announcement) => (
-                  <div key={announcement.id} className="border-l-2 border-primary pl-3">
+                  <div
+                    key={announcement.id}
+                    className="border-l-2 border-primary pl-3"
+                  >
                     <p className="text-sm font-medium">{announcement.title}</p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(announcement.createdAt).toLocaleDateString()}
@@ -140,7 +147,9 @@ export default async function AdminDashboard() {
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-sm">No recent announcements</p>
+              <p className="text-muted-foreground text-sm">
+                No recent announcements
+              </p>
             )}
           </CardContent>
         </Card>
@@ -157,10 +166,15 @@ export default async function AdminDashboard() {
             {departments.length > 0 ? (
               <div className="space-y-2">
                 {departments.slice(0, 4).map((dept) => (
-                  <div key={dept.id} className="flex items-center justify-between">
+                  <div
+                    key={dept.id}
+                    className="flex items-center justify-between"
+                  >
                     <div>
                       <p className="text-sm font-medium">{dept.name}</p>
-                      <p className="text-xs text-muted-foreground">{dept.code}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {dept.code}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -173,7 +187,9 @@ export default async function AdminDashboard() {
                 )}
               </div>
             ) : (
-              <p className="text-muted-foreground text-sm">No departments configured</p>
+              <p className="text-muted-foreground text-sm">
+                No departments configured
+              </p>
             )}
           </CardContent>
         </Card>

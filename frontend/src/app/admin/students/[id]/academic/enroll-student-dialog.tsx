@@ -1,26 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,8 +11,29 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, Plus, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Loader2, Trash2 } from "lucide-react";
 
 interface Course {
   id: string;
@@ -77,7 +77,7 @@ export function EnrollStudentDialog({
   const [courseId, setCourseId] = useState("");
   const [semester, setSemester] = useState("first");
   const [enrollAcademicYear, setEnrollAcademicYear] = useState(
-    academicYear ?? ""
+    academicYear ?? "",
   );
 
   useEffect(() => {
@@ -217,16 +217,10 @@ export function EnrollStudentDialog({
               </div>
             </div>
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setOpen(false)}
-              >
+              <Button variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
-              <Button
-                onClick={handleEnroll}
-                disabled={loading || !courseId}
-              >
+              <Button onClick={handleEnroll} disabled={loading || !courseId}>
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -252,8 +246,7 @@ export function EnrollStudentDialog({
                 className="flex items-center justify-between text-sm py-1 px-2 rounded hover:bg-muted/50"
               >
                 <span>
-                  {e.courseCode} &middot; {e.semester} &middot;{" "}
-                  {e.academicYear}
+                  {e.courseCode} &middot; {e.semester} &middot; {e.academicYear}
                 </span>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>

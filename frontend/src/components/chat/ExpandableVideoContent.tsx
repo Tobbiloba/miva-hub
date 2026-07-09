@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useMemo } from 'react';
-import { ChevronDown, ChevronUp, Video } from 'lucide-react';
-import { cn } from 'lib/utils';
-import { VideoPlayer } from '../media/VideoPlayer';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from "framer-motion";
+import { cn } from "lib/utils";
+import { ChevronDown, ChevronUp, Video } from "lucide-react";
+import { useMemo, useState } from "react";
+import { VideoPlayer } from "../media/VideoPlayer";
 
 interface VideoItem {
   url: string;
@@ -20,23 +20,24 @@ interface ExpandableVideoContentProps {
 // Extract video URLs from text content
 function extractVideoUrls(text: string): VideoItem[] {
   const videoItems: VideoItem[] = [];
-  
+
   // Video URL patterns for different formats
-  const videoPattern = /https?:\/\/[^\s]+\.(?:mp4|avi|mov|webm|mkv)(?:\?[^\s]*)?/gi;
-  
+  const videoPattern =
+    /https?:\/\/[^\s]+\.(?:mp4|avi|mov|webm|mkv)(?:\?[^\s]*)?/gi;
+
   const matches = text.match(videoPattern) || [];
-  matches.forEach(url => {
+  matches.forEach((url) => {
     // Extract filename for title and file extension
-    const filename = url.split('/').pop()?.split('?')[0] || url;
-    const fileExtension = filename.split('.').pop()?.toLowerCase() || 'video';
-    
+    const filename = url.split("/").pop()?.split("?")[0] || url;
+    const fileExtension = filename.split(".").pop()?.toLowerCase() || "video";
+
     videoItems.push({
       url,
       title: filename,
       fileExtension,
     });
   });
-  
+
   return videoItems;
 }
 
@@ -62,15 +63,18 @@ const variants = {
   },
 };
 
-export function ExpandableVideoContent({ content, className }: ExpandableVideoContentProps) {
+export function ExpandableVideoContent({
+  content,
+  className,
+}: ExpandableVideoContentProps) {
   const [expandedVideos, setExpandedVideos] = useState<Set<string>>(new Set());
-  
+
   const videoItems = useMemo(() => extractVideoUrls(content), [content]);
-  
+
   if (videoItems.length === 0) {
     return null;
   }
-  
+
   const toggleExpanded = (url: string) => {
     const newExpanded = new Set(expandedVideos);
     if (newExpanded.has(url)) {
@@ -80,19 +84,19 @@ export function ExpandableVideoContent({ content, className }: ExpandableVideoCo
     }
     setExpandedVideos(newExpanded);
   };
-  
+
   return (
     <div className={cn("space-y-2 mt-4", className)}>
       {videoItems.map((videoItem, index) => {
         const isExpanded = expandedVideos.has(videoItem.url);
-        
+
         return (
           <div key={`${videoItem.url}-${index}`}>
             {/* Video Item - matching tool call styling exactly */}
             <div
               className={cn(
                 "min-w-0 w-full p-4 rounded-lg bg-card border text-xs transition-colors cursor-pointer",
-                isExpanded ? "bg-secondary" : "hover:bg-secondary"
+                isExpanded ? "bg-secondary" : "hover:bg-secondary",
               )}
               onClick={() => toggleExpanded(videoItem.url)}
             >
@@ -110,10 +114,10 @@ export function ExpandableVideoContent({ content, className }: ExpandableVideoCo
                 )}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                Click to {isExpanded ? 'collapse' : 'expand'} video player
+                Click to {isExpanded ? "collapse" : "expand"} video player
               </div>
             </div>
-            
+
             {/* Expanded Video Player */}
             <AnimatePresence initial={false}>
               {isExpanded && (
