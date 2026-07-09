@@ -1,21 +1,23 @@
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { AnnouncementSchema, UserSchema } from "@/lib/db/pg/schema.pg";
-import { getUserUniversity } from "@/lib/tenant";
+import { getAdminScope } from "@/lib/tenant";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
  * Tenant-scoped announcement lookup. Announcements carry no universityId,
- * so ownership is derived from the creator's university: admins may only
- * touch announcements authored within their own university (super admins
- * without a university see all). Prevents cross-university IDOR.
+ * so ownership is derived from the creator's university: super_admins (by
+ * role) may touch any; university admins only announcements authored within
+ * their own tenant. A tenant admin without a university matches nothing.
+ * Prevents cross-university IDOR.
  */
 async function findTenantAnnouncement(
   adminUserId: string,
   announcementId: string,
 ) {
-  const university = await getUserUniversity(adminUserId);
+  const scope = await getAdminScope(adminUserId);
+  if (!scope.superAdmin && !scope.university) return null;
   const rows = await pgDb
     .select({ announcement: AnnouncementSchema })
     .from(AnnouncementSchema)
@@ -23,7 +25,9 @@ async function findTenantAnnouncement(
     .where(
       and(
         eq(AnnouncementSchema.id, announcementId),
-        ...(university ? [eq(UserSchema.universityId, university.id)] : []),
+        ...(scope.university
+          ? [eq(UserSchema.universityId, scope.university.id)]
+          : []),
       ),
     )
     .limit(1);

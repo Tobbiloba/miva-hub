@@ -55,18 +55,55 @@ export function emailMatchesUniversity(
   );
 }
 
+/** Role + universityId straight from the user row (one query). */
+async function fetchRoleAndUniversity(
+  userId: string,
+): Promise<{ role: string | null; universityId: string | null } | undefined> {
+  const { pgDb } = await import("lib/db/pg/db.pg");
+  const { UserSchema } = await import("lib/db/pg/schema.pg");
+  const { eq } = await import("drizzle-orm");
+  const [row] = await pgDb
+    .select({ role: UserSchema.role, universityId: UserSchema.universityId })
+    .from(UserSchema)
+    .where(eq(UserSchema.id, userId))
+    .limit(1);
+  return row;
+}
+
 /**
  * May this admin act on an entity owned by `entityUniversityId`?
- * Tenant admins only within their own university; super admins
- * (no university on their user row) may act on anything.
+ * Cross-tenant access requires the super_admin ROLE — never inferred
+ * from a missing universityId. A tenant admin without a university is
+ * misconfigured and gets nothing, not everything.
  */
 export async function isSameTenant(
   adminUserId: string,
   entityUniversityId: string | null | undefined,
 ): Promise<boolean> {
-  const university = await getUserUniversity(adminUserId);
-  if (!university) return true;
-  return entityUniversityId === university.id;
+  const row = await fetchRoleAndUniversity(adminUserId);
+  if (row?.role === "super_admin") return true;
+  return !!row?.universityId && entityUniversityId === row.universityId;
+}
+
+export type AdminScope =
+  | { superAdmin: true; university: undefined }
+  | { superAdmin: false; university: University | undefined };
+
+/**
+ * Tenant scope for an admin request. super_admin → unscoped (university
+ * undefined by design). Regular admin → their university, or undefined
+ * when misconfigured — callers MUST treat that as forbidden, never as
+ * "skip the tenant filter".
+ */
+export async function getAdminScope(userId: string): Promise<AdminScope> {
+  const row = await fetchRoleAndUniversity(userId);
+  if (row?.role === "super_admin") {
+    return { superAdmin: true, university: undefined };
+  }
+  return {
+    superAdmin: false,
+    university: await getUniversityById(row?.universityId),
+  };
 }
 
 /** Load a user's university by joining through the user row (DB-backed,

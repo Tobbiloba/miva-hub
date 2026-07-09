@@ -5,22 +5,26 @@ import {
   FacultySchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
-import { getUserUniversity } from "@/lib/tenant";
-import { type SQL, and, eq } from "drizzle-orm";
+import { getAdminScope } from "@/lib/tenant";
+import { type SQL, and, eq, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Tenant scope for user lookups: admins may only touch users of their own
- * university (super admins without a university see all).
+ * Tenant scope for user lookups: super_admins (by role) may touch any user;
+ * university admins only their own tenant. A tenant admin without a
+ * university matches nothing — never everything.
  */
 async function userTenantFilter(
   adminUserId: string,
   targetUserId: string,
 ): Promise<SQL | undefined> {
-  const university = await getUserUniversity(adminUserId);
+  const scope = await getAdminScope(adminUserId);
+  if (!scope.superAdmin && !scope.university) return sql`false`;
   return and(
     eq(UserSchema.id, targetUserId),
-    ...(university ? [eq(UserSchema.universityId, university.id)] : []),
+    ...(scope.university
+      ? [eq(UserSchema.universityId, scope.university.id)]
+      : []),
   );
 }
 

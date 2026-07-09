@@ -42,14 +42,21 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
-    // Tenant scope: admins only see their own university's students
-    const { getUserUniversity } = await import("@/lib/tenant");
-    const university = await getUserUniversity(adminAccess.user.id);
+    // Tenant scope: super_admin is unscoped by role; a university admin
+    // without a university is misconfigured and gets 403, never unfiltered
+    const { getAdminScope } = await import("@/lib/tenant");
+    const scope = await getAdminScope(adminAccess.user.id);
+    if (!scope.superAdmin && !scope.university) {
+      return NextResponse.json(
+        { success: false, message: "Admin is not assigned to a university" },
+        { status: 403 },
+      );
+    }
 
     // Build query conditions
     const whereConditions = [eq(UserSchema.role, "student")];
-    if (university) {
-      whereConditions.push(eq(UserSchema.universityId, university.id));
+    if (scope.university) {
+      whereConditions.push(eq(UserSchema.universityId, scope.university.id));
     }
 
     // Add search filter

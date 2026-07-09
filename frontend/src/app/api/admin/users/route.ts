@@ -6,7 +6,7 @@ import {
   FacultySchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
-import { getUserUniversity } from "@/lib/tenant";
+import { getAdminScope } from "@/lib/tenant";
 import { type SQL, and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -16,8 +16,16 @@ export async function GET(request: NextRequest) {
     const sessionOrError = await requireAdmin();
     if (sessionOrError instanceof NextResponse) return sessionOrError;
 
-    // Tenant scope: admins only see users from their own university
-    const university = await getUserUniversity(sessionOrError.user.id);
+    // Tenant scope: super_admin is unscoped by role; a university admin
+    // without a university is misconfigured and gets 403, never unfiltered
+    const scope = await getAdminScope(sessionOrError.user.id);
+    if (!scope.superAdmin && !scope.university) {
+      return NextResponse.json(
+        { success: false, message: "Admin is not assigned to a university" },
+        { status: 403 },
+      );
+    }
+    const university = scope.university;
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search");
@@ -185,8 +193,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Tenant scope: new users belong to the creating admin's university
-    const university = await getUserUniversity(sessionOrError.user.id);
+    // Tenant scope: new users belong to the creating admin's university.
+    // Only a super_admin may mint a user without a university.
+    const scope = await getAdminScope(sessionOrError.user.id);
+    if (!scope.superAdmin && !scope.university) {
+      return NextResponse.json(
+        { success: false, message: "Admin is not assigned to a university" },
+        { status: 403 },
+      );
+    }
+    const university = scope.university;
 
     // Hash with better-auth's own algorithm — sign-in verifies against the
     // account (credential) row, so a bare UserSchema.password can never log in
