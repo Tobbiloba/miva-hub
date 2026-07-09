@@ -31,6 +31,8 @@ export function AsklyHeader({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
+        flexWrap: "wrap",
+        rowGap: "0.5rem",
         paddingTop: "0.875rem",
         paddingBottom: "0.875rem",
       }}
@@ -73,7 +75,14 @@ export function AsklyHeader({
 
       {/* Nav pills + avatar */}
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-        <nav style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+        <nav
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "0.25rem",
+          }}
+        >
           {navItems.map((item) => (
             <Link
               key={item.href}
