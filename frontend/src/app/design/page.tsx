@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ChatSection } from "./_components/chat-section";
 import { ControlsSection } from "./_components/controls-section";
 import { DesignShell } from "./_components/design-shell";
 import { FoundationsSection } from "./_components/foundations-section";
@@ -17,6 +18,7 @@ export default function DesignSystemPage() {
       <FoundationsSection />
       <ControlsSection />
       <SurfacesSection />
+      <ChatSection />
       <MotionSection />
     </DesignShell>
   );

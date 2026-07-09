@@ -10,6 +10,7 @@ const NAV = [
   { id: "foundations", label: "Foundations" },
   { id: "controls", label: "Controls" },
   { id: "surfaces", label: "Surfaces" },
+  { id: "chat", label: "Chat" },
   { id: "motion", label: "Motion & Icons" },
 ];
 
