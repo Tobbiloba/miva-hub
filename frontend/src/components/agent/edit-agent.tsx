@@ -9,8 +9,8 @@ import { Agent, AgentCreateSchema, AgentUpdateSchema } from "app-types/agent";
 import { ChatMention } from "app-types/chat";
 import { MCPServerInfo } from "app-types/mcp";
 import {
-  RandomDataGeneratorExample,
-  WeatherExample,
+  CitationFinderExample,
+  GradeAnalyzerExample,
 } from "lib/ai/agent/example";
 import { DefaultToolName } from "lib/ai/tools";
 import { BACKGROUND_COLORS } from "lib/const";
@@ -339,20 +339,20 @@ export default function EditAgent({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-54" align="end">
                     <DropdownMenuItem
-                      onClick={() => setAgent(RandomDataGeneratorExample)}
+                      onClick={() => setAgent(GradeAnalyzerExample)}
                     >
                       <div className="flex items-center gap-2">
-                        <span>🎲</span>
-                        <span>Generate Random Data</span>
+                        <span>📊</span>
+                        <span>Grade Analyzer</span>
                       </div>
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      data-testid="agent-create-with-example-weather-button"
-                      onClick={() => setAgent(WeatherExample)}
+                      data-testid="agent-create-with-example-citation-button"
+                      onClick={() => setAgent(CitationFinderExample)}
                     >
                       <div className="flex items-center gap-2">
-                        <span>🌤️</span>
-                        <span>Weather Checker</span>
+                        <span>📚</span>
+                        <span>Citation Finder</span>
                       </div>
                     </DropdownMenuItem>
                   </DropdownMenuContent>

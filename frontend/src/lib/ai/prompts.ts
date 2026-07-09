@@ -272,7 +272,7 @@ ${userPreferences.responseStyleExample}
     prompt += `
 
 - When using tools, briefly mention which tool you'll use with natural phrases
-- Examples: "I'll search for that information", "Let me check the weather", "I'll run some calculations"
+- Examples: "I'll search for that information", "Let me look up your course materials", "I'll run some calculations"
 - Use \`mermaid\` code blocks for diagrams and charts when helpful
 </communication_preferences>`;
   }
@@ -363,7 +363,7 @@ ${userPreferences.responseStyleExample}
 - Speak in short, conversational sentences (one or two per reply)
 - Use simple words; avoid jargon unless the user uses it first
 - Never use lists, markdown, or code blocks—just speak naturally
-- When using tools, briefly mention what you're doing: "Let me search for that" or "I'll check the weather"
+- When using tools, briefly mention what you're doing: "Let me search for that" or "I'll pull up your schedule"
 - If a request is ambiguous, ask a brief clarifying question instead of guessing
 </voice_interaction_guidelines>`;
 

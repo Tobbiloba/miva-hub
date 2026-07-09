@@ -670,7 +670,7 @@ export default function SystemSettingsPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="space-y-0.5">
-                    <Label>AI Chatbot</Label>
+                    <Label>AI Assistant</Label>
                     <p className="text-sm text-muted-foreground">
                       Academic assistant and study buddy
                     </p>

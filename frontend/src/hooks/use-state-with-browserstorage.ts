@@ -1,6 +1,6 @@
 "use client";
 
-import { getStorageManager } from "lib/browser-stroage";
+import { getStorageManager } from "lib/browser-storage";
 import { isFunction } from "lib/utils";
 import {
   Dispatch,

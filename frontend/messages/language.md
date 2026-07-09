@@ -15,10 +15,6 @@ export const SUPPORTED_LOCALES = [
     name: "English 🇺🇸",
   },
   {
-    code: "ko",
-    name: "Korean 🇰🇷",
-  },
-  {
     code: "your-language-code",
     name: "Your Language Name 🏴",
   },

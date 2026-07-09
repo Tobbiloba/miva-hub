@@ -24,7 +24,7 @@ import { useToRef } from "@/hooks/use-latest";
 import { useMounted } from "@/hooks/use-mounted";
 import { ChatApiSchemaRequestBody, ChatModel } from "app-types/chat";
 import { AnimatePresence, motion } from "framer-motion";
-import { getStorageManager } from "lib/browser-stroage";
+import { getStorageManager } from "lib/browser-storage";
 import { Shortcuts, isShortcutEvent } from "lib/keyboard-shortcuts";
 import {
   ArrowDown,

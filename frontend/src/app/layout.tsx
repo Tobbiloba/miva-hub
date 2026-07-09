@@ -19,7 +19,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Askly",
-  description: "Askly is a chatbot that uses the Tools to answer questions.",
+  description:
+    "Askly — the AI-powered digital campus. Coursework help, grading, and academic support for students and faculty.",
 };
 
 // const themes = BASE_THEMES.flatMap((t) => [t, `${t}-dark`]);

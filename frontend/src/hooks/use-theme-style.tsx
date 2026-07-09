@@ -1,5 +1,5 @@
 "use client";
-import { getStorageManager } from "lib/browser-stroage";
+import { getStorageManager } from "lib/browser-storage";
 import { createEmitter } from "lib/utils";
 import { useCallback, useEffect, useState } from "react";
 
