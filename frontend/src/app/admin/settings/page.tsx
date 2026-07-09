@@ -120,9 +120,10 @@ export default function SystemSettingsPage() {
     const settingId = getSettingId(category, key);
     const value = getSettingValue(category, key, defaultValue);
 
+    // Uncontrolled on purpose: SystemSettingsClient reads values via FormData
+    // on save. Passing `value` without onChange makes React lock the field.
     return {
       name: `setting-${settingId}`,
-      value: value || defaultValue,
       defaultValue: value || defaultValue,
     };
   };
