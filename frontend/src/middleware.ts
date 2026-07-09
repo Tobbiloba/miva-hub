@@ -12,6 +12,20 @@ export async function middleware(request: NextRequest) {
     return new Response("pong", { status: 200 });
   }
 
+  /*
+   * Public static assets (served from /public). Without this, files like
+   * /logo.png or /bento/*.png get 307-redirected to /sign-in for anonymous
+   * visitors, which breaks next/image optimization (400) on public pages.
+   */
+  if (
+    !pathname.startsWith("/api/") &&
+    /\.(png|jpe?g|gif|svg|ico|webp|avif|mp4|webm|mp3|wav|woff2?|ttf|otf)$/i.test(
+      pathname,
+    )
+  ) {
+    return NextResponse.next();
+  }
+
   // Get session cookie to check if user is authenticated
   const sessionCookie = getSessionCookie(request);
 
