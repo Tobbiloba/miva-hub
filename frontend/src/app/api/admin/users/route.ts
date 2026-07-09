@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
+  AccountSchema,
   DepartmentSchema,
   FacultySchema,
   UserSchema,
@@ -187,29 +188,43 @@ export async function POST(request: NextRequest) {
     // Tenant scope: new users belong to the creating admin's university
     const university = await getUserUniversity(sessionOrError.user.id);
 
-    // Never store plaintext credentials; generate a temp password if omitted
-    const { hash } = await import("bcryptjs");
+    // Hash with better-auth's own algorithm — sign-in verifies against the
+    // account (credential) row, so a bare UserSchema.password can never log in
+    const { hashPassword } = await import("better-auth/crypto");
     const tempPassword =
       password || `${role}${Math.random().toString(36).slice(-8)}`;
-    const hashedPassword = await hash(tempPassword, 12);
+    const hashedPassword = await hashPassword(tempPassword);
 
-    // Create new user
-    const newUser = await pgDb
-      .insert(UserSchema)
-      .values({
-        name,
-        email,
-        role,
+    // Create user + credential account row atomically so the user can sign in
+    const newUser = await pgDb.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(UserSchema)
+        .values({
+          name,
+          email,
+          role,
+          password: hashedPassword,
+          universityId: university?.id ?? null,
+          studentId: role === "student" ? studentId : null,
+          major: role === "student" ? major : null,
+          year: role === "student" ? year : null,
+          currentSemester: role === "student" ? currentSemester : null,
+          enrollmentStatus: "active",
+          emailVerified: true,
+        })
+        .returning();
+
+      await tx.insert(AccountSchema).values({
+        accountId: created.id,
+        providerId: "credential",
+        userId: created.id,
         password: hashedPassword,
-        universityId: university?.id ?? null,
-        studentId: role === "student" ? studentId : null,
-        major: role === "student" ? major : null,
-        year: role === "student" ? year : null,
-        currentSemester: role === "student" ? currentSemester : null,
-        enrollmentStatus: "active",
-        emailVerified: true,
-      })
-      .returning();
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      return [created];
+    });
 
     // Never expose the password hash to the client
     const { password: _password, ...safeUser } = newUser[0];

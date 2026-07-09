@@ -1,7 +1,7 @@
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { UserSchema } from "@/lib/db/pg/schema.pg";
-import { hash } from "bcryptjs";
+import { AccountSchema, UserSchema } from "@/lib/db/pg/schema.pg";
+import { hashPassword } from "better-auth/crypto";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -191,33 +191,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate a temporary password (student should change this on first login)
+    // Generate a temporary password (student should change this on first login).
+    // Hash with better-auth's algorithm — sign-in verifies the credential
+    // account row, so a bcrypt hash on UserSchema alone can never log in.
     const tempPassword = `student${validatedData.academicYear}${Math.random().toString(36).slice(-4)}`;
-    const hashedPassword = await hash(tempPassword, 12);
+    const hashedPassword = await hashPassword(tempPassword);
 
-    // Create the student user
-    const newStudent = await pgDb
-      .insert(UserSchema)
-      .values({
-        id: crypto.randomUUID(),
-        name: validatedData.name,
-        email: validatedData.email,
-        password: hashedPassword,
-        role: "student",
-        universityId: adminUniversity.id,
-        isEmailVerified: false,
-        // Add student-specific fields
-        ...(validatedData.studentId && { studentId: validatedData.studentId }),
-        ...(validatedData.academicYear && {
+    // Create the student user + credential account row atomically
+    const newStudent = await pgDb.transaction(async (tx) => {
+      const createdRows = await tx
+        .insert(UserSchema)
+        .values({
+          name: validatedData.name,
+          email: validatedData.email,
+          password: hashedPassword,
+          role: "student",
+          universityId: adminUniversity.id,
+          // Admin-created accounts are pre-verified (domain checked above);
+          // no verification-email flow exists, and false blocks sign-in.
+          emailVerified: true,
+          studentId: validatedData.studentId,
           academicYear: validatedData.academicYear,
-        }),
-        ...(validatedData.enrollmentStatus && {
           enrollmentStatus: validatedData.enrollmentStatus,
-        }),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      const created = createdRows[0];
+      await tx.insert(AccountSchema).values({
+        accountId: created.id,
+        providerId: "credential",
+        userId: created.id,
+        password: hashedPassword,
         createdAt: new Date(),
         updatedAt: new Date(),
-      })
-      .returning();
+      });
+
+      return [created];
+    });
 
     // Remove password from response
     const { password: _, ...studentData } = newStudent[0];
