@@ -11,6 +11,7 @@ import type { S3AccessOptions } from "@/lib/aws/s3-service";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { AssignmentSubmissionSchema } from "@/lib/db/pg/schema.pg";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 120;
@@ -40,6 +41,12 @@ export async function POST(
         { error: "Student authentication required" },
         { status: 401 },
       );
+    }
+
+    // Per-student rate limit: each snap is a Gemini vision grading run
+    const rateLimit = checkRateLimit(`snap:${studentInfo.id}`, 5, 60);
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit);
     }
 
     // Verify the student has access to this assignment (enrollment-scoped,

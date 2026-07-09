@@ -4,6 +4,7 @@ import { isCourseInstructor } from "@/lib/academic/lecture-study";
 import { runLecturePipeline } from "@/lib/ai/lecture-pipeline";
 import { requireFaculty } from "@/lib/auth/faculty";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { getUserUniversity } from "@/lib/tenant";
 import globalLogger from "logger";
 
@@ -38,6 +39,16 @@ export async function POST(request: NextRequest) {
     const sessionOrError = await requireFaculty();
     if (sessionOrError instanceof NextResponse) return sessionOrError;
     const session = sessionOrError;
+
+    // Strict limit: each run is a full multimodal Gemini pipeline (up to 14MB media)
+    const rateLimit = checkRateLimit(
+      `lecture-studio:${session.user.id}`,
+      3,
+      600,
+    );
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit);
+    }
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;

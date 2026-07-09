@@ -6,6 +6,7 @@ import { recordAIDecision } from "@/lib/ai/decision-ledger";
 import { getFacultyInfo } from "@/lib/auth/faculty";
 import { getSession } from "@/lib/auth/server";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -25,6 +26,12 @@ export async function POST(request: NextRequest) {
         { error: "Faculty authentication required" },
         { status: 401 },
       );
+    }
+
+    // Per-faculty rate limit: each call is a Gemini grading run
+    const rateLimit = checkRateLimit(`grade-ai:${facultyInfo.id}`, 10, 60);
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit);
     }
 
     const facultyRecord = await pgAcademicRepository.getFacultyByUserId(

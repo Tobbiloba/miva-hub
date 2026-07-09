@@ -6,6 +6,7 @@ import { colorize } from "consola/utils";
 import { customModelProvider } from "lib/ai/models";
 import { CREATE_THREAD_TITLE_PROMPT } from "lib/ai/prompts";
 import { chatRepository } from "lib/db/repository";
+import { checkRateLimit, rateLimitResponse } from "lib/rate-limit";
 import globalLogger from "logger";
 import { handleError } from "../shared.chat";
 
@@ -30,6 +31,12 @@ export async function POST(request: Request) {
     const session = await getSession();
     if (!session) {
       return new Response("Unauthorized", { status: 401 });
+    }
+
+    // Cheap model call, but still metered per user
+    const rateLimit = checkRateLimit(`title:${session.user.id}`, 20, 60);
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit);
     }
 
     logger.info(

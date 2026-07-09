@@ -9,6 +9,7 @@ import { AgentGenerateSchema } from "app-types/agent";
 import { getSession } from "auth/server";
 import { colorize } from "consola/utils";
 import { mcpClientsManager } from "lib/ai/mcp/mcp-manager";
+import { checkRateLimit, rateLimitResponse } from "lib/rate-limit";
 import { objectFlow } from "lib/utils";
 import { safe } from "ts-safe";
 import { z } from "zod";
@@ -32,6 +33,12 @@ export async function POST(request: Request) {
     const session = await getSession();
     if (!session) {
       return new Response("Unauthorized", { status: 401 });
+    }
+
+    // Per-user rate limit: each call is a full agent-generation LLM run
+    const rateLimit = checkRateLimit(`agent-ai:${session.user.id}`, 10, 60);
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit);
     }
 
     const toolNames = new Set<string>();
