@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { Page, expect, test } from "@playwright/test";
 
 /**
  * Phase 2A: Auth flows — login, wrong password, logout.
@@ -27,7 +27,7 @@ async function browserSignIn(page: Page, email: string, password: string) {
       });
       return { ok: res.ok, status: res.status };
     },
-    { email, password }
+    { email, password },
   );
   return result;
 }
@@ -44,7 +44,9 @@ test.describe("Phase 2A: Auth", () => {
     await page.waitForLoadState("networkidle", { timeout: 15000 });
 
     // Ada's name should appear (greeting, sidebar, or header)
-    await expect(page.getByText(/ada/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/ada/i).first()).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("login with wrong password → error response", async ({ page }) => {

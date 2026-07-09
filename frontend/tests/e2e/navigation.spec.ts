@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { Page, expect, test } from "@playwright/test";
 
 /**
  * Phase 2C: Navigation renders — visit key pages, assert no crash + key element.
@@ -21,7 +21,7 @@ async function browserSignIn(page: Page, email: string, password: string) {
         credentials: "include",
       });
     },
-    { email, password }
+    { email, password },
   );
 }
 
@@ -35,7 +35,7 @@ test.describe("Phase 2C: Student page renders", () => {
     await page.waitForLoadState("networkidle", { timeout: 15000 });
     await expect(page.locator("body")).not.toContainText("Application error");
     await expect(page.locator("body")).not.toContainText(
-      "Internal Server Error"
+      "Internal Server Error",
     );
   });
 
@@ -44,7 +44,7 @@ test.describe("Phase 2C: Student page renders", () => {
     await page.waitForLoadState("networkidle", { timeout: 15000 });
     await expect(page.locator("body")).not.toContainText("Application error");
     await expect(
-      page.locator("text=/COS|MTH|GST|course/i").first()
+      page.locator("text=/COS|MTH|GST|course/i").first(),
     ).toBeVisible({ timeout: 10000 });
   });
 
@@ -62,15 +62,14 @@ test.describe("Phase 2C: Student page renders", () => {
 });
 
 test.describe("Phase 2C: Admin page renders", () => {
-  const ADMIN_EMAIL =
-    process.env.ADMIN_EMAIL || "oluwatobi.salau@miva.edu.ng";
+  const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "oluwatobi.salau@miva.edu.ng";
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
   test("/admin/users renders with isVerified badges", async ({ page }) => {
     if (!ADMIN_PASSWORD) {
       test.skip(
         true,
-        "ADMIN_PASSWORD env var not set — admin password unknown for seeded admin"
+        "ADMIN_PASSWORD env var not set — admin password unknown for seeded admin",
       );
       return;
     }
@@ -83,7 +82,7 @@ test.describe("Phase 2C: Admin page renders", () => {
       timeout: 10000,
     });
     await expect(
-      page.locator("text=/verified|unverified/i").first()
+      page.locator("text=/verified|unverified/i").first(),
     ).toBeVisible({ timeout: 10000 });
   });
 });

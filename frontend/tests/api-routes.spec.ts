@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 /**
  * Phase 1C: API Route Tests
@@ -70,11 +70,14 @@ test.describe("Phase 1C: API Routes", () => {
         password: "Test1234!",
         programId: "66d8efe2-29b7-4db2-80b3-f1aaa687865a",
         level: 200,
-        matricNumber: "BADFORMAT",
+        // Matric validation is now loose (formats vary per university) —
+        // only clearly invalid characters/lengths are rejected.
+        matricNumber: "BAD FORMAT!!",
+        termsAccepted: true,
       },
     });
     expect(res.status()).toBe(400);
     const data = await res.json();
-    expect(data.error).toContain("matric");
+    expect(data.error.toLowerCase()).toContain("matric");
   });
 });
