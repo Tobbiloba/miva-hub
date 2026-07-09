@@ -73,6 +73,8 @@ export async function middleware(request: NextRequest) {
     !pathname.startsWith("/university/register") &&
     !pathname.startsWith("/invite/") &&
     !pathname.startsWith("/apply") &&
+    // Public design-system showcase
+    !pathname.startsWith("/design") &&
     // Public credential verification: the unguessable code IS the capability
     !pathname.startsWith("/verify/") &&
     !pathname.startsWith("/api/admissions/apply") &&
