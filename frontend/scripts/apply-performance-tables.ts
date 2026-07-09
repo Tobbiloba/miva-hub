@@ -14,7 +14,7 @@ async function applyTables() {
     console.log("📦 Reading SQL file...");
     const sql = readFileSync(
       join(process.cwd(), "scripts/create-performance-tables.sql"),
-      "utf-8"
+      "utf-8",
     );
 
     console.log("🚀 Executing SQL...");
@@ -22,7 +22,7 @@ async function applyTables() {
 
     console.log("\n✅ Tables created successfully!");
     console.log("\nVerification:");
-    
+
     const tables = await pool.query(`
       SELECT table_name 
       FROM information_schema.tables 

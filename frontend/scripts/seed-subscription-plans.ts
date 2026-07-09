@@ -1,7 +1,7 @@
 import "load-env";
+import { eq } from "drizzle-orm";
 import { pgDb as db } from "lib/db/pg/db.pg";
 import { SubscriptionPlanSchema } from "lib/db/pg/schema.pg";
-import { eq } from "drizzle-orm";
 
 console.log("💳 Starting Subscription Plans Seeding...");
 
@@ -12,7 +12,8 @@ async function seedSubscriptionPlans() {
       {
         name: "STUDENT",
         displayName: "Student Plan",
-        description: "Perfect for students - Full access to all courses with AI tutoring",
+        description:
+          "Perfect for students - Full access to all courses with AI tutoring",
         priceNgn: 250000, // ₦2,500 (stored in kobo)
         priceUsd: 160,
         interval: "monthly",
@@ -88,7 +89,8 @@ async function seedSubscriptionPlans() {
       {
         name: "FACULTY",
         displayName: "Faculty Plan",
-        description: "For educators - Course creation and student management tools",
+        description:
+          "For educators - Course creation and student management tools",
         priceNgn: 750000, // ₦7,500 (stored in kobo)
         priceUsd: 480,
         interval: "monthly",
@@ -131,16 +133,16 @@ async function seedSubscriptionPlans() {
     ];
 
     // Check if plans already exist
-    const existingPlans = await db
-      .select()
-      .from(SubscriptionPlanSchema);
+    const existingPlans = await db.select().from(SubscriptionPlanSchema);
 
     if (existingPlans.length > 0) {
       console.log(`⚠️  Plans already exist in database. Updating instead...`);
 
       // Update existing plans
       for (const planData of plansData) {
-        const existingPlan = existingPlans.find(p => p.name === planData.name);
+        const existingPlan = existingPlans.find(
+          (p) => p.name === planData.name,
+        );
 
         if (existingPlan) {
           await db
@@ -157,24 +159,26 @@ async function seedSubscriptionPlans() {
             })
             .where(eq(SubscriptionPlanSchema.id, existingPlan.id));
 
-          console.log(`✅ Updated plan: ${planData.name} (${planData.displayName})`);
+          console.log(
+            `✅ Updated plan: ${planData.name} (${planData.displayName})`,
+          );
         } else {
-          await db
-            .insert(SubscriptionPlanSchema)
-            .values({
-              name: planData.name,
-              displayName: planData.displayName,
-              description: planData.description,
-              priceNgn: planData.priceNgn,
-              priceUsd: planData.priceUsd,
-              interval: planData.interval,
-              features: planData.features,
-              limits: planData.limits as Record<string, number>,
-              paystackPlanCode: planData.paystackPlanCode,
-              isActive: true,
-            });
+          await db.insert(SubscriptionPlanSchema).values({
+            name: planData.name,
+            displayName: planData.displayName,
+            description: planData.description,
+            priceNgn: planData.priceNgn,
+            priceUsd: planData.priceUsd,
+            interval: planData.interval,
+            features: planData.features,
+            limits: planData.limits as Record<string, number>,
+            paystackPlanCode: planData.paystackPlanCode,
+            isActive: true,
+          });
 
-          console.log(`✅ Created plan: ${planData.name} (${planData.displayName})`);
+          console.log(
+            `✅ Created plan: ${planData.name} (${planData.displayName})`,
+          );
         }
       }
     } else {
@@ -193,7 +197,7 @@ async function seedSubscriptionPlans() {
             limits: plan.limits as Record<string, number>,
             paystackPlanCode: plan.paystackPlanCode,
             isActive: true,
-          }))
+          })),
         )
         .returning();
 
@@ -209,7 +213,9 @@ async function seedSubscriptionPlans() {
     console.log("\n📊 Active Subscription Plans:");
     for (const plan of allPlans) {
       console.log(`   ${plan.name} (${plan.displayName})`);
-      console.log(`     Price: ₦${(plan.priceNgn / 100).toLocaleString()}/month`);
+      console.log(
+        `     Price: ₦${(plan.priceNgn / 100).toLocaleString()}/month`,
+      );
       console.log(`     Features: ${plan.features.length} features`);
     }
 

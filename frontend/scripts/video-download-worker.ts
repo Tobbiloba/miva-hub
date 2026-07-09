@@ -14,17 +14,17 @@
 
 import "load-env";
 import { execFile } from "child_process";
-import { promisify } from "util";
 import * as fs from "fs";
 import * as path from "path";
+import { promisify } from "util";
+import { s3Service } from "@/lib/aws/s3-service";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
   CourseMaterialSchema,
   IngestionJobSchema,
 } from "@/lib/db/pg/schema.pg";
-import { eq, and } from "drizzle-orm";
-import { s3Service } from "@/lib/aws/s3-service";
 import { extractTranscriptForMaterial } from "@/lib/extraction/transcript-extractor";
+import { and, eq } from "drizzle-orm";
 
 const execFileAsync = promisify(execFile);
 
@@ -44,7 +44,7 @@ async function checkYtDlp(): Promise<boolean> {
       "yt-dlp not found. Install with:\n" +
         "  macOS:  brew install yt-dlp\n" +
         "  pip:    pip install yt-dlp\n" +
-        "  Linux:  sudo apt install yt-dlp"
+        "  Linux:  sudo apt install yt-dlp",
     );
     return false;
   }
@@ -79,14 +79,14 @@ async function getPendingVideos(): Promise<PendingVideo[]> {
     .from(CourseMaterialSchema)
     .innerJoin(
       IngestionJobSchema,
-      eq(IngestionJobSchema.courseMaterialId, CourseMaterialSchema.id)
+      eq(IngestionJobSchema.courseMaterialId, CourseMaterialSchema.id),
     )
     .where(
       and(
         eq(IngestionJobSchema.contentType, "video"),
         eq(IngestionJobSchema.status, "completed"),
-        eq(CourseMaterialSchema.ytDlpStatus, "pending")
-      )
+        eq(CourseMaterialSchema.ytDlpStatus, "pending"),
+      ),
     )
     .orderBy(CourseMaterialSchema.createdAt)
     .limit(MAX_JOBS);
@@ -108,19 +108,22 @@ async function getPendingVideos(): Promise<PendingVideo[]> {
 
 async function downloadVideo(
   vimeoUrl: string,
-  outputPath: string
+  outputPath: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { stderr } = await execFileAsync(
       "yt-dlp",
       [
-        "-f", "bv*+ba/b",
-        "--merge-output-format", "mp4",
+        "-f",
+        "bv*+ba/b",
+        "--merge-output-format",
+        "mp4",
         "--no-warnings",
-        "-o", outputPath,
+        "-o",
+        outputPath,
         vimeoUrl,
       ],
-      { timeout: YT_DLP_TIMEOUT_MS }
+      { timeout: YT_DLP_TIMEOUT_MS },
     );
 
     if (stderr && stderr.trim()) {
@@ -128,7 +131,10 @@ async function downloadVideo(
     }
 
     if (!fs.existsSync(outputPath)) {
-      return { success: false, error: "yt-dlp completed but output file not found" };
+      return {
+        success: false,
+        error: "yt-dlp completed but output file not found",
+      };
     }
 
     return { success: true };
@@ -172,7 +178,9 @@ async function processVideo(video: PendingVideo): Promise<{
     console.log(`  Downloaded: ${(fileSize / (1024 * 1024)).toFixed(1)} MB`);
 
     if (fileSize > FILE_SIZE_WARNING_BYTES) {
-      console.warn(`  WARNING: Video exceeds 500MB (${(fileSize / (1024 * 1024)).toFixed(0)} MB)`);
+      console.warn(
+        `  WARNING: Video exceeds 500MB (${(fileSize / (1024 * 1024)).toFixed(0)} MB)`,
+      );
     }
 
     // Step 3: Build S3 key
@@ -222,12 +230,15 @@ async function processVideo(video: PendingVideo): Promise<{
     const extractResult = await extractTranscriptForMaterial(
       video.materialId,
       "video/mp4",
-      { vimeoVideoId: video.vimeoVideoId, vimeoHash: video.vimeoHash || undefined }
+      {
+        vimeoVideoId: video.vimeoVideoId,
+        vimeoHash: video.vimeoHash || undefined,
+      },
     );
     console.log(
       `  Transcript: ${extractResult.status}` +
         (extractResult.wordCount ? ` (${extractResult.wordCount} words)` : "") +
-        (extractResult.error ? ` — ${extractResult.error}` : "")
+        (extractResult.error ? ` — ${extractResult.error}` : ""),
     );
 
     return { status: "completed", fileSize };
@@ -277,7 +288,7 @@ async function main() {
   for (let i = 0; i < pending.length; i++) {
     const video = pending[i];
     console.log(
-      `[${i + 1}/${pending.length}] "${video.title}" (Vimeo: ${video.vimeoVideoId})`
+      `[${i + 1}/${pending.length}] "${video.title}" (Vimeo: ${video.vimeoVideoId})`,
     );
 
     const result = await processVideo(video);
@@ -285,7 +296,7 @@ async function main() {
     if (result.status === "completed") {
       completed++;
       console.log(
-        `  DONE: ${(result.fileSize! / (1024 * 1024)).toFixed(1)} MB uploaded\n`
+        `  DONE: ${(result.fileSize! / (1024 * 1024)).toFixed(1)} MB uploaded\n`,
       );
     } else {
       failed++;

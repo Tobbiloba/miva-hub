@@ -10,7 +10,7 @@ async function fixStudySessions() {
 
   try {
     console.log("🔍 Checking study_sessions table...\n");
-    
+
     // Check if it exists in any schema
     const checkResult = await pool.query(`
       SELECT schemaname, tablename, tableowner 
@@ -23,7 +23,7 @@ async function fixStudySessions() {
       checkResult.rows.forEach((row: any) => {
         console.log(`  Schema: ${row.schemaname}, Owner: ${row.tableowner}`);
       });
-      
+
       console.log("\n🔧 Attempting to drop and recreate...");
       await pool.query(`DROP TABLE IF EXISTS study_sessions CASCADE;`);
       console.log("✓ Dropped existing table");

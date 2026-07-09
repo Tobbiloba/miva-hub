@@ -1,11 +1,13 @@
 import "load-env";
+import { eq } from "drizzle-orm";
 import { pgDb as db } from "lib/db/pg/db.pg";
 import { SubscriptionPlanSchema } from "lib/db/pg/schema.pg";
-import { eq } from "drizzle-orm";
 
 async function updateNewPlanCodes() {
   try {
-    console.log("🚀 Updating Paystack plan codes for new subscription plans...");
+    console.log(
+      "🚀 Updating Paystack plan codes for new subscription plans...",
+    );
 
     // Update STUDENT plan
     await db
@@ -15,7 +17,7 @@ async function updateNewPlanCodes() {
 
     console.log("✅ Updated STUDENT plan code");
 
-    // Update PREMIUM plan  
+    // Update PREMIUM plan
     await db
       .update(SubscriptionPlanSchema)
       .set({ paystackPlanCode: "PLN_uw0skkzsrys287p" })
@@ -40,7 +42,9 @@ async function updateNewPlanCodes() {
     console.log("\n📊 Updated Subscription Plans:");
     for (const plan of plans) {
       console.log(`   ${plan.name} (${plan.displayName})`);
-      console.log(`     Price: ₦${(plan.priceNgn / 100).toLocaleString()}/month`);
+      console.log(
+        `     Price: ₦${(plan.priceNgn / 100).toLocaleString()}/month`,
+      );
       console.log(`     Paystack Code: ${plan.paystackPlanCode}`);
     }
 

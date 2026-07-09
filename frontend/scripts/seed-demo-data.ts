@@ -8,21 +8,21 @@
  * Run: npx tsx scripts/seed-demo-data.ts
  */
 import "load-env";
+import { hashPassword } from "better-auth/crypto";
+import { and, eq, inArray } from "drizzle-orm";
 import { pgDb as db } from "lib/db/pg/db.pg";
 import {
-  DepartmentSchema,
-  CourseSchema,
-  ProgramSchema,
-  ProgramCurriculumSchema,
   AcademicSessionSchema,
-  FacultySchema,
-  UserSchema,
+  AccountSchema,
   ClassScheduleSchema,
   CourseInstructorSchema,
-  AccountSchema,
+  CourseSchema,
+  DepartmentSchema,
+  FacultySchema,
+  ProgramCurriculumSchema,
+  ProgramSchema,
+  UserSchema,
 } from "lib/db/pg/schema.pg";
-import { eq, and, inArray } from "drizzle-orm";
-import { hashPassword } from "better-auth/crypto";
 
 const CS_DEPT_CODE = "CS"; // Computer Science department code in DB
 
@@ -30,27 +30,45 @@ async function main() {
   console.log("🌱 Sprint 5 Demo Data Seeding...\n");
 
   // ─── Step 1: Get CS Department ───────────────────────────────────────────
-  const [csDept] = await db.select().from(DepartmentSchema).where(eq(DepartmentSchema.code, CS_DEPT_CODE)).limit(1);
+  const [csDept] = await db
+    .select()
+    .from(DepartmentSchema)
+    .where(eq(DepartmentSchema.code, CS_DEPT_CODE))
+    .limit(1);
   if (!csDept) {
-    console.error("❌ Computer Science department not found (code: CS). Run seed-academic-data first.");
+    console.error(
+      "❌ Computer Science department not found (code: CS). Run seed-academic-data first.",
+    );
     process.exit(1);
   }
   console.log(`✅ Step 1: Department found — ${csDept.name} (${csDept.id})`);
 
   // ─── Step 2: Program ─────────────────────────────────────────────────────
-  let program = (await db.select().from(ProgramSchema).where(eq(ProgramSchema.code, "CS")).limit(1))[0];
+  let program = (
+    await db
+      .select()
+      .from(ProgramSchema)
+      .where(eq(ProgramSchema.code, "CS"))
+      .limit(1)
+  )[0];
   if (!program) {
-    [program] = (await db.insert(ProgramSchema).values({
-      code: "CS",
-      name: "B.Sc Computer Science",
-      description: "Bachelor of Science in Computer Science. 4-year program covering theoretical foundations, software development, data structures, algorithms, and applied computing.",
-      departmentId: csDept.id,
-      universityId: csDept.universityId,
-      isActive: true,
-    }).returning()) as (typeof ProgramSchema.$inferSelect)[];
+    [program] = (await db
+      .insert(ProgramSchema)
+      .values({
+        code: "CS",
+        name: "B.Sc Computer Science",
+        description:
+          "Bachelor of Science in Computer Science. 4-year program covering theoretical foundations, software development, data structures, algorithms, and applied computing.",
+        departmentId: csDept.id,
+        universityId: csDept.universityId,
+        isActive: true,
+      })
+      .returning()) as (typeof ProgramSchema.$inferSelect)[];
     console.log(`✅ Step 2: Program created — ${program.name} (${program.id})`);
   } else {
-    console.log(`✅ Step 2: Program already exists — ${program.name} (${program.id})`);
+    console.log(
+      `✅ Step 2: Program already exists — ${program.name} (${program.id})`,
+    );
   }
 
   // ─── Step 3: Faculty (4 people) ──────────────────────────────────────────
@@ -89,17 +107,35 @@ async function main() {
     },
   ];
 
-  const facultyCredentials: { name: string; email: string; tempPassword: string; facultyId: string }[] = [];
+  const facultyCredentials: {
+    name: string;
+    email: string;
+    tempPassword: string;
+    facultyId: string;
+  }[] = [];
 
   for (const fd of facultyDefs) {
     // Check if user with this email already exists
-    const existing = await db.select().from(UserSchema).where(eq(UserSchema.email, fd.email)).limit(1);
+    const existing = await db
+      .select()
+      .from(UserSchema)
+      .where(eq(UserSchema.email, fd.email))
+      .limit(1);
     if (existing.length > 0) {
       // Get faculty record
-      const [fac] = await db.select().from(FacultySchema).where(eq(FacultySchema.userId, existing[0].id)).limit(1);
+      const [fac] = await db
+        .select()
+        .from(FacultySchema)
+        .where(eq(FacultySchema.userId, existing[0].id))
+        .limit(1);
       console.log(`  ⏭️  Faculty exists: ${fd.name} (${fd.email})`);
       if (fac) {
-        facultyCredentials.push({ name: fd.name, email: fd.email, tempPassword: "(already created)", facultyId: fac.id });
+        facultyCredentials.push({
+          name: fd.name,
+          email: fd.email,
+          tempPassword: "(already created)",
+          facultyId: fac.id,
+        });
       }
       continue;
     }
@@ -141,11 +177,18 @@ async function main() {
       isActive: true,
     });
 
-    facultyCredentials.push({ name: fd.name, email: fd.email, tempPassword, facultyId });
+    facultyCredentials.push({
+      name: fd.name,
+      email: fd.email,
+      tempPassword,
+      facultyId,
+    });
     console.log(`  ✅ Created: ${fd.name} (${fd.email})`);
   }
 
-  console.log(`✅ Step 3: Faculty complete (${facultyCredentials.length} total)`);
+  console.log(
+    `✅ Step 3: Faculty complete (${facultyCredentials.length} total)`,
+  );
   console.log("\n🔑 FACULTY CREDENTIALS (save these!):");
   console.log("─".repeat(60));
   for (const fc of facultyCredentials) {
@@ -158,41 +201,85 @@ async function main() {
   console.log("─".repeat(60));
 
   // ─── Step 4: Academic Session ────────────────────────────────────────────
-  let session = (await db.select().from(AcademicSessionSchema).where(eq(AcademicSessionSchema.sessionName, "2025/2026")).limit(1))[0];
+  let session = (
+    await db
+      .select()
+      .from(AcademicSessionSchema)
+      .where(eq(AcademicSessionSchema.sessionName, "2025/2026"))
+      .limit(1)
+  )[0];
   if (!session) {
     // Deactivate any existing current session
-    await db.update(AcademicSessionSchema).set({ isCurrent: false }).where(eq(AcademicSessionSchema.isCurrent, true));
+    await db
+      .update(AcademicSessionSchema)
+      .set({ isCurrent: false })
+      .where(eq(AcademicSessionSchema.isCurrent, true));
 
-    [session] = await db.insert(AcademicSessionSchema).values({
-      universityId: csDept.universityId,
-      sessionName: "2025/2026",
-      currentSemester: "first",
-      isCurrent: true,
-      status: "active",
-      firstSemStart: "2025-09-01",
-      firstSemEnd: "2026-01-31",
-      secondSemStart: "2026-02-15",
-      secondSemEnd: "2026-07-15",
-    }).returning();
-    console.log(`\n✅ Step 4: Academic session created — ${session.sessionName} (current, active)`);
+    [session] = await db
+      .insert(AcademicSessionSchema)
+      .values({
+        universityId: csDept.universityId,
+        sessionName: "2025/2026",
+        currentSemester: "first",
+        isCurrent: true,
+        status: "active",
+        firstSemStart: "2025-09-01",
+        firstSemEnd: "2026-01-31",
+        secondSemStart: "2026-02-15",
+        secondSemEnd: "2026-07-15",
+      })
+      .returning();
+    console.log(
+      `\n✅ Step 4: Academic session created — ${session.sessionName} (current, active)`,
+    );
   } else {
     // Ensure it's current
     if (!session.isCurrent) {
-      await db.update(AcademicSessionSchema).set({ isCurrent: false }).where(eq(AcademicSessionSchema.isCurrent, true));
-      await db.update(AcademicSessionSchema).set({ isCurrent: true, status: "active" }).where(eq(AcademicSessionSchema.id, session.id));
+      await db
+        .update(AcademicSessionSchema)
+        .set({ isCurrent: false })
+        .where(eq(AcademicSessionSchema.isCurrent, true));
+      await db
+        .update(AcademicSessionSchema)
+        .set({ isCurrent: true, status: "active" })
+        .where(eq(AcademicSessionSchema.id, session.id));
     }
-    console.log(`\n✅ Step 4: Academic session already exists — ${session.sessionName}`);
+    console.log(
+      `\n✅ Step 4: Academic session already exists — ${session.sessionName}`,
+    );
   }
 
   // ─── Step 5: Courses (create missing ones) ──────────────────────────────
   // First, map existing courses by code
-  const existingCourses = await db.select().from(CourseSchema).where(eq(CourseSchema.departmentId, csDept.id));
-  const existingByCode = new Map(existingCourses.map(c => [c.courseCode, c]));
+  const existingCourses = await db
+    .select()
+    .from(CourseSchema)
+    .where(eq(CourseSchema.departmentId, csDept.id));
+  const existingByCode = new Map(existingCourses.map((c) => [c.courseCode, c]));
 
   // Also check for GST/MTH/PHY courses (may be under different dept)
-  const otherCodes = ["GST101", "GST102", "GST201", "GST202", "GST111", "GST112", "GST121", "GST122", "GST212", "GST312",
-    "MTH101", "MTH102", "MTH201", "MTH202", "PHY101", "PHY102"];
-  const otherCourses = await db.select().from(CourseSchema).where(inArray(CourseSchema.courseCode, otherCodes));
+  const otherCodes = [
+    "GST101",
+    "GST102",
+    "GST201",
+    "GST202",
+    "GST111",
+    "GST112",
+    "GST121",
+    "GST122",
+    "GST212",
+    "GST312",
+    "MTH101",
+    "MTH102",
+    "MTH201",
+    "MTH202",
+    "PHY101",
+    "PHY102",
+  ];
+  const otherCourses = await db
+    .select()
+    .from(CourseSchema)
+    .where(inArray(CourseSchema.courseCode, otherCodes));
   for (const c of otherCourses) {
     existingByCode.set(c.courseCode, c);
   }
@@ -206,19 +293,97 @@ async function main() {
     // GST212 = Philosophy, Logic and Human Existence (already exists as GST212)
 
     // Missing COS courses
-    { courseCode: "COS204", title: "Data Structures", credits: 3, level: "200L" as const, semesterOffered: "spring" as const },
-    { courseCode: "COS205", title: "Digital Logic Design", credits: 3, level: "200L" as const, semesterOffered: "fall" as const },
-    { courseCode: "COS206", title: "Computer Architecture", credits: 3, level: "200L" as const, semesterOffered: "spring" as const },
-    { courseCode: "COS301", title: "Algorithm Design and Analysis", credits: 3, level: "300L" as const, semesterOffered: "fall" as const },
-    { courseCode: "COS302", title: "Operating Systems", credits: 3, level: "300L" as const, semesterOffered: "spring" as const },
-    { courseCode: "COS303", title: "Database Management Systems", credits: 3, level: "300L" as const, semesterOffered: "fall" as const },
-    { courseCode: "COS304", title: "Computer Networks", credits: 3, level: "300L" as const, semesterOffered: "spring" as const },
-    { courseCode: "COS305", title: "Software Engineering", credits: 3, level: "300L" as const, semesterOffered: "fall" as const },
-    { courseCode: "COS307", title: "Web Programming", credits: 3, level: "300L" as const, semesterOffered: "fall" as const },
-    { courseCode: "COS401", title: "Final Year Project I", credits: 3, level: "400L" as const, semesterOffered: "fall" as const },
-    { courseCode: "COS402", title: "Final Year Project II", credits: 6, level: "400L" as const, semesterOffered: "spring" as const },
-    { courseCode: "COS403", title: "Distributed Systems", credits: 3, level: "400L" as const, semesterOffered: "fall" as const },
-    { courseCode: "COS405", title: "Artificial Intelligence", credits: 3, level: "400L" as const, semesterOffered: "fall" as const },
+    {
+      courseCode: "COS204",
+      title: "Data Structures",
+      credits: 3,
+      level: "200L" as const,
+      semesterOffered: "spring" as const,
+    },
+    {
+      courseCode: "COS205",
+      title: "Digital Logic Design",
+      credits: 3,
+      level: "200L" as const,
+      semesterOffered: "fall" as const,
+    },
+    {
+      courseCode: "COS206",
+      title: "Computer Architecture",
+      credits: 3,
+      level: "200L" as const,
+      semesterOffered: "spring" as const,
+    },
+    {
+      courseCode: "COS301",
+      title: "Algorithm Design and Analysis",
+      credits: 3,
+      level: "300L" as const,
+      semesterOffered: "fall" as const,
+    },
+    {
+      courseCode: "COS302",
+      title: "Operating Systems",
+      credits: 3,
+      level: "300L" as const,
+      semesterOffered: "spring" as const,
+    },
+    {
+      courseCode: "COS303",
+      title: "Database Management Systems",
+      credits: 3,
+      level: "300L" as const,
+      semesterOffered: "fall" as const,
+    },
+    {
+      courseCode: "COS304",
+      title: "Computer Networks",
+      credits: 3,
+      level: "300L" as const,
+      semesterOffered: "spring" as const,
+    },
+    {
+      courseCode: "COS305",
+      title: "Software Engineering",
+      credits: 3,
+      level: "300L" as const,
+      semesterOffered: "fall" as const,
+    },
+    {
+      courseCode: "COS307",
+      title: "Web Programming",
+      credits: 3,
+      level: "300L" as const,
+      semesterOffered: "fall" as const,
+    },
+    {
+      courseCode: "COS401",
+      title: "Final Year Project I",
+      credits: 3,
+      level: "400L" as const,
+      semesterOffered: "fall" as const,
+    },
+    {
+      courseCode: "COS402",
+      title: "Final Year Project II",
+      credits: 6,
+      level: "400L" as const,
+      semesterOffered: "spring" as const,
+    },
+    {
+      courseCode: "COS403",
+      title: "Distributed Systems",
+      credits: 3,
+      level: "400L" as const,
+      semesterOffered: "fall" as const,
+    },
+    {
+      courseCode: "COS405",
+      title: "Artificial Intelligence",
+      credits: 3,
+      level: "400L" as const,
+      semesterOffered: "fall" as const,
+    },
   ];
 
   // GST courses: use real MIVA codes (GST111/112/122/212) — already exist in DB.
@@ -232,18 +397,23 @@ async function main() {
       skippedCount++;
       continue;
     }
-    const [created] = await db.insert(CourseSchema).values({
-      ...course,
-      departmentId: csDept.id,
-      universityId: csDept.universityId,
-      isActive: true,
-      totalWeeks: 16,
-    }).returning();
+    const [created] = await db
+      .insert(CourseSchema)
+      .values({
+        ...course,
+        departmentId: csDept.id,
+        universityId: csDept.universityId,
+        isActive: true,
+        totalWeeks: 16,
+      })
+      .returning();
     existingByCode.set(created.courseCode, created);
     createdCount++;
   }
 
-  console.log(`\n✅ Step 5: Courses — ${createdCount} created, ${skippedCount} already existed`);
+  console.log(
+    `\n✅ Step 5: Courses — ${createdCount} created, ${skippedCount} already existed`,
+  );
 
   // ─── Step 6: Program Curriculum Mapping ──────────────────────────────────
   // Use real MIVA GST codes
@@ -253,58 +423,249 @@ async function main() {
   const gst2b = existingByCode.get("GST212"); // Philosophy, Logic and Human Existence
 
   const curriculumEntries: {
-    courseId: string; level: number; semester: "first" | "second"; isCompulsory: boolean; orderInSemester: number;
+    courseId: string;
+    level: number;
+    semester: "first" | "second";
+    isCompulsory: boolean;
+    orderInSemester: number;
   }[] = [
     // 100L First Semester
-    { courseId: existingByCode.get("COS101")!.id, level: 100, semester: "first", isCompulsory: true, orderInSemester: 1 },
-    { courseId: existingByCode.get("MTH101")!.id, level: 100, semester: "first", isCompulsory: true, orderInSemester: 2 },
-    ...(gst1a ? [{ courseId: gst1a.id, level: 100, semester: "first" as const, isCompulsory: true, orderInSemester: 3 }] : []),
-    { courseId: existingByCode.get("PHY101")!.id, level: 100, semester: "first", isCompulsory: true, orderInSemester: 4 },
+    {
+      courseId: existingByCode.get("COS101")!.id,
+      level: 100,
+      semester: "first",
+      isCompulsory: true,
+      orderInSemester: 1,
+    },
+    {
+      courseId: existingByCode.get("MTH101")!.id,
+      level: 100,
+      semester: "first",
+      isCompulsory: true,
+      orderInSemester: 2,
+    },
+    ...(gst1a
+      ? [
+          {
+            courseId: gst1a.id,
+            level: 100,
+            semester: "first" as const,
+            isCompulsory: true,
+            orderInSemester: 3,
+          },
+        ]
+      : []),
+    {
+      courseId: existingByCode.get("PHY101")!.id,
+      level: 100,
+      semester: "first",
+      isCompulsory: true,
+      orderInSemester: 4,
+    },
     // 100L Second Semester
-    { courseId: existingByCode.get("COS102")!.id, level: 100, semester: "second", isCompulsory: true, orderInSemester: 1 },
-    { courseId: existingByCode.get("MTH102")!.id, level: 100, semester: "second", isCompulsory: true, orderInSemester: 2 },
-    ...(gst1b ? [{ courseId: gst1b.id, level: 100, semester: "second" as const, isCompulsory: true, orderInSemester: 3 }] : []),
-    { courseId: existingByCode.get("PHY102")!.id, level: 100, semester: "second", isCompulsory: true, orderInSemester: 4 },
+    {
+      courseId: existingByCode.get("COS102")!.id,
+      level: 100,
+      semester: "second",
+      isCompulsory: true,
+      orderInSemester: 1,
+    },
+    {
+      courseId: existingByCode.get("MTH102")!.id,
+      level: 100,
+      semester: "second",
+      isCompulsory: true,
+      orderInSemester: 2,
+    },
+    ...(gst1b
+      ? [
+          {
+            courseId: gst1b.id,
+            level: 100,
+            semester: "second" as const,
+            isCompulsory: true,
+            orderInSemester: 3,
+          },
+        ]
+      : []),
+    {
+      courseId: existingByCode.get("PHY102")!.id,
+      level: 100,
+      semester: "second",
+      isCompulsory: true,
+      orderInSemester: 4,
+    },
     // 200L First Semester
-    { courseId: existingByCode.get("COS201")!.id, level: 200, semester: "first", isCompulsory: true, orderInSemester: 1 },
-    { courseId: existingByCode.get("COS203")!.id, level: 200, semester: "first", isCompulsory: true, orderInSemester: 2 },
-    { courseId: existingByCode.get("COS205")!.id, level: 200, semester: "first", isCompulsory: true, orderInSemester: 3 },
-    { courseId: existingByCode.get("MTH201")!.id, level: 200, semester: "first", isCompulsory: true, orderInSemester: 4 },
-    ...(gst2a ? [{ courseId: gst2a.id, level: 200, semester: "first" as const, isCompulsory: true, orderInSemester: 5 }] : []),
+    {
+      courseId: existingByCode.get("COS201")!.id,
+      level: 200,
+      semester: "first",
+      isCompulsory: true,
+      orderInSemester: 1,
+    },
+    {
+      courseId: existingByCode.get("COS203")!.id,
+      level: 200,
+      semester: "first",
+      isCompulsory: true,
+      orderInSemester: 2,
+    },
+    {
+      courseId: existingByCode.get("COS205")!.id,
+      level: 200,
+      semester: "first",
+      isCompulsory: true,
+      orderInSemester: 3,
+    },
+    {
+      courseId: existingByCode.get("MTH201")!.id,
+      level: 200,
+      semester: "first",
+      isCompulsory: true,
+      orderInSemester: 4,
+    },
+    ...(gst2a
+      ? [
+          {
+            courseId: gst2a.id,
+            level: 200,
+            semester: "first" as const,
+            isCompulsory: true,
+            orderInSemester: 5,
+          },
+        ]
+      : []),
     // 200L Second Semester
-    { courseId: existingByCode.get("COS202")!.id, level: 200, semester: "second", isCompulsory: true, orderInSemester: 1 },
-    { courseId: existingByCode.get("COS204")!.id, level: 200, semester: "second", isCompulsory: true, orderInSemester: 2 },
-    { courseId: existingByCode.get("COS206")!.id, level: 200, semester: "second", isCompulsory: true, orderInSemester: 3 },
-    { courseId: existingByCode.get("MTH202")!.id, level: 200, semester: "second", isCompulsory: true, orderInSemester: 4 },
-    ...(gst2b ? [{ courseId: gst2b.id, level: 200, semester: "second" as const, isCompulsory: true, orderInSemester: 5 }] : []),
+    {
+      courseId: existingByCode.get("COS202")!.id,
+      level: 200,
+      semester: "second",
+      isCompulsory: true,
+      orderInSemester: 1,
+    },
+    {
+      courseId: existingByCode.get("COS204")!.id,
+      level: 200,
+      semester: "second",
+      isCompulsory: true,
+      orderInSemester: 2,
+    },
+    {
+      courseId: existingByCode.get("COS206")!.id,
+      level: 200,
+      semester: "second",
+      isCompulsory: true,
+      orderInSemester: 3,
+    },
+    {
+      courseId: existingByCode.get("MTH202")!.id,
+      level: 200,
+      semester: "second",
+      isCompulsory: true,
+      orderInSemester: 4,
+    },
+    ...(gst2b
+      ? [
+          {
+            courseId: gst2b.id,
+            level: 200,
+            semester: "second" as const,
+            isCompulsory: true,
+            orderInSemester: 5,
+          },
+        ]
+      : []),
     // 300L First Semester
-    { courseId: existingByCode.get("COS301")!.id, level: 300, semester: "first", isCompulsory: true, orderInSemester: 1 },
-    { courseId: existingByCode.get("COS303")!.id, level: 300, semester: "first", isCompulsory: true, orderInSemester: 2 },
-    { courseId: existingByCode.get("COS305")!.id, level: 300, semester: "first", isCompulsory: true, orderInSemester: 3 },
-    { courseId: existingByCode.get("COS307")!.id, level: 300, semester: "first", isCompulsory: true, orderInSemester: 4 },
+    {
+      courseId: existingByCode.get("COS301")!.id,
+      level: 300,
+      semester: "first",
+      isCompulsory: true,
+      orderInSemester: 1,
+    },
+    {
+      courseId: existingByCode.get("COS303")!.id,
+      level: 300,
+      semester: "first",
+      isCompulsory: true,
+      orderInSemester: 2,
+    },
+    {
+      courseId: existingByCode.get("COS305")!.id,
+      level: 300,
+      semester: "first",
+      isCompulsory: true,
+      orderInSemester: 3,
+    },
+    {
+      courseId: existingByCode.get("COS307")!.id,
+      level: 300,
+      semester: "first",
+      isCompulsory: true,
+      orderInSemester: 4,
+    },
     // 300L Second Semester
-    { courseId: existingByCode.get("COS302")!.id, level: 300, semester: "second", isCompulsory: true, orderInSemester: 1 },
-    { courseId: existingByCode.get("COS304")!.id, level: 300, semester: "second", isCompulsory: true, orderInSemester: 2 },
+    {
+      courseId: existingByCode.get("COS302")!.id,
+      level: 300,
+      semester: "second",
+      isCompulsory: true,
+      orderInSemester: 1,
+    },
+    {
+      courseId: existingByCode.get("COS304")!.id,
+      level: 300,
+      semester: "second",
+      isCompulsory: true,
+      orderInSemester: 2,
+    },
     // 400L First Semester
-    { courseId: existingByCode.get("COS401")!.id, level: 400, semester: "first", isCompulsory: true, orderInSemester: 1 },
-    { courseId: existingByCode.get("COS403")!.id, level: 400, semester: "first", isCompulsory: true, orderInSemester: 2 },
-    { courseId: existingByCode.get("COS405")!.id, level: 400, semester: "first", isCompulsory: true, orderInSemester: 3 },
+    {
+      courseId: existingByCode.get("COS401")!.id,
+      level: 400,
+      semester: "first",
+      isCompulsory: true,
+      orderInSemester: 1,
+    },
+    {
+      courseId: existingByCode.get("COS403")!.id,
+      level: 400,
+      semester: "first",
+      isCompulsory: true,
+      orderInSemester: 2,
+    },
+    {
+      courseId: existingByCode.get("COS405")!.id,
+      level: 400,
+      semester: "first",
+      isCompulsory: true,
+      orderInSemester: 3,
+    },
     // 400L Second Semester
-    { courseId: existingByCode.get("COS402")!.id, level: 400, semester: "second", isCompulsory: true, orderInSemester: 1 },
+    {
+      courseId: existingByCode.get("COS402")!.id,
+      level: 400,
+      semester: "second",
+      isCompulsory: true,
+      orderInSemester: 1,
+    },
   ];
 
   let currCreated = 0;
   let currSkipped = 0;
   for (const entry of curriculumEntries) {
     // Check for existing mapping
-    const exists = await db.select({ id: ProgramCurriculumSchema.id })
+    const exists = await db
+      .select({ id: ProgramCurriculumSchema.id })
       .from(ProgramCurriculumSchema)
-      .where(and(
-        eq(ProgramCurriculumSchema.programId, program.id),
-        eq(ProgramCurriculumSchema.courseId, entry.courseId),
-        eq(ProgramCurriculumSchema.level, entry.level),
-        eq(ProgramCurriculumSchema.semester, entry.semester),
-      ))
+      .where(
+        and(
+          eq(ProgramCurriculumSchema.programId, program.id),
+          eq(ProgramCurriculumSchema.courseId, entry.courseId),
+          eq(ProgramCurriculumSchema.level, entry.level),
+          eq(ProgramCurriculumSchema.semester, entry.semester),
+        ),
+      )
       .limit(1);
 
     if (exists.length > 0) {
@@ -318,43 +679,101 @@ async function main() {
     });
     currCreated++;
   }
-  console.log(`\n✅ Step 6: Curriculum mapping — ${currCreated} created, ${currSkipped} already existed`);
+  console.log(
+    `\n✅ Step 6: Curriculum mapping — ${currCreated} created, ${currSkipped} already existed`,
+  );
 
   // ─── Step 7: Class Schedules (200L First Semester) ───────────────────────
   const semesterLabel = "2025/2026-first";
-  const scheduleDefs: { courseCode: string; entries: { day: string; start: string; end: string; room: string; type?: string }[] }[] = [
+  const scheduleDefs: {
+    courseCode: string;
+    entries: {
+      day: string;
+      start: string;
+      end: string;
+      room: string;
+      type?: string;
+    }[];
+  }[] = [
     {
       courseCode: "COS201",
       entries: [
-        { day: "monday", start: "10:00", end: "11:30", room: "Online Live Session" },
-        { day: "wednesday", start: "10:00", end: "11:30", room: "Online Live Session" },
+        {
+          day: "monday",
+          start: "10:00",
+          end: "11:30",
+          room: "Online Live Session",
+        },
+        {
+          day: "wednesday",
+          start: "10:00",
+          end: "11:30",
+          room: "Online Live Session",
+        },
       ],
     },
     {
       courseCode: "COS203",
       entries: [
-        { day: "monday", start: "14:00", end: "15:30", room: "Online Live Session" },
-        { day: "friday", start: "14:00", end: "15:30", room: "Online Live Session" },
+        {
+          day: "monday",
+          start: "14:00",
+          end: "15:30",
+          room: "Online Live Session",
+        },
+        {
+          day: "friday",
+          start: "14:00",
+          end: "15:30",
+          room: "Online Live Session",
+        },
       ],
     },
     {
       courseCode: "COS205",
       entries: [
-        { day: "tuesday", start: "10:00", end: "11:30", room: "Lab Room CS-Lab-1", type: "lab" },
-        { day: "thursday", start: "10:00", end: "11:30", room: "Lab Room CS-Lab-1", type: "lab" },
+        {
+          day: "tuesday",
+          start: "10:00",
+          end: "11:30",
+          room: "Lab Room CS-Lab-1",
+          type: "lab",
+        },
+        {
+          day: "thursday",
+          start: "10:00",
+          end: "11:30",
+          room: "Lab Room CS-Lab-1",
+          type: "lab",
+        },
       ],
     },
     {
       courseCode: "MTH201",
       entries: [
-        { day: "tuesday", start: "14:00", end: "15:30", room: "Online Live Session" },
-        { day: "thursday", start: "14:00", end: "15:30", room: "Online Live Session" },
+        {
+          day: "tuesday",
+          start: "14:00",
+          end: "15:30",
+          room: "Online Live Session",
+        },
+        {
+          day: "thursday",
+          start: "14:00",
+          end: "15:30",
+          room: "Online Live Session",
+        },
       ],
     },
     {
       courseCode: "GST112", // Nigerian People and Culture (real MIVA code)
       entries: [
-        { day: "wednesday", start: "16:00", end: "18:00", room: "Online Live Session" },
+        {
+          day: "wednesday",
+          start: "16:00",
+          end: "18:00",
+          room: "Online Live Session",
+        },
       ],
     },
   ];
@@ -364,20 +783,25 @@ async function main() {
   for (const sched of scheduleDefs) {
     const course = existingByCode.get(sched.courseCode);
     if (!course) {
-      console.log(`  ⚠️  Schedule: course ${sched.courseCode} not found, skipping`);
+      console.log(
+        `  ⚠️  Schedule: course ${sched.courseCode} not found, skipping`,
+      );
       continue;
     }
 
     for (const entry of sched.entries) {
       // Check existing
-      const exists = await db.select({ id: ClassScheduleSchema.id })
+      const exists = await db
+        .select({ id: ClassScheduleSchema.id })
         .from(ClassScheduleSchema)
-        .where(and(
-          eq(ClassScheduleSchema.courseId, course.id),
-          eq(ClassScheduleSchema.semester, semesterLabel),
-          eq(ClassScheduleSchema.dayOfWeek, entry.day as any),
-          eq(ClassScheduleSchema.startTime, entry.start),
-        ))
+        .where(
+          and(
+            eq(ClassScheduleSchema.courseId, course.id),
+            eq(ClassScheduleSchema.semester, semesterLabel),
+            eq(ClassScheduleSchema.dayOfWeek, entry.day as any),
+            eq(ClassScheduleSchema.startTime, entry.start),
+          ),
+        )
         .limit(1);
 
       if (exists.length > 0) {
@@ -397,7 +821,9 @@ async function main() {
       schedCreated++;
     }
   }
-  console.log(`\n✅ Step 7: Schedules — ${schedCreated} created, ${schedSkipped} already existed`);
+  console.log(
+    `\n✅ Step 7: Schedules — ${schedCreated} created, ${schedSkipped} already existed`,
+  );
 
   // ─── Step 8: Faculty-to-Course Assignments ───────────────────────────────
   // Build faculty lookup by email
@@ -407,12 +833,36 @@ async function main() {
   }
 
   const instructorDefs = [
-    { courseCode: "COS201", email: "adebayo.olumide@miva.edu.ng", role: "primary" as const },
-    { courseCode: "COS201", email: "tunde.ogundimu@miva.edu.ng", role: "assistant" as const },
-    { courseCode: "COS203", email: "kemi.adesanya@miva.edu.ng", role: "primary" as const },
-    { courseCode: "COS205", email: "adebayo.olumide@miva.edu.ng", role: "primary" as const },
-    { courseCode: "MTH201", email: "funke.okon@miva.edu.ng", role: "primary" as const },
-    { courseCode: "GST112", email: "funke.okon@miva.edu.ng", role: "primary" as const },
+    {
+      courseCode: "COS201",
+      email: "adebayo.olumide@miva.edu.ng",
+      role: "primary" as const,
+    },
+    {
+      courseCode: "COS201",
+      email: "tunde.ogundimu@miva.edu.ng",
+      role: "assistant" as const,
+    },
+    {
+      courseCode: "COS203",
+      email: "kemi.adesanya@miva.edu.ng",
+      role: "primary" as const,
+    },
+    {
+      courseCode: "COS205",
+      email: "adebayo.olumide@miva.edu.ng",
+      role: "primary" as const,
+    },
+    {
+      courseCode: "MTH201",
+      email: "funke.okon@miva.edu.ng",
+      role: "primary" as const,
+    },
+    {
+      courseCode: "GST112",
+      email: "funke.okon@miva.edu.ng",
+      role: "primary" as const,
+    },
   ];
 
   let instrCreated = 0;
@@ -421,17 +871,22 @@ async function main() {
     const course = existingByCode.get(idef.courseCode);
     const facultyId = facultyByEmail.get(idef.email);
     if (!course || !facultyId) {
-      console.log(`  ⚠️  Instructor: ${idef.courseCode} or ${idef.email} not found, skipping`);
+      console.log(
+        `  ⚠️  Instructor: ${idef.courseCode} or ${idef.email} not found, skipping`,
+      );
       continue;
     }
 
-    const exists = await db.select({ id: CourseInstructorSchema.id })
+    const exists = await db
+      .select({ id: CourseInstructorSchema.id })
       .from(CourseInstructorSchema)
-      .where(and(
-        eq(CourseInstructorSchema.courseId, course.id),
-        eq(CourseInstructorSchema.facultyId, facultyId),
-        eq(CourseInstructorSchema.semester, semesterLabel),
-      ))
+      .where(
+        and(
+          eq(CourseInstructorSchema.courseId, course.id),
+          eq(CourseInstructorSchema.facultyId, facultyId),
+          eq(CourseInstructorSchema.semester, semesterLabel),
+        ),
+      )
       .limit(1);
 
     if (exists.length > 0) {
@@ -447,7 +902,9 @@ async function main() {
     });
     instrCreated++;
   }
-  console.log(`\n✅ Step 8: Instructor assignments — ${instrCreated} created, ${instrSkipped} already existed`);
+  console.log(
+    `\n✅ Step 8: Instructor assignments — ${instrCreated} created, ${instrSkipped} already existed`,
+  );
 
   // ─── Summary ─────────────────────────────────────────────────────────────
   console.log("\n" + "═".repeat(60));
@@ -457,7 +914,9 @@ async function main() {
   console.log(`  Program:       ${program.name} (${program.code})`);
   console.log(`  Session:       ${session.sessionName} (active, current)`);
   console.log(`  Faculty:       ${facultyCredentials.length} members`);
-  console.log(`  Courses:       ${createdCount} new + ${skippedCount} existing`);
+  console.log(
+    `  Courses:       ${createdCount} new + ${skippedCount} existing`,
+  );
   console.log(`  Curriculum:    ${currCreated} mappings`);
   console.log(`  Schedules:     ${schedCreated} entries`);
   console.log(`  Instructors:   ${instrCreated} assignments`);

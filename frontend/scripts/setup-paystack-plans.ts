@@ -72,7 +72,9 @@ async function main() {
 
   for (const plan of PLANS) {
     if (existingPlans[plan.name]) {
-      console.log(`  ${plan.name}: already exists → ${existingPlans[plan.name]}`);
+      console.log(
+        `  ${plan.name}: already exists → ${existingPlans[plan.name]}`,
+      );
       results.push({ name: plan.name, planCode: existingPlans[plan.name] });
       continue;
     }
@@ -102,14 +104,16 @@ async function main() {
 
     const POSTGRES_URL = process.env.POSTGRES_URL;
     if (!POSTGRES_URL) {
-      console.log("POSTGRES_URL not set — update subscription_plan table manually:");
+      console.log(
+        "POSTGRES_URL not set — update subscription_plan table manually:",
+      );
       if (monthly)
         console.log(
-          `  UPDATE subscription_plan SET paystack_plan_code='${monthly.planCode}' WHERE name='ASKLY_MONTHLY';`
+          `  UPDATE subscription_plan SET paystack_plan_code='${monthly.planCode}' WHERE name='ASKLY_MONTHLY';`,
         );
       if (yearly)
         console.log(
-          `  UPDATE subscription_plan SET paystack_plan_code='${yearly.planCode}' WHERE name='ASKLY_YEARLY';`
+          `  UPDATE subscription_plan SET paystack_plan_code='${yearly.planCode}' WHERE name='ASKLY_YEARLY';`,
         );
     } else {
       const { pgDb } = await import("../src/lib/db/pg/db.pg");

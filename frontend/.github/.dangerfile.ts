@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { danger, fail, warn, message } from "danger";
+import { danger, fail, message, warn } from "danger";
 
 const prTitle = danger.github.pr.title;
 const conventionalRegex =

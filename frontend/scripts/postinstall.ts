@@ -1,6 +1,6 @@
 import { exec } from "child_process";
-import { IS_VERCEL_ENV, IS_DOCKER_ENV, FILE_BASED_MCP_CONFIG } from "lib/const";
 import { promisify } from "util";
+import { FILE_BASED_MCP_CONFIG, IS_DOCKER_ENV, IS_VERCEL_ENV } from "lib/const";
 import "load-env";
 const execPromise = promisify(exec);
 
@@ -32,7 +32,9 @@ async function main() {
       console.error("File based MCP config is not supported on Vercel.");
       process.exit(1);
     }
-    console.log("Running on Vercel - skipping migrations (schema already deployed).");
+    console.log(
+      "Running on Vercel - skipping migrations (schema already deployed).",
+    );
     console.log("✅ Postinstall complete for Vercel environment.");
     // Skip migrations on Vercel - database schema should already be deployed
     // Run: npm run db:push locally before deploying to Vercel

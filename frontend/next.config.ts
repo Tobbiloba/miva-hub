@@ -28,15 +28,15 @@ export default () => {
         // Prevent PostgreSQL and Node.js modules from being bundled on client-side
         config.externals = config.externals || [];
         config.externals.push({
-          pg: 'commonjs pg',
-          'pg-native': 'commonjs pg-native', 
-          'pg-connection-string': 'commonjs pg-connection-string',
-          pgpass: 'commonjs pgpass',
-          dns: 'commonjs dns',
-          fs: 'commonjs fs',
-          net: 'commonjs net',
-          tls: 'commonjs tls',
-          crypto: 'commonjs crypto',
+          pg: "commonjs pg",
+          "pg-native": "commonjs pg-native",
+          "pg-connection-string": "commonjs pg-connection-string",
+          pgpass: "commonjs pgpass",
+          dns: "commonjs dns",
+          fs: "commonjs fs",
+          net: "commonjs net",
+          tls: "commonjs tls",
+          crypto: "commonjs crypto",
         });
 
         // Additional module resolution rules for Turbopack
@@ -49,25 +49,30 @@ export default () => {
           tls: false,
           crypto: false,
           pg: false,
-          'pg-native': false,
-          'pg-connection-string': false,
+          "pg-native": false,
+          "pg-connection-string": false,
           pgpass: false,
         };
       }
       return config;
     },
-    
+
     // Additional configuration for server-only modules
-    serverExternalPackages: ['pg', 'pg-native', 'pg-connection-string', 'pgpass'],
-    
+    serverExternalPackages: [
+      "pg",
+      "pg-native",
+      "pg-connection-string",
+      "pgpass",
+    ],
+
     // Image configuration
     images: {
       remotePatterns: [
         {
-          protocol: 'https',
-          hostname: 'cdn.dribbble.com',
-          port: '',
-          pathname: '/**',
+          protocol: "https",
+          hostname: "cdn.dribbble.com",
+          port: "",
+          pathname: "/**",
         },
       ],
     },

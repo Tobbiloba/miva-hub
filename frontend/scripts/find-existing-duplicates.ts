@@ -115,7 +115,7 @@ async function main() {
   for (const row of titleDups.rows) {
     // Skip if already caught by vimeo or pdf match
     const alreadyCaught = groups.some((g) =>
-      g.ids.some((id) => row.ids.includes(id))
+      g.ids.some((id) => row.ids.includes(id)),
     );
     if (!alreadyCaught) {
       groups.push({

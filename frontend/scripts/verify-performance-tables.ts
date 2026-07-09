@@ -10,7 +10,7 @@ async function verifyTables() {
 
   try {
     console.log("🔍 Checking for performance tracking tables...\n");
-    
+
     const result = await pool.query(`
       SELECT 
         table_name,
@@ -26,22 +26,25 @@ async function verifyTables() {
       result.rows.forEach((row: any) => {
         console.log(`  ✓ ${row.table_name} (${row.column_count} columns)`);
       });
-      
+
       console.log("\n🎉 Database is ready for testing!");
       console.log("\nYou can now:");
       console.log("  1. Run the dev server: pnpm dev");
       console.log("  2. Visit: http://localhost:4001/student/dashboard");
       console.log("\n⚠️  Note: You'll need to be logged in as a student");
-      
     } else {
       console.log(`❌ Only ${result.rows.length}/4 tables found:`);
       result.rows.forEach((row: any) => console.log(`  - ${row.table_name}`));
-      
-      const missing = ['performance_history', 'concept_mastery', 'study_sessions', 'grade_predictions']
-        .filter(t => !result.rows.find((r: any) => r.table_name === t));
-      
+
+      const missing = [
+        "performance_history",
+        "concept_mastery",
+        "study_sessions",
+        "grade_predictions",
+      ].filter((t) => !result.rows.find((r: any) => r.table_name === t));
+
       console.log("\nMissing tables:");
-      missing.forEach(t => console.log(`  - ${t}`));
+      missing.forEach((t) => console.log(`  - ${t}`));
     }
 
     process.exit(0);

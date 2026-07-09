@@ -11,8 +11,8 @@
 import "load-env";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { CourseMaterialSchema } from "@/lib/db/pg/schema.pg";
-import { eq, or, isNull } from "drizzle-orm";
 import { extractTranscriptForMaterial } from "@/lib/extraction/transcript-extractor";
+import { eq, isNull, or } from "drizzle-orm";
 
 async function main() {
   console.log("=== Transcript Backfill Script ===\n");
@@ -31,8 +31,8 @@ async function main() {
     .where(
       or(
         eq(CourseMaterialSchema.transcriptStatus, "pending"),
-        isNull(CourseMaterialSchema.transcriptStatus)
-      )
+        isNull(CourseMaterialSchema.transcriptStatus),
+      ),
     )
     .orderBy(CourseMaterialSchema.createdAt);
 
@@ -52,13 +52,17 @@ async function main() {
     const mat = materials[i];
     const progress = `[${i + 1}/${total}]`;
 
-    console.log(`${progress} Processing: "${mat.title}" (${mat.mimeType || "unknown type"})`);
+    console.log(
+      `${progress} Processing: "${mat.title}" (${mat.mimeType || "unknown type"})`,
+    );
 
     // Parse Vimeo info from description if it's a video stub
     let vimeoVideoId: string | undefined;
     let vimeoHash: string | undefined;
     if (mat.mimeType?.startsWith("video/") && mat.description) {
-      const vimeoMatch = mat.description.match(/Vimeo:.*?\/video\/(\d+)(?:\?h=([a-f0-9]+))?/);
+      const vimeoMatch = mat.description.match(
+        /Vimeo:.*?\/video\/(\d+)(?:\?h=([a-f0-9]+))?/,
+      );
       if (vimeoMatch) {
         vimeoVideoId = vimeoMatch[1];
         vimeoHash = vimeoMatch[2];
