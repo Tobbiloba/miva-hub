@@ -46,7 +46,8 @@ export default async function FacultyLayout({
         facultyRecord={activeFacultyRecord}
       />
 
-      <div className="flex">
+      {/* pt-16 offsets the fixed h-16 header so page titles aren't clipped */}
+      <div className="flex pt-16">
         <FacultySidebar
           facultyInfo={facultyInfo}
           facultyRecord={activeFacultyRecord}
