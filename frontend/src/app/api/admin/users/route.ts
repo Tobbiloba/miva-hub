@@ -197,7 +197,9 @@ export async function POST(request: NextRequest) {
 
     // Create user + credential account row atomically so the user can sign in
     const newUser = await pgDb.transaction(async (tx) => {
-      const [created] = await tx
+      // Assign-then-index: .returning() inside a transaction infers a union
+      // type that breaks array destructuring but not indexing
+      const createdRows = await tx
         .insert(UserSchema)
         .values({
           name,
@@ -213,6 +215,7 @@ export async function POST(request: NextRequest) {
           emailVerified: true,
         })
         .returning();
+      const created = createdRows[0];
 
       await tx.insert(AccountSchema).values({
         accountId: created.id,
