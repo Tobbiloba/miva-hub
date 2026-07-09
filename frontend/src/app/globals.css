@@ -42,6 +42,13 @@
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
+/*
+ * next-themes applies theme via a `.dark` class on <html> (attribute="class"),
+ * but Tailwind v4's default `dark:` variant follows prefers-color-scheme.
+ * Without this override every `dark:` utility ignores the in-app theme toggle.
+ */
+@custom-variant dark (&:is(.dark *));
+
 html {
   scroll-behavior: smooth;
 }
