@@ -94,9 +94,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Never expose password hashes to the client
+    const safeStudents = filteredStudents.map(
+      ({ password: _password, ...rest }) => rest,
+    );
+
     return NextResponse.json({
       success: true,
-      data: filteredStudents,
+      data: safeStudents,
       total: filteredStudents.length,
       hasMore: students.length === limit,
     });

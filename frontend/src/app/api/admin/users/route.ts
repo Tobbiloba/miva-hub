@@ -162,6 +162,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // A university admin must never mint elevated roles via this endpoint
+    if (!["student", "faculty", "admin"].includes(role)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid role" },
+        { status: 400 },
+      );
+    }
+
     // Check if email already exists
     const existingUser = await pgDb
       .select()
@@ -176,6 +184,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Tenant scope: new users belong to the creating admin's university
+    const university = await getUserUniversity(sessionOrError.user.id);
+
+    // Never store plaintext credentials; generate a temp password if omitted
+    const { hash } = await import("bcryptjs");
+    const tempPassword =
+      password || `${role}${Math.random().toString(36).slice(-8)}`;
+    const hashedPassword = await hash(tempPassword, 12);
+
     // Create new user
     const newUser = await pgDb
       .insert(UserSchema)
@@ -183,7 +200,8 @@ export async function POST(request: NextRequest) {
         name,
         email,
         role,
-        password, // Note: Should be hashed in production
+        password: hashedPassword,
+        universityId: university?.id ?? null,
         studentId: role === "student" ? studentId : null,
         major: role === "student" ? major : null,
         year: role === "student" ? year : null,
@@ -193,10 +211,17 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
+    // Never expose the password hash to the client
+    const { password: _password, ...safeUser } = newUser[0];
+
     return NextResponse.json({
       success: true,
       message: "User created successfully",
-      data: newUser[0],
+      data: {
+        ...safeUser,
+        // Returned once so the admin can share it if it was auto-generated
+        ...(password ? {} : { tempPassword }),
+      },
     });
   } catch (error) {
     console.error("Error creating user:", error);
