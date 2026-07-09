@@ -40,6 +40,17 @@ export default async function CourseManagementPage({
 }: CoursePageProps) {
   const { courseId } = await params;
   const { semester: semesterParam } = await searchParams;
+
+  // Guard: a non-UUID id would reach Postgres and throw
+  // "invalid input syntax for type uuid" as an unhandled rejection.
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      courseId,
+    )
+  ) {
+    notFound();
+  }
+
   const session = await getSession();
   const facultyInfo = getFacultyInfo(session);
 
@@ -87,8 +98,8 @@ export default async function CourseManagementPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-4">
           <Button variant="outline" size="sm" asChild>
             <Link href="/faculty/courses">
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -98,7 +109,7 @@ export default async function CourseManagementPage({
           <div>
             <h1 className="text-3xl font-bold">{course.courseCode}</h1>
             <p className="text-muted-foreground">{course.title}</p>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex flex-wrap items-center gap-2 mt-1">
               <Badge variant="outline">{department.name}</Badge>
               <Badge variant="secondary">{course.credits} credits</Badge>
               <Badge variant="outline" className="capitalize">
@@ -107,7 +118,7 @@ export default async function CourseManagementPage({
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline">
             <Settings className="mr-2 h-4 w-4" />
             Course Settings
