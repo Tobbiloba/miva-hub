@@ -16,9 +16,10 @@ import {
   ProgramSchema,
   CourseSchema,
   StudentEnrollmentSchema,
+  AccountSchema,
 } from "lib/db/pg/schema.pg";
 import { eq, and, inArray } from "drizzle-orm";
-import { hash } from "bcryptjs";
+import { hashPassword } from "better-auth/crypto";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -183,7 +184,7 @@ async function main() {
   console.log(`✅ All ${allCourseCodes.length} course codes resolved\n`);
 
   // ── Step 3: Hash password once (same for all 3) ─────────────────────────
-  const hashedPassword = await hash("TestPass123!", 12);
+  const hashedPassword = await hashPassword("TestPass123!");
 
   // ── Step 4: Seed each student in a transaction ──────────────────────────
   for (const student of STUDENTS) {
@@ -236,6 +237,16 @@ async function main() {
           admissionSession: student.admissionSession,
           admissionLevel: student.admissionLevel,
           emailVerified: true,
+        });
+
+        // Create better-auth credential account
+        await tx.insert(AccountSchema).values({
+          accountId: userId,
+          providerId: "credential",
+          userId,
+          password: hashedPassword,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         });
         console.log(`  ✅ User created (${userId})`);
       }

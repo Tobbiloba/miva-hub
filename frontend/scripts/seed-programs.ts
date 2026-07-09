@@ -23,138 +23,77 @@ async function seedPrograms() {
       return false;
     }
 
-    // Programs organized by department
+    // Programs — each maps to the department with the same code
+    // (seed-majors-and-courses.ts creates each major as its own department)
     const programsData = [
-      // School of Computing (COMP)
-      {
-        code: "CS",
-        name: "Computer Science",
-        description: "Study of computation, algorithms, and software development",
-        deptCode: "COMP",
-      },
-      {
-        code: "CYB",
-        name: "Cybersecurity",
-        description: "Focus on information security and cyber defense",
-        deptCode: "COMP",
-      },
-      {
-        code: "DTS",
-        name: "Data Science",
-        description: "Big data analytics, machine learning, and data visualization",
-        deptCode: "COMP",
-      },
-      {
-        code: "SEN",
-        name: "Software Engineering",
-        description: "Software design, development, and project management",
-        deptCode: "COMP",
-      },
-      {
-        code: "ITE",
-        name: "Information Technology",
-        description: "IT systems, networks, and technology management",
-        deptCode: "COMP",
-      },
-      // School of Management and Social Sciences (MGMT)
-      {
-        code: "BUA",
-        name: "Business Management",
-        description: "Business administration, operations, and strategy",
-        deptCode: "MGMT",
-      },
-      {
-        code: "ECO",
-        name: "Economics",
-        description: "Economic theory, analysis, and policy",
-        deptCode: "MGMT",
-      },
-      {
-        code: "ACC",
-        name: "Accounting",
-        description: "Financial accounting, auditing, and taxation",
-        deptCode: "MGMT",
-      },
-      {
-        code: "PAD",
-        name: "Public Policy and Administration",
-        description: "Public administration, governance, and policy analysis",
-        deptCode: "MGMT",
-      },
-      {
-        code: "CSS",
-        name: "Criminology and Security Studies",
-        description: "Criminal justice, law enforcement, and security",
-        deptCode: "MGMT",
-      },
-      // School of Communication and Media Studies (COMM)
-      {
-        code: "MCM",
-        name: "Mass Communication and Media Studies",
-        description: "Journalism, broadcasting, advertising, and public relations",
-        deptCode: "COMM",
-      },
-      // School of Allied Health Sciences (HLTH)
-      {
-        code: "NSC",
-        name: "Nursing Science",
-        description: "Nursing practice, healthcare, and patient care",
-        deptCode: "HLTH",
-      },
-      {
-        code: "PHS",
-        name: "Public Health",
-        description: "Public health, epidemiology, and health systems",
-        deptCode: "HLTH",
-      },
+      // Computing
+      { code: "CS",  name: "Computer Science",                  description: "Study of computation, algorithms, and software development" },
+      { code: "CYB", name: "Cybersecurity",                     description: "Focus on information security and cyber defense" },
+      { code: "DTS", name: "Data Science",                      description: "Big data analytics, machine learning, and data visualization" },
+      { code: "SEN", name: "Software Engineering",              description: "Software design, development, and project management" },
+      { code: "ITE", name: "Information Technology",             description: "IT systems, networks, and technology management" },
+      // Management & Social Sciences
+      { code: "BUA", name: "Business Management",               description: "Business administration, operations, and strategy" },
+      { code: "ECO", name: "Economics",                          description: "Economic theory, analysis, and policy" },
+      { code: "ACC", name: "Accounting",                         description: "Financial accounting, auditing, and taxation" },
+      { code: "PAD", name: "Public Policy and Administration",   description: "Public administration, governance, and policy analysis" },
+      { code: "CSS", name: "Criminology and Security Studies",   description: "Criminal justice, law enforcement, and security" },
+      // Communication & Media
+      { code: "MCM", name: "Mass Communication and Media Studies", description: "Journalism, broadcasting, advertising, and public relations" },
+      // Allied Health Sciences
+      { code: "NSC", name: "Nursing Science",                    description: "Nursing practice, healthcare, and patient care" },
+      { code: "PHS", name: "Public Health",                      description: "Public health, epidemiology, and health systems" },
     ];
 
-    // Get department IDs
-    const departments = await db
-      .select()
-      .from(DepartmentSchema);
-
+    // Build department lookup by code
+    const departments = await db.select().from(DepartmentSchema);
     const deptMap: Record<string, string> = {};
     for (const dept of departments) {
       deptMap[dept.code] = dept.id;
     }
-
     console.log(`📍 Found ${departments.length} departments`);
 
-    // Insert programs
+    // Check which programs already exist
+    const existingPrograms = await db.select({ code: ProgramSchema.code }).from(ProgramSchema);
+    const existingCodes = new Set(existingPrograms.map((p) => p.code));
+
+    // Filter to only new programs whose department exists
+    const toInsert = programsData.filter((prog) => {
+      if (existingCodes.has(prog.code)) {
+        console.log(`  ⏭️  Program ${prog.code} already exists, skipping`);
+        return false;
+      }
+      if (!deptMap[prog.code]) {
+        console.log(`  ⚠️  No department with code ${prog.code}, skipping`);
+        return false;
+      }
+      return true;
+    });
+
+    if (toInsert.length === 0) {
+      console.log("\n✅ All programs already exist. Nothing to do.");
+      return true;
+    }
+
     const programs = (await db
       .insert(ProgramSchema)
       .values(
-        programsData.map((prog) => ({
+        toInsert.map((prog) => ({
           code: prog.code,
           name: prog.name,
           description: prog.description,
-          departmentId: deptMap[prog.deptCode],
+          departmentId: deptMap[prog.code],
           universityId: university.id,
         }))
       )
       .returning()) as (typeof ProgramSchema.$inferSelect)[];
 
-    console.log(`✅ Created ${programs.length} programs/majors`);
+    console.log(`\n✅ Created ${programs.length} programs`);
+    console.log(`   (${existingCodes.size} already existed, ${programsData.length - toInsert.length - programs.length} skipped)`);
 
-    // Group by department for summary
-    const progsByDept: Record<string, any[]> = {};
     for (const prog of programs) {
       const dept = departments.find((d) => d.id === prog.departmentId);
-      if (dept) {
-        if (!progsByDept[dept.name]) {
-          progsByDept[dept.name] = [];
-        }
-        progsByDept[dept.name].push(prog.name);
-      }
-    }
-
-    console.log("\n📊 Programs by Department:");
-    for (const [dept, progs] of Object.entries(progsByDept)) {
-      console.log(`   ${dept}:`);
-      for (const prog of progs) {
-        console.log(`     - ${prog}`);
-      }
+      console.log(`     - ${prog.name} → ${dept?.name ?? "?"}`);
     }
 
     console.log("\n✨ Programs seeding complete!");

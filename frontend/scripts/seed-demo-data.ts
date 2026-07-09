@@ -19,9 +19,10 @@ import {
   UserSchema,
   ClassScheduleSchema,
   CourseInstructorSchema,
+  AccountSchema,
 } from "lib/db/pg/schema.pg";
 import { eq, and, inArray } from "drizzle-orm";
-import { hash } from "bcryptjs";
+import { hashPassword } from "better-auth/crypto";
 
 const CS_DEPT_CODE = "CS"; // Computer Science department code in DB
 
@@ -104,7 +105,7 @@ async function main() {
     }
 
     const tempPassword = `Faculty${Math.random().toString(36).slice(-8)}!`;
-    const hashedPassword = await hash(tempPassword, 12);
+    const hashedPassword = await hashPassword(tempPassword);
     const userId = crypto.randomUUID();
     const facultyId = crypto.randomUUID();
     const employeeId = `FAC-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(-4).toUpperCase()}`;
@@ -116,6 +117,16 @@ async function main() {
       password: hashedPassword,
       role: "faculty",
       emailVerified: true,
+    });
+
+    // Create better-auth credential account
+    await db.insert(AccountSchema).values({
+      accountId: userId,
+      providerId: "credential",
+      userId,
+      password: hashedPassword,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
     await db.insert(FacultySchema).values({

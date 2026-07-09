@@ -11,44 +11,71 @@
  * Usage:  pnpm tsx scripts/seed-content.ts
  */
 
-import "dotenv/config";
+import "load-env";
 import pg from "pg";
 
 const DATABASE_URL = process.env.POSTGRES_URL;
 if (!DATABASE_URL) throw new Error("POSTGRES_URL not set");
 
-const pool = new pg.Pool({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } });
+const isLocalhost = DATABASE_URL.includes("localhost") || DATABASE_URL.includes("127.0.0.1");
+const pool = new pg.Pool({
+  connectionString: DATABASE_URL,
+  ...(isLocalhost ? {} : { ssl: { rejectUnauthorized: false } }),
+});
 
 // ──────────────────────────────────────────────
-// Entity IDs (from live DB)
+// Entity IDs — resolved dynamically at runtime
 // ──────────────────────────────────────────────
 
-const USERS = {
-  admin:   "de413abd-e0c7-4275-a006-ec956b3b02a8", // Salau Oluwatobiloba
-  adebayo: "1fe6cf6a-acc9-4022-8619-a82d2e497a54", // Dr. Adebayo Olumide (faculty)
-  kemi:    "170da921-22a5-4986-8acd-adbf65cb75cb", // Dr. Kemi Adesanya (faculty)
-  tunde:   "7f244875-753a-4871-9678-4b683247c905", // Mr. Tunde Ogundimu (faculty)
-  funke:   "3300a015-60cb-40b2-a117-c69bfdda3250", // Mrs. Funke Okon (faculty)
-  ada:     "ea1b692b-c1e5-4824-8b42-17a7a0fc4195", // Ada Okonkwo (200L student)
-  chidi:   "6cacd4ad-5736-4246-87e6-4b9fd5491c07", // Chidi Okeke (300L student)
-  bisi:    "093e26de-05ee-4b7f-84da-68d3c1bebd7c", // Bisi Adeyemi (100L student)
-};
+const USERS: Record<string, string> = {};
+const COURSES: Record<string, string> = {};
 
-const COURSES = {
-  COS201: "42dc75ef-aedf-4a10-882c-65e81dcd4e3d",
-  COS203: "56a03180-5b4f-40e9-8ddd-29c7daf44e9a",
-  COS205: "4dc8ad10-8b22-4301-b846-f929fadc21e6",
-  MTH201: "8ec9a38a-3b71-485a-a856-eb2a3b9a20e4",
-  GST112: "a77e34ab-8627-4787-a4c8-de950e44e4e9",
-  // 100L courses for Bisi
-  COS101: "8b44c279-9f25-45df-8db2-823af28231c7",
-  MTH101: "91c8aff0-f75e-4734-8d5a-12bc5435ad46",
-  // 300L courses for Chidi
-  COS301: "3c01698c-a57d-4752-90f2-efed70e6c0e0",
-  COS303: "b9dd85f1-5687-47cf-8e68-fb38f3f74034",
-  COS305: "2f339497-1900-42d8-a897-2cdb1910901a",
-  COS307: "14ae95ed-55b6-45da-86d1-31c00b9eaaea",
-};
+async function resolveIds(client: pg.PoolClient) {
+  // Look up users by email
+  const userMap: Record<string, string> = {
+    admin:   "admin@miva.edu.ng",
+    adebayo: "adebayo.olumide@miva.edu.ng",
+    kemi:    "kemi.adesanya@miva.edu.ng",
+    tunde:   "tunde.ogundimu@miva.edu.ng",
+    funke:   "funke.okon@miva.edu.ng",
+    ada:     "ada.okonkwo@miva.edu.ng",
+    chidi:   "chidi.okeke@miva.edu.ng",
+    bisi:    "bisi.adeyemi@miva.edu.ng",
+  };
+
+  const emails = Object.values(userMap);
+  const userRows = await client.query(
+    `SELECT id, email FROM "user" WHERE email = ANY($1)`,
+    [emails],
+  );
+  const emailToId = new Map(userRows.rows.map((r: any) => [r.email, r.id]));
+
+  for (const [key, email] of Object.entries(userMap)) {
+    const id = emailToId.get(email);
+    if (!id) throw new Error(`User not found: ${email} — run seed-demo-data and seed-students first`);
+    USERS[key] = id;
+  }
+  console.log(`✅ Resolved ${Object.keys(USERS).length} user IDs`);
+
+  // Look up courses by course_code
+  const courseCodes = [
+    "COS201", "COS203", "COS205", "MTH201", "GST112",
+    "COS101", "MTH101",
+    "COS301", "COS303", "COS305", "COS307",
+  ];
+  const courseRows = await client.query(
+    `SELECT id, course_code FROM "course" WHERE course_code = ANY($1)`,
+    [courseCodes],
+  );
+  for (const row of courseRows.rows) {
+    COURSES[row.course_code] = row.id;
+  }
+  const missing = courseCodes.filter((c) => !COURSES[c]);
+  if (missing.length > 0) {
+    throw new Error(`Courses not found: ${missing.join(", ")} — run seed-majors-and-courses and seed-demo-data first`);
+  }
+  console.log(`✅ Resolved ${Object.keys(COURSES).length} course IDs`);
+}
 
 // ──────────────────────────────────────────────
 // Helpers
@@ -115,7 +142,7 @@ interface AnnouncementRow {
   created_at: Date;
 }
 
-const ANNOUNCEMENTS: AnnouncementRow[] = [
+const getAnnouncements = (): AnnouncementRow[] => [
   // University-wide
   {
     title: "Welcome to the 2025/2026 Academic Session",
@@ -251,7 +278,7 @@ interface AssignmentRow {
   created_at: Date;
 }
 
-const ASSIGNMENTS: AssignmentRow[] = [
+const getAssignments = (): AssignmentRow[] => [
   // COS201
   {
     course_id: COURSES.COS201,
@@ -474,7 +501,7 @@ interface SubmissionSpec {
   graded_by_id: string | null;
 }
 
-const SUBMISSIONS: SubmissionSpec[] = [
+const getSubmissions = (): SubmissionSpec[] => [
   // Ada — COS201 Lab 1 (graded)
   {
     assignment_title: "Programming Lab 1: Hello World",
@@ -608,7 +635,7 @@ interface MaterialRow {
   uploaded_by_id: string;
 }
 
-const MATERIALS: MaterialRow[] = [
+const getMaterials = (): MaterialRow[] => [
   // ── COS201: Computer Programming I ──
   {
     course_id: COURSES.COS201,
@@ -935,9 +962,13 @@ const MATERIALS: MaterialRow[] = [
 async function main() {
   const client = await pool.connect();
   try {
+    // Resolve all entity IDs dynamically before using them
+    await resolveIds(client);
+
     await client.query("BEGIN");
 
     // 1. Announcements
+    const ANNOUNCEMENTS = getAnnouncements();
     let announcementsCreated = 0;
     for (const a of ANNOUNCEMENTS) {
       const check = a.course_id
@@ -955,6 +986,7 @@ async function main() {
     console.log(`Announcements: ${announcementsCreated} upserted (${ANNOUNCEMENTS.length} defined)`);
 
     // 2. Assignments — track title→ID for submissions
+    const ASSIGNMENTS = getAssignments();
     const assignmentIds: Record<string, string> = {};
     let assignmentsCreated = 0;
     for (const a of ASSIGNMENTS) {
@@ -975,6 +1007,7 @@ async function main() {
     console.log(`Assignments: ${assignmentsCreated} upserted (${ASSIGNMENTS.length} defined)`);
 
     // 3. Submissions
+    const SUBMISSIONS = getSubmissions();
     let submissionsCreated = 0;
     for (const s of SUBMISSIONS) {
       const assignmentId = assignmentIds[s.assignment_title];
@@ -1011,6 +1044,7 @@ async function main() {
     console.log(`Submissions: ${submissionsCreated} upserted (${SUBMISSIONS.length} defined)`);
 
     // 4. Course materials
+    const MATERIALS = getMaterials();
     let materialsCreated = 0;
     for (const m of MATERIALS) {
       const id = await upsert(
