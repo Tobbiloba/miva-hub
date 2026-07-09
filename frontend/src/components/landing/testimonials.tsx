@@ -12,6 +12,9 @@ interface Testimonial {
   tags: string[];
 }
 
+const avatarUrl = (name: string) =>
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&size=80&background=e5e7eb&color=6b7280`;
+
 const Testimonials: React.FC = () => {
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -22,7 +25,7 @@ const Testimonials: React.FC = () => {
         "Askly turned my lecture notes into a guide I could actually study. I went from cramming to understanding.",
       name: "Tori Handoko",
       title: "CS Undergraduate",
-      image: "/path-to-image.jpg",
+      image: avatarUrl("Tori Handoko"),
       tags: ["Study Guides", "Clarity"],
     },
     {
@@ -31,7 +34,7 @@ const Testimonials: React.FC = () => {
         "The quiz generator saved me hours. I practiced exactly what my exam covered and boosted my confidence.",
       name: "Sarah Johnson",
       title: "Business Student",
-      image: "/path-to-image.jpg",
+      image: avatarUrl("Sarah Johnson"),
       tags: ["Quizzes", "Confidence"],
     },
     {
@@ -40,7 +43,7 @@ const Testimonials: React.FC = () => {
         "Askly explains tough concepts from multiple angles. It finally clicked for me.",
       name: "Michael Chen",
       title: "Engineering Student",
-      image: "/path-to-image.jpg",
+      image: avatarUrl("Michael Chen"),
       tags: ["Explanations", "Understanding"],
     },
   ];
