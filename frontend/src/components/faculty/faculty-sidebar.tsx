@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   BookOpen,
   Calendar,
+  ClipboardCheck,
   FileText,
   FolderOpen,
   GraduationCap,
@@ -58,6 +59,12 @@ const navigationItems = [
     href: "/faculty/grades",
     icon: GraduationCap,
     description: "Grade assignments and track progress",
+  },
+  {
+    title: "AI Review",
+    href: "/faculty/review-queue",
+    icon: ClipboardCheck,
+    description: "Review pending AI-suggested grades",
   },
   {
     title: "Students",
