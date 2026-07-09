@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { Page, expect, test } from "@playwright/test";
 
 /**
  * Phase 2D: Admin verification toggle.
@@ -11,8 +11,7 @@ import { test, expect, Page } from "@playwright/test";
  * with a clear message rather than silently failing.
  */
 
-const ADMIN_EMAIL =
-  process.env.ADMIN_EMAIL || "oluwatobi.salau@miva.edu.ng";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "oluwatobi.salau@miva.edu.ng";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 async function browserSignIn(page: Page, email: string, password: string) {
@@ -27,7 +26,7 @@ async function browserSignIn(page: Page, email: string, password: string) {
       });
       return { ok: res.ok, status: res.status };
     },
-    { email, password }
+    { email, password },
   );
   return result;
 }
@@ -37,17 +36,13 @@ test.describe("Phase 2D: Admin verification toggle", () => {
     if (!ADMIN_PASSWORD) {
       test.skip(
         true,
-        "ADMIN_PASSWORD env var not set — admin password is unknown for seeded admin. Set ADMIN_PASSWORD to run this test."
+        "ADMIN_PASSWORD env var not set — admin password is unknown for seeded admin. Set ADMIN_PASSWORD to run this test.",
       );
       return;
     }
 
     // Step 1: Log in as admin
-    const loginResult = await browserSignIn(
-      page,
-      ADMIN_EMAIL,
-      ADMIN_PASSWORD
-    );
+    const loginResult = await browserSignIn(page, ADMIN_EMAIL, ADMIN_PASSWORD);
     if (!loginResult.ok) {
       test.skip(true, "Admin login failed — check ADMIN_EMAIL/ADMIN_PASSWORD");
       return;
@@ -72,7 +67,7 @@ test.describe("Phase 2D: Admin verification toggle", () => {
         const data = await res.json();
         return { ok: true, userId: data.data?.id };
       },
-      { email: testEmail }
+      { email: testEmail },
     );
 
     if (!createResult.ok || !createResult.userId) {
@@ -94,7 +89,7 @@ test.describe("Phase 2D: Admin verification toggle", () => {
           });
           return res.ok;
         },
-        { id: testUserId }
+        { id: testUserId },
       );
       expect(toggleOn).toBe(true);
 
@@ -109,7 +104,7 @@ test.describe("Phase 2D: Admin verification toggle", () => {
           });
           return res.ok;
         },
-        { id: testUserId }
+        { id: testUserId },
       );
       expect(toggleOff).toBe(true);
     } finally {
@@ -121,11 +116,9 @@ test.describe("Phase 2D: Admin verification toggle", () => {
             credentials: "include",
           });
         },
-        { id: testUserId }
+        { id: testUserId },
       );
-      console.log(
-        `[TEARDOWN] Deleted test user: ${testEmail} (${testUserId})`
-      );
+      console.log(`[TEARDOWN] Deleted test user: ${testEmail} (${testUserId})`);
     }
   });
 });
