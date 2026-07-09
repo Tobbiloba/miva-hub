@@ -10,8 +10,13 @@ import { s3Service } from "@/lib/aws/s3-service";
 import type { S3AccessOptions } from "@/lib/aws/s3-service";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-import { AssignmentSubmissionSchema } from "@/lib/db/pg/schema.pg";
+import {
+  AIDecisionSchema,
+  AssignmentSchema,
+  AssignmentSubmissionSchema,
+} from "@/lib/db/pg/schema.pg";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { and, count, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 120;
@@ -25,6 +30,45 @@ function getConfidenceThreshold(): number {
   const raw = Number(process.env.SNAP_GRADE_CONFIDENCE_THRESHOLD);
   if (Number.isFinite(raw) && raw > 0 && raw <= 1) return raw;
   return DEFAULT_CONFIDENCE_THRESHOLD;
+}
+
+const DEFAULT_CALIBRATION_MIN_APPROVALS = 5;
+
+/** How many faculty-approved snap suggestions a course needs before
+ * confidence alone may auto-post. 0 disables the calibration gate. */
+function getCalibrationMinApprovals(): number {
+  const raw = Number(process.env.SNAP_GRADE_CALIBRATION_MIN_APPROVALS);
+  if (Number.isInteger(raw) && raw >= 0) return raw;
+  return DEFAULT_CALIBRATION_MIN_APPROVALS;
+}
+
+/**
+ * Calibration gate: auto-posting is earned per course, not default. Only
+ * ledger rows a human explicitly approved count — overridden/rejected
+ * suggestions are evidence of miscalibration and keep the gate closed.
+ * The course is recovered via submission → assignment (the ledger row
+ * stores only the submission id as its subject).
+ */
+async function countApprovedSnapDecisions(courseId: string): Promise<number> {
+  const [row] = await pgDb
+    .select({ value: count() })
+    .from(AIDecisionSchema)
+    .innerJoin(
+      AssignmentSubmissionSchema,
+      eq(AIDecisionSchema.subjectId, AssignmentSubmissionSchema.id),
+    )
+    .innerJoin(
+      AssignmentSchema,
+      eq(AssignmentSubmissionSchema.assignmentId, AssignmentSchema.id),
+    )
+    .where(
+      and(
+        eq(AssignmentSchema.courseId, courseId),
+        eq(AIDecisionSchema.actor, "snap-grading-agent"),
+        eq(AIDecisionSchema.status, "approved"),
+      ),
+    );
+  return row?.value ?? 0;
 }
 
 export async function POST(
@@ -190,7 +234,15 @@ export async function POST(
 
     const { suggestion } = gradeResult;
     const { suggestedGrade, confidence } = suggestion;
-    const autoPosted = confidence >= threshold;
+
+    // Calibration gate: self-reported confidence may only auto-post once
+    // faculty have approved enough snap suggestions for this course.
+    const minApprovals = getCalibrationMinApprovals();
+    const approvedCount =
+      minApprovals > 0 ? await countApprovedSnapDecisions(course.id) : 0;
+    const calibrated = minApprovals === 0 || approvedCount >= minApprovals;
+
+    const autoPosted = confidence >= threshold && calibrated;
 
     if (autoPosted) {
       // High confidence — post the grade immediately (no faculty user;
@@ -229,6 +281,7 @@ export async function POST(
         fileIncluded: true,
         autoPosted,
         threshold,
+        calibration: { calibrated, approvedCount, minApprovals },
       },
     });
 

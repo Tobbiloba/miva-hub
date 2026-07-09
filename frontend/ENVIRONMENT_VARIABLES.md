@@ -37,6 +37,7 @@ This document lists all the environment variables used in the MIVA Hub frontend 
 
 ### AI Governance
 - `SNAP_GRADE_CONFIDENCE_THRESHOLD` - Snap-to-Solve auto-post threshold, 0–1 (default: `0.85`). AI grades at or above it post automatically; below it they queue for faculty review.
+- `SNAP_GRADE_CALIBRATION_MIN_APPROVALS` - Calibration gate for auto-posting (default: `5`). A course must have this many faculty-**approved** snap suggestions in the AI decision ledger before confidence alone may auto-post; until then every snap grade queues for review. Overridden/rejected reviews do not count. Set to `0` to disable the gate.
 
 ### AWS Configuration
 - `AWS_ACCESS_KEY_ID` - AWS access key
