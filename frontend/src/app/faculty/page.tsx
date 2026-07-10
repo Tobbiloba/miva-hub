@@ -1,3 +1,4 @@
+import { StatCard } from "@/components/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,72 +83,31 @@ export default async function FacultyDashboard() {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                <BookOpen className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {dashboardStats.activeCourses}
-                </p>
-                <p className="text-sm text-muted-foreground">Active Courses</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                <Users className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {dashboardStats.totalStudents}
-                </p>
-                <p className="text-sm text-muted-foreground">Total Students</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                <Clock className="h-6 w-6 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {dashboardStats.pendingGrades}
-                </p>
-                <p className="text-sm text-muted-foreground">Pending Grades</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {dashboardStats.recentSubmissions}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Recent Submissions
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          icon={<BookOpen />}
+          label="Active Courses"
+          value={dashboardStats.activeCourses}
+          caption="This semester"
+        />
+        <StatCard
+          icon={<Users />}
+          label="Total Students"
+          value={dashboardStats.totalStudents}
+          caption="Across your courses"
+        />
+        <StatCard
+          icon={<Clock />}
+          label="Pending Grades"
+          value={dashboardStats.pendingGrades}
+          caption="Awaiting review"
+        />
+        <StatCard
+          icon={<TrendingUp />}
+          label="Recent Submissions"
+          value={dashboardStats.recentSubmissions}
+          caption="Last 7 days"
+        />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -155,7 +115,7 @@ export default async function FacultyDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-blue-600" />
+              <BookOpen className="h-5 w-5 text-primary" />
               My Courses
             </CardTitle>
             <Button variant="outline" size="sm" asChild>
@@ -209,7 +169,7 @@ export default async function FacultyDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-orange-600" />
+              <FileText className="h-5 w-5 text-primary" />
               Pending Grades
             </CardTitle>
             <Button variant="outline" size="sm" asChild>
@@ -272,7 +232,7 @@ export default async function FacultyDashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-green-600" />
+            <Calendar className="h-5 w-5 text-primary" />
             Quick Actions
           </CardTitle>
         </CardHeader>
