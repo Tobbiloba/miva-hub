@@ -7,6 +7,7 @@ import { cn, createDebounce, generateUUID, truncateString } from "lib/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ChatGreeting } from "./chat-greeting";
+import { SuggestionCards } from "./chat-suggestions";
 import { ErrorMessage, PreviewMessage } from "./message";
 import PromptInput from "./prompt-input";
 
@@ -28,7 +29,10 @@ import { getStorageManager } from "lib/browser-storage";
 import { Shortcuts, isShortcutEvent } from "lib/keyboard-shortcuts";
 import {
   ArrowDown,
+  Camera,
+  FileQuestion,
   Loader,
+  NotebookPen,
   PanelRightClose,
   PanelRightOpen,
 } from "lucide-react";
@@ -64,6 +68,30 @@ const Particles = dynamic(() => import("ui/particles"), {
 });
 
 const debounce = createDebounce();
+
+const CHAT_SUGGESTIONS = [
+  {
+    id: "snap",
+    icon: <Camera />,
+    title: "Grade my handwriting",
+    prompt:
+      "I want to snap a photo of my worked problem set and have it graded against this week's rubric. How do I start?",
+  },
+  {
+    id: "quiz",
+    icon: <FileQuestion />,
+    title: "Quiz me before the test",
+    prompt:
+      "Give me a 10-question practice quiz on this week's topic with instant feedback after each answer.",
+  },
+  {
+    id: "plan",
+    icon: <NotebookPen />,
+    title: "Plan my study week",
+    prompt:
+      "Help me build a study plan for my upcoming deadlines around my class timetable.",
+  },
+];
 
 const firstTimeStorage = getStorageManager("IS_FIRST");
 const isFirstTime = firstTimeStorage.get() ?? true;
@@ -383,7 +411,25 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
         )}
       >
         {emptyMessage ? (
-          <ChatGreeting />
+          <>
+            <ChatGreeting />
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="mx-auto w-full max-w-3xl px-6"
+            >
+              <SuggestionCards
+                items={CHAT_SUGGESTIONS}
+                onSelect={(s) =>
+                  sendMessage({
+                    role: "user",
+                    parts: [{ type: "text", text: s.prompt }],
+                  })
+                }
+              />
+            </motion.div>
+          </>
         ) : (
           <>
             <div
