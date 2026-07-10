@@ -1,4 +1,4 @@
-import { StatsCard } from "@/components/admin/stats-card";
+import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
@@ -52,37 +52,35 @@ export default async function AdminDashboard() {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <StatsCard
-          title="Total Students"
+        <StatCard
+          icon={<Users />}
+          label="Total Students"
           value={stats.students}
-          icon={Users}
-          description="Enrolled students"
-          trend={{ value: 12, isPositive: true }}
+          caption="Enrolled students"
         />
-        <StatsCard
-          title="Active Courses"
+        <StatCard
+          icon={<BookOpen />}
+          label="Active Courses"
           value={stats.courses}
-          icon={BookOpen}
-          description="Current semester"
+          caption="Current semester"
         />
-        <StatsCard
-          title="Departments"
+        <StatCard
+          icon={<Building2 />}
+          label="Departments"
           value={stats.departments}
-          icon={Building2}
-          description="Academic departments"
+          caption="Academic departments"
         />
-        <StatsCard
-          title="Faculty Members"
+        <StatCard
+          icon={<UserCheck />}
+          label="Faculty Members"
           value={stats.faculty}
-          icon={UserCheck}
-          description="Active faculty"
+          caption="Active faculty"
         />
-        <StatsCard
-          title="Course Materials"
+        <StatCard
+          icon={<FileText />}
+          label="Course Materials"
           value={stats.materials}
-          icon={FileText}
-          description="Uploaded content"
-          trend={{ value: 8, isPositive: true }}
+          caption="Uploaded content"
         />
       </div>
 
