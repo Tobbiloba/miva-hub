@@ -1,6 +1,10 @@
+import { reviewAIDecision } from "@/lib/ai/decision-ledger";
 import { getFacultyInfo } from "@/lib/auth/faculty";
 import { getSession } from "@/lib/auth/server";
+import { pgDb } from "@/lib/db/pg/db.pg";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { AIDecisionSchema } from "@/lib/db/pg/schema.pg";
+import { and, desc, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -73,9 +77,63 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Override trail: if this submission carried an auto-posted AI grade
+    // (ledger status "executed" — never reviewed by a human), this manual
+    // re-grade IS the human review. Record it so the ops dashboard's
+    // override rate counts corrections to grades the AI issued on its own.
+    // Ledger failures never block the grading flow itself.
+    let aiReviewStatus: "approved" | "overridden" | null = null;
+    try {
+      const [aiDecision] = await pgDb
+        .select({
+          id: AIDecisionSchema.id,
+          metadata: AIDecisionSchema.metadata,
+        })
+        .from(AIDecisionSchema)
+        .where(
+          and(
+            eq(AIDecisionSchema.subjectType, "assignment_submission"),
+            eq(AIDecisionSchema.subjectId, submissionId),
+            eq(AIDecisionSchema.decisionType, "grading"),
+            eq(
+              AIDecisionSchema.universityId,
+              submissionDetails.course.universityId,
+            ),
+            eq(AIDecisionSchema.status, "executed"),
+          ),
+        )
+        .orderBy(desc(AIDecisionSchema.createdAt))
+        .limit(1);
+
+      if (aiDecision) {
+        const suggestedGrade = Number(
+          (aiDecision.metadata as Record<string, unknown> | null)?.[
+            "suggestedGrade"
+          ],
+        );
+        const wasChanged =
+          !Number.isFinite(suggestedGrade) || suggestedGrade !== grade;
+        aiReviewStatus = wasChanged ? "overridden" : "approved";
+        await reviewAIDecision({
+          decisionId: aiDecision.id,
+          universityId: submissionDetails.course.universityId,
+          reviewedById: facultyInfo.id,
+          status: aiReviewStatus,
+          metadata: { finalGrade: grade, via: "manual_regrade" },
+        });
+      }
+    } catch (ledgerError) {
+      console.error(
+        "Failed to record override trail for submission",
+        submissionId,
+        ledgerError,
+      );
+    }
+
     return NextResponse.json({
       success: true,
       submission: updatedSubmission,
+      aiReviewStatus,
       message: "Grade submitted successfully",
     });
   } catch (error) {
