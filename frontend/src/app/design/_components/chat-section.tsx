@@ -1,11 +1,14 @@
 "use client";
 
+import { SuggestionCards } from "@/components/chat-suggestions";
 import { Markdown } from "@/components/markdown";
 import { MermaidDiagram } from "@/components/mermaid-diagram";
+import { SourceCardRow } from "@/components/source-card";
 import type { UseChatHelpers } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import dynamic from "next/dynamic";
 import { useState } from "react";
+import { Camera, FileQuestion, NotebookPen } from "lucide-react";
 import { toast } from "sonner";
 import { BackgroundPaths } from "ui/background-paths";
 import {
@@ -75,6 +78,85 @@ export function ChatSection() {
       title="Chat & Rich Content"
       description="The real chat composer and the renderers that display AI responses — markdown, diagrams, and layout primitives."
     >
+      <SubSection title="Empty-state suggestions (SuggestionCards)">
+        <div className="mx-auto w-full max-w-3xl space-y-4">
+          <div className="space-y-1 text-center">
+            <h3 className="text-2xl font-semibold tracking-tight">
+              Good morning, Amara.
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Where would you like to start?
+            </p>
+          </div>
+          <SuggestionCards
+            items={[
+              {
+                id: "snap",
+                icon: <Camera />,
+                title: "Grade my handwriting",
+                prompt:
+                  "Snap a photo of my worked problem set and grade it against the Week 4 rubric.",
+              },
+              {
+                id: "quiz",
+                icon: <FileQuestion />,
+                title: "Quiz me before the test",
+                prompt:
+                  "Give me a 10-question practice quiz on sorting algorithms with instant feedback.",
+              },
+              {
+                id: "plan",
+                icon: <NotebookPen />,
+                title: "Plan my study week",
+                prompt:
+                  "Build a study plan for my three deadlines this week around my class timetable.",
+              },
+            ]}
+            onSelect={(s) => toast.info(`Design demo — "${s.title}"`)}
+          />
+        </div>
+        <p className="font-mono text-xs text-muted-foreground">
+          SuggestionCards — chat empty state under the greeting; click pre-fills
+          the composer.
+        </p>
+      </SubSection>
+
+      <SubSection title="Answer sources (SourceCardRow)">
+        <div className="min-w-0 space-y-2">
+          <div className="min-w-0 rounded-lg border bg-card p-4">
+            <SourceCardRow
+              sources={[
+                {
+                  id: "s1",
+                  title: "Lecture 4 — Divide & Conquer Sorting",
+                  origin: "Course slides",
+                },
+                {
+                  id: "s2",
+                  title: "CLRS ch. 2.3 — Analysis of merge sort",
+                  origin: "Course textbook",
+                },
+                {
+                  id: "s3",
+                  title: "Visualgo — sorting animations",
+                  origin: "visualgo.net",
+                  href: "https://visualgo.net/en/sorting",
+                },
+                {
+                  id: "s4",
+                  title: "Week 4 problem set solutions",
+                  origin: "Course notes",
+                },
+              ]}
+            />
+          </div>
+          <p className="font-mono text-xs text-muted-foreground">
+            SourceCardRow — citations above an AI answer; linked cards show the
+            external-arrow on hover.
+          </p>
+        </div>
+      </SubSection>
+
       <SubSection title="Chat composer (PromptInput)">
         <div className="min-w-0 space-y-2">
           <div className="mx-auto w-full max-w-3xl">

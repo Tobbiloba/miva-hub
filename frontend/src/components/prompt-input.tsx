@@ -22,6 +22,7 @@ import { ToolModeDropdown } from "./tool-mode-dropdown";
 import { Editor } from "@tiptap/react";
 import { DefaultToolName } from "lib/ai/tools";
 import equal from "lib/equal";
+import { cn } from "lib/utils";
 import { useTranslations } from "next-intl";
 import { Avatar, AvatarFallback, AvatarImage } from "ui/avatar";
 import { ClaudeIcon } from "ui/claude-icon";
@@ -390,7 +391,12 @@ export default function PromptInput({
                         submit();
                       }
                     }}
-                    className="fade-in animate-in cursor-pointer text-muted-foreground rounded-full p-2 bg-secondary hover:bg-accent-foreground hover:text-accent transition-all duration-200"
+                    className={cn(
+                      "fade-in animate-in cursor-pointer rounded-full p-2 transition-all duration-200",
+                      isLoading
+                        ? "bg-secondary text-muted-foreground hover:bg-accent-foreground hover:text-accent"
+                        : "bg-energy text-energy-foreground hover:opacity-80",
+                    )}
                   >
                     {isLoading ? (
                       <Square
