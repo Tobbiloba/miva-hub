@@ -1,5 +1,6 @@
 import { cn } from "lib/utils";
 import { Sparkles } from "lucide-react";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { Button } from "ui/button";
 
@@ -12,6 +13,7 @@ export function ActionCard({
   description,
   ctaLabel,
   onAction,
+  href,
   recommended = false,
   className,
 }: {
@@ -20,6 +22,8 @@ export function ActionCard({
   description: string;
   ctaLabel: string;
   onAction?: () => void;
+  /** Link CTA — use instead of onAction from server components. */
+  href?: string;
   recommended?: boolean;
   className?: string;
 }) {
@@ -62,13 +66,23 @@ export function ActionCard({
           {description}
         </p>
       </div>
-      <Button
-        variant={recommended ? "secondary" : "outline"}
-        className="mt-auto w-full"
-        onClick={onAction}
-      >
-        {ctaLabel}
-      </Button>
+      {href ? (
+        <Button
+          asChild
+          variant={recommended ? "secondary" : "outline"}
+          className="mt-auto w-full"
+        >
+          <Link href={href}>{ctaLabel}</Link>
+        </Button>
+      ) : (
+        <Button
+          variant={recommended ? "secondary" : "outline"}
+          className="mt-auto w-full"
+          onClick={onAction}
+        >
+          {ctaLabel}
+        </Button>
+      )}
     </div>
   );
 }

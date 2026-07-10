@@ -1,4 +1,5 @@
-import { StudentStatsCard } from "@/components/student/student-stats-card";
+import { ActionCard } from "@/components/action-card";
+import { StatCard } from "@/components/stat-card";
 import { getSession } from "@/lib/auth/server";
 import { getStudentId } from "@/lib/auth/user-utils";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
@@ -10,6 +11,9 @@ import {
   CheckCircle,
   Clock,
   FileText,
+  Layers,
+  MessageCircleQuestion,
+  NotebookPen,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -77,33 +81,29 @@ export default async function StudentDashboard() {
 
       {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StudentStatsCard
-          title="Enrolled Courses"
+        <StatCard
+          icon={<BookOpen />}
+          label="Enrolled Courses"
           value={enrollmentStats.enrolledCourses}
-          icon={BookOpen}
-          description="Current semester"
-          accent="blue"
+          caption="Current semester"
         />
-        <StudentStatsCard
-          title="Total Credits"
+        <StatCard
+          icon={<Award />}
+          label="Total Credits"
           value={enrollmentStats.totalCredits}
-          icon={Award}
-          description="This semester"
-          accent="green"
+          caption="This semester"
         />
-        <StudentStatsCard
-          title="Upcoming Assignments"
+        <StatCard
+          icon={<FileText />}
+          label="Upcoming Assignments"
           value={upcomingAssignments.length}
-          icon={FileText}
-          description="Due soon"
-          accent="orange"
+          caption="Due soon"
         />
-        <StudentStatsCard
-          title="Average Grade"
+        <StatCard
+          icon={<TrendingUp />}
+          label="Average Grade"
           value={averageGrade > 0 ? `${averageGrade.toFixed(1)}%` : "N/A"}
-          icon={TrendingUp}
-          description={`${completedAssignments} assignments`}
-          accent="purple"
+          caption={`${completedAssignments} assignments graded`}
         />
       </div>
 
@@ -112,7 +112,7 @@ export default async function StudentDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-blue-600" />
+              <BookOpen className="h-5 w-5 text-primary" />
               My Courses
             </CardTitle>
           </CardHeader>
@@ -161,7 +161,7 @@ export default async function StudentDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-orange-600" />
+              <FileText className="h-5 w-5 text-primary" />
               Upcoming Assignments
             </CardTitle>
           </CardHeader>
@@ -185,11 +185,11 @@ export default async function StudentDashboard() {
                       >
                         <div className="mt-1">
                           {isSubmitted ? (
-                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                           ) : isOverdue ? (
-                            <AlertCircle className="h-4 w-4 text-red-600" />
+                            <AlertCircle className="h-4 w-4 text-destructive" />
                           ) : (
-                            <Clock className="h-4 w-4 text-orange-600" />
+                            <Clock className="h-4 w-4 text-muted-foreground" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -200,7 +200,7 @@ export default async function StudentDashboard() {
                             {course.courseCode}
                           </p>
                           <p
-                            className={`text-xs ${isOverdue ? "text-red-600" : "text-muted-foreground"}`}
+                            className={`text-xs ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}
                           >
                             {isOverdue
                               ? "Overdue"
@@ -235,7 +235,7 @@ export default async function StudentDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-purple-600" />
+              <Users className="h-5 w-5 text-primary" />
               Recent Announcements
             </CardTitle>
           </CardHeader>
@@ -283,34 +283,31 @@ export default async function StudentDashboard() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <Button asChild variant="outline" className="justify-start">
-              <Link href="/student/courses">
-                <BookOpen className="mr-2 h-4 w-4" />
-                View My Courses
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="justify-start">
-              <Link href="/student/assignments">
-                <FileText className="mr-2 h-4 w-4" />
-                Check Assignments
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="justify-start">
-              <Link href="/student/grades">
-                <Award className="mr-2 h-4 w-4" />
-                View Grades
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Next best actions */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <ActionCard
+          icon={<NotebookPen />}
+          title="Plan your study week"
+          description="Build an AI study plan around your deadlines and class timetable."
+          ctaLabel="Open planner"
+          href="/student/plan"
+        />
+        <ActionCard
+          recommended
+          icon={<MessageCircleQuestion />}
+          title="Ask your AI Professor"
+          description="Get a focused tutoring session on whatever you're stuck on right now."
+          ctaLabel="Start session"
+          href="/student/professor"
+        />
+        <ActionCard
+          icon={<Layers />}
+          title="Review flashcards"
+          description="Spaced-repetition decks generated from your course materials."
+          ctaLabel="Review decks"
+          href="/student/flashcards"
+        />
+      </div>
     </div>
   );
 }
