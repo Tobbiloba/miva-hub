@@ -62,8 +62,8 @@ export default async function AssignmentSubmissionPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 flex-wrap items-center gap-4">
           <Button variant="outline" size="sm" asChild>
             <Link href="/student/assignments">
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -71,10 +71,10 @@ export default async function AssignmentSubmissionPage({ params }: PageProps) {
             </Link>
           </Button>
 
-          <div>
+          <div className="min-w-0">
             <h1 className="text-3xl font-bold flex items-center gap-2">
-              <FileText className="h-8 w-8 text-blue-600" />
-              {assignment.title}
+              <FileText className="h-8 w-8 shrink-0 text-blue-600" />
+              <span className="min-w-0 break-words">{assignment.title}</span>
             </h1>
             <p className="text-muted-foreground mt-1">
               {course.courseCode} • {assignment.totalPoints} points
@@ -82,7 +82,7 @@ export default async function AssignmentSubmissionPage({ params }: PageProps) {
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex shrink-0 gap-2">
           {assignment.instructions && (
             <Button variant="outline" disabled>
               <Download className="mr-2 h-4 w-4" />
