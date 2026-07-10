@@ -22,13 +22,14 @@ burned in (judges skim muted).
 | 3 | 0:35–1:00 | **Live Viva Coach** (screen + student on mic): AI examiner asks a follow-up, student answers, AI pushes back by voice, rubric score appears. | "This is a live oral exam. The examiner is Gemini — it probes, interrupts, and scores in real time." Let the AI's pushback line play unedited — this is the forward-to-a-colleague moment. |
 | 4 | 1:00–1:30 | **The AI admissions officer**: /apply form submitted → cut to /admin/admissions. Show a decided application ("Admitted — account provisioned") AND the escalated one (Amina Yusuf: unfamiliar Sudanese grading system → "escalate to human", 100% confident). Admin clicks a decision. | "Applicants are verified, decided, and enrolled end-to-end by a Gemini agent. It admits most on its own. When it meets something outside policy — an unfamiliar grading system — it doesn't guess. It escalates. Humans see only the edge cases." |
 | 5 | 1:30–1:55 | **/admin/ai-operations** dashboard: total decisions counter, decisions-by-type bars (grading, support, admissions, tutoring), avg confidence, human-override rate, the Recent Decisions ledger scrolling. | "Every decision the AI makes — a grade, an admission, a resolved ticket, a study plan — lands in one auditable ledger, with confidence and human overrides tracked. This is the whole company's operations, visible." |
-| 6 | 1:55–2:20 | **Proactive layer**: AI Professor (Dr. Nneka Eze) office-hours voice session; the auto-generated weekly study plan ("your average score of 40% suggests…"); the credential page + public /verify link scanning to "Verified authentic". | "Each course has its own AI professor that notices struggling students and reaches out first. Completed work becomes a verifiable, AI-assessed micro-credential anyone can check." |
+| 6 | 1:55–2:20 | **The recovery arc (Emeka Nwosu — seeded, verified 2026-07-10)**: log in as `emeka.nwosu@miva.edu.ng` / `TestPass123!`. Grades page shows the climb 42→51→58→71→84→91; Progress shows the 12-day streak; the study plan targets his weak concept (Dynamic Programming) by name; credential page → public verify link `/verify/a7490ee51cfeb0d3e6f53f5c5ee848dd` scans to "Verified". | "Emeka failed his first COS201 assignment with a 42. The AI professor noticed, the planner rebuilt his week around the concept he was weakest in, and nine weeks later he scored 91 — passed a live AI viva — and holds a credential anyone on earth can verify. No human staff touched any of it." |
 | 7 | 2:20–2:45 | **The business**: Paystack/Stripe dashboard, user growth chart, tenant list (tutorial center logo), 5–8s testimonial clip (real student, name + consent on file). | "Students pay ₦3,000 a month. Institutions license tenants. Real users, real revenue, acquired during the competition window." |
 | 8 | 2:45–3:00 | Logo card over the ops dashboard still ticking. | "Humans set policy. Gemini runs the university. **Askly — education that scales to everyone.**" |
 
 ### Pre-record checklist
+- [x] Recovery-arc demo student seeded + all shot-list screens browser-verified (2026-07-10, `scripts/seed-recovery-arc.ts`, idempotent). Demo login: emeka.nwosu@miva.edu.ng / TestPass123!
 - [ ] Seed a fresh escalated application + one auto-admitted one (states verified working 2026-07-08)
-- [ ] Confirm ops dashboard numbers are non-trivial (>50 decisions reads better than 24 — accumulate real usage before filming)
+- [ ] Confirm ops dashboard numbers are non-trivial (>50 decisions reads better — at 27 as of 2026-07-10; accumulate real usage before filming)
 - [ ] Viva + office-hours voice takes need a human with a mic (blocked item — schedule)
 - [ ] Film Paystack dashboard only after first arms-length payments land
 - [ ] Testimonial consent + contact info captured before using the clip
@@ -74,7 +75,11 @@ context. It holds real-time voice office hours through the Live API, conducts
 oral viva examinations that probe and score against rubrics, and acts
 proactively: when grade and engagement signals show a student slipping, the
 professor reaches out first and the study planner regenerates that student's
-week from live performance data. Support runs the same way: a Gemini agent
+week from live performance data. One student's trajectory in our demo tenant
+shows the loop end-to-end: a 42% first submission triggered proactive
+outreach and a plan rebuilt around his weakest concept; six assignments later
+he scored 91%, passed a live AI viva, and holds a publicly verifiable
+credential — with every intervening AI decision in the ledger. Support runs the same way: a Gemini agent
 with function-calling access to our real platform APIs resolves password,
 enrollment, and billing tickets, escalating [<10]% to humans.
 
