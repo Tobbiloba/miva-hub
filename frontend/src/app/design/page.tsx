@@ -4,6 +4,7 @@ import { ControlsSection } from "./_components/controls-section";
 import { DesignShell } from "./_components/design-shell";
 import { FoundationsSection } from "./_components/foundations-section";
 import { MotionSection } from "./_components/motion-section";
+import { PatternsSection } from "./_components/patterns-section";
 import { SurfacesSection } from "./_components/surfaces-section";
 
 export const metadata: Metadata = {
@@ -18,6 +19,7 @@ export default function DesignSystemPage() {
       <FoundationsSection />
       <ControlsSection />
       <SurfacesSection />
+      <PatternsSection />
       <ChatSection />
       <MotionSection />
     </DesignShell>
