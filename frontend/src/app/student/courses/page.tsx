@@ -9,6 +9,7 @@ import {
   GraduationCap,
   MapPin,
 } from "lucide-react";
+import Link from "next/link";
 import { Badge } from "ui/badge";
 import { Button } from "ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "ui/card";
@@ -56,9 +57,11 @@ export default async function StudentCoursesPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" disabled title="Coming soon">
-            <BookOpen className="mr-2 h-4 w-4" />
-            Course Registration
+          <Button variant="outline" asChild>
+            <Link href="/student/courses/browse">
+              <BookOpen className="mr-2 h-4 w-4" />
+              Course Registration
+            </Link>
           </Button>
           <Button disabled title="Coming soon">
             <Calendar className="mr-2 h-4 w-4" />
@@ -237,9 +240,11 @@ function EmptyCoursesState() {
           and register for the current semester.
         </p>
         <div className="flex gap-2 justify-center">
-          <Button disabled title="Coming soon">
-            <BookOpen className="mr-2 h-4 w-4" />
-            Browse Courses
+          <Button asChild>
+            <Link href="/student/courses/browse">
+              <BookOpen className="mr-2 h-4 w-4" />
+              Browse Courses
+            </Link>
           </Button>
           <Button variant="outline" disabled title="Coming soon">
             <Calendar className="mr-2 h-4 w-4" />
