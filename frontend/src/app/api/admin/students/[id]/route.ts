@@ -41,6 +41,8 @@ const updateStudentSchema = z.object({
     .max(20, "Student ID too long")
     .optional(),
   academicYear: z.enum(["100", "200", "300", "400"]).optional(),
+  // Volunteer flag gates the Capture-extension content ingest
+  isVolunteer: z.boolean().optional(),
   enrollmentStatus: z
     .enum(["active", "inactive", "suspended", "graduated", "transferred"])
     .optional(),

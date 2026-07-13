@@ -1,4 +1,5 @@
 import { StudentManagementClient } from "@/components/admin/student-management-client";
+import { VolunteerToggle } from "@/components/admin/volunteer-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -307,6 +308,7 @@ export default async function StudentManagementPage() {
                     <TableHead>Enrollments</TableHead>
                     <TableHead>Credits</TableHead>
                     <TableHead>GPA</TableHead>
+                    <TableHead>Volunteer</TableHead>
                     <TableHead>Joined</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -386,6 +388,14 @@ export default async function StudentManagementPage() {
                             {student.currentGPA.toFixed(2)}
                           </span>
                         </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <VolunteerToggle
+                          studentId={student.id}
+                          studentName={student.name}
+                          initialValue={Boolean((student as any).isVolunteer)}
+                        />
                       </TableCell>
 
                       <TableCell>
