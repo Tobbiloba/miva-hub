@@ -24,7 +24,10 @@ export async function POST(request: NextRequest) {
     }
 
     const [userRow] = await pgDb
-      .select({ isVolunteer: UserSchema.isVolunteer })
+      .select({
+        isVolunteer: UserSchema.isVolunteer,
+        universityId: UserSchema.universityId,
+      })
       .from(UserSchema)
       .where(eq(UserSchema.id, session.user.id))
       .limit(1);
@@ -98,11 +101,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Look up course by course_code
+    // 3. Look up course by course_code — scoped to the volunteer's university
+    // (course codes like COS201 are only unique per tenant)
+    if (!userRow.universityId) {
+      return NextResponse.json(
+        { error: "Your account is not linked to a university" },
+        { status: 403 },
+      );
+    }
     const [course] = await pgDb
       .select({ id: CourseSchema.id })
       .from(CourseSchema)
-      .where(eq(CourseSchema.courseCode, course_code.toUpperCase()))
+      .where(
+        and(
+          eq(CourseSchema.courseCode, course_code.toUpperCase()),
+          eq(CourseSchema.universityId, userRow.universityId),
+        ),
+      )
       .limit(1);
 
     if (!course) {
