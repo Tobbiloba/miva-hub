@@ -1,14 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Askly Capture",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Capture MIVA University lesson content for the Askly AI study assistant",
   "permissions": ["activeTab", "storage", "scripting", "cookies"],
   "host_permissions": [
     "https://lms.miva.university/*",
     "https://player.vimeo.com/*",
     "https://lms-assets.miva.university/*",
-    "http://localhost:3000/*"
+    "http://localhost:4001/*",
+    "https://askly-miva.vercel.app/*"
   ],
   "action": {
     "default_popup": "popup.html",

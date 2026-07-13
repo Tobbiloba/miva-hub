@@ -7,7 +7,7 @@
 
 async function getApiUrl() {
   const { askly_api_url } = await chrome.storage.local.get("askly_api_url");
-  return askly_api_url || "https://askly.miva.university"; // default to production
+  return askly_api_url || "https://askly-miva.vercel.app"; // default to production
 }
 
 async function getAuthHeaders() {
