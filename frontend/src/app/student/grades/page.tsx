@@ -1,7 +1,8 @@
+import { DonutChart, DonutLegend, PerformanceGauge } from "@/components/charts";
+import { ProgressRing } from "@/components/progress-ring";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { getSession } from "@/lib/auth/server";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import {
@@ -71,6 +72,37 @@ export default async function StudentGradesPage() {
     120,
     gpaCalculation.cumulativeGPA || gpaCalculation.gpa,
   );
+
+  // Overall score + distribution across every graded assignment.
+  const allAssignmentPcts = allCourseGrades
+    .flatMap((c) => c.assignments)
+    .map((a) => (a.totalPoints > 0 ? (a.points / a.totalPoints) * 100 : 0));
+  const overallPct =
+    allAssignmentPcts.length > 0
+      ? allAssignmentPcts.reduce((s, p) => s + p, 0) / allAssignmentPcts.length
+      : 0;
+  const gradeDistribution = [
+    {
+      label: "A (90+)",
+      value: allAssignmentPcts.filter((p) => p >= 90).length,
+      colorClass: "text-emerald-500",
+    },
+    {
+      label: "B (80–89)",
+      value: allAssignmentPcts.filter((p) => p >= 80 && p < 90).length,
+      colorClass: "text-primary",
+    },
+    {
+      label: "C (70–79)",
+      value: allAssignmentPcts.filter((p) => p >= 70 && p < 80).length,
+      colorClass: "text-amber-500",
+    },
+    {
+      label: "D/F (<70)",
+      value: allAssignmentPcts.filter((p) => p < 70).length,
+      colorClass: "text-destructive",
+    },
+  ].filter((d) => d.value > 0);
 
   return (
     <div className="space-y-6">
@@ -197,11 +229,51 @@ export default async function StudentGradesPage() {
         </Card>
       </div>
 
+      {/* Performance Overview — gauge + distribution */}
+      {allAssignmentPcts.length > 0 && (
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="flex flex-col items-center justify-center py-6">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-center text-base">
+                Overall Score
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center">
+              <PerformanceGauge value={overallPct} size={200} label="" />
+              <p className="mt-2 text-sm text-muted-foreground">
+                across {allAssignmentPcts.length} graded assignment
+                {allAssignmentPcts.length !== 1 ? "s" : ""}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                Grade Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center gap-8">
+              <DonutChart
+                data={gradeDistribution}
+                size={150}
+                centerValue={String(allAssignmentPcts.length)}
+                centerLabel="graded"
+              />
+              <DonutLegend
+                data={gradeDistribution}
+                className="flex-1 max-w-xs"
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Course Performance */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-blue-600" />
+            <BarChart3 className="h-5 w-5 text-primary" />
             Course Performance
           </CardTitle>
         </CardHeader>
@@ -301,8 +373,12 @@ function CourseGradeCard({ courseGrade }: { courseGrade: CourseGrade }) {
             </div>
           </div>
         </div>
-        <div className="ml-4">
-          <Progress value={courseGrade.percentage} className="w-24" />
+        <div className="ml-4 shrink-0">
+          <ProgressRing
+            value={courseGrade.percentage}
+            size={64}
+            strokeWidth={6}
+          />
         </div>
       </div>
     </div>
