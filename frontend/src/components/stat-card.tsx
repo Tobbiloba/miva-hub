@@ -1,6 +1,6 @@
 import { cn } from "lib/utils";
-import { TrendingDown, TrendingUp } from "lucide-react";
 import type { ReactNode } from "react";
+import { TrendPill } from "./charts";
 
 /** KPI stat card — NexusAI pattern (design/final-decision/01).
  * Icon-in-circle, label, big value, delta pill, comparison caption. */
@@ -20,7 +20,6 @@ export function StatCard({
   caption?: string;
   className?: string;
 }) {
-  const up = (delta ?? 0) >= 0;
   return (
     <div
       className={cn(
@@ -36,24 +35,7 @@ export function StatCard({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-3xl font-semibold tracking-tight">{value}</span>
-        {delta !== undefined && (
-          <span
-            className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-              up
-                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                : "bg-destructive/10 text-destructive",
-            )}
-          >
-            {up ? (
-              <TrendingUp className="size-3" />
-            ) : (
-              <TrendingDown className="size-3" />
-            )}
-            {up ? "+" : ""}
-            {delta}%
-          </span>
-        )}
+        {delta !== undefined && <TrendPill delta={delta} />}
       </div>
       {caption && (
         <span className="text-xs text-muted-foreground">{caption}</span>
