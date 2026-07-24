@@ -109,9 +109,11 @@ export default async function StudentGradesPage() {
                   variant={
                     academicStanding.standing === "Dean's List"
                       ? "default"
-                      : academicStanding.standing === "Good Standing"
-                        ? "secondary"
-                        : "destructive"
+                      : /probation|warning|suspension/i.test(
+                            academicStanding.standing,
+                          )
+                        ? "destructive"
+                        : "secondary"
                   }
                   className="text-xs mt-1"
                 >
@@ -259,13 +261,6 @@ export default async function StudentGradesPage() {
 }
 
 function CourseGradeCard({ courseGrade }: { courseGrade: CourseGrade }) {
-  const getGradeColor = (average: number) => {
-    if (average >= 90) return "bg-green-500";
-    if (average >= 80) return "bg-blue-500";
-    if (average >= 70) return "bg-yellow-500";
-    return "bg-red-500";
-  };
-
   return (
     <div className="p-4 border rounded-lg">
       <div className="flex items-start justify-between">
@@ -303,13 +298,6 @@ function CourseGradeCard({ courseGrade }: { courseGrade: CourseGrade }) {
                 {courseGrade.assignments.length !== 1 ? "s" : ""} •{" "}
                 {courseGrade.gradePoints.toFixed(1)} GPA
               </p>
-            </div>
-            <div>
-              <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ${getGradeColor(courseGrade.percentage)}`}
-              >
-                {courseGrade.letterGrade}
-              </div>
             </div>
           </div>
         </div>

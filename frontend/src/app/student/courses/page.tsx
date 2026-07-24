@@ -1,7 +1,6 @@
 import { getSession } from "@/lib/auth/server";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import {
-  ArrowRight,
   BookOpen,
   Calendar,
   Clock,
@@ -63,9 +62,11 @@ export default async function StudentCoursesPage() {
               Course Registration
             </Link>
           </Button>
-          <Button disabled title="Coming soon">
-            <Calendar className="mr-2 h-4 w-4" />
-            View Schedule
+          <Button asChild>
+            <Link href="/student/schedule">
+              <Calendar className="mr-2 h-4 w-4" />
+              View Schedule
+            </Link>
           </Button>
         </div>
       </div>
@@ -216,12 +217,16 @@ async function CourseCard({
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
-          <Button size="sm" className="flex-1" disabled title="Coming soon">
-            View Course
-            <ArrowRight className="ml-1 h-3 w-3" />
+          <Button size="sm" className="flex-1" asChild>
+            <Link href={`/student/tutor?course=${course.id}`}>
+              <GraduationCap className="mr-1 h-3 w-3" />
+              Ask AI Tutor
+            </Link>
           </Button>
-          <Button variant="outline" size="sm" disabled title="Coming soon">
-            <FileText className="h-3 w-3" />
+          <Button variant="outline" size="sm" asChild title="Course materials">
+            <Link href="/student/materials">
+              <FileText className="h-3 w-3" />
+            </Link>
           </Button>
         </div>
       </CardContent>
@@ -246,9 +251,11 @@ function EmptyCoursesState() {
               Browse Courses
             </Link>
           </Button>
-          <Button variant="outline" disabled title="Coming soon">
-            <Calendar className="mr-2 h-4 w-4" />
-            Academic Calendar
+          <Button variant="outline" asChild>
+            <Link href="/student/calendar">
+              <Calendar className="mr-2 h-4 w-4" />
+              Academic Calendar
+            </Link>
           </Button>
         </div>
       </CardContent>

@@ -55,7 +55,16 @@ export function CourseTutor() {
       .then((data: { courses: TutorCourse[] }) => {
         if (cancelled) return;
         setCourses(data.courses);
-        if (data.courses.length === 1) setCourseId(data.courses[0].id);
+        // Preselect from ?course=<id> (deep-link from a course card), else
+        // auto-select when the student has exactly one course.
+        const requested = new URLSearchParams(window.location.search).get(
+          "course",
+        );
+        const match = requested
+          ? data.courses.find((c) => c.id === requested)
+          : undefined;
+        if (match) setCourseId(match.id);
+        else if (data.courses.length === 1) setCourseId(data.courses[0].id);
       })
       .catch((error) => {
         if (cancelled) return;
