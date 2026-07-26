@@ -204,21 +204,21 @@ export default async function AdminDashboard() {
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
             <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
               <div>
                 <p className="text-sm font-medium">Database</p>
                 <p className="text-xs text-muted-foreground">Operational</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
               <div>
                 <p className="text-sm font-medium">Content Processing</p>
                 <p className="text-xs text-muted-foreground">Available</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
               <div>
                 <p className="text-sm font-medium">MCP Server</p>
                 <p className="text-xs text-muted-foreground">Connected</p>

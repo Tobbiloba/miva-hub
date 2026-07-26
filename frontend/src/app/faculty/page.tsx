@@ -297,9 +297,9 @@ export default async function FacultyDashboard() {
 
       {/* Urgent Items */}
       {(dashboardStats.pendingGrades > 0 || gradingQueue.length > 0) && (
-        <Card className="border-orange-200 dark:border-orange-800">
+        <Card className="border-amber-500/30">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-600">
+            <CardTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
               <AlertCircle className="h-5 w-5" />
               Action Required
             </CardTitle>
@@ -307,7 +307,7 @@ export default async function FacultyDashboard() {
           <CardContent>
             <div className="space-y-3">
               {dashboardStats.pendingGrades > 0 && (
-                <div className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-950 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-amber-500/10 rounded-lg">
                   <div>
                     <p className="font-medium">Assignments need grading</p>
                     <p className="text-sm text-muted-foreground">
@@ -322,7 +322,7 @@ export default async function FacultyDashboard() {
                 </div>
               )}
               {dashboardStats.recentSubmissions > 0 && (
-                <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg">
                   <div>
                     <p className="font-medium">New submissions received</p>
                     <p className="text-sm text-muted-foreground">

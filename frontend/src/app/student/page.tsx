@@ -274,8 +274,10 @@ export default async function StudentDashboard() {
                 <p className="text-muted-foreground text-sm">
                   No courses enrolled
                 </p>
-                <Button size="sm" className="mt-2" disabled title="Coming soon">
-                  Register for Courses
+                <Button size="sm" className="mt-2" asChild>
+                  <Link href="/student/courses/browse">
+                    Register for Courses
+                  </Link>
                 </Button>
               </div>
             )}
