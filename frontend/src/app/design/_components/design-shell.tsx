@@ -1,5 +1,6 @@
 "use client";
 
+import { FontSwitcher } from "@/components/font-switcher";
 import { Button } from "@/components/ui/button";
 import { Moon, Palette, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -41,20 +42,23 @@ export function DesignShell({ children }: { children: ReactNode }) {
               </a>
             ))}
           </nav>
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="Toggle theme"
-            onClick={() =>
-              setTheme(resolvedTheme === "dark" ? "light" : "dark")
-            }
-          >
-            {mounted && resolvedTheme === "dark" ? (
-              <Sun className="size-4" />
-            ) : (
-              <Moon className="size-4" />
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <FontSwitcher className="h-9 w-[168px]" />
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Toggle theme"
+              onClick={() =>
+                setTheme(resolvedTheme === "dark" ? "light" : "dark")
+              }
+            >
+              {mounted && resolvedTheme === "dark" ? (
+                <Sun className="size-4" />
+              ) : (
+                <Moon className="size-4" />
+              )}
+            </Button>
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-6xl space-y-16 px-4 py-10">

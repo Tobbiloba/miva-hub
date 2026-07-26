@@ -103,6 +103,10 @@ html {
  * the --energy token (primary chat action, streaks, success moments only). */
 :root {
   --radius: 1rem;
+  /* Runtime body font — overridden by [data-font] (see FontSwitcher).
+   * Font families are loaded in layout.tsx via next/font. */
+  --font-sans: "Neue Montreal", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
   --background: oklch(0.977 0.003 106.47); /* warm off-white ~#F7F7F5 */
   --foreground: oklch(0.165 0.008 285.8);
   --card: oklch(1 0 0);
@@ -1501,12 +1505,35 @@ html {
   }
 }
 
+/* Selectable body fonts. Targets `body` (not :root) because the next/font
+ * family variables (--font-inter, …) are defined on <body>. Unlayered so the
+ * [data-font] override beats the unlayered :root default. Set by FontSwitcher. */
+[data-font="geist"] body {
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+}
+[data-font="inter"] body {
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+}
+[data-font="manrope"] body {
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+}
+[data-font="jakarta"] body {
+  --font-sans: var(--font-jakarta), system-ui, sans-serif;
+}
+[data-font="sora"] body {
+  --font-sans: var(--font-sora), system-ui, sans-serif;
+}
+[data-font="space"] body {
+  --font-sans: var(--font-space), system-ui, sans-serif;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
   }
 
   button {
