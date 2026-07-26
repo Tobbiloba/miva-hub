@@ -260,7 +260,7 @@ export default function CreateCalendarEventPage() {
         </Link>
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Calendar className="h-8 w-8 text-blue-600" />
+            <Calendar className="h-8 w-8 text-primary" />
             Create Calendar Event
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -301,7 +301,7 @@ export default function CreateCalendarEventPage() {
                   </SelectContent>
                 </Select>
                 {errors.eventType && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.eventType}
                   </p>
@@ -340,7 +340,7 @@ export default function CreateCalendarEventPage() {
                 onChange={(e) => handleInputChange("title", e.target.value)}
               />
               {errors.title && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
+                <p className="text-sm text-destructive flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
                   {errors.title}
                 </p>
@@ -386,7 +386,7 @@ export default function CreateCalendarEventPage() {
                   }
                 />
                 {errors.startDate && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.startDate}
                   </p>
@@ -402,7 +402,7 @@ export default function CreateCalendarEventPage() {
                   onChange={(e) => handleInputChange("endDate", e.target.value)}
                 />
                 {errors.endDate && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.endDate}
                   </p>
@@ -435,7 +435,7 @@ export default function CreateCalendarEventPage() {
                     }
                   />
                   {errors.endTime && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
+                    <p className="text-sm text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       {errors.endTime}
                     </p>

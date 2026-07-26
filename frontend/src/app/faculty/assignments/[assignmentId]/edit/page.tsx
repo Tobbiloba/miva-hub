@@ -189,7 +189,7 @@ export default function EditAssignmentPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
-              <FileText className="h-6 w-6 text-blue-600" />
+              <FileText className="h-6 w-6 text-primary" />
               Edit Assignment
             </h1>
             <p className="text-muted-foreground">
@@ -244,10 +244,10 @@ export default function EditAssignmentPage() {
               id="title"
               value={formData.title}
               onChange={(e) => handleInputChange("title", e.target.value)}
-              className={errors.title ? "border-red-500" : ""}
+              className={errors.title ? "border-destructive" : ""}
             />
             {errors.title && (
-              <p className="text-sm text-red-500 flex items-center gap-1">
+              <p className="text-sm text-destructive flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" /> {errors.title}
               </p>
             )}
@@ -296,7 +296,7 @@ export default function EditAssignmentPage() {
                     parseInt(e.target.value) || 0,
                   )
                 }
-                className={errors.totalPoints ? "border-red-500" : ""}
+                className={errors.totalPoints ? "border-destructive" : ""}
               />
             </div>
             <div className="space-y-2">
@@ -324,7 +324,7 @@ export default function EditAssignmentPage() {
                 type="date"
                 value={formData.dueDate}
                 onChange={(e) => handleInputChange("dueDate", e.target.value)}
-                className={errors.dueDate ? "border-red-500" : ""}
+                className={errors.dueDate ? "border-destructive" : ""}
               />
             </div>
             <div className="space-y-2">

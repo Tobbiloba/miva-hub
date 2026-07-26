@@ -176,14 +176,16 @@ export default function ContentManagePage() {
 
   const getTypeColor = (type: string) => {
     const colors = {
-      lecture: "bg-blue-100 text-blue-800",
-      assignment: "bg-green-100 text-green-800",
-      resource: "bg-purple-100 text-purple-800",
-      reading: "bg-orange-100 text-orange-800",
-      exam: "bg-red-100 text-red-800",
-      syllabus: "bg-gray-100 text-gray-800",
+      lecture: "bg-primary/10 text-primary",
+      assignment: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+      resource: "bg-primary/10 text-primary",
+      reading: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+      exam: "bg-destructive/10 text-destructive",
+      syllabus: "bg-muted text-muted-foreground",
     };
-    return colors[type as keyof typeof colors] || "bg-gray-100 text-gray-800";
+    return (
+      colors[type as keyof typeof colors] || "bg-muted text-muted-foreground"
+    );
   };
 
   // Filter materials based on search and selections

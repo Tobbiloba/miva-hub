@@ -229,15 +229,15 @@ export default function SubmitForm({ assignment, isOverdue }: SubmitFormProps) {
 
   if (success) {
     return (
-      <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
+      <Card className="border-emerald-500/30 bg-emerald-500/10">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
+          <CardTitle className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
             <CheckCircle className="h-5 w-5" />
             Assignment Submitted Successfully!
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-green-700 dark:text-green-300">
+          <p className="text-emerald-600 dark:text-emerald-400">
             Your assignment has been submitted successfully. You will be
             redirected to the assignments page.
           </p>
@@ -258,7 +258,7 @@ export default function SubmitForm({ assignment, isOverdue }: SubmitFormProps) {
           <CardTitle className="flex flex-wrap items-center gap-2">
             {autoPosted ? (
               <>
-                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 Graded automatically
               </>
             ) : (
@@ -321,8 +321,8 @@ export default function SubmitForm({ assignment, isOverdue }: SubmitFormProps) {
   }
 
   const errorBanner = error && (
-    <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-      <div className="flex items-center gap-2 text-red-700 dark:text-red-300">
+    <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+      <div className="flex items-center gap-2 text-destructive">
         <AlertCircle className="h-4 w-4" />
         <span className="text-sm font-medium">{error}</span>
       </div>
@@ -366,7 +366,7 @@ export default function SubmitForm({ assignment, isOverdue }: SubmitFormProps) {
             Accepted file types: PDF, DOC, DOCX, TXT, ZIP (max 10MB)
           </p>
           {selectedFile && (
-            <p className="text-sm text-green-600 mt-1">
+            <p className="text-sm text-emerald-600 mt-1">
               Selected: {selectedFile.name} (
               {(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
             </p>
@@ -395,7 +395,7 @@ export default function SubmitForm({ assignment, isOverdue }: SubmitFormProps) {
       </div>
 
       {isOverdue && assignment.lateSubmissionPenalty && (
-        <div className="text-sm text-orange-600 bg-orange-50 dark:bg-orange-950 p-3 rounded-lg">
+        <div className="text-sm text-amber-600 bg-amber-500/10 p-3 rounded-lg">
           <AlertCircle className="h-4 w-4 inline mr-1" />
           Late submission penalty: {assignment.lateSubmissionPenalty}% will be
           deducted from your grade.

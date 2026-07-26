@@ -92,7 +92,7 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <GraduationCap className="h-8 w-8 text-blue-600" />
+            <GraduationCap className="h-8 w-8 text-primary" />
             Grade Book
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -106,8 +106,8 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                <Clock className="h-6 w-6 text-orange-600" />
+              <div className="p-2 bg-amber-500/10 rounded-lg">
+                <Clock className="h-6 w-6 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.totalPending}</p>
@@ -120,8 +120,8 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                <FileText className="h-6 w-6 text-blue-600" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <FileText className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.coursesCount}</p>
@@ -134,8 +134,8 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                <Users className="h-6 w-6 text-green-600" />
+              <div className="p-2 bg-emerald-500/10 rounded-lg">
+                <Users className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.totalStudents}</p>
@@ -148,8 +148,8 @@ export default async function FacultyGradesPage({ searchParams }: PageProps) {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                <BarChart3 className="h-6 w-6 text-purple-600" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <BarChart3 className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">
@@ -249,7 +249,7 @@ function PendingGrades({ gradingQueue }: { gradingQueue: any[] }) {
     return (
       <Card className="text-center py-12">
         <CardContent>
-          <CheckCircle className="mx-auto h-12 w-12 text-green-600 mb-4" />
+          <CheckCircle className="mx-auto h-12 w-12 text-emerald-600 dark:text-emerald-400 mb-4" />
           <h3 className="text-lg font-medium mb-2">All Caught Up!</h3>
           <p className="text-muted-foreground">
             No assignments are waiting for grades. Great job!
@@ -271,15 +271,15 @@ function PendingGrades({ gradingQueue }: { gradingQueue: any[] }) {
         return (
           <Card
             key={submission.id}
-            className={`hover:shadow-md transition-shadow ${isLate ? "border-red-200 dark:border-red-800" : ""}`}
+            className={`hover:shadow-md transition-shadow ${isLate ? "border-destructive/30" : ""}`}
           >
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
                 <div className="mt-1">
                   {isLate ? (
-                    <AlertCircle className="h-5 w-5 text-red-600" />
+                    <AlertCircle className="h-5 w-5 text-destructive" />
                   ) : (
-                    <Clock className="h-5 w-5 text-orange-600" />
+                    <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                   )}
                 </div>
 
@@ -306,7 +306,7 @@ function PendingGrades({ gradingQueue }: { gradingQueue: any[] }) {
                         {isLate && (
                           <Badge
                             variant="outline"
-                            className="text-xs bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"
+                            className="text-xs bg-destructive/10 text-destructive"
                           >
                             Late Submission
                           </Badge>
@@ -507,7 +507,7 @@ function CourseGradebook({
                                       </div>
                                     </div>
                                   ) : (
-                                    <div className="text-orange-600 text-xs">
+                                    <div className="text-amber-600 dark:text-amber-400 text-xs">
                                       Pending
                                     </div>
                                   )}

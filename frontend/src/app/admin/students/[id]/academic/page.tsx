@@ -164,10 +164,10 @@ export default async function StudentAcademicPage({ params }: PageProps) {
 
   const gradeColor = (grade: string | null) => {
     if (!grade) return "";
-    if (grade === "A" || grade === "B") return "text-green-600";
-    if (grade === "C") return "text-yellow-600";
-    if (grade === "D" || grade === "E") return "text-orange-600";
-    if (grade === "F") return "text-red-600";
+    if (grade === "A" || grade === "B") return "text-emerald-600";
+    if (grade === "C") return "text-amber-600";
+    if (grade === "D" || grade === "E") return "text-amber-600";
+    if (grade === "F") return "text-destructive";
     return "";
   };
 
@@ -193,8 +193,8 @@ export default async function StudentAcademicPage({ params }: PageProps) {
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-              <User className="h-6 w-6 text-blue-600" />
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <User className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
@@ -398,9 +398,9 @@ export default async function StudentAcademicPage({ params }: PageProps) {
 
       {/* Carryover Courses */}
       {carryoverCourses.length > 0 && (
-        <Card className="border-amber-200">
+        <Card className="border-amber-500/30">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-amber-700">
+            <CardTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
               <AlertTriangle className="h-5 w-5" />
               Carryover Courses
             </CardTitle>
@@ -430,7 +430,7 @@ export default async function StudentAcademicPage({ params }: PageProps) {
                     <TableCell>{e.credits}</TableCell>
                     <TableCell className="capitalize">{e.semester}</TableCell>
                     <TableCell>{e.academicYear}</TableCell>
-                    <TableCell className="text-red-600">
+                    <TableCell className="text-destructive">
                       {e.finalGrade ?? "F"}
                     </TableCell>
                   </TableRow>

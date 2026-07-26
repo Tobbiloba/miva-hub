@@ -73,7 +73,7 @@ export default async function AssignmentSubmissionPage({ params }: PageProps) {
 
           <div className="min-w-0">
             <h1 className="text-3xl font-bold flex items-center gap-2">
-              <FileText className="h-8 w-8 shrink-0 text-blue-600" />
+              <FileText className="h-8 w-8 shrink-0 text-primary" />
               <span className="min-w-0 break-words">{assignment.title}</span>
             </h1>
             <p className="text-muted-foreground mt-1">
@@ -96,24 +96,24 @@ export default async function AssignmentSubmissionPage({ params }: PageProps) {
       <Card
         className={`border-2 ${
           isGraded
-            ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950"
+            ? "border-emerald-500/30 bg-emerald-500/10"
             : isSubmitted
-              ? "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950"
+              ? "border-primary/30 bg-primary/10"
               : isOverdue
-                ? "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950"
-                : "border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950"
+                ? "border-destructive/30 bg-destructive/10"
+                : "border-amber-500/30 bg-amber-500/10"
         }`}
       >
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
             {isGraded ? (
-              <Award className="h-5 w-5 text-green-600" />
+              <Award className="h-5 w-5 text-emerald-600" />
             ) : isSubmitted ? (
-              <CheckCircle className="h-5 w-5 text-blue-600" />
+              <CheckCircle className="h-5 w-5 text-primary" />
             ) : isOverdue ? (
-              <AlertCircle className="h-5 w-5 text-red-600" />
+              <AlertCircle className="h-5 w-5 text-destructive" />
             ) : (
-              <Clock className="h-5 w-5 text-orange-600" />
+              <Clock className="h-5 w-5 text-amber-600" />
             )}
 
             <div className="flex-1">
@@ -220,7 +220,7 @@ export default async function AssignmentSubmissionPage({ params }: PageProps) {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <CheckCircle className="h-5 w-5 text-emerald-600" />
                   Your Submission
                 </CardTitle>
               </CardHeader>
@@ -309,7 +309,7 @@ export default async function AssignmentSubmissionPage({ params }: PageProps) {
                     <Label className="text-sm font-medium">
                       Instructor Feedback
                     </Label>
-                    <div className="mt-2 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                    <div className="mt-2 p-4 bg-primary/10 rounded-lg">
                       <p className="text-sm">{submission.feedback}</p>
                     </div>
                   </div>
@@ -333,7 +333,7 @@ export default async function AssignmentSubmissionPage({ params }: PageProps) {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
+                  <AlertCircle className="h-5 w-5 text-destructive" />
                   Submission Closed
                 </CardTitle>
               </CardHeader>

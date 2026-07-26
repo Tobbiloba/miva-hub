@@ -262,7 +262,7 @@ export default function CreateFacultyPage() {
           </Link>
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
-              <UserCheck className="h-8 w-8 text-blue-600" />
+              <UserCheck className="h-8 w-8 text-primary" />
               Add Faculty Member
             </h1>
             <p className="text-muted-foreground mt-1">
@@ -293,7 +293,7 @@ export default function CreateFacultyPage() {
                     onChange={(e) => handleInputChange("name", e.target.value)}
                   />
                   {errors.name && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
+                    <p className="text-sm text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       {errors.name}
                     </p>
@@ -310,7 +310,7 @@ export default function CreateFacultyPage() {
                     onChange={(e) => handleInputChange("email", e.target.value)}
                   />
                   {errors.email && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
+                    <p className="text-sm text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       {errors.email}
                     </p>
@@ -340,7 +340,7 @@ export default function CreateFacultyPage() {
                     </SelectContent>
                   </Select>
                   {errors.position && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
+                    <p className="text-sm text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       {errors.position}
                     </p>
@@ -367,7 +367,7 @@ export default function CreateFacultyPage() {
                     </SelectContent>
                   </Select>
                   {errors.departmentId && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
+                    <p className="text-sm text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       {errors.departmentId}
                     </p>
@@ -417,7 +417,7 @@ export default function CreateFacultyPage() {
                   {formData.bio.length}/500 characters
                 </p>
                 {errors.bio && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.bio}
                   </p>
@@ -483,15 +483,15 @@ export default function CreateFacultyPage() {
                 className="shrink-0"
               >
                 {copied ? (
-                  <Check className="h-4 w-4 text-green-600" />
+                  <Check className="h-4 w-4 text-emerald-600" />
                 ) : (
                   <Copy className="h-4 w-4" />
                 )}
               </Button>
             </div>
 
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950">
-              <p className="text-sm text-amber-800 dark:text-amber-200">
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+              <p className="text-sm text-amber-600 dark:text-amber-400">
                 This password will not be shown again. Make sure to copy it
                 before closing this dialog.
               </p>

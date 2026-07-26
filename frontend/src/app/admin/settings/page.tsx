@@ -143,7 +143,7 @@ export default function SystemSettingsPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Error Loading Settings</h3>
           <p className="text-muted-foreground mb-4">{error}</p>
           <Button onClick={fetchSettings} variant="outline">
@@ -211,7 +211,7 @@ export default function SystemSettingsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Settings className="h-8 w-8 text-blue-600" />
+            <Settings className="h-8 w-8 text-primary" />
             System Settings
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -237,7 +237,7 @@ export default function SystemSettingsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-emerald-600" />
               <div>
                 <p className="text-sm font-medium">System Status</p>
                 <p className="text-xs text-muted-foreground">
@@ -251,7 +251,7 @@ export default function SystemSettingsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Database className="h-5 w-5 text-blue-600" />
+              <Database className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-sm font-medium">Database</p>
                 <p className="text-xs text-muted-foreground">
@@ -265,7 +265,7 @@ export default function SystemSettingsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Mail className="h-5 w-5 text-purple-600" />
+              <Mail className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-sm font-medium">Email Service</p>
                 <p className="text-xs text-muted-foreground">
@@ -279,7 +279,7 @@ export default function SystemSettingsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-orange-600" />
+              <Zap className="h-5 w-5 text-amber-600" />
               <div>
                 <p className="text-sm font-medium">AI Services</p>
                 <p className="text-xs text-muted-foreground">
@@ -765,9 +765,9 @@ export default function SystemSettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+              <div className="flex items-center justify-between p-4 border rounded-lg bg-amber-500/10 border-amber-500/30">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                  <AlertTriangle className="h-5 w-5 text-amber-600" />
                   <div className="space-y-0.5">
                     <Label>Maintenance Mode</Label>
                     <p className="text-sm text-muted-foreground">

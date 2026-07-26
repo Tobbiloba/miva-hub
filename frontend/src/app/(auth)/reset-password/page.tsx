@@ -71,8 +71,8 @@ export default function ResetPasswordPage() {
         <CardContent className="flex flex-col">
           {submitted ? (
             <div className="space-y-4">
-              <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-center">
-                <p className="text-sm text-green-600 dark:text-green-400">
+              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-center">
+                <p className="text-sm text-emerald-600 dark:text-emerald-400">
                   Check your email for a password reset link. The link will
                   expire in 1 hour.
                 </p>

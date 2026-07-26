@@ -157,7 +157,7 @@ export default function UniversityRegisterPage() {
       <div className="flex items-center justify-center min-h-full py-12 animate-in fade-in duration-500">
         <Card className="w-full max-w-md border-none shadow-none">
           <CardHeader className="text-center">
-            <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto mb-2" />
+            <CheckCircle2 className="h-12 w-12 text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
             <CardTitle className="text-2xl">Registration received</CardTitle>
             <CardDescription>
               <strong>{universityName}</strong> is now pending approval. Our

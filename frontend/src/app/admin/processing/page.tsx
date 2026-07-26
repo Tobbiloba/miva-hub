@@ -153,13 +153,13 @@ export default function ProcessingDashboardPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
-        return "bg-green-100 text-green-800 border-green-200";
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30";
       case "processing":
-        return "bg-blue-100 text-blue-800 border-blue-200";
+        return "bg-primary/10 text-primary border-primary/30";
       case "pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30";
       case "failed":
-        return "bg-red-100 text-red-800 border-red-200";
+        return "bg-destructive/10 text-destructive border-destructive/30";
       default:
         return "";
     }
@@ -214,10 +214,10 @@ export default function ProcessingDashboardPage() {
     return (
       <div className="space-y-6 p-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600">
+          <h1 className="text-2xl font-bold text-destructive">
             Error Loading Processing Jobs
           </h1>
-          <p className="text-gray-600 mt-2">{error}</p>
+          <p className="text-muted-foreground mt-2">{error}</p>
           <Button onClick={() => fetchProcessingJobs()} className="mt-4">
             <RefreshCw className="mr-2 h-4 w-4" />
             Try Again
@@ -233,7 +233,7 @@ export default function ProcessingDashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Zap className="h-8 w-8 text-blue-600" />
+            <Zap className="h-8 w-8 text-primary" />
             AI Processing Dashboard
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -261,7 +261,7 @@ export default function ProcessingDashboardPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-blue-600" />
+              <Activity className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{statistics.total}</p>
                 <p className="text-xs text-muted-foreground">Total Jobs</p>
@@ -273,7 +273,7 @@ export default function ProcessingDashboardPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-yellow-600" />
+              <Clock className="h-5 w-5 text-amber-600" />
               <div>
                 <p className="text-2xl font-bold">{statistics.pending}</p>
                 <p className="text-xs text-muted-foreground">Pending</p>
@@ -285,7 +285,7 @@ export default function ProcessingDashboardPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-blue-600" />
+              <Activity className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{statistics.processing}</p>
                 <p className="text-xs text-muted-foreground">Processing</p>
@@ -297,7 +297,7 @@ export default function ProcessingDashboardPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-emerald-600" />
               <div>
                 <p className="text-2xl font-bold">{statistics.completed}</p>
                 <p className="text-xs text-muted-foreground">Completed</p>
@@ -309,7 +309,7 @@ export default function ProcessingDashboardPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-red-600" />
+              <XCircle className="h-5 w-5 text-destructive" />
               <div>
                 <p className="text-2xl font-bold">{statistics.failed}</p>
                 <p className="text-xs text-muted-foreground">Failed</p>
@@ -362,13 +362,13 @@ export default function ProcessingDashboardPage() {
         <CardContent>
           {loading ? (
             <div className="text-center py-8">
-              <Activity className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+              <Activity className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
               <p>Loading processing jobs...</p>
             </div>
           ) : jobs.length === 0 ? (
             <div className="text-center py-8">
-              <Zap className="h-8 w-8 mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-600">No processing jobs found</p>
+              <Zap className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">No processing jobs found</p>
             </div>
           ) : (
             <div className="border rounded-lg">
@@ -435,7 +435,7 @@ export default function ProcessingDashboardPage() {
                             </Badge>
                           </div>
                           {job.errorMessage && (
-                            <p className="text-xs text-red-600 mt-1 line-clamp-1">
+                            <p className="text-xs text-destructive mt-1 line-clamp-1">
                               {job.errorMessage}
                             </p>
                           )}

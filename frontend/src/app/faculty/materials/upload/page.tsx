@@ -146,7 +146,7 @@ export default function FacultyMaterialUploadPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FolderOpen className="h-6 w-6 text-blue-600" />
+            <FolderOpen className="h-6 w-6 text-primary" />
             Upload Material
           </h1>
           <p className="text-muted-foreground">

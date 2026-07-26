@@ -152,7 +152,7 @@ export default function ReviewSessionPage() {
         /* No cards due */
         <Card>
           <CardContent className="text-center py-12">
-            <Check className="h-12 w-12 mx-auto text-green-500 mb-3" />
+            <Check className="h-12 w-12 mx-auto text-emerald-500 mb-3" />
             <p className="text-lg font-medium mb-2">All caught up!</p>
             <p className="text-muted-foreground">
               No cards are due for review right now. Check back later.
@@ -166,7 +166,7 @@ export default function ReviewSessionPage() {
         /* Session complete */
         <Card>
           <CardContent className="text-center py-12">
-            <Check className="h-12 w-12 mx-auto text-green-500 mb-3" />
+            <Check className="h-12 w-12 mx-auto text-emerald-500 mb-3" />
             <p className="text-lg font-medium mb-2">Session complete!</p>
             <p className="text-muted-foreground mb-4">
               You reviewed {reviewed} card{reviewed !== 1 ? "s" : ""}.
@@ -245,7 +245,7 @@ export default function ReviewSessionPage() {
             <div className="flex gap-4 justify-center">
               <Button
                 variant="outline"
-                className="flex-1 max-w-[200px] border-red-300 text-red-600 hover:bg-red-50"
+                className="flex-1 max-w-[200px] border-destructive/30 text-destructive hover:bg-destructive/10"
                 onClick={() => handleRate("again")}
                 disabled={reviewing}
               >
@@ -254,7 +254,7 @@ export default function ReviewSessionPage() {
               </Button>
               <Button
                 variant="outline"
-                className="flex-1 max-w-[200px] border-green-300 text-green-600 hover:bg-green-50"
+                className="flex-1 max-w-[200px] border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
                 onClick={() => handleRate("good")}
                 disabled={reviewing}
               >

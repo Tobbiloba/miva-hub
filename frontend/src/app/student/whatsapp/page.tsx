@@ -61,7 +61,7 @@ export default function WhatsAppPage() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <MessageCircle className="h-6 w-6 text-green-600" />
+          <MessageCircle className="h-6 w-6 text-emerald-600" />
           Study on WhatsApp
         </h1>
         <p className="text-muted-foreground">
@@ -82,7 +82,7 @@ export default function WhatsAppPage() {
           ) : status?.linked ? (
             <>
               <p className="text-sm flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                 Linked to +{status.phoneNumber}
               </p>
               <p className="text-sm text-muted-foreground">

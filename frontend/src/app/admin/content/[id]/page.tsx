@@ -122,22 +122,22 @@ export default function ContentDetailPage() {
       completed: {
         variant: "default" as const,
         icon: CheckCircle,
-        color: "text-green-600",
+        color: "text-emerald-600",
       },
       processing: {
         variant: "secondary" as const,
         icon: Clock,
-        color: "text-blue-600",
+        color: "text-primary",
       },
       pending: {
         variant: "outline" as const,
         icon: Clock,
-        color: "text-yellow-600",
+        color: "text-amber-600",
       },
       failed: {
         variant: "destructive" as const,
         icon: AlertCircle,
-        color: "text-red-600",
+        color: "text-destructive",
       },
     };
 
@@ -202,7 +202,7 @@ export default function ContentDetailPage() {
         </div>
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center gap-2 text-red-600">
+            <div className="flex items-center gap-2 text-destructive">
               <AlertCircle className="h-5 w-5" />
               <p>{error || "Content not found"}</p>
             </div>
@@ -310,7 +310,7 @@ export default function ContentDetailPage() {
                       className="flex items-center justify-between p-3 border rounded-lg"
                     >
                       <div className="flex items-center gap-3">
-                        <Zap className="h-4 w-4 text-blue-500" />
+                        <Zap className="h-4 w-4 text-primary" />
                         <div>
                           <p className="font-medium">
                             {job.jobType.replace("_", " ")}

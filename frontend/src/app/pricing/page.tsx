@@ -56,11 +56,11 @@ export default async function PricingPage({
         </div>
 
         {successMessage && (
-          <Card className="max-w-2xl mx-auto mb-8 bg-green-500/10 border-green-500/20">
+          <Card className="max-w-2xl mx-auto mb-8 bg-emerald-500/10 border-emerald-500/20">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-                <p className="text-sm font-medium text-green-600">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
                   Payment successful! Your subscription is now active. Check
                   your profile for details.
                 </p>
@@ -70,9 +70,9 @@ export default async function PricingPage({
         )}
 
         {errorMessage && (
-          <Card className="max-w-2xl mx-auto mb-8 bg-red-500/10 border-red-500/20">
+          <Card className="max-w-2xl mx-auto mb-8 bg-destructive/10 border-destructive/20">
             <CardContent className="pt-6">
-              <p className="text-sm font-medium text-red-600">
+              <p className="text-sm font-medium text-destructive">
                 {errorMessage === "payment_failed"
                   ? "Payment failed. Please try again or contact support."
                   : "An error occurred. Please try again."}
@@ -99,8 +99,8 @@ export default async function PricingPage({
           <div className="grid gap-6 md:grid-cols-3 max-w-4xl mx-auto mt-8">
             <Card className="bg-card border-border/40">
               <CardContent className="pt-6 text-center space-y-2">
-                <div className="w-12 h-12 mx-auto bg-blue-500/10 rounded-full flex items-center justify-center">
-                  <CheckCircle2 className="h-6 w-6 text-blue-600" />
+                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="h-6 w-6 text-primary" />
                 </div>
                 <h4 className="font-semibold">Nigerian Payment</h4>
                 <p className="text-sm text-muted-foreground">
@@ -111,8 +111,8 @@ export default async function PricingPage({
 
             <Card className="bg-card border-border/40">
               <CardContent className="pt-6 text-center space-y-2">
-                <div className="w-12 h-12 mx-auto bg-purple-500/10 rounded-full flex items-center justify-center">
-                  <CheckCircle2 className="h-6 w-6 text-purple-600" />
+                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="h-6 w-6 text-primary" />
                 </div>
                 <h4 className="font-semibold">Cancel Anytime</h4>
                 <p className="text-sm text-muted-foreground">
@@ -123,8 +123,8 @@ export default async function PricingPage({
 
             <Card className="bg-card border-border/40">
               <CardContent className="pt-6 text-center space-y-2">
-                <div className="w-12 h-12 mx-auto bg-green-500/10 rounded-full flex items-center justify-center">
-                  <CheckCircle2 className="h-6 w-6 text-green-600" />
+                <div className="w-12 h-12 mx-auto bg-emerald-500/10 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <h4 className="font-semibold">Instant Access</h4>
                 <p className="text-sm text-muted-foreground">

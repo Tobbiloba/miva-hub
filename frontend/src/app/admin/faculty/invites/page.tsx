@@ -49,10 +49,12 @@ const positionOptions = [
 ];
 
 const statusBadge: Record<Invite["status"], string> = {
-  pending: "bg-amber-100 text-amber-800 border-amber-200",
-  accepted: "bg-green-100 text-green-800 border-green-200",
-  revoked: "bg-gray-100 text-gray-600 border-gray-200",
-  expired: "bg-red-100 text-red-800 border-red-200",
+  pending:
+    "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
+  accepted:
+    "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+  revoked: "bg-muted text-muted-foreground border-border",
+  expired: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
 export default function FacultyInvitesPage() {
@@ -183,7 +185,7 @@ export default function FacultyInvitesPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Mail className="h-6 w-6 text-blue-600" />
+            <Mail className="h-6 w-6 text-primary" />
             Faculty Invites
           </h1>
           <p className="text-muted-foreground text-sm">

@@ -78,7 +78,7 @@ export default async function FacultyCoursesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <BookOpen className="h-8 w-8 text-blue-600" />
+            <BookOpen className="h-8 w-8 text-primary" />
             My Courses
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -102,7 +102,7 @@ export default async function FacultyCoursesPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-blue-600" />
+              <BookOpen className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{currentCourses.length}</p>
                 <p className="text-xs text-muted-foreground">Active Courses</p>
@@ -114,7 +114,7 @@ export default async function FacultyCoursesPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-green-600" />
+              <Users className="h-5 w-5 text-emerald-600" />
               <div>
                 <p className="text-2xl font-bold">
                   {currentCourses.reduce(
@@ -131,7 +131,7 @@ export default async function FacultyCoursesPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-purple-600" />
+              <FileText className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">
                   {currentCourses.reduce(
@@ -148,7 +148,7 @@ export default async function FacultyCoursesPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-orange-600" />
+              <BarChart3 className="h-5 w-5 text-amber-600" />
               <div>
                 <p className="text-2xl font-bold">
                   {currentCourses.length > 0
@@ -236,19 +236,19 @@ function CurrentCoursesList({ courses }: { courses: any[] }) {
               {/* Course Stats */}
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-2xl font-bold text-emerald-600">
                     {stats.enrolledStudents}
                   </p>
                   <p className="text-xs text-muted-foreground">Students</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-blue-600">
+                  <p className="text-2xl font-bold text-primary">
                     {stats.totalAssignments}
                   </p>
                   <p className="text-xs text-muted-foreground">Assignments</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-purple-600">
+                  <p className="text-2xl font-bold text-primary">
                     {stats.averageGrade.toFixed(1)}%
                   </p>
                   <p className="text-xs text-muted-foreground">Avg Grade</p>

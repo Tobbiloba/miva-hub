@@ -134,7 +134,7 @@ export default function BillingPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
-                    <GraduationCap className="h-5 w-5 text-green-500" />
+                    <GraduationCap className="h-5 w-5 text-emerald-500" />
                     Covered by your university
                   </CardTitle>
                   <CardDescription>
@@ -216,7 +216,7 @@ export default function BillingPage() {
                     </>
                   ) : (
                     <>
-                      <CreditCard className="h-5 w-5 text-green-500" />
+                      <CreditCard className="h-5 w-5 text-emerald-500" />
                       {getPlanDisplayName(status.subscription?.plan)}
                     </>
                   )}
@@ -353,16 +353,16 @@ function PlanCards({
           {!compact && (
             <ul className="space-y-2 text-sm text-muted-foreground mb-4">
               <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" /> Full AI chat
-                access
+                <CheckCircle className="h-4 w-4 text-emerald-500" /> Full AI
+                chat access
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" /> All course
+                <CheckCircle className="h-4 w-4 text-emerald-500" /> All course
                 materials
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" /> Flashcards &
-                quizzes
+                <CheckCircle className="h-4 w-4 text-emerald-500" /> Flashcards
+                & quizzes
               </li>
             </ul>
           )}
@@ -398,15 +398,15 @@ function PlanCards({
           {!compact && (
             <ul className="space-y-2 text-sm text-muted-foreground mb-4">
               <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" /> Everything in
-                Monthly
+                <CheckCircle className="h-4 w-4 text-emerald-500" /> Everything
+                in Monthly
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" /> Effective
+                <CheckCircle className="h-4 w-4 text-emerald-500" /> Effective
                 ₦2,500/month
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" /> Best value
+                <CheckCircle className="h-4 w-4 text-emerald-500" /> Best value
               </li>
             </ul>
           )}

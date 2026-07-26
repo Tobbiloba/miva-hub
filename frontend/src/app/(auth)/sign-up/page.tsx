@@ -304,7 +304,7 @@ export default function SignUpPage() {
                     disabled={isLoading}
                   />
                   {universityName && (
-                    <p className="text-xs text-green-600 flex items-center gap-1">
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                       <Info className="size-3 shrink-0" />
                       Signing up for {universityName}
                     </p>
@@ -332,21 +332,21 @@ export default function SignUpPage() {
                       <div
                         className={`h-1 flex-1 rounded-full ${
                           password.length >= 8
-                            ? "bg-green-500"
+                            ? "bg-emerald-500"
                             : "bg-muted-foreground/30"
                         }`}
                       />
                       <div
                         className={`h-1 flex-1 rounded-full ${
                           /[A-Z]/.test(password)
-                            ? "bg-green-500"
+                            ? "bg-emerald-500"
                             : "bg-muted-foreground/30"
                         }`}
                       />
                       <div
                         className={`h-1 flex-1 rounded-full ${
                           /[0-9]/.test(password)
-                            ? "bg-green-500"
+                            ? "bg-emerald-500"
                             : "bg-muted-foreground/30"
                         }`}
                       />

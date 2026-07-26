@@ -200,30 +200,30 @@ export default function CalendarManagePage() {
   const getTypeColor = (type: string) => {
     switch (type) {
       case "academic":
-        return "bg-blue-100 text-blue-800";
+        return "bg-primary/10 text-primary";
       case "registration":
-        return "bg-green-100 text-green-800";
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
       case "exam":
-        return "bg-red-100 text-red-800";
+        return "bg-destructive/10 text-destructive";
       case "holiday":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400";
       case "professional":
-        return "bg-purple-100 text-purple-800";
+        return "bg-primary/10 text-primary";
       case "ceremony":
-        return "bg-indigo-100 text-indigo-800";
+        return "bg-primary/10 text-primary";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-muted text-muted-foreground";
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "high":
-        return "bg-red-100 text-red-800 border-red-200";
+        return "bg-destructive/10 text-destructive border-destructive/30";
       case "medium":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30";
       case "low":
-        return "bg-green-100 text-green-800 border-green-200";
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30";
       default:
         return "";
     }
@@ -286,7 +286,7 @@ export default function CalendarManagePage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Error Loading Calendar</h3>
           <p className="text-muted-foreground mb-4">{error}</p>
           <Button onClick={fetchCalendarEvents} variant="outline">
@@ -303,7 +303,7 @@ export default function CalendarManagePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Calendar className="h-8 w-8 text-blue-600" />
+            <Calendar className="h-8 w-8 text-primary" />
             Academic Calendar
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -330,7 +330,7 @@ export default function CalendarManagePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <CalendarDays className="h-5 w-5 text-blue-600" />
+              <CalendarDays className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{totalEvents}</p>
                 <p className="text-xs text-muted-foreground">Total Events</p>
@@ -342,7 +342,7 @@ export default function CalendarManagePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-green-600" />
+              <Clock className="h-5 w-5 text-emerald-600" />
               <div>
                 <p className="text-2xl font-bold">{upcomingEvents}</p>
                 <p className="text-xs text-muted-foreground">
@@ -356,7 +356,7 @@ export default function CalendarManagePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <AlertTriangle className="h-5 w-5 text-destructive" />
               <div>
                 <p className="text-2xl font-bold">{highPriorityEvents}</p>
                 <p className="text-xs text-muted-foreground">High Priority</p>
@@ -368,7 +368,7 @@ export default function CalendarManagePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-orange-600" />
+              <Bell className="h-5 w-5 text-amber-600" />
               <div>
                 <p className="text-2xl font-bold">{activeReminders}</p>
                 <p className="text-xs text-muted-foreground">
@@ -521,7 +521,7 @@ export default function CalendarManagePage() {
                             {isUpcoming(event.date) && (
                               <Badge
                                 variant="outline"
-                                className="text-xs bg-blue-50"
+                                className="text-xs bg-primary/10 text-primary"
                               >
                                 Upcoming
                               </Badge>
@@ -568,7 +568,7 @@ export default function CalendarManagePage() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Bell
-                              className={`h-4 w-4 ${event.remindersEnabled ? "text-green-600" : "text-gray-400"}`}
+                              className={`h-4 w-4 ${event.remindersEnabled ? "text-emerald-600" : "text-muted-foreground"}`}
                             />
                             <span className="text-sm">
                               {event.remindersEnabled ? "Enabled" : "Disabled"}

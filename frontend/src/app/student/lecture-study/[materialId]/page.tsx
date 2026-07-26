@@ -125,7 +125,7 @@ export default function LectureStudyPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-purple-600" />
+            <BookOpen className="h-6 w-6 text-primary" />
             {material.title}
           </h1>
           <p className="text-muted-foreground">
@@ -148,7 +148,7 @@ export default function LectureStudyPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <AudioLines className="h-5 w-5 text-purple-600" />
+                  <AudioLines className="h-5 w-5 text-primary" />
                   5-Minute Audio Recap
                 </CardTitle>
               </CardHeader>
@@ -193,7 +193,7 @@ export default function LectureStudyPage() {
               {studyKit.timestampedNotes.map((section) => (
                 <div
                   key={`${section.timestamp}-${section.heading}`}
-                  className="border-l-2 border-purple-500/40 pl-4"
+                  className="border-l-2 border-primary/40 pl-4"
                 >
                   <p className="text-xs font-mono text-muted-foreground">
                     {section.timestamp}
@@ -211,7 +211,7 @@ export default function LectureStudyPage() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between text-base">
                 <span className="flex items-center gap-2">
-                  <Layers className="h-5 w-5 text-purple-600" />
+                  <Layers className="h-5 w-5 text-primary" />
                   Flashcards ({studyKit.flashcards.length})
                 </span>
                 <Button
@@ -268,18 +268,18 @@ export default function LectureStudyPage() {
                             }
                             className={`text-left text-sm rounded-md border px-3 py-2 transition-colors ${
                               answered && isCorrect
-                                ? "border-green-500 bg-green-500/10"
+                                ? "border-emerald-500 bg-emerald-500/10"
                                 : answered && isPicked
-                                  ? "border-red-500 bg-red-500/10"
+                                  ? "border-destructive bg-destructive/10"
                                   : "hover:bg-muted"
                             }`}
                           >
                             <span className="flex items-center gap-2">
                               {answered && isCorrect && (
-                                <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
                               )}
                               {answered && isPicked && !isCorrect && (
-                                <XCircle className="h-4 w-4 text-red-600 shrink-0" />
+                                <XCircle className="h-4 w-4 text-destructive shrink-0" />
                               )}
                               {option}
                             </span>

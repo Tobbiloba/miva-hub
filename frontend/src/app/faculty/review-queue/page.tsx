@@ -61,18 +61,18 @@ function confidenceBadge(confidence: number | null) {
   if (pct == null) return <Badge variant="outline">No confidence</Badge>;
   if (pct >= 85)
     return (
-      <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+      <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
         {pct}% confident
       </Badge>
     );
   if (pct >= 60)
     return (
-      <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+      <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400">
         {pct}% confident
       </Badge>
     );
   return (
-    <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+    <Badge className="bg-destructive/10 text-destructive">
       {pct}% confident
     </Badge>
   );

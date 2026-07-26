@@ -81,26 +81,26 @@ export default function UsersManagePage() {
   const getRoleColor = (role: string) => {
     switch (role) {
       case "student":
-        return "bg-blue-100 text-blue-800";
+        return "bg-primary/10 text-primary";
       case "faculty":
-        return "bg-green-100 text-green-800";
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
       case "admin":
-        return "bg-purple-100 text-purple-800";
+        return "bg-primary/10 text-primary";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-muted text-muted-foreground";
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
-        return "bg-green-100 text-green-800 border-green-200";
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30";
       case "inactive":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30";
       case "suspended":
-        return "bg-red-100 text-red-800 border-red-200";
+        return "bg-destructive/10 text-destructive border-destructive/30";
       case "pending":
-        return "bg-blue-100 text-blue-800 border-blue-200";
+        return "bg-primary/10 text-primary border-primary/30";
       default:
         return "";
     }
@@ -286,7 +286,7 @@ export default function UsersManagePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Users className="h-8 w-8 text-blue-600" />
+            <Users className="h-8 w-8 text-primary" />
             User Management
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -309,7 +309,7 @@ export default function UsersManagePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-600" />
+              <Users className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{totalUsers}</p>
                 <p className="text-xs text-muted-foreground">Total Users</p>
@@ -321,7 +321,7 @@ export default function UsersManagePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <UserCheck className="h-5 w-5 text-green-600" />
+              <UserCheck className="h-5 w-5 text-emerald-600" />
               <div>
                 <p className="text-2xl font-bold">{activeUsers}</p>
                 <p className="text-xs text-muted-foreground">Active Users</p>
@@ -333,7 +333,7 @@ export default function UsersManagePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5 text-purple-600" />
+              <GraduationCap className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{studentCount}</p>
                 <p className="text-xs text-muted-foreground">Students</p>
@@ -345,7 +345,7 @@ export default function UsersManagePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-orange-600" />
+              <BookOpen className="h-5 w-5 text-amber-600" />
               <div>
                 <p className="text-2xl font-bold">{facultyCount}</p>
                 <p className="text-xs text-muted-foreground">Faculty</p>
@@ -519,8 +519,8 @@ export default function UsersManagePage() {
                                   variant="outline"
                                   className={
                                     user.isVerified
-                                      ? "bg-green-50 text-green-700 border-green-200 text-xs"
-                                      : "bg-amber-50 text-amber-700 border-amber-200 text-xs"
+                                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-xs"
+                                      : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 text-xs"
                                   }
                                 >
                                   {user.isVerified ? "Verified" : "Unverified"}
@@ -591,8 +591,8 @@ export default function UsersManagePage() {
                                   disabled={togglingVerify === user.id}
                                   className={
                                     user.isVerified
-                                      ? "text-green-600 hover:text-green-700 hover:bg-green-50"
-                                      : "text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                      ? "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
+                                      : "text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
                                   }
                                   title={
                                     user.isVerified

@@ -165,7 +165,7 @@ export default async function StudentManagementPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Users className="h-8 w-8 text-blue-600" />
+            <Users className="h-8 w-8 text-primary" />
             Student Management
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -192,7 +192,7 @@ export default async function StudentManagementPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-600" />
+              <Users className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">
                   {studentsWithDetails.length}
@@ -206,7 +206,7 @@ export default async function StudentManagementPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-emerald-600" />
               <div>
                 <p className="text-2xl font-bold">{activeStudents}</p>
                 <p className="text-xs text-muted-foreground">Active Students</p>
@@ -218,7 +218,7 @@ export default async function StudentManagementPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-purple-600" />
+              <BookOpen className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{totalEnrollments}</p>
                 <p className="text-xs text-muted-foreground">
@@ -232,7 +232,7 @@ export default async function StudentManagementPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-orange-600" />
+              <TrendingUp className="h-5 w-5 text-amber-600" />
               <div>
                 <p className="text-2xl font-bold">{averageGPA.toFixed(2)}</p>
                 <p className="text-xs text-muted-foreground">Average GPA</p>
@@ -318,8 +318,8 @@ export default async function StudentManagementPage() {
                     <TableRow key={student.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                            <Users className="h-4 w-4 text-blue-600" />
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Users className="h-4 w-4 text-primary" />
                           </div>
                           <div>
                             <p className="font-medium">{student.name}</p>
@@ -352,7 +352,7 @@ export default async function StudentManagementPage() {
                           }
                           className={
                             student.academicStanding === "active"
-                              ? "bg-green-100 text-green-800 border-green-200"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                               : ""
                           }
                         >
@@ -376,13 +376,13 @@ export default async function StudentManagementPage() {
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <TrendingUp
-                            className={`h-4 w-4 ${student.currentGPA >= 3.0 ? "text-green-600" : "text-orange-600"}`}
+                            className={`h-4 w-4 ${student.currentGPA >= 3.0 ? "text-emerald-600" : "text-amber-600"}`}
                           />
                           <span
                             className={
                               student.currentGPA >= 3.0
-                                ? "text-green-600 font-medium"
-                                : "text-orange-600"
+                                ? "text-emerald-600 font-medium"
+                                : "text-amber-600"
                             }
                           >
                             {student.currentGPA.toFixed(2)}

@@ -213,19 +213,19 @@ export default function CoursesManagePage() {
   const getLevelColor = (level: string) => {
     switch (level) {
       case "100L":
-        return "bg-green-100 text-green-800";
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
       case "200L":
-        return "bg-blue-100 text-blue-800";
+        return "bg-primary/10 text-primary";
       case "300L":
-        return "bg-purple-100 text-purple-800";
+        return "bg-primary/10 text-primary";
       case "400L":
-        return "bg-orange-100 text-orange-800";
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400";
       case "graduate":
-        return "bg-indigo-100 text-indigo-800";
+        return "bg-primary/10 text-primary";
       case "doctoral":
-        return "bg-red-100 text-red-800";
+        return "bg-destructive/10 text-destructive";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-muted text-muted-foreground";
     }
   };
 
@@ -267,7 +267,7 @@ export default function CoursesManagePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <BookOpen className="h-8 w-8 text-blue-600" />
+            <BookOpen className="h-8 w-8 text-primary" />
             Course Management
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -290,7 +290,7 @@ export default function CoursesManagePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-blue-600" />
+              <BookOpen className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{totalCourses}</p>
                 <p className="text-xs text-muted-foreground">Total Courses</p>
@@ -302,7 +302,7 @@ export default function CoursesManagePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5 text-green-600" />
+              <GraduationCap className="h-5 w-5 text-emerald-600" />
               <div>
                 <p className="text-2xl font-bold">{activeCourses}</p>
                 <p className="text-xs text-muted-foreground">Active Courses</p>
@@ -314,7 +314,7 @@ export default function CoursesManagePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Award className="h-5 w-5 text-purple-600" />
+              <Award className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{totalCredits}</p>
                 <p className="text-xs text-muted-foreground">Total Credits</p>
@@ -326,7 +326,7 @@ export default function CoursesManagePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-orange-600" />
+              <Building2 className="h-5 w-5 text-amber-600" />
               <div>
                 <p className="text-2xl font-bold">{departments.length}</p>
                 <p className="text-xs text-muted-foreground">Departments</p>
@@ -485,8 +485,8 @@ export default function CoursesManagePage() {
                           variant="outline"
                           className={
                             course.isActive
-                              ? "bg-green-100 text-green-800 border-green-200"
-                              : "bg-gray-100 text-gray-800 border-gray-200"
+                              ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30 dark:text-emerald-400"
+                              : "bg-muted text-muted-foreground border-border"
                           }
                         >
                           {course.isActive ? "Active" : "Inactive"}

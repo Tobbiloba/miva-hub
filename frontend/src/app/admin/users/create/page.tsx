@@ -88,12 +88,12 @@ function PasswordStrength({ password }: { password: string }) {
       {checks.map((check) => (
         <div key={check.label} className="flex items-center gap-1.5 text-xs">
           {check.met ? (
-            <Check className="h-3 w-3 text-green-600" />
+            <Check className="h-3 w-3 text-emerald-600" />
           ) : (
-            <X className="h-3 w-3 text-red-500" />
+            <X className="h-3 w-3 text-destructive" />
           )}
           <span
-            className={check.met ? "text-green-600" : "text-muted-foreground"}
+            className={check.met ? "text-emerald-600" : "text-muted-foreground"}
           >
             {check.label}
           </span>
@@ -240,7 +240,7 @@ export default function CreateUserPage() {
         </Link>
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Users className="h-8 w-8 text-blue-600" />
+            <Users className="h-8 w-8 text-primary" />
             Create User
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -270,7 +270,7 @@ export default function CreateUserPage() {
                   onChange={(e) => handleInputChange("name", e.target.value)}
                 />
                 {errors.name && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.name}
                   </p>
@@ -314,7 +314,7 @@ export default function CreateUserPage() {
                 onChange={(e) => handleInputChange("email", e.target.value)}
               />
               {errors.email && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
+                <p className="text-sm text-destructive flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
                   {errors.email}
                 </p>
@@ -350,7 +350,7 @@ export default function CreateUserPage() {
                   </Button>
                 </div>
                 {errors.password && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.password}
                   </p>
@@ -385,7 +385,7 @@ export default function CreateUserPage() {
                   </Button>
                 </div>
                 {errors.passwordConfirm && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.passwordConfirm}
                   </p>
@@ -412,7 +412,7 @@ export default function CreateUserPage() {
                         }
                       />
                       {errors.studentId && (
-                        <p className="text-sm text-red-500 flex items-center gap-1">
+                        <p className="text-sm text-destructive flex items-center gap-1">
                           <AlertCircle className="h-3 w-3" />
                           {errors.studentId}
                         </p>

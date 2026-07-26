@@ -207,7 +207,7 @@ export default function CreateSchedulePage() {
         </Link>
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Calendar className="h-8 w-8 text-blue-600" />
+            <Calendar className="h-8 w-8 text-primary" />
             Create Class Schedule
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -246,7 +246,7 @@ export default function CreateSchedulePage() {
                   </SelectContent>
                 </Select>
                 {errors.courseId && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.courseId}
                   </p>
@@ -326,7 +326,7 @@ export default function CreateSchedulePage() {
                   }
                 />
                 {errors.startTime && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.startTime}
                   </p>
@@ -340,7 +340,7 @@ export default function CreateSchedulePage() {
                   onChange={(e) => handleInputChange("endTime", e.target.value)}
                 />
                 {errors.endTime && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.endTime}
                   </p>
@@ -360,7 +360,7 @@ export default function CreateSchedulePage() {
                   }
                 />
                 {errors.roomLocation && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.roomLocation}
                   </p>

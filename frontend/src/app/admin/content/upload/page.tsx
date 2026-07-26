@@ -91,37 +91,37 @@ export default function ContentUploadPage() {
       starting: {
         icon: Zap,
         label: "Initializing AI processing...",
-        color: "text-blue-500",
+        color: "text-primary",
       },
       downloading: {
         icon: Upload,
         label: "Downloading from cloud storage...",
-        color: "text-blue-500",
+        color: "text-primary",
       },
       extracting: {
         icon: FileText,
         label: `Extracting ${fileType.includes("pdf") ? "text from PDF" : fileType.includes("video") ? "audio from video" : "content"}...`,
-        color: "text-purple-500",
+        color: "text-primary",
       },
       analyzing: {
         icon: Brain,
         label: "AI analysis in progress...",
-        color: "text-green-500",
+        color: "text-emerald-500",
       },
       embedding: {
         icon: Database,
         label: "Generating vector embeddings...",
-        color: "text-orange-500",
+        color: "text-amber-600",
       },
       storing: {
         icon: Database,
         label: "Saving to knowledge base...",
-        color: "text-blue-500",
+        color: "text-primary",
       },
       completed: {
         icon: CheckCircle,
         label: "Processing complete!",
-        color: "text-green-500",
+        color: "text-emerald-500",
       },
     };
 
@@ -135,7 +135,7 @@ export default function ContentUploadPage() {
     return {
       icon: Brain,
       label: phase || "Processing...",
-      color: "text-blue-500",
+      color: "text-primary",
     };
   };
 
@@ -653,32 +653,32 @@ export default function ContentUploadPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Course Selected</span>
                   <div
-                    className={`w-2 h-2 rounded-full ${selectedCourse ? "bg-green-500" : "bg-gray-300"}`}
+                    className={`w-2 h-2 rounded-full ${selectedCourse ? "bg-emerald-500" : "bg-muted"}`}
                   />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Material Type</span>
                   <div
-                    className={`w-2 h-2 rounded-full ${materialType ? "bg-green-500" : "bg-gray-300"}`}
+                    className={`w-2 h-2 rounded-full ${materialType ? "bg-emerald-500" : "bg-muted"}`}
                   />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Week Number</span>
                   <div
-                    className={`w-2 h-2 rounded-full ${weekNumber ? "bg-green-500" : "bg-gray-300"}`}
+                    className={`w-2 h-2 rounded-full ${weekNumber ? "bg-emerald-500" : "bg-muted"}`}
                   />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Title</span>
                   <div
-                    className={`w-2 h-2 rounded-full ${title ? "bg-green-500" : "bg-gray-300"}`}
+                    className={`w-2 h-2 rounded-full ${title ? "bg-emerald-500" : "bg-muted"}`}
                   />
                 </div>
               </div>
 
               {isFormValid && (
-                <div className="mt-4 p-3 bg-green-50 dark:bg-green-950 rounded-lg">
-                  <p className="text-sm text-green-700 dark:text-green-300">
+                <div className="mt-4 p-3 bg-emerald-500/10 rounded-lg">
+                  <p className="text-sm text-emerald-600 dark:text-emerald-400">
                     {inputMode === "file"
                       ? "Ready to upload files!"
                       : "Ready to save URL!"}
@@ -687,20 +687,20 @@ export default function ContentUploadPage() {
               )}
 
               {(activeFiles > 0 || completedFiles.length > 0) && (
-                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                  <h4 className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">
+                <div className="mt-4 p-3 bg-primary/10 rounded-lg">
+                  <h4 className="text-sm font-medium text-primary mb-2">
                     Processing Pipeline Status
                   </h4>
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between">
                       <span>Upload Phase</span>
-                      <span className="text-green-600">✓ Complete</span>
+                      <span className="text-emerald-600">✓ Complete</span>
                     </div>
                     <div className="flex justify-between">
                       <span>AI Processing</span>
                       <span
                         className={
-                          activeFiles > 0 ? "text-blue-600" : "text-green-600"
+                          activeFiles > 0 ? "text-primary" : "text-emerald-600"
                         }
                       >
                         {activeFiles > 0
@@ -712,7 +712,9 @@ export default function ContentUploadPage() {
                       <span>Vector Embedding</span>
                       <span
                         className={
-                          activeFiles > 0 ? "text-gray-500" : "text-green-600"
+                          activeFiles > 0
+                            ? "text-muted-foreground"
+                            : "text-emerald-600"
                         }
                       >
                         {activeFiles > 0 ? "Pending" : "✓ Complete"}
@@ -723,8 +725,8 @@ export default function ContentUploadPage() {
                       <span
                         className={
                           completedFiles.length > 0
-                            ? "text-green-600"
-                            : "text-gray-500"
+                            ? "text-emerald-600"
+                            : "text-muted-foreground"
                         }
                       >
                         {completedFiles.length > 0
@@ -738,17 +740,17 @@ export default function ContentUploadPage() {
 
               {/* Auto-redirect notification */}
               {redirectCountdown !== null && redirectTarget && (
-                <div className="mt-4 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+                <div className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      <div className="flex items-center justify-center w-8 h-8 bg-emerald-500/10 rounded-full">
+                        <CheckCircle className="h-4 w-4 text-emerald-600" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-medium text-green-800 dark:text-green-200">
+                        <h4 className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
                           Processing Complete!
                         </h4>
-                        <p className="text-xs text-green-700 dark:text-green-300">
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400">
                           Redirecting to content details in {redirectCountdown}{" "}
                           seconds...
                         </p>
@@ -759,7 +761,7 @@ export default function ContentUploadPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => viewContent(redirectTarget)}
-                        className="text-green-700 border-green-300 hover:bg-green-100"
+                        className="text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10"
                       >
                         Go Now
                       </Button>
@@ -767,15 +769,15 @@ export default function ContentUploadPage() {
                         variant="ghost"
                         size="sm"
                         onClick={cancelRedirect}
-                        className="text-green-700 hover:bg-green-100"
+                        className="text-emerald-600 hover:bg-emerald-500/10"
                       >
                         Cancel
                       </Button>
                     </div>
                   </div>
-                  <div className="mt-2 w-full bg-green-200 dark:bg-green-800 rounded-full h-1">
+                  <div className="mt-2 w-full bg-emerald-500/20 rounded-full h-1">
                     <div
-                      className="bg-green-500 h-1 rounded-full transition-all duration-1000"
+                      className="bg-emerald-500 h-1 rounded-full transition-all duration-1000"
                       style={{
                         width: `${((3 - (redirectCountdown || 0)) / 3) * 100}%`,
                       }}
@@ -857,7 +859,7 @@ export default function ContentUploadPage() {
                 >
                   {uploading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2" />
                       Saving...
                     </>
                   ) : (
@@ -947,12 +949,12 @@ export default function ContentUploadPage() {
                                   </span>
                                 </div>
                               </div>
-                              <div className="w-full bg-gray-200 rounded-full h-1.5">
+                              <div className="w-full bg-muted rounded-full h-1.5">
                                 <div
                                   className={`h-1.5 rounded-full transition-all duration-300 ${
                                     status === "uploading"
-                                      ? "bg-blue-600"
-                                      : "bg-green-600"
+                                      ? "bg-primary"
+                                      : "bg-emerald-500"
                                   }`}
                                   style={{ width: `${progress}%` }}
                                 ></div>
@@ -979,16 +981,16 @@ export default function ContentUploadPage() {
                         </div>
                         <div className="flex items-center space-x-2">
                           {status === "pending" && (
-                            <div className="w-2 h-2 bg-yellow-500 rounded-full" />
+                            <div className="w-2 h-2 bg-amber-500 rounded-full" />
                           )}
                           {status === "uploading" && (
-                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                            <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
                           )}
                           {status === "processing" && (
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
                           )}
                           {status === "completed" && (
-                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <CheckCircle className="h-4 w-4 text-emerald-500" />
                           )}
                           {status === "error" && (
                             <AlertCircle className="h-4 w-4 text-destructive" />
@@ -1045,41 +1047,37 @@ export default function ContentUploadPage() {
 
           {/* Upload Button */}
           {selectedFiles.length > 0 && (
-            <Card className="border-green-200 dark:border-green-800">
+            <Card className="border-emerald-500/30">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Upload className="h-5 w-5 text-green-600" />
+                    <Upload className="h-5 w-5 text-emerald-600" />
                     <div>
-                      <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                      <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
                         Ready to upload {pendingFiles.length} file(s)
                       </p>
                       {activeFiles > 0 && (
-                        <p className="text-xs text-blue-600/80 dark:text-blue-400/80">
+                        <p className="text-xs text-primary/80">
                           {uploadingFiles.length} uploading,{" "}
                           {processingFiles.length} processing
                         </p>
                       )}
                       {completedFiles.length > 0 && (
-                        <p className="text-xs text-green-600/80 dark:text-green-400/80">
+                        <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80">
                           {completedFiles.length} file(s) completed processing
                         </p>
                       )}
                       {errorFiles.length > 0 && (
-                        <p className="text-xs text-red-600/80 dark:text-red-400/80">
+                        <p className="text-xs text-destructive/80">
                           {errorFiles.length} file(s) failed
                         </p>
                       )}
                     </div>
                   </div>
-                  <Button
-                    onClick={handleUploadFiles}
-                    disabled={!canUpload}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
+                  <Button onClick={handleUploadFiles} disabled={!canUpload}>
                     {uploading ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2"></div>
                         Uploading...
                       </>
                     ) : (
@@ -1098,18 +1096,18 @@ export default function ContentUploadPage() {
           {selectedFiles.length > 1 &&
             completedFiles.length > 0 &&
             completedFiles.length === selectedFiles.length && (
-              <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950">
+              <Card className="border-emerald-500/30 bg-emerald-500/10">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      <div className="flex items-center justify-center w-8 h-8 bg-emerald-500/10 rounded-full">
+                        <CheckCircle className="h-4 w-4 text-emerald-600" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                        <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
                           All Files Processed Successfully!
                         </p>
-                        <p className="text-xs text-green-700 dark:text-green-300">
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400">
                           {completedFiles.length} files are ready and available
                           in your content library.
                         </p>
@@ -1120,7 +1118,7 @@ export default function ContentUploadPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => router.push("/admin/content/manage")}
-                        className="text-green-700 border-green-300 hover:bg-green-100"
+                        className="text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10"
                       >
                         View All Uploads
                       </Button>
@@ -1132,7 +1130,7 @@ export default function ContentUploadPage() {
 
           {/* Form Validation Message */}
           {!isFormValid && (
-            <Card className="border-amber-200 dark:border-amber-800">
+            <Card className="border-amber-500/30">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
                   <Upload className="h-4 w-4" />

@@ -56,7 +56,7 @@ export default async function StudentSchedulePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Calendar className="h-8 w-8 text-blue-600" />
+          <Calendar className="h-8 w-8 text-primary" />
           Class Schedule
         </h1>
         <p className="text-muted-foreground">

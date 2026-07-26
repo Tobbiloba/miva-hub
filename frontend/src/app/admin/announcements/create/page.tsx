@@ -242,7 +242,7 @@ export default function CreateAnnouncementPage() {
         </Link>
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Megaphone className="h-8 w-8 text-blue-600" />
+            <Megaphone className="h-8 w-8 text-primary" />
             Create Announcement
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -271,7 +271,7 @@ export default function CreateAnnouncementPage() {
                 onChange={(e) => handleInputChange("title", e.target.value)}
               />
               {errors.title && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
+                <p className="text-sm text-destructive flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
                   {errors.title}
                 </p>
@@ -289,7 +289,7 @@ export default function CreateAnnouncementPage() {
                 onChange={(e) => handleInputChange("content", e.target.value)}
               />
               {errors.content && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
+                <p className="text-sm text-destructive flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
                   {errors.content}
                 </p>
@@ -323,7 +323,7 @@ export default function CreateAnnouncementPage() {
                   </SelectContent>
                 </Select>
                 {errors.targetAudience && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.targetAudience}
                   </p>
@@ -374,7 +374,7 @@ export default function CreateAnnouncementPage() {
                   </SelectContent>
                 </Select>
                 {errors.courseId && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.courseId}
                   </p>
@@ -404,7 +404,7 @@ export default function CreateAnnouncementPage() {
                   </SelectContent>
                 </Select>
                 {errors.departmentId && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.departmentId}
                   </p>

@@ -154,7 +154,7 @@ function BillingPageInner() {
     <div className="space-y-6 p-6 max-w-4xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <CreditCard className="h-6 w-6 text-blue-600" />
+          <CreditCard className="h-6 w-6 text-primary" />
           University Billing
         </h1>
         <p className="text-muted-foreground text-sm">
@@ -168,7 +168,7 @@ function BillingPageInner() {
           <CardTitle className="flex items-center gap-2">
             Coverage
             {billing?.covered ? (
-              <Badge className="bg-green-100 text-green-800 border-green-200">
+              <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
                 active
               </Badge>
@@ -214,7 +214,7 @@ function BillingPageInner() {
             </div>
           </div>
           {billing?.overSeatLimit && (
-            <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-600 dark:text-amber-400">
               <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
               <span>
                 You have more students than purchased seats. Students stay

@@ -58,7 +58,7 @@ export default async function AnalyticsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <BarChart3 className="h-8 w-8 text-blue-600" />
+            <BarChart3 className="h-8 w-8 text-primary" />
             Academic Analytics
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -73,7 +73,7 @@ export default async function AnalyticsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-600" />
+              <Users className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">
                   {systemOverview.totalStudents}
@@ -87,7 +87,7 @@ export default async function AnalyticsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-green-600" />
+              <BookOpen className="h-5 w-5 text-emerald-600" />
               <div>
                 <p className="text-2xl font-bold">
                   {systemOverview.totalCourses}
@@ -101,7 +101,7 @@ export default async function AnalyticsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5 text-purple-600" />
+              <GraduationCap className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">
                   {systemOverview.totalFaculty}
@@ -115,7 +115,7 @@ export default async function AnalyticsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-orange-600" />
+              <Building2 className="h-5 w-5 text-amber-600" />
               <div>
                 <p className="text-2xl font-bold">
                   {systemOverview.totalDepartments}
@@ -129,7 +129,7 @@ export default async function AnalyticsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-indigo-600" />
+              <FileText className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">
                   {systemOverview.totalMaterials}

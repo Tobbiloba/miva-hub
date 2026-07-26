@@ -114,7 +114,7 @@ export default function LectureStudioPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-purple-600" />
+            <Sparkles className="h-6 w-6 text-primary" />
             Lecture Studio
           </h1>
           <p className="text-muted-foreground">
@@ -224,9 +224,9 @@ export default function LectureStudioPage() {
       </Card>
 
       {result && (
-        <Card className="border-green-500/40">
+        <Card className="border-emerald-500/40">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-600">
+            <CardTitle className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="h-5 w-5" />
               Study Kit Ready
             </CardTitle>

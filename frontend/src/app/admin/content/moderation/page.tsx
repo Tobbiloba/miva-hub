@@ -379,7 +379,7 @@ export default function ModerationQueuePage() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {item.mimeType?.startsWith("video/") ? (
-                            <Video className="h-4 w-4 text-blue-500" />
+                            <Video className="h-4 w-4 text-primary" />
                           ) : (
                             <FileText className="h-4 w-4 text-amber-600" />
                           )}
@@ -412,9 +412,9 @@ export default function ModerationQueuePage() {
                           }
                           className={
                             item.materialType === "quiz"
-                              ? "border-purple-400 text-purple-700"
+                              ? "border-primary/40 text-primary"
                               : item.materialType === "assignment_external"
-                                ? "border-green-400 text-green-700"
+                                ? "border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
                                 : ""
                           }
                         >
@@ -462,7 +462,7 @@ export default function ModerationQueuePage() {
                               disabled={transcriptLoading}
                               title="View transcript"
                             >
-                              <FileText className="h-4 w-4 text-green-600" />
+                              <FileText className="h-4 w-4 text-emerald-600" />
                             </Button>
                           )}
                           {(item.transcriptStatus === "failed" ||
@@ -474,7 +474,7 @@ export default function ModerationQueuePage() {
                               disabled={actionLoading === item.id}
                               title="Re-extract transcript"
                             >
-                              <RefreshCw className="h-4 w-4 text-orange-500" />
+                              <RefreshCw className="h-4 w-4 text-amber-600" />
                             </Button>
                           )}
                           {item.publicUrl && (
@@ -498,7 +498,7 @@ export default function ModerationQueuePage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
                             onClick={() => handleAction(item.id, "approve")}
                             disabled={actionLoading === item.id}
                             title="Approve"
@@ -508,7 +508,7 @@ export default function ModerationQueuePage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={() => handleAction(item.id, "reject")}
                             disabled={actionLoading === item.id}
                             title="Reject"
@@ -518,7 +518,7 @@ export default function ModerationQueuePage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                            className="text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
                             onClick={() => setForceRecaptureItem(item)}
                             disabled={actionLoading === item.id}
                             title="Force re-capture (remove and allow new)"
@@ -757,7 +757,7 @@ export default function ModerationQueuePage() {
                     href={previewItem.publicUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-500 underline text-sm mt-2 block"
+                    className="text-primary underline text-sm mt-2 block"
                   >
                     Open in new tab
                   </a>

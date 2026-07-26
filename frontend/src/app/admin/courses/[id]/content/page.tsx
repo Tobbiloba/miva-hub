@@ -169,11 +169,11 @@ export default function CourseContentManagementPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
-        return "text-green-600 bg-green-100";
+        return "text-emerald-600 bg-emerald-500/10";
       case "in-progress":
-        return "text-yellow-600 bg-yellow-100";
+        return "text-amber-600 bg-amber-500/10";
       default:
-        return "text-gray-600 bg-gray-100";
+        return "text-muted-foreground bg-muted";
     }
   };
 

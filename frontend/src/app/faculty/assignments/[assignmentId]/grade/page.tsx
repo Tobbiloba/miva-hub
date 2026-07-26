@@ -116,7 +116,7 @@ export default async function AssignmentGradingPage({
 
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Award className="h-8 w-8 text-blue-600" />
+              <Award className="h-8 w-8 text-primary" />
               Grading: {assignment.title}
             </h1>
             <p className="text-muted-foreground mt-1">
@@ -170,9 +170,9 @@ export default async function AssignmentGradingPage({
                         >
                           {index + 1}. {st.name}
                           {sub.grade ? (
-                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <CheckCircle className="h-3 w-3 text-emerald-600" />
                           ) : (
-                            <Clock className="h-3 w-3 text-orange-600" />
+                            <Clock className="h-3 w-3 text-amber-600" />
                           )}
                         </Link>
                       </SelectItem>
@@ -393,7 +393,7 @@ export default async function AssignmentGradingPage({
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <CheckCircle className="h-4 w-4 text-emerald-600" />
                     <span className="text-sm">
                       Graded on{" "}
                       {submission.gradedAt

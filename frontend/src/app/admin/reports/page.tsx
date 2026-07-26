@@ -159,43 +159,43 @@ export default function ReportsManagePage() {
     {
       name: "Academic Reports",
       icon: BookOpen,
-      color: "bg-blue-100 text-blue-800",
+      color: "bg-primary/10 text-primary",
       count: reports.filter((r) => r.category === "academic").length,
     },
     {
       name: "Enrollment Reports",
       icon: Users,
-      color: "bg-green-100 text-green-800",
+      color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
       count: reports.filter((r) => r.category === "enrollment").length,
     },
     {
       name: "Performance Reports",
       icon: TrendingUp,
-      color: "bg-purple-100 text-purple-800",
+      color: "bg-primary/10 text-primary",
       count: reports.filter((r) => r.category === "performance").length,
     },
     {
       name: "System Reports",
       icon: Activity,
-      color: "bg-orange-100 text-orange-800",
+      color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
       count: reports.filter((r) => r.category === "system").length,
     },
     {
       name: "Financial Reports",
       icon: DollarSign,
-      color: "bg-yellow-100 text-yellow-800",
+      color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
       count: reports.filter((r) => r.category === "financial").length,
     },
     {
       name: "Research Reports",
       icon: Award,
-      color: "bg-indigo-100 text-indigo-800",
+      color: "bg-primary/10 text-primary",
       count: reports.filter((r) => r.category === "research").length,
     },
     {
       name: "Engagement Reports",
       icon: Target,
-      color: "bg-pink-100 text-pink-800",
+      color: "bg-primary/10 text-primary",
       count: reports.filter((r) => r.category === "engagement").length,
     },
   ];
@@ -203,34 +203,34 @@ export default function ReportsManagePage() {
   const getCategoryColor = (category: string) => {
     switch (category) {
       case "academic":
-        return "bg-blue-100 text-blue-800";
+        return "bg-primary/10 text-primary";
       case "enrollment":
-        return "bg-green-100 text-green-800";
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
       case "performance":
-        return "bg-purple-100 text-purple-800";
+        return "bg-primary/10 text-primary";
       case "system":
-        return "bg-orange-100 text-orange-800";
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400";
       case "financial":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400";
       case "research":
-        return "bg-indigo-100 text-indigo-800";
+        return "bg-primary/10 text-primary";
       case "engagement":
-        return "bg-pink-100 text-pink-800";
+        return "bg-primary/10 text-primary";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-muted text-muted-foreground";
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
-        return "bg-green-100 text-green-800 border-green-200";
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30";
       case "paused":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30";
       case "draft":
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return "bg-muted text-muted-foreground border-border";
       case "error":
-        return "bg-red-100 text-red-800 border-red-200";
+        return "bg-destructive/10 text-destructive border-destructive/30";
       default:
         return "";
     }
@@ -262,19 +262,19 @@ export default function ReportsManagePage() {
   const getScheduleColor = (schedule: string) => {
     switch (schedule) {
       case "daily":
-        return "text-green-600";
+        return "text-emerald-600";
       case "weekly":
-        return "text-blue-600";
+        return "text-primary";
       case "monthly":
-        return "text-purple-600";
+        return "text-primary";
       case "quarterly":
-        return "text-orange-600";
+        return "text-amber-600";
       case "semester":
-        return "text-indigo-600";
+        return "text-primary";
       case "manual":
-        return "text-gray-600";
+        return "text-muted-foreground";
       default:
-        return "text-gray-600";
+        return "text-muted-foreground";
     }
   };
 
@@ -302,7 +302,7 @@ export default function ReportsManagePage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Error Loading Reports</h3>
           <p className="text-muted-foreground mb-4">{error}</p>
           <Button onClick={fetchReports} variant="outline">
@@ -319,7 +319,7 @@ export default function ReportsManagePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <BarChart3 className="h-8 w-8 text-blue-600" />
+            <BarChart3 className="h-8 w-8 text-primary" />
             Reports Center
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -346,7 +346,7 @@ export default function ReportsManagePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-blue-600" />
+              <FileText className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{totalReports}</p>
                 <p className="text-xs text-muted-foreground">Total Reports</p>
@@ -358,7 +358,7 @@ export default function ReportsManagePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-green-600" />
+              <Activity className="h-5 w-5 text-emerald-600" />
               <div>
                 <p className="text-2xl font-bold">{activeReports}</p>
                 <p className="text-xs text-muted-foreground">Active Reports</p>
@@ -370,7 +370,7 @@ export default function ReportsManagePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-purple-600" />
+              <Clock className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{automatedReports}</p>
                 <p className="text-xs text-muted-foreground">Automated</p>
@@ -382,7 +382,7 @@ export default function ReportsManagePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Download className="h-5 w-5 text-orange-600" />
+              <Download className="h-5 w-5 text-amber-600" />
               <div>
                 <p className="text-2xl font-bold">{totalDownloads}</p>
                 <p className="text-xs text-muted-foreground">Total Downloads</p>
@@ -652,12 +652,12 @@ export default function ReportsManagePage() {
                                 Edit Settings
                               </DropdownMenuItem>
                               {report.status === "active" ? (
-                                <DropdownMenuItem className="text-yellow-600">
+                                <DropdownMenuItem className="text-amber-600">
                                   <Pause className="mr-2 h-4 w-4" />
                                   Pause Schedule
                                 </DropdownMenuItem>
                               ) : (
-                                <DropdownMenuItem className="text-green-600">
+                                <DropdownMenuItem className="text-emerald-600">
                                   <Play className="mr-2 h-4 w-4" />
                                   Resume Schedule
                                 </DropdownMenuItem>

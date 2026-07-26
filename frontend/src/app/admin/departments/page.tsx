@@ -105,7 +105,7 @@ export default async function DepartmentManagementPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Building2 className="h-8 w-8 text-blue-600" />
+            <Building2 className="h-8 w-8 text-primary" />
             Department Management
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -126,7 +126,7 @@ export default async function DepartmentManagementPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-blue-600" />
+              <Building2 className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{departments.length}</p>
                 <p className="text-xs text-muted-foreground">
@@ -140,7 +140,7 @@ export default async function DepartmentManagementPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-green-600" />
+              <BookOpen className="h-5 w-5 text-emerald-600" />
               <div>
                 <p className="text-2xl font-bold">
                   {courseAnalytics.reduce(
@@ -157,7 +157,7 @@ export default async function DepartmentManagementPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-purple-600" />
+              <Users className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">
                   {facultyAnalytics.reduce(
@@ -174,7 +174,7 @@ export default async function DepartmentManagementPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-orange-600" />
+              <Calendar className="h-5 w-5 text-amber-600" />
               <div>
                 <p className="text-2xl font-bold">
                   {courseAnalytics.reduce(
@@ -232,7 +232,7 @@ export default async function DepartmentManagementPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-red-600 hover:text-red-700"
+                      className="text-destructive hover:text-destructive/80"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -252,19 +252,19 @@ export default async function DepartmentManagementPage() {
               {/* Statistics */}
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <p className="text-lg font-bold text-blue-600">
+                  <p className="text-lg font-bold text-primary">
                     {department.totalCourses}
                   </p>
                   <p className="text-xs text-muted-foreground">Courses</p>
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-green-600">
+                  <p className="text-lg font-bold text-emerald-600">
                     {department.totalFaculty}
                   </p>
                   <p className="text-xs text-muted-foreground">Faculty</p>
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-purple-600">
+                  <p className="text-lg font-bold text-primary">
                     {department.activeCourses}
                   </p>
                   <p className="text-xs text-muted-foreground">Active</p>

@@ -69,7 +69,7 @@ export default async function StudentAssignmentsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-blue-600" />
+              <FileText className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{stats.total}</p>
                 <p className="text-xs text-muted-foreground">
@@ -83,7 +83,7 @@ export default async function StudentAssignmentsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-emerald-600" />
               <div>
                 <p className="text-2xl font-bold">{stats.completed}</p>
                 <p className="text-xs text-muted-foreground">Completed</p>
@@ -95,7 +95,7 @@ export default async function StudentAssignmentsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-red-600" />
+              <AlertCircle className="h-5 w-5 text-destructive" />
               <div>
                 <p className="text-2xl font-bold">{stats.overdue}</p>
                 <p className="text-xs text-muted-foreground">Overdue</p>
@@ -107,7 +107,7 @@ export default async function StudentAssignmentsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Award className="h-5 w-5 text-purple-600" />
+              <Award className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">
                   {stats.avgGrade > 0 ? `${stats.avgGrade.toFixed(1)}%` : "N/A"}
@@ -207,17 +207,17 @@ function AssignmentsList({
         return (
           <Card
             key={assignment.id}
-            className={`${isOverdue ? "border-red-200 dark:border-red-800" : ""}`}
+            className={`${isOverdue ? "border-destructive/30" : ""}`}
           >
             <CardContent className="p-4">
               <div className="flex items-start gap-4">
                 <div className="mt-1">
                   {type === "submitted" ? (
-                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <CheckCircle className="h-5 w-5 text-emerald-600" />
                   ) : isOverdue ? (
-                    <AlertCircle className="h-5 w-5 text-red-600" />
+                    <AlertCircle className="h-5 w-5 text-destructive" />
                   ) : (
-                    <Clock className="h-5 w-5 text-orange-600" />
+                    <Clock className="h-5 w-5 text-amber-600" />
                   )}
                 </div>
 
@@ -249,7 +249,7 @@ function AssignmentsList({
 
                     <div className="text-right shrink-0">
                       <p
-                        className={`text-sm font-medium ${isOverdue ? "text-red-600" : ""}`}
+                        className={`text-sm font-medium ${isOverdue ? "text-destructive" : ""}`}
                       >
                         {isOverdue
                           ? "Overdue"
@@ -261,7 +261,7 @@ function AssignmentsList({
                         Due: {dueDate.toLocaleDateString()}
                       </p>
                       {submission?.submittedAt && (
-                        <p className="text-xs text-green-600 mt-1">
+                        <p className="text-xs text-emerald-600 mt-1">
                           Submitted:{" "}
                           {new Date(
                             submission.submittedAt,
@@ -325,17 +325,17 @@ function GradedAssignmentsList({
         const gradePoints = percentageToGradePoints(percentage);
 
         const getGradeColor = (percentage: number) => {
-          if (percentage >= 90) return "text-green-600";
-          if (percentage >= 80) return "text-blue-600";
-          if (percentage >= 70) return "text-yellow-600";
-          return "text-red-600";
+          if (percentage >= 90) return "text-emerald-600";
+          if (percentage >= 80) return "text-primary";
+          if (percentage >= 70) return "text-amber-600";
+          return "text-destructive";
         };
 
         return (
           <Card key={assignment.id}>
             <CardContent className="p-4">
               <div className="flex items-start gap-4">
-                <Award className="h-5 w-5 text-purple-600 mt-1" />
+                <Award className="h-5 w-5 text-primary mt-1" />
 
                 <div className="flex-1">
                   <div className="flex items-start justify-between gap-4">

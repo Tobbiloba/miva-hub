@@ -207,7 +207,7 @@ export default function CreateAssignmentPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
-              <FileText className="h-8 w-8 text-blue-600" />
+              <FileText className="h-8 w-8 text-primary" />
               Create Assignment
             </h1>
             <p className="text-muted-foreground">
@@ -247,10 +247,10 @@ export default function CreateAssignmentPage() {
                   value={formData.title}
                   onChange={(e) => handleInputChange("title", e.target.value)}
                   placeholder="Enter assignment title"
-                  className={errors.title ? "border-red-500" : ""}
+                  className={errors.title ? "border-destructive" : ""}
                 />
                 {errors.title && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.title}
                   </p>
@@ -267,7 +267,7 @@ export default function CreateAssignmentPage() {
                     }
                   >
                     <SelectTrigger
-                      className={errors.courseId ? "border-red-500" : ""}
+                      className={errors.courseId ? "border-destructive" : ""}
                     >
                       <SelectValue placeholder="Select a course" />
                     </SelectTrigger>
@@ -280,7 +280,9 @@ export default function CreateAssignmentPage() {
                     </SelectContent>
                   </Select>
                   {errors.courseId && (
-                    <p className="text-sm text-red-500">{errors.courseId}</p>
+                    <p className="text-sm text-destructive">
+                      {errors.courseId}
+                    </p>
                   )}
                 </div>
 
@@ -351,10 +353,12 @@ export default function CreateAssignmentPage() {
                     onChange={(e) =>
                       handleInputChange("totalPoints", parseInt(e.target.value))
                     }
-                    className={errors.totalPoints ? "border-red-500" : ""}
+                    className={errors.totalPoints ? "border-destructive" : ""}
                   />
                   {errors.totalPoints && (
-                    <p className="text-sm text-red-500">{errors.totalPoints}</p>
+                    <p className="text-sm text-destructive">
+                      {errors.totalPoints}
+                    </p>
                   )}
                 </div>
 
@@ -412,11 +416,11 @@ export default function CreateAssignmentPage() {
                         )
                       }
                       className={
-                        errors.lateSubmissionPenalty ? "border-red-500" : ""
+                        errors.lateSubmissionPenalty ? "border-destructive" : ""
                       }
                     />
                     {errors.lateSubmissionPenalty && (
-                      <p className="text-sm text-red-500">
+                      <p className="text-sm text-destructive">
                         {errors.lateSubmissionPenalty}
                       </p>
                     )}
@@ -442,10 +446,10 @@ export default function CreateAssignmentPage() {
                     onChange={(e) =>
                       handleInputChange("dueDate", e.target.value)
                     }
-                    className={errors.dueDate ? "border-red-500" : ""}
+                    className={errors.dueDate ? "border-destructive" : ""}
                   />
                   {errors.dueDate && (
-                    <p className="text-sm text-red-500">{errors.dueDate}</p>
+                    <p className="text-sm text-destructive">{errors.dueDate}</p>
                   )}
                 </div>
 
@@ -546,7 +550,7 @@ export default function CreateAssignmentPage() {
               )}
 
               {formData.allowLateSubmission && (
-                <div className="text-sm text-orange-600">
+                <div className="text-sm text-amber-600">
                   Late submissions allowed ({formData.lateSubmissionPenalty}%
                   penalty)
                 </div>

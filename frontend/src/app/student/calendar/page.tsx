@@ -105,7 +105,7 @@ export default async function StudentCalendarPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <CalendarDays className="h-8 w-8 text-blue-600" />
+          <CalendarDays className="h-8 w-8 text-primary" />
           Academic Calendar
         </h1>
         <p className="text-muted-foreground">

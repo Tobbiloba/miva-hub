@@ -28,7 +28,7 @@ export default async function StudentAnnouncementsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Bell className="h-8 w-8 text-blue-600" />
+          <Bell className="h-8 w-8 text-primary" />
           Announcements
         </h1>
         <p className="text-muted-foreground">

@@ -108,7 +108,7 @@ export default function CreateAnnouncementPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Megaphone className="h-6 w-6 text-blue-600" />
+            <Megaphone className="h-6 w-6 text-primary" />
             Create Announcement
           </h1>
           <p className="text-muted-foreground">Post a course announcement</p>
@@ -130,7 +130,7 @@ export default function CreateAnnouncementPage() {
               }}
             >
               <SelectTrigger
-                className={errors.courseId ? "border-red-500" : ""}
+                className={errors.courseId ? "border-destructive" : ""}
               >
                 <SelectValue placeholder="Select a course" />
               </SelectTrigger>
@@ -143,7 +143,7 @@ export default function CreateAnnouncementPage() {
               </SelectContent>
             </Select>
             {errors.courseId && (
-              <p className="text-sm text-red-500 flex items-center gap-1">
+              <p className="text-sm text-destructive flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
                 {errors.courseId}
               </p>
@@ -160,10 +160,10 @@ export default function CreateAnnouncementPage() {
                 if (errors.title) setErrors((p) => ({ ...p, title: "" }));
               }}
               placeholder="Announcement title"
-              className={errors.title ? "border-red-500" : ""}
+              className={errors.title ? "border-destructive" : ""}
             />
             {errors.title && (
-              <p className="text-sm text-red-500 flex items-center gap-1">
+              <p className="text-sm text-destructive flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
                 {errors.title}
               </p>
@@ -181,10 +181,10 @@ export default function CreateAnnouncementPage() {
               }}
               placeholder="Write your announcement..."
               rows={6}
-              className={errors.content ? "border-red-500" : ""}
+              className={errors.content ? "border-destructive" : ""}
             />
             {errors.content && (
-              <p className="text-sm text-red-500 flex items-center gap-1">
+              <p className="text-sm text-destructive flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
                 {errors.content}
               </p>

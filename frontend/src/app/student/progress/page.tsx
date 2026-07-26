@@ -120,7 +120,7 @@ export default function ProgressPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <TrendingUp className="h-8 w-8 text-blue-600" />
+            <TrendingUp className="h-8 w-8 text-primary" />
             Progress
           </h1>
           <p className="text-muted-foreground">
@@ -146,7 +146,7 @@ export default function ProgressPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <TrendingUp className="h-8 w-8 text-blue-600" />
+            <TrendingUp className="h-8 w-8 text-primary" />
             Progress
           </h1>
           <p className="text-muted-foreground">
@@ -174,7 +174,7 @@ export default function ProgressPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <TrendingUp className="h-8 w-8 text-blue-600" />
+          <TrendingUp className="h-8 w-8 text-primary" />
           Progress
         </h1>
         <p className="text-muted-foreground">
@@ -187,8 +187,8 @@ export default function ProgressPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-orange-100 p-2.5 dark:bg-orange-950">
-                <Flame className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+              <div className="rounded-lg bg-amber-500/10 p-2.5">
+                <Flame className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{data.streakDays}</p>
@@ -207,8 +207,8 @@ export default function ProgressPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-blue-100 p-2.5 dark:bg-blue-950">
-                <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="rounded-lg bg-primary/10 p-2.5">
+                <Activity className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{data.activitiesToday}</p>
@@ -227,8 +227,8 @@ export default function ProgressPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-green-100 p-2.5 dark:bg-green-950">
-                <CalendarDays className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <div className="rounded-lg bg-emerald-500/10 p-2.5">
+                <CalendarDays className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{data.activitiesThisWeek}</p>

@@ -293,7 +293,7 @@ export default function EditCoursePage() {
         </Link>
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <BookOpen className="h-8 w-8 text-blue-600" />
+            <BookOpen className="h-8 w-8 text-primary" />
             Edit Course
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -327,7 +327,7 @@ export default function EditCoursePage() {
                   }
                 />
                 {errors.courseCode && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.courseCode}
                   </p>
@@ -354,7 +354,7 @@ export default function EditCoursePage() {
                   </SelectContent>
                 </Select>
                 {errors.credits && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.credits}
                   </p>
@@ -372,7 +372,7 @@ export default function EditCoursePage() {
                 onChange={(e) => handleInputChange("title", e.target.value)}
               />
               {errors.title && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
+                <p className="text-sm text-destructive flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
                   {errors.title}
                 </p>
@@ -415,7 +415,7 @@ export default function EditCoursePage() {
                   </SelectContent>
                 </Select>
                 {errors.departmentId && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.departmentId}
                   </p>

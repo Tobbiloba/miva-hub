@@ -223,7 +223,7 @@ function ProfessorPageInner() {
                     className={`h-2.5 w-2.5 rounded-full ${
                       voice.isProfessorSpeaking
                         ? "bg-primary animate-pulse"
-                        : "bg-green-500"
+                        : "bg-emerald-500"
                     }`}
                   />
                   {voice.isProfessorSpeaking

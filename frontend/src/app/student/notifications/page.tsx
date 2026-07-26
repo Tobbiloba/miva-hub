@@ -30,11 +30,11 @@ interface Notification {
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const TYPE_ICONS: Record<string, { icon: typeof Bell; color: string }> = {
-  streak_milestone: { icon: Flame, color: "text-orange-500" },
-  streak_at_risk: { icon: AlertTriangle, color: "text-yellow-500" },
-  course_neglected: { icon: BookOpen, color: "text-red-500" },
-  flashcards_due: { icon: Layers, color: "text-blue-500" },
-  new_content: { icon: FileText, color: "text-green-500" },
+  streak_milestone: { icon: Flame, color: "text-amber-600" },
+  streak_at_risk: { icon: AlertTriangle, color: "text-amber-600" },
+  course_neglected: { icon: BookOpen, color: "text-destructive" },
+  flashcards_due: { icon: Layers, color: "text-primary" },
+  new_content: { icon: FileText, color: "text-emerald-600" },
 };
 
 function relativeTime(dateStr: string): string {
@@ -106,7 +106,7 @@ export default function NotificationsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Bell className="h-8 w-8 text-blue-600" />
+            <Bell className="h-8 w-8 text-primary" />
             Notifications
           </h1>
           <p className="text-muted-foreground">

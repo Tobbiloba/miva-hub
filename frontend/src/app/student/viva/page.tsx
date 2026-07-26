@@ -34,10 +34,11 @@ const CRITERION_LABELS: Record<string, string> = {
 };
 
 const VERDICT_STYLES: Record<string, string> = {
-  distinction: "bg-purple-500/10 text-purple-600 border-purple-500/40",
-  pass: "bg-green-500/10 text-green-600 border-green-500/40",
-  borderline: "bg-yellow-500/10 text-yellow-600 border-yellow-500/40",
-  fail: "bg-red-500/10 text-red-600 border-red-500/40",
+  distinction: "bg-primary/10 text-primary border-primary/40",
+  pass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/40",
+  borderline:
+    "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/40",
+  fail: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
 export default function VivaCoachPage() {
@@ -69,7 +70,7 @@ export default function VivaCoachPage() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <GraduationCap className="h-6 w-6 text-purple-600" />
+          <GraduationCap className="h-6 w-6 text-primary" />
           Viva Coach
         </h1>
         <p className="text-muted-foreground">
@@ -148,7 +149,7 @@ export default function VivaCoachPage() {
               <span className="flex items-center gap-2">
                 {viva.status === "connecting" ? (
                   <>
-                    <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
                     Connecting to your examiner…
                   </>
                 ) : (
@@ -157,15 +158,15 @@ export default function VivaCoachPage() {
                       <span
                         className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${
                           viva.isExaminerSpeaking
-                            ? "bg-purple-500 animate-ping"
-                            : "bg-green-500 animate-ping"
+                            ? "bg-primary animate-ping"
+                            : "bg-emerald-500 animate-ping"
                         }`}
                       />
                       <span
                         className={`relative inline-flex h-3 w-3 rounded-full ${
                           viva.isExaminerSpeaking
-                            ? "bg-purple-600"
-                            : "bg-green-600"
+                            ? "bg-primary"
+                            : "bg-emerald-500"
                         }`}
                       />
                     </span>
@@ -194,7 +195,7 @@ export default function VivaCoachPage() {
                     key={`${i}-${turn.text.slice(0, 16)}`}
                     className={`text-sm rounded-lg px-3 py-2 ${
                       turn.role === "examiner"
-                        ? "bg-purple-500/10 border border-purple-500/20"
+                        ? "bg-primary/10 border border-primary/20"
                         : "bg-muted ml-6"
                     }`}
                   >
@@ -235,7 +236,7 @@ export default function VivaCoachPage() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-base">
               <span className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-purple-600" />
+                <Sparkles className="h-5 w-5 text-primary" />
                 Viva Results
               </span>
               <span
@@ -258,7 +259,7 @@ export default function VivaCoachPage() {
                   </div>
                   <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-purple-600"
+                      className="h-full rounded-full bg-primary"
                       style={{ width: `${(c.score / 20) * 100}%` }}
                     />
                   </div>
@@ -267,8 +268,8 @@ export default function VivaCoachPage() {
               ))}
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border border-green-500/30 p-3">
-                <p className="text-xs font-medium text-green-600 mb-1">
+              <div className="rounded-lg border border-emerald-500/30 p-3">
+                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">
                   Strengths
                 </p>
                 <ul className="text-sm space-y-1 list-disc pl-4">
@@ -277,8 +278,8 @@ export default function VivaCoachPage() {
                   ))}
                 </ul>
               </div>
-              <div className="rounded-lg border border-yellow-500/30 p-3">
-                <p className="text-xs font-medium text-yellow-600 mb-1">
+              <div className="rounded-lg border border-amber-500/30 p-3">
+                <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">
                   Work on
                 </p>
                 <ul className="text-sm space-y-1 list-disc pl-4">

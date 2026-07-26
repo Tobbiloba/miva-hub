@@ -76,7 +76,7 @@ export default async function FacultyAssignmentsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <FileText className="h-8 w-8 text-blue-600" />
+            <FileText className="h-8 w-8 text-primary" />
             Assignments
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -96,8 +96,8 @@ export default async function FacultyAssignmentsPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                <FileText className="h-6 w-6 text-blue-600" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <FileText className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.total}</p>
@@ -112,8 +112,8 @@ export default async function FacultyAssignmentsPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                <CheckCircle className="h-6 w-6 text-green-600" />
+              <div className="p-2 bg-emerald-500/10 rounded-lg">
+                <CheckCircle className="h-6 w-6 text-emerald-600" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.published}</p>
@@ -126,8 +126,8 @@ export default async function FacultyAssignmentsPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                <Edit3 className="h-6 w-6 text-orange-600" />
+              <div className="p-2 bg-amber-500/10 rounded-lg">
+                <Edit3 className="h-6 w-6 text-amber-600" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.drafts}</p>
@@ -140,8 +140,8 @@ export default async function FacultyAssignmentsPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                <Clock className="h-6 w-6 text-purple-600" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Clock className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.dueThisWeek}</p>
@@ -261,19 +261,19 @@ function AssignmentsList({
         return (
           <Card
             key={assignment.id}
-            className={`hover:shadow-md transition-shadow ${isOverdue ? "border-red-200 dark:border-red-800" : ""}`}
+            className={`hover:shadow-md transition-shadow ${isOverdue ? "border-destructive/30" : ""}`}
           >
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
                 <div className="mt-1">
                   {assignment.isPublished ? (
                     isOverdue ? (
-                      <AlertCircle className="h-5 w-5 text-red-600" />
+                      <AlertCircle className="h-5 w-5 text-destructive" />
                     ) : (
-                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <CheckCircle className="h-5 w-5 text-emerald-600" />
                     )
                   ) : (
-                    <Edit3 className="h-5 w-5 text-orange-600" />
+                    <Edit3 className="h-5 w-5 text-amber-600" />
                   )}
                 </div>
 
@@ -302,7 +302,7 @@ function AssignmentsList({
                         {!assignment.isPublished && (
                           <Badge
                             variant="outline"
-                            className="text-xs bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
+                            className="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400"
                           >
                             Draft
                           </Badge>
@@ -310,7 +310,7 @@ function AssignmentsList({
                         {isDueSoon && assignment.isPublished && (
                           <Badge
                             variant="outline"
-                            className="text-xs bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300"
+                            className="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400"
                           >
                             Due Soon
                           </Badge>
@@ -320,7 +320,7 @@ function AssignmentsList({
 
                     <div className="sm:text-right shrink-0">
                       <p
-                        className={`text-sm font-medium ${isOverdue ? "text-red-600" : isDueSoon ? "text-yellow-600" : ""}`}
+                        className={`text-sm font-medium ${isOverdue ? "text-destructive" : isDueSoon ? "text-amber-600" : ""}`}
                       >
                         {isOverdue ? "Overdue" : "Due"}:{" "}
                         {dueDate.toLocaleDateString()}
