@@ -118,10 +118,10 @@ export function CourseList(props: CourseListProps) {
                     <div
                       className={`w-2 h-2 rounded-full ${
                         course.status === "enrolled"
-                          ? "bg-green-500"
+                          ? "bg-emerald-500"
                           : course.status === "completed"
-                            ? "bg-blue-500"
-                            : "bg-gray-400"
+                            ? "bg-primary"
+                            : "bg-muted-foreground"
                       }`}
                     />
                     <span className="capitalize">{course.status}</span>

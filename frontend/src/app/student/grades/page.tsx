@@ -127,8 +127,8 @@ export default async function StudentGradesPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                <Award className="h-6 w-6 text-blue-600" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Award className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">
@@ -159,8 +159,8 @@ export default async function StudentGradesPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                <BarChart3 className="h-6 w-6 text-green-600" />
+              <div className="p-2 bg-emerald-500/10 rounded-lg">
+                <BarChart3 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
                 {hasCurrentSemesterGrades ? (
@@ -193,8 +193,8 @@ export default async function StudentGradesPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                <Target className="h-6 w-6 text-purple-600" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Target className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">
@@ -212,8 +212,8 @@ export default async function StudentGradesPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                <BarChart3 className="h-6 w-6 text-orange-600" />
+              <div className="p-2 bg-amber-500/10 rounded-lg">
+                <BarChart3 className="h-6 w-6 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{allGradesSummary.length}</p>
@@ -302,7 +302,7 @@ export default async function StudentGradesPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-green-600" />
+            <FileText className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
             Recent Grades
           </CardTitle>
         </CardHeader>
@@ -397,10 +397,10 @@ function RecentGradeItem({
   const gradePoints = percentageToGradePoints(percentage);
 
   const getGradeColor = (percentage: number) => {
-    if (percentage >= 90) return "text-green-600";
-    if (percentage >= 80) return "text-blue-600";
-    if (percentage >= 70) return "text-yellow-600";
-    return "text-red-600";
+    if (percentage >= 90) return "text-emerald-600 dark:text-emerald-400";
+    if (percentage >= 80) return "text-primary";
+    if (percentage >= 70) return "text-amber-600 dark:text-amber-400";
+    return "text-destructive";
   };
 
   return (

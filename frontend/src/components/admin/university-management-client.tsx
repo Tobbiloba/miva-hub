@@ -38,9 +38,11 @@ interface University {
 }
 
 const statusBadge: Record<University["status"], string> = {
-  pending: "bg-amber-100 text-amber-800 border-amber-200",
-  active: "bg-green-100 text-green-800 border-green-200",
-  suspended: "bg-red-100 text-red-800 border-red-200",
+  pending:
+    "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  active:
+    "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  suspended: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
 export function UniversityManagementClient() {
@@ -115,7 +117,7 @@ export function UniversityManagementClient() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Building2 className="h-8 w-8 text-blue-600" />
+            <Building2 className="h-8 w-8 text-primary" />
             Universities
           </h1>
           <p className="text-muted-foreground mt-1">

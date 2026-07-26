@@ -133,7 +133,7 @@ async function CourseCard({
               {course.credits} credit{course.credits !== 1 ? "s" : ""}
             </Badge>
             {isNewEnrollment && (
-              <Badge className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+              <Badge className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                 New
               </Badge>
             )}
@@ -145,7 +145,7 @@ async function CourseCard({
         {/* Department & Level */}
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-1">
-            <GraduationCap className="h-4 w-4 text-blue-600" />
+            <GraduationCap className="h-4 w-4 text-primary" />
             <span className="text-muted-foreground">{department.name}</span>
           </div>
           <Badge variant="secondary" className="text-xs">
@@ -202,10 +202,10 @@ async function CourseCard({
                 return (
                   <div
                     key={assignment.id}
-                    className="flex items-center justify-between text-xs bg-orange-50 dark:bg-orange-950/30 p-2 rounded"
+                    className="flex items-center justify-between text-xs bg-amber-500/10 p-2 rounded"
                   >
                     <span className="truncate flex-1">{assignment.title}</span>
-                    <span className="text-orange-600 dark:text-orange-400 shrink-0">
+                    <span className="text-amber-600 dark:text-amber-400 shrink-0">
                       {daysUntilDue > 0 ? `${daysUntilDue}d` : "Due"}
                     </span>
                   </div>

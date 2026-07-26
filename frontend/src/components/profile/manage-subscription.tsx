@@ -98,7 +98,7 @@ export function ManageSubscription({
       </CardHeader>
       <CardContent>
         {(isExpired || isSuspended) && (
-          <div className="mb-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <div className="mb-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
             <p className="text-sm font-medium mb-3">
               {isSuspended
                 ? "Reactivate your subscription to continue"
@@ -151,7 +151,7 @@ export function ManageSubscription({
               <AlertDialogTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-full text-red-600 hover:text-red-700 hover:bg-red-500/10"
+                  className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
                   <XCircle className="h-4 w-4 mr-2" />
                   Cancel Subscription
@@ -171,7 +171,7 @@ export function ManageSubscription({
                   <AlertDialogAction
                     onClick={handleCancel}
                     disabled={loading}
-                    className="bg-red-600 hover:bg-red-700"
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
                     {loading ? "Cancelling..." : "Cancel Subscription"}
                   </AlertDialogAction>

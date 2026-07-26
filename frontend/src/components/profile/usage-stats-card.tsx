@@ -79,7 +79,7 @@ export function UsageStatsCard() {
                   </label>
                   <span className="text-sm text-muted-foreground">
                     {isUnlimited ? (
-                      <span className="text-green-600 font-medium">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-medium">
                         Unlimited
                       </span>
                     ) : (
@@ -93,10 +93,10 @@ export function UsageStatsCard() {
                   <>
                     <Progress
                       value={percentage}
-                      className={`h-2 ${isNearLimit ? "[&>div]:bg-orange-500" : ""}`}
+                      className={`h-2 ${isNearLimit ? "[&>div]:bg-amber-500" : ""}`}
                     />
                     {isNearLimit && (
-                      <div className="flex items-center gap-1 text-xs text-orange-600">
+                      <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
                         <TrendingUp className="h-3 w-3" />
                         Consider upgrading for more usage
                       </div>

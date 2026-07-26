@@ -205,14 +205,14 @@ export function VideoPlayer({ url, src, title }: VideoPlayerProps) {
         {/* Progress Bar */}
         <div
           ref={progressRef}
-          className="w-full h-2 bg-gray-600 rounded-full cursor-pointer mb-3 group/progress"
+          className="w-full h-2 bg-white/30 rounded-full cursor-pointer mb-3 group/progress"
           onClick={handleSeek}
         >
           <div
-            className="h-full bg-blue-500 rounded-full relative transition-all group-hover/progress:h-3"
+            className="h-full bg-primary rounded-full relative transition-all group-hover/progress:h-3"
             style={{ width: `${progressPercentage}%` }}
           >
-            <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-blue-500 rounded-full opacity-0 group-hover/progress:opacity-100" />
+            <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-primary rounded-full opacity-0 group-hover/progress:opacity-100" />
           </div>
         </div>
 
@@ -274,7 +274,7 @@ export function VideoPlayer({ url, src, title }: VideoPlayerProps) {
                 step="0.1"
                 value={isMuted ? 0 : volume}
                 onChange={handleVolumeChange}
-                className="w-20 accent-blue-500"
+                className="w-20 accent-primary"
               />
             </div>
 

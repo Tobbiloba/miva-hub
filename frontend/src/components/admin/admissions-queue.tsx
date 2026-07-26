@@ -54,19 +54,19 @@ const STATUS_META: Record<
   under_review: { label: "Under review", className: "bg-muted" },
   admitted: {
     label: "Admitted",
-    className: "bg-green-500/15 text-green-700 dark:text-green-400",
+    className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   },
   waitlisted: {
     label: "Waitlisted",
-    className: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+    className: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
   },
   rejected: {
     label: "Rejected",
-    className: "bg-destructive/15 text-destructive",
+    className: "bg-destructive/10 text-destructive",
   },
   escalated: {
     label: "Needs human review",
-    className: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
+    className: "bg-primary/10 text-primary",
   },
 };
 

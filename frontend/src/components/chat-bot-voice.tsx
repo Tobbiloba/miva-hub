@@ -372,7 +372,7 @@ export function ChatBotVoice() {
                       isLoading
                         ? "bg-accent-foreground text-accent animate-pulse"
                         : !isActive
-                          ? "bg-green-500/10 text-green-500 hover:bg-green-500/30"
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/30"
                           : !isListening
                             ? "bg-destructive/30 text-destructive hover:bg-destructive/10"
                             : isUserSpeaking
@@ -383,7 +383,7 @@ export function ChatBotVoice() {
                     {isLoading || isClosing ? (
                       <Loader className="size-6 animate-spin" />
                     ) : !isActive ? (
-                      <PhoneIcon className="size-6 fill-green-500 stroke-none" />
+                      <PhoneIcon className="size-6 fill-emerald-500 stroke-none" />
                     ) : isListening ? (
                       <MicIcon
                         className={`size-6 ${isUserSpeaking ? "text-primary" : "text-muted-foreground transition-colors duration-300"}`}

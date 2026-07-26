@@ -134,7 +134,7 @@ export function FacultyHeader({
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
                 {/* Notification badge - TODO: make dynamic */}
-                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-xs text-white flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-xs text-destructive-foreground flex items-center justify-center">
                   3
                 </span>
               </Button>
@@ -251,7 +251,7 @@ export function FacultyHeader({
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">
+              <DropdownMenuItem className="text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign Out
               </DropdownMenuItem>

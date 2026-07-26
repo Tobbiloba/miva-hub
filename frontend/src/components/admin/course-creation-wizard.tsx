@@ -544,12 +544,12 @@ export function CourseCreationWizard({
               key={step.id}
               className={`flex flex-col items-center ${
                 step.id === currentStep ? "text-primary font-medium" : ""
-              } ${step.id < currentStep ? "text-green-600" : ""}`}
+              } ${step.id < currentStep ? "text-emerald-600 dark:text-emerald-400" : ""}`}
             >
               <div
                 className={`w-6 h-6 rounded-full flex items-center justify-center mb-1 ${
                   step.id < currentStep
-                    ? "bg-green-100 text-green-600"
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                     : step.id === currentStep
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted"
@@ -600,7 +600,7 @@ export function CourseCreationWizard({
                     }
                   />
                   {errors.courseCode && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
+                    <p className="text-sm text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       {errors.courseCode}
                     </p>
@@ -638,7 +638,7 @@ export function CourseCreationWizard({
                   onChange={(e) => handleInputChange("title", e.target.value)}
                 />
                 {errors.title && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.title}
                   </p>
@@ -679,7 +679,7 @@ export function CourseCreationWizard({
                     </SelectContent>
                   </Select>
                   {errors.departmentId && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
+                    <p className="text-sm text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       {errors.departmentId}
                     </p>
@@ -778,7 +778,7 @@ export function CourseCreationWizard({
                     }
                   />
                   {errors.startDate && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
+                    <p className="text-sm text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       {errors.startDate}
                     </p>
@@ -796,7 +796,7 @@ export function CourseCreationWizard({
                     }
                   />
                   {errors.endDate && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
+                    <p className="text-sm text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       {errors.endDate}
                     </p>
@@ -804,11 +804,11 @@ export function CourseCreationWizard({
                 </div>
               </div>
 
-              <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+              <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                <h4 className="font-medium text-foreground mb-2">
                   Course Structure Overview
                 </h4>
-                <ul className="text-sm text-blue-700 dark:text-blue-200 space-y-1">
+                <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• Duration: {formData.totalWeeks} weeks</li>
                   <li>• Credits: {formData.credits}</li>
                   <li>
@@ -835,8 +835,8 @@ export function CourseCreationWizard({
           {currentStep === 3 && (
             <div className="space-y-6">
               {errors.weeklyPlans && (
-                <div className="p-3 bg-red-50 dark:bg-red-950 rounded-lg">
-                  <p className="text-sm text-red-700 dark:text-red-300 flex items-center gap-1">
+                <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.weeklyPlans}
                   </p>
@@ -1002,13 +1002,13 @@ export function CourseCreationWizard({
                                       </div>
                                       <div className="flex items-center gap-1">
                                         {file.uploadStatus === "pending" && (
-                                          <div className="w-2 h-2 bg-yellow-500 rounded-full" />
+                                          <div className="w-2 h-2 bg-amber-500 rounded-full" />
                                         )}
                                         {file.uploadStatus === "uploading" && (
-                                          <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+                                          <Loader2 className="h-3 w-3 animate-spin text-primary" />
                                         )}
                                         {file.uploadStatus === "completed" && (
-                                          <CheckCircle className="h-3 w-3 text-green-500" />
+                                          <CheckCircle className="h-3 w-3 text-emerald-500" />
                                         )}
                                         {file.uploadStatus === "error" && (
                                           <AlertCircle className="h-3 w-3 text-destructive" />

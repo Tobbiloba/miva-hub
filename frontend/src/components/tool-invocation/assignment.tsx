@@ -143,15 +143,15 @@ export function Assignment(props: AssignmentProps) {
   const getStatusColor = (status?: string) => {
     switch (status) {
       case "not_started":
-        return "bg-gray-500/10 text-gray-500 border-gray-500/20";
+        return "bg-muted text-muted-foreground border-border";
       case "in_progress":
-        return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
       case "submitted":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+        return "bg-primary/10 text-primary border-primary/20";
       case "graded":
-        return "bg-green-500/10 text-green-500 border-green-500/20";
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
       default:
-        return "bg-gray-500/10 text-gray-500 border-gray-500/20";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
@@ -166,21 +166,21 @@ export function Assignment(props: AssignmentProps) {
         );
       case "saved":
         return (
-          <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+          <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
             <CheckCircle2 className="w-3 h-3" />
             <span>Draft saved</span>
           </div>
         );
       case "offline":
         return (
-          <div className="flex items-center gap-2 text-xs text-yellow-600 dark:text-yellow-400">
+          <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
             <CloudOff className="w-3 h-3" />
             <span>Offline</span>
           </div>
         );
       case "error":
         return (
-          <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
+          <div className="flex items-center gap-2 text-xs text-destructive">
             <XCircle className="w-3 h-3" />
             <span>Error</span>
           </div>
@@ -194,7 +194,7 @@ export function Assignment(props: AssignmentProps) {
     return (
       <div className="space-y-4">
         {showResumePrompt && savedProgress && (
-          <Alert className="bg-blue-500/10 border-blue-500/20">
+          <Alert className="bg-primary/10 border-primary/20">
             <AlertDescription className="flex items-center justify-between">
               <span className="text-sm">Resume your draft submission?</span>
               <div className="flex gap-2">

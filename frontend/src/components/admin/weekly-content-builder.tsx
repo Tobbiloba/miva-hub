@@ -616,10 +616,10 @@ export function WeeklyContentBuilder({
                               <Clock className="h-4 w-4 animate-spin" />
                             )}
                             {task.status === "completed" && (
-                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              <CheckCircle className="h-4 w-4 text-emerald-600" />
                             )}
                             {task.status === "error" && (
-                              <AlertCircle className="h-4 w-4 text-red-600" />
+                              <AlertCircle className="h-4 w-4 text-destructive" />
                             )}
                             <Badge
                               variant={
@@ -638,7 +638,7 @@ export function WeeklyContentBuilder({
                           <Progress value={task.progress} className="h-2" />
                         )}
                         {task.error && (
-                          <p className="text-sm text-red-600 mt-1">
+                          <p className="text-sm text-destructive mt-1">
                             {task.error}
                           </p>
                         )}
@@ -734,8 +734,8 @@ export function WeeklyContentBuilder({
                       <div
                         className={`p-2 rounded-lg ${
                           item.isProcessed
-                            ? "bg-green-100 text-green-600"
-                            : "bg-yellow-100 text-yellow-600"
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                         }`}
                       >
                         <IconComponent className="h-4 w-4" />
@@ -750,7 +750,7 @@ export function WeeklyContentBuilder({
                           <div className="text-xs text-muted-foreground mt-1">
                             <p>S3: {item.s3Key}</p>
                             {item.cloudFrontUrl && (
-                              <p className="text-green-600">
+                              <p className="text-emerald-600 dark:text-emerald-400">
                                 CloudFront: Available ✓
                               </p>
                             )}
@@ -763,7 +763,7 @@ export function WeeklyContentBuilder({
                       {item.isProcessed ? (
                         <Badge
                           variant="default"
-                          className="bg-green-100 text-green-800 border-green-200"
+                          className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                         >
                           <CheckCircle className="h-3 w-3 mr-1" />
                           Processed

@@ -94,12 +94,12 @@ export function ContentRenderer({
       return (
         <div className="bg-card border rounded-lg p-4">
           <div className="flex items-center">
-            <div className="text-yellow-600 mr-2">⚠️</div>
+            <div className="text-amber-600 dark:text-amber-400 mr-2">⚠️</div>
             <div>
-              <h4 className="font-semibold text-yellow-800">
+              <h4 className="font-semibold text-amber-600 dark:text-amber-400">
                 No Materials Found
               </h4>
-              <p className="text-yellow-700 text-sm">
+              <p className="text-amber-600 dark:text-amber-400 text-sm">
                 No course materials are available for {course_code}.
               </p>
             </div>
@@ -119,7 +119,7 @@ export function ContentRenderer({
               </h3>
               <p className="text-sm text-muted-foreground">
                 Found{" "}
-                <span className="font-semibold text-blue-600">
+                <span className="font-semibold text-primary">
                   {total_count || materials.length}
                 </span>{" "}
                 materials
@@ -231,12 +231,12 @@ export function ContentRenderer({
       return (
         <div className="bg-card border rounded-lg p-4">
           <div className="flex items-center">
-            <div className="text-yellow-600 mr-2">⚠️</div>
+            <div className="text-amber-600 dark:text-amber-400 mr-2">⚠️</div>
             <div>
-              <h4 className="font-semibold text-yellow-800">
+              <h4 className="font-semibold text-amber-600 dark:text-amber-400">
                 No Enrollment Data
               </h4>
-              <p className="text-yellow-700 text-sm">
+              <p className="text-amber-600 dark:text-amber-400 text-sm">
                 No course enrollment information is available.
               </p>
             </div>
@@ -303,7 +303,7 @@ export function ContentRenderer({
                 </div>
               </div>
 
-              <div className="space-y-2 text-sm text-gray-600 mb-4">
+              <div className="space-y-2 text-sm text-muted-foreground mb-4">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4" />
                   <span>Instructor: {course.instructor}</span>
@@ -320,8 +320,8 @@ export function ContentRenderer({
                     className={cn(
                       "w-2 h-2 rounded-full",
                       course.status === "enrolled"
-                        ? "bg-green-500"
-                        : "bg-gray-400",
+                        ? "bg-emerald-500"
+                        : "bg-muted-foreground",
                     )}
                   />
                   <span>Status: {course.status}</span>
@@ -392,11 +392,11 @@ export function ContentRenderer({
     const getUrgencyColor = (urgency: string) => {
       switch (urgency) {
         case "urgent":
-          return "border border-red-200 text-red-800";
+          return "border border-destructive/30 text-destructive";
         case "soon":
-          return "border border-yellow-200 text-yellow-800";
+          return "border border-amber-500/30 text-amber-600 dark:text-amber-400";
         default:
-          return "border border-green-200 text-green-800";
+          return "border border-emerald-500/30 text-emerald-600 dark:text-emerald-400";
       }
     };
 
@@ -420,7 +420,7 @@ export function ContentRenderer({
           </h3>
           <p className="text-sm text-muted-foreground">
             You have{" "}
-            <span className="font-semibold text-orange-600">{total_count}</span>{" "}
+            <span className="font-semibold text-amber-600 dark:text-amber-400">{total_count}</span>{" "}
             assignments due soon
           </p>
         </div>
@@ -450,7 +450,7 @@ export function ContentRenderer({
                   </p>
                   {assignment.description && (
                     <p
-                      className="text-sm text-gray-600 mb-3 overflow-hidden"
+                      className="text-sm text-muted-foreground mb-3 overflow-hidden"
                       style={{
                         display: "-webkit-box",
                         WebkitLineClamp: 2,
@@ -466,23 +466,23 @@ export function ContentRenderer({
               <div className="grid md:grid-cols-2 gap-4 text-sm">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-gray-500" />
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
                     <span>
                       Due: {assignment.due_date} at {assignment.due_time}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Target className="w-4 h-4 text-gray-500" />
+                    <Target className="w-4 h-4 text-muted-foreground" />
                     <span>Points: {assignment.points_possible}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-gray-500" />
+                    <FileText className="w-4 h-4 text-muted-foreground" />
                     <span>Type: {assignment.assignment_type}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-gray-500" />
+                    <Clock className="w-4 h-4 text-muted-foreground" />
                     <span>{assignment.days_until_due} days remaining</span>
                   </div>
                 </div>
@@ -519,7 +519,7 @@ export function ContentRenderer({
               <div key={index} className="mb-6">
                 <h4 className="text-sm font-medium mb-3">{title}</h4>
                 <div
-                  className="prose prose-sm text-gray-700"
+                  className="prose prose-sm text-muted-foreground"
                   dangerouslySetInnerHTML={{
                     __html: content.replace(/\n/g, "<br/>"),
                   }}
@@ -547,10 +547,10 @@ export function ContentRenderer({
       return (
         <div className="bg-card p-4 rounded-lg border">
           <details className="cursor-pointer">
-            <summary className="font-medium text-gray-700 mb-2">
+            <summary className="font-medium text-muted-foreground mb-2">
               Raw Response Data
             </summary>
-            <pre className="text-xs text-gray-600 overflow-x-auto">
+            <pre className="text-xs text-muted-foreground overflow-x-auto">
               {JSON.stringify(content, null, 2)}
             </pre>
           </details>

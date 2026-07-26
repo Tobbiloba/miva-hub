@@ -188,7 +188,9 @@ export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
             variant="outline"
             size="sm"
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className={autoRefresh ? "bg-green-50 border-green-200" : ""}
+            className={
+              autoRefresh ? "bg-emerald-500/10 border-emerald-500/20" : ""
+            }
           >
             <Activity className="mr-2 h-4 w-4" />
             {autoRefresh ? "Auto-Refresh On" : "Auto-Refresh Off"}
@@ -220,11 +222,11 @@ export function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
           dark: utilities follow the OS media query, so light-only colors
           rendered white-on-white in dark mode. */}
       {analyticsData.realTimeStats && (
-        <Card className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border-blue-500/20">
+        <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-blue-600" />
+                <Activity className="h-5 w-5 text-primary" />
                 <h3 className="font-medium">Live Activity</h3>
               </div>
               <div className="flex items-center gap-6">
@@ -335,10 +337,10 @@ function RealTimeMetric({
   color: string;
 }) {
   const colorClasses = {
-    green: "text-green-600 bg-green-500/15",
-    blue: "text-blue-600 bg-blue-500/15",
-    purple: "text-purple-600 bg-purple-500/15",
-    orange: "text-orange-600 bg-orange-500/15",
+    green: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
+    blue: "text-primary bg-primary/10",
+    purple: "text-primary bg-primary/10",
+    orange: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
   };
 
   return (
@@ -371,19 +373,19 @@ function CourseCard({ course }: { course: any }) {
       </div>
       <div className="flex items-center gap-4">
         <div className="text-center">
-          <p className="text-lg font-bold text-green-600">
+          <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
             {course.averageGrade.toFixed(1)}%
           </p>
           <p className="text-xs text-muted-foreground">Avg Grade</p>
         </div>
         <div className="text-center">
-          <p className="text-lg font-bold text-blue-600">
+          <p className="text-lg font-bold text-primary">
             {course.totalAssignments}
           </p>
           <p className="text-xs text-muted-foreground">Assignments</p>
         </div>
         <div className="text-center">
-          <p className="text-lg font-bold text-purple-600">
+          <p className="text-lg font-bold text-primary">
             {course.submissionRate.toFixed(1)}%
           </p>
           <p className="text-xs text-muted-foreground">Submission Rate</p>
@@ -410,7 +412,7 @@ function PopularCoursesCard({ courses }: { courses: any[] }) {
               className="flex items-center justify-between"
             >
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center font-medium">
+                <div className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-medium">
                   {index + 1}
                 </div>
                 <span className="font-medium">{course.courseCode}</span>
@@ -443,7 +445,7 @@ function ChallengingCoursesCard({ courses }: { courses: any[] }) {
               className="flex items-center justify-between"
             >
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-600 text-xs flex items-center justify-center font-medium">
+                <div className="w-6 h-6 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs flex items-center justify-center font-medium">
                   {index + 1}
                 </div>
                 <span className="font-medium">{course.courseCode}</span>
@@ -473,13 +475,13 @@ function PerformanceTrendsCard({ trends }: { trends: any }) {
       <CardContent className="space-y-4">
         <div className="grid gap-4 md:grid-cols-3">
           <div className="text-center p-4 border rounded-lg">
-            <p className="text-2xl font-bold text-blue-600">
+            <p className="text-2xl font-bold text-primary">
               {trends.currentSemesterAverage.toFixed(1)}%
             </p>
             <p className="text-sm text-muted-foreground">Current Semester</p>
           </div>
           <div className="text-center p-4 border rounded-lg">
-            <p className="text-2xl font-bold text-gray-600">
+            <p className="text-2xl font-bold text-muted-foreground">
               {trends.previousSemesterAverage.toFixed(1)}%
             </p>
             <p className="text-sm text-muted-foreground">Previous Semester</p>
@@ -487,12 +489,12 @@ function PerformanceTrendsCard({ trends }: { trends: any }) {
           <div className="text-center p-4 border rounded-lg">
             <div className="flex items-center justify-center gap-1">
               {trends.improvementRate > 0 ? (
-                <TrendingUp className="h-5 w-5 text-green-600" />
+                <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               ) : (
-                <TrendingDown className="h-5 w-5 text-red-600" />
+                <TrendingDown className="h-5 w-5 text-destructive" />
               )}
               <p
-                className={`text-2xl font-bold ${trends.improvementRate > 0 ? "text-green-600" : "text-red-600"}`}
+                className={`text-2xl font-bold ${trends.improvementRate > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}
               >
                 {Math.abs(trends.improvementRate).toFixed(1)}%
               </p>

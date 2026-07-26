@@ -127,7 +127,7 @@ export default async function FacultyManagementPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <GraduationCap className="h-8 w-8 text-purple-600" />
+            <GraduationCap className="h-8 w-8 text-primary" />
             Faculty Management
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -156,7 +156,7 @@ export default async function FacultyManagementPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5 text-purple-600" />
+              <GraduationCap className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">
                   {facultyWithDetails.length}
@@ -170,7 +170,7 @@ export default async function FacultyManagementPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <UserCheck className="h-5 w-5 text-green-600" />
+              <UserCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               <div>
                 <p className="text-2xl font-bold">{activeFaculty}</p>
                 <p className="text-xs text-muted-foreground">Active Faculty</p>
@@ -182,7 +182,7 @@ export default async function FacultyManagementPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-blue-600" />
+              <BookOpen className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{totalCourses}</p>
                 <p className="text-xs text-muted-foreground">Total Courses</p>
@@ -194,7 +194,7 @@ export default async function FacultyManagementPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Building className="h-5 w-5 text-orange-600" />
+              <Building className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               <div>
                 <p className="text-2xl font-bold">
                   {averageCoursesPerFaculty.toFixed(1)}
@@ -237,8 +237,8 @@ export default async function FacultyManagementPage() {
                     <TableRow key={faculty.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                            <GraduationCap className="h-4 w-4 text-purple-600" />
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <GraduationCap className="h-4 w-4 text-primary" />
                           </div>
                           <div>
                             <p className="font-medium">{faculty.name}</p>
@@ -298,7 +298,7 @@ export default async function FacultyManagementPage() {
                           }
                           className={
                             faculty.faculty?.isActive
-                              ? "bg-green-100 text-green-800 border-green-200"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                               : ""
                           }
                         >

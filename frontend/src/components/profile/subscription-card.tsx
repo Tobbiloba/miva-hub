@@ -26,15 +26,15 @@ export function SubscriptionCard({
 
   const planColor =
     plan.name === "MAX"
-      ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
-      : "bg-blue-500/10 text-blue-600 border-blue-500/20";
+      ? "bg-primary/10 text-primary border-primary/20"
+      : "bg-primary/10 text-primary border-primary/20";
 
   const getStatusBadge = () => {
     if (status === "suspended") {
       return (
         <Badge
           variant="secondary"
-          className="bg-red-500/10 text-red-600 border-red-500/20"
+          className="bg-destructive/10 text-destructive border-destructive/30"
         >
           <Clock className="h-3 w-3 mr-1" />
           Suspended
@@ -45,7 +45,7 @@ export function SubscriptionCard({
       return (
         <Badge
           variant="secondary"
-          className="bg-gray-500/10 text-gray-600 border-gray-500/20"
+          className="bg-muted text-muted-foreground border-border"
         >
           <Clock className="h-3 w-3 mr-1" />
           Expired
@@ -56,7 +56,7 @@ export function SubscriptionCard({
       return (
         <Badge
           variant="secondary"
-          className="bg-orange-500/10 text-orange-600 border-orange-500/20"
+          className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
         >
           <Clock className="h-3 w-3 mr-1" />
           Ends {format(new Date(subscription.currentPeriodEnd), "MMM d")}
@@ -67,7 +67,7 @@ export function SubscriptionCard({
       return (
         <Badge
           variant="secondary"
-          className="bg-green-500/10 text-green-600 border-green-500/20"
+          className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
         >
           <CheckCircle2 className="h-3 w-3 mr-1" />
           Active
@@ -145,8 +145,8 @@ export function SubscriptionCard({
           </div>
 
           {(isExpired || status === "suspended") && (
-            <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-              <p className="text-sm text-orange-600 font-medium">
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+              <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
                 {status === "suspended"
                   ? "⚠️ Your subscription is suspended. Please update your payment method to reactivate."
                   : "⚠️ Your subscription has expired. Renew now to continue accessing premium features."}
@@ -164,7 +164,7 @@ export function SubscriptionCard({
                   key={idx}
                   className="flex items-center gap-2 text-sm text-muted-foreground"
                 >
-                  <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                   <span>{feature}</span>
                 </div>
               ))}

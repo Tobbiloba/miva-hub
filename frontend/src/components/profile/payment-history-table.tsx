@@ -132,7 +132,7 @@ function PaymentStatusBadge({ status }: { status: string }) {
     return (
       <Badge
         variant="secondary"
-        className="bg-green-500/10 text-green-600 border-green-500/20 text-xs"
+        className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs"
       >
         <CheckCircle2 className="h-3 w-3 mr-1" />
         Success
@@ -144,7 +144,7 @@ function PaymentStatusBadge({ status }: { status: string }) {
     return (
       <Badge
         variant="secondary"
-        className="bg-red-500/10 text-red-600 border-red-500/20 text-xs"
+        className="bg-destructive/10 text-destructive border-destructive/30 text-xs"
       >
         <XCircle className="h-3 w-3 mr-1" />
         Failed
@@ -155,7 +155,7 @@ function PaymentStatusBadge({ status }: { status: string }) {
   return (
     <Badge
       variant="secondary"
-      className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20 text-xs"
+      className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-xs"
     >
       <Clock className="h-3 w-3 mr-1" />
       Pending

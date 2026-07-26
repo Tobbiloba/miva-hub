@@ -87,8 +87,8 @@ export function ProfileOverview({
             <Card className="bg-card border-border/40">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/10">
-                    <BookOpen className="h-5 w-5 text-blue-600" />
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <BookOpen className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold">
@@ -105,8 +105,8 @@ export function ProfileOverview({
             <Card className="bg-card border-border/40">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-green-500/10">
-                    <GraduationCap className="h-5 w-5 text-green-600" />
+                  <div className="p-2 rounded-lg bg-emerald-500/10">
+                    <GraduationCap className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold">
@@ -123,8 +123,8 @@ export function ProfileOverview({
             <Card className="bg-card border-border/40">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-orange-500/10">
-                    <FileText className="h-5 w-5 text-orange-600" />
+                  <div className="p-2 rounded-lg bg-amber-500/10">
+                    <FileText className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold">
@@ -145,8 +145,8 @@ export function ProfileOverview({
             <Card className="bg-card border-border/40">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/10">
-                    <BookOpen className="h-5 w-5 text-blue-600" />
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <BookOpen className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold">
@@ -163,8 +163,8 @@ export function ProfileOverview({
             <Card className="bg-card border-border/40">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-green-500/10">
-                    <Users className="h-5 w-5 text-green-600" />
+                  <div className="p-2 rounded-lg bg-emerald-500/10">
+                    <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold">
@@ -181,8 +181,8 @@ export function ProfileOverview({
             <Card className="bg-card border-border/40">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-orange-500/10">
-                    <FileText className="h-5 w-5 text-orange-600" />
+                  <div className="p-2 rounded-lg bg-amber-500/10">
+                    <FileText className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold">
@@ -329,19 +329,19 @@ export function ProfileOverview({
                       <div
                         className={`w-8 h-8 rounded-full flex items-center justify-center ${
                           isOverdue
-                            ? "bg-red-500/10"
+                            ? "bg-destructive/10"
                             : isNearDue
-                              ? "bg-orange-500/10"
-                              : "bg-blue-500/10"
+                              ? "bg-amber-500/10"
+                              : "bg-primary/10"
                         }`}
                       >
                         <FileText
                           className={`h-4 w-4 ${
                             isOverdue
-                              ? "text-red-600"
+                              ? "text-destructive"
                               : isNearDue
-                                ? "text-orange-600"
-                                : "text-blue-600"
+                                ? "text-amber-600 dark:text-amber-400"
+                                : "text-primary"
                           }`}
                         />
                       </div>
@@ -361,7 +361,7 @@ export function ProfileOverview({
                         {!isOverdue && isNearDue && (
                           <Badge
                             variant="secondary"
-                            className="text-xs mt-1 bg-orange-500/10 text-orange-600"
+                            className="text-xs mt-1 bg-amber-500/10 text-amber-600 dark:text-amber-400"
                           >
                             Due Soon
                           </Badge>

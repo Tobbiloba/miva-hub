@@ -70,8 +70,8 @@ export function PDFCard({ material, className }: PDFCardProps) {
 
         <div className="flex items-center space-x-2">
           {!isExpanded && (
-            <div className="p-1.5 bg-blue-100 dark:bg-blue-900 rounded-full">
-              <FileText className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+            <div className="p-1.5 bg-primary/10 rounded-full">
+              <FileText className="w-3 h-3 text-primary" />
             </div>
           )}
           {isExpanded ? (

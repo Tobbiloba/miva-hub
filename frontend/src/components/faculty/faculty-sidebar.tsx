@@ -199,7 +199,7 @@ export function FacultySidebar({
             <div
               className={cn(
                 "h-2 w-2 rounded-full",
-                facultyRecord?.isActive ? "bg-green-500" : "bg-red-500",
+                facultyRecord?.isActive ? "bg-emerald-500" : "bg-destructive",
               )}
             />
             <span>

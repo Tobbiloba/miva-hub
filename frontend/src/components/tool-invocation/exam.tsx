@@ -217,21 +217,21 @@ export function Exam(props: ExamProps) {
         );
       case "saved":
         return (
-          <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+          <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
             <CheckCircle2 className="w-3 h-3" />
             <span>Saved</span>
           </div>
         );
       case "offline":
         return (
-          <div className="flex items-center gap-2 text-xs text-yellow-600 dark:text-yellow-400">
+          <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
             <CloudOff className="w-3 h-3" />
             <span>Offline</span>
           </div>
         );
       case "error":
         return (
-          <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
+          <div className="flex items-center gap-2 text-xs text-destructive">
             <XCircle className="w-3 h-3" />
             <span>Error</span>
           </div>
@@ -245,7 +245,7 @@ export function Exam(props: ExamProps) {
     return (
       <div className="space-y-4">
         {showResumePrompt && savedProgress && (
-          <Alert className="bg-blue-500/10 border-blue-500/20">
+          <Alert className="bg-primary/10 border-primary/20">
             <AlertDescription className="flex items-center justify-between">
               <span className="text-sm">
                 Resume your previous attempt? (
@@ -373,29 +373,29 @@ export function Exam(props: ExamProps) {
             }
 
             const borderColor = isFullyCorrect
-              ? "border-green-500/20"
+              ? "border-emerald-500/20"
               : isPartialCredit
-                ? "border-yellow-500/20"
+                ? "border-amber-500/20"
                 : wasAnswered
-                  ? "border-red-500/20"
-                  : "border-gray-500/20";
+                  ? "border-destructive/30"
+                  : "border-border";
 
             return (
               <Card key={i} className={borderColor}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
                     {isFullyCorrect ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5" />
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5" />
                     ) : isPartialCredit ? (
-                      <div className="w-5 h-5 rounded-full bg-yellow-500/20 flex items-center justify-center mt-0.5">
-                        <span className="text-xs text-yellow-600 dark:text-yellow-400 font-bold">
+                      <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center mt-0.5">
+                        <span className="text-xs text-amber-600 dark:text-amber-400 font-bold">
                           ~
                         </span>
                       </div>
                     ) : wasAnswered ? (
-                      <XCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                      <XCircle className="w-5 h-5 text-destructive mt-0.5" />
                     ) : (
-                      <div className="w-5 h-5 rounded-full border-2 border-gray-500/20 mt-0.5" />
+                      <div className="w-5 h-5 rounded-full border-2 border-border mt-0.5" />
                     )}
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
@@ -406,10 +406,10 @@ export function Exam(props: ExamProps) {
                           <span
                             className={`text-xs font-medium px-2 py-1 rounded ${
                               isFullyCorrect
-                                ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                                 : isPartialCredit
-                                  ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
-                                  : "bg-red-500/10 text-red-600 dark:text-red-400"
+                                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                  : "bg-destructive/10 text-destructive"
                             }`}
                           >
                             {(score * q.points).toFixed(1)}/{q.points} pts (
@@ -422,11 +422,11 @@ export function Exam(props: ExamProps) {
                       </p>
                       {q.correct_answer && !isFullyCorrect && wasAnswered && (
                         <>
-                          <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                          <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">
                             Expected answer: {q.correct_answer}
                           </p>
                           {isPartialCredit && (
-                            <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-1">
+                            <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">
                               ℹ️ Partial credit: Your answer demonstrates some
                               understanding but is incomplete
                             </p>
@@ -450,22 +450,22 @@ export function Exam(props: ExamProps) {
   return (
     <div className="space-y-4">
       <Card
-        className={`${isWarningTime ? "border-2 border-yellow-500/40 bg-yellow-500/5" : "bg-card"}`}
+        className={`${isWarningTime ? "border-2 border-amber-500/40 bg-amber-500/5" : "bg-card"}`}
       >
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {isWarningTime && (
-                <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
               )}
               <Clock className="w-5 h-5" />
               <span
-                className={`font-mono text-lg font-semibold ${isWarningTime ? "text-yellow-500" : ""}`}
+                className={`font-mono text-lg font-semibold ${isWarningTime ? "text-amber-500" : ""}`}
               >
                 {formatTime(timeRemaining)}
               </span>
               {isWarningTime && (
-                <span className="text-sm text-yellow-600 dark:text-yellow-400">
+                <span className="text-sm text-amber-600 dark:text-amber-400">
                   Warning: Less than 5 minutes remaining!
                 </span>
               )}
@@ -491,7 +491,7 @@ export function Exam(props: ExamProps) {
                 onClick={() => setCurrentQuestion(i)}
                 className={`h-10 ${
                   answers[i] !== undefined
-                    ? "bg-green-500/20 hover:bg-green-500/30"
+                    ? "bg-emerald-500/20 hover:bg-emerald-500/30"
                     : ""
                 }`}
               >

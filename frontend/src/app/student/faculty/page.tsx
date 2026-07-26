@@ -44,7 +44,7 @@ export default async function StudentFacultyPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Users className="h-8 w-8 text-blue-600" />
+          <Users className="h-8 w-8 text-primary" />
           Faculty Contacts
         </h1>
         <p className="text-muted-foreground">
@@ -109,7 +109,7 @@ export default async function StudentFacultyPage() {
                           <Mail className="h-3 w-3" />
                           <a
                             href={`mailto:${row.user.email}`}
-                            className="text-blue-600 hover:underline"
+                            className="text-primary hover:underline"
                           >
                             {row.user.email}
                           </a>
