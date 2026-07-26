@@ -75,7 +75,7 @@ export function MIVAContentRenderer({
   // Handle error cases
   if (!content) {
     return (
-      <div className="text-center py-4 text-gray-500">
+      <div className="text-center py-4 text-muted-foreground">
         <p>No content available</p>
       </div>
     );
@@ -85,10 +85,10 @@ export function MIVAContentRenderer({
     return (
       <div className="bg-card border border-destructive rounded-lg p-4">
         <div className="flex items-center">
-          <div className="text-red-600 mr-2">⚠️</div>
+          <div className="text-destructive mr-2">⚠️</div>
           <div>
-            <h4 className="font-semibold text-red-800">Error</h4>
-            <p className="text-red-700 text-sm">{content}</p>
+            <h4 className="font-semibold text-destructive">Error</h4>
+            <p className="text-destructive text-sm">{content}</p>
           </div>
         </div>
       </div>
@@ -114,10 +114,10 @@ export function MIVAContentRenderer({
         <div className="flex items-start space-x-3">
           <div className="text-3xl">🧠</div>
           <div className="flex-1">
-            <h3 className="font-semibold text-blue-900 mb-3">
+            <h3 className="font-semibold text-primary mb-3">
               Study Buddy Answer
             </h3>
-            <div className="prose prose-blue max-w-none">
+            <div className="prose max-w-none">
               <div
                 dangerouslySetInnerHTML={{
                   __html: content

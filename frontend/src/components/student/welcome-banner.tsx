@@ -32,9 +32,9 @@ export function WelcomeBanner({ createdAt, firstName }: WelcomeBannerProps) {
   }
 
   return (
-    <div className="bg-blue-50 border-b border-blue-200 px-4 py-3 dark:bg-blue-950/30 dark:border-blue-800">
+    <div className="bg-primary/10 border-b border-primary/20 px-4 py-3">
       <div className="flex items-start justify-between gap-3 max-w-5xl mx-auto">
-        <div className="flex items-start gap-2 text-blue-800 dark:text-blue-200 text-sm">
+        <div className="flex items-start gap-2 text-primary text-sm">
           <Sparkles className="h-4 w-4 shrink-0 mt-0.5" />
           <p>
             Your study tools are ready, {firstName}. We&apos;ve started a
@@ -44,7 +44,7 @@ export function WelcomeBanner({ createdAt, firstName }: WelcomeBannerProps) {
         </div>
         <button
           onClick={handleDismiss}
-          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 shrink-0"
+          className="text-primary/70 hover:text-primary shrink-0"
           aria-label="Dismiss"
         >
           <X className="h-4 w-4" />

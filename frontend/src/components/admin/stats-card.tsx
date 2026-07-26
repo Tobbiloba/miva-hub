@@ -33,7 +33,11 @@ export function StatsCard({
           <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1">
             {trend && (
               <span
-                className={trend.isPositive ? "text-green-600" : "text-red-600"}
+                className={
+                  trend.isPositive
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-destructive"
+                }
               >
                 {trend.isPositive ? "+" : ""}
                 {trend.value}%

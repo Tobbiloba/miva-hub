@@ -55,21 +55,21 @@ export function MaterialCard({
 
     switch (fileExtension) {
       case "pdf":
-        return <FileText className="w-6 h-6 text-red-500" />;
+        return <FileText className="w-6 h-6 text-destructive" />;
       case "mp4":
       case "avi":
       case "mov":
-        return <Video className="w-6 h-6 text-blue-500" />;
+        return <Video className="w-6 h-6 text-primary" />;
       case "mp3":
       case "wav":
       case "m4a":
-        return <Music className="w-6 h-6 text-green-500" />;
+        return <Music className="w-6 h-6 text-emerald-500" />;
       case "jpg":
       case "jpeg":
       case "png":
-        return <Image className="w-6 h-6 text-purple-500" />;
+        return <Image className="w-6 h-6 text-primary" />;
       default:
-        return <File className="w-6 h-6 text-gray-500" />;
+        return <File className="w-6 h-6 text-muted-foreground" />;
     }
   };
 
@@ -133,7 +133,9 @@ export function MaterialCard({
               {isViewed && (
                 <>
                   <span>•</span>
-                  <span className="text-green-600 font-medium">✓ Viewed</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                    ✓ Viewed
+                  </span>
                 </>
               )}
             </div>
@@ -180,7 +182,7 @@ export function MaterialCard({
         <div className="mt-3">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors"
+            className="flex items-center space-x-2 text-primary hover:text-primary/80 font-medium text-sm transition-colors"
           >
             <span>📋 AI Summary</span>
             <span className="text-xs">{isExpanded ? "▼" : "▶"}</span>
@@ -188,7 +190,7 @@ export function MaterialCard({
 
           {isExpanded && (
             <div className="mt-2 p-3 bg-card rounded-lg border-l-4 border-border">
-              <p className="text-sm text-gray-700 leading-relaxed">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 {material.ai_summary}
               </p>
             </div>
@@ -211,7 +213,7 @@ export function MaterialCard({
               </span>
             ))}
             {material.key_concepts.length > 8 && (
-              <span className="text-xs text-gray-500 px-2 py-1">
+              <span className="text-xs text-muted-foreground px-2 py-1">
                 +{material.key_concepts.length - 8} more
               </span>
             )}

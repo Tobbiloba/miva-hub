@@ -20,42 +20,42 @@ export function DefaultToolIcon({
   return useMemo(() => {
     if (name === DefaultToolName.CreatePieChart) {
       return (
-        <ChartPieIcon className={cn("size-3.5 text-blue-500", className)} />
+        <ChartPieIcon className={cn("size-3.5 text-primary", className)} />
       );
     }
     if (name === DefaultToolName.CreateBarChart) {
       return (
-        <ChartColumnIcon className={cn("size-3.5 text-blue-500", className)} />
+        <ChartColumnIcon className={cn("size-3.5 text-primary", className)} />
       );
     }
     if (name === DefaultToolName.CreateLineChart) {
       return (
-        <TrendingUpIcon className={cn("size-3.5 text-blue-500", className)} />
+        <TrendingUpIcon className={cn("size-3.5 text-primary", className)} />
       );
     }
     if (name === DefaultToolName.CreateTable) {
       return (
-        <TableOfContents className={cn("size-3.5 text-blue-500", className)} />
+        <TableOfContents className={cn("size-3.5 text-primary", className)} />
       );
     }
     if (name === DefaultToolName.WebSearch) {
-      return <GlobeIcon className={cn("size-3.5 text-blue-400", className)} />;
+      return <GlobeIcon className={cn("size-3.5 text-primary", className)} />;
     }
     if (name === DefaultToolName.WebContent) {
-      return <GlobeIcon className={cn("size-3.5 text-blue-400", className)} />;
+      return <GlobeIcon className={cn("size-3.5 text-primary", className)} />;
     }
     if (name === DefaultToolName.Http) {
       return (
         <HardDriveUploadIcon
-          className={cn("size-3.5 text-blue-300", className)}
+          className={cn("size-3.5 text-primary", className)}
         />
       );
     }
     if (name === DefaultToolName.JavascriptExecution) {
-      return <CodeIcon className={cn("size-3.5 text-yellow-400", className)} />;
+      return <CodeIcon className={cn("size-3.5 text-amber-500", className)} />;
     }
     if (name === DefaultToolName.PythonExecution) {
-      return <CodeIcon className={cn("size-3.5 text-blue-400", className)} />;
+      return <CodeIcon className={cn("size-3.5 text-primary", className)} />;
     }
     return <HammerIcon className={cn("size-3.5", className)} />;
   }, [name]);

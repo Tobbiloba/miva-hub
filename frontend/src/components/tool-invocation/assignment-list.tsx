@@ -37,19 +37,19 @@ export function AssignmentList(props: AssignmentListProps) {
         return {
           icon: "🚨",
           label: "Urgent",
-          color: "text-red-600 border-red-200",
+          color: "text-destructive border-destructive/30",
         };
       case "soon":
         return {
           icon: "⚠️",
           label: "Soon",
-          color: "text-yellow-600 border-yellow-200",
+          color: "text-amber-600 dark:text-amber-400 border-amber-500/30",
         };
       default:
         return {
           icon: "✅",
           label: "Later",
-          color: "text-green-600 border-green-200",
+          color: "text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
         };
     }
   };

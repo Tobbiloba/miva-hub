@@ -242,7 +242,7 @@ export function ProfileClient({ category, children }: ProfileClientProps) {
       {category === "security" && (
         <div className="bg-muted/50 p-4 rounded-lg">
           <div className="flex items-start gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+            <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5" />
             <div className="space-y-1">
               <p className="font-medium text-sm">Password Requirements:</p>
               <ul className="text-sm text-muted-foreground space-y-1">

@@ -267,16 +267,16 @@ export function FileUploadZone({
                     </div>
                     <div className="flex items-center space-x-2">
                       {item.status === "pending" && (
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full" />
+                        <div className="w-2 h-2 bg-amber-500 rounded-full" />
                       )}
                       {item.status === "uploading" && (
-                        <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
                       )}
                       {item.status === "processing" && (
-                        <Loader2 className="h-4 w-4 animate-spin text-orange-500" />
+                        <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
                       )}
                       {item.status === "completed" && (
-                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <CheckCircle className="h-4 w-4 text-emerald-500" />
                       )}
                       {item.status === "error" && (
                         <AlertCircle className="h-4 w-4 text-destructive" />

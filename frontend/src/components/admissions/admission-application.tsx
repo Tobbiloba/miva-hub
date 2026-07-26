@@ -80,12 +80,12 @@ const RESULT_META: Record<
   admitted: {
     title: "Congratulations — you're admitted!",
     icon: BadgeCheck,
-    tone: "text-green-600",
+    tone: "text-emerald-600 dark:text-emerald-400",
   },
   waitlisted: {
     title: "You've been waitlisted",
     icon: Clock,
-    tone: "text-amber-600",
+    tone: "text-amber-600 dark:text-amber-400",
   },
   rejected: {
     title: "Your application was not successful",
@@ -95,7 +95,7 @@ const RESULT_META: Record<
   escalated: {
     title: "Your application is with our admissions team",
     icon: ShieldAlert,
-    tone: "text-blue-600",
+    tone: "text-primary",
   },
 };
 

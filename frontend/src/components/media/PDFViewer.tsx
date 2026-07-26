@@ -116,7 +116,7 @@ export function PDFViewer({ url, title }: PDFViewerProps) {
                 className="w-16 px-2 py-1 text-sm border rounded text-center"
                 min="1"
               />
-              <span className="text-sm text-gray-600">/ ?</span>
+              <span className="text-sm text-muted-foreground">/ ?</span>
             </div>
             <Button
               onClick={() => setCurrentPage(currentPage + 1)}
@@ -127,7 +127,7 @@ export function PDFViewer({ url, title }: PDFViewerProps) {
             </Button>
           </div>
 
-          <div className="h-6 w-px bg-gray-300" />
+          <div className="h-6 w-px bg-border" />
 
           {/* Zoom Controls */}
           <div className="flex items-center space-x-2">
@@ -152,7 +152,7 @@ export function PDFViewer({ url, title }: PDFViewerProps) {
             </Button>
           </div>
 
-          <div className="h-6 w-px bg-gray-300" />
+          <div className="h-6 w-px bg-border" />
 
           {/* Rotation */}
           <Button
@@ -167,7 +167,7 @@ export function PDFViewer({ url, title }: PDFViewerProps) {
 
         <div className="flex items-center space-x-2">
           {title && (
-            <span className="text-sm font-medium text-gray-700 max-w-xs truncate">
+            <span className="text-sm font-medium text-muted-foreground max-w-xs truncate">
               {title}
             </span>
           )}
@@ -176,7 +176,7 @@ export function PDFViewer({ url, title }: PDFViewerProps) {
             onClick={handleDownload}
             size="sm"
             variant="outline"
-            className="hover:bg-green-50"
+            className="hover:bg-emerald-500/10"
           >
             <Download className="w-4 h-4 mr-1" />
             Download
@@ -212,8 +212,8 @@ export function PDFViewer({ url, title }: PDFViewerProps) {
         id="pdf-loading"
       >
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-          <p className="text-sm text-gray-600">Loading PDF...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-sm text-muted-foreground">Loading PDF...</p>
         </div>
       </div>
     </div>

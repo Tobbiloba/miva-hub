@@ -23,11 +23,11 @@ export function StudentStatsCard({
   accent = "blue",
 }: StudentStatsCardProps) {
   const accentColors = {
-    blue: "text-blue-600 dark:text-blue-400",
-    green: "text-green-600 dark:text-green-400",
-    orange: "text-orange-600 dark:text-orange-400",
-    red: "text-red-600 dark:text-red-400",
-    purple: "text-purple-600 dark:text-purple-400",
+    blue: "text-primary",
+    green: "text-emerald-600 dark:text-emerald-400",
+    orange: "text-amber-600 dark:text-amber-400",
+    red: "text-destructive",
+    purple: "text-primary",
   };
 
   return (
@@ -44,7 +44,11 @@ export function StudentStatsCard({
           <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1">
             {trend && (
               <span
-                className={trend.isPositive ? "text-green-600" : "text-red-600"}
+                className={
+                  trend.isPositive
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-destructive"
+                }
               >
                 {trend.isPositive ? "+" : ""}
                 {trend.value}%{trend.text && ` ${trend.text}`}

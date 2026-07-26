@@ -57,15 +57,15 @@ function extractMediaUrls(text: string): MediaItem[] {
 function getMediaIcon(type: MediaItem["type"]) {
   switch (type) {
     case "pdf":
-      return <FileText className="w-4 h-4 text-red-500" />;
+      return <FileText className="w-4 h-4 text-destructive" />;
     case "video":
-      return <Video className="w-4 h-4 text-blue-500" />;
+      return <Video className="w-4 h-4 text-primary" />;
     case "audio":
-      return <Music className="w-4 h-4 text-green-500" />;
+      return <Music className="w-4 h-4 text-emerald-500" />;
     case "image":
-      return <Image className="w-4 h-4 text-purple-500" />;
+      return <Image className="w-4 h-4 text-primary" />;
     default:
-      return <FileText className="w-4 h-4 text-gray-500" />;
+      return <FileText className="w-4 h-4 text-muted-foreground" />;
   }
 }
 
@@ -121,7 +121,7 @@ function MediaViewer({ mediaItem }: { mediaItem: MediaItem }) {
             href={mediaItem.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 hover:underline text-sm"
+            className="text-primary hover:underline text-sm"
           >
             Open in new tab
           </a>
