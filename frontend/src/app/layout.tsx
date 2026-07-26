@@ -48,7 +48,8 @@ const FONT_VARS = [
 ].join(" ");
 
 // Applies the saved font before paint to avoid a flash of the default.
-const FONT_INIT = `try{var f=localStorage.getItem('app-font');if(f&&f!=='neue')document.documentElement.setAttribute('data-font',f);}catch(e){}`;
+// jakarta is the CSS default (body base rule), so it needs no attribute.
+const FONT_INIT = `try{var f=localStorage.getItem('app-font');if(f&&f!=='jakarta')document.documentElement.setAttribute('data-font',f);}catch(e){}`;
 
 export const metadata: Metadata = {
   title: "Askly",

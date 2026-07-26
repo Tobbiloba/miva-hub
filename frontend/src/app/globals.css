@@ -57,8 +57,8 @@ html {
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Neue Montreal", system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--font-jakarta), system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -103,10 +103,10 @@ html {
  * the --energy token (primary chat action, streaks, success moments only). */
 :root {
   --radius: 1rem;
-  /* Runtime body font — overridden by [data-font] (see FontSwitcher).
-   * Font families are loaded in layout.tsx via next/font. */
-  --font-sans: "Neue Montreal", system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, sans-serif;
+  /* Neutral :root fallback; the real body font is set on `body` (Jakarta by
+   * default) and overridden per selection by [data-font]. See FontSwitcher. */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
   --background: oklch(0.977 0.003 106.47); /* warm off-white ~#F7F7F5 */
   --foreground: oklch(0.165 0.008 285.8);
   --card: oklch(1 0 0);
@@ -1507,7 +1507,15 @@ html {
 
 /* Selectable body fonts. Targets `body` (not :root) because the next/font
  * family variables (--font-inter, …) are defined on <body>. Unlayered so the
- * [data-font] override beats the unlayered :root default. Set by FontSwitcher. */
+ * [data-font] override beats the unlayered :root default. Set by FontSwitcher.
+ * Plus Jakarta Sans is the default (see the body base rule below). */
+[data-font="jakarta"] body,
+body {
+  --font-sans: var(--font-jakarta), system-ui, sans-serif;
+}
+[data-font="neue"] body {
+  --font-sans: "Neue Montreal", system-ui, sans-serif;
+}
 [data-font="geist"] body {
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;
 }
@@ -1516,9 +1524,6 @@ html {
 }
 [data-font="manrope"] body {
   --font-sans: var(--font-manrope), system-ui, sans-serif;
-}
-[data-font="jakarta"] body {
-  --font-sans: var(--font-jakarta), system-ui, sans-serif;
 }
 [data-font="sora"] body {
   --font-sans: var(--font-sora), system-ui, sans-serif;

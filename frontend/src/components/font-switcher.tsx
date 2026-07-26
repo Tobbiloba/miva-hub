@@ -15,7 +15,13 @@ import { useEffect, useState } from "react";
  * `data-font` on <html>, which globals.css maps to --font-sans app-wide.
  * The families are loaded in layout.tsx via next/font.
  */
+/** Plus Jakarta Sans is the app default (index 0). */
 export const APP_FONTS = [
+  {
+    key: "jakarta",
+    label: "Plus Jakarta Sans",
+    stack: "var(--font-jakarta), sans-serif",
+  },
   { key: "neue", label: "Neue Montreal", stack: '"Neue Montreal", sans-serif' },
   { key: "geist", label: "Geist", stack: "var(--font-geist-sans), sans-serif" },
   { key: "inter", label: "Inter", stack: "var(--font-inter), sans-serif" },
@@ -23,11 +29,6 @@ export const APP_FONTS = [
     key: "manrope",
     label: "Manrope",
     stack: "var(--font-manrope), sans-serif",
-  },
-  {
-    key: "jakarta",
-    label: "Plus Jakarta Sans",
-    stack: "var(--font-jakarta), sans-serif",
   },
   { key: "sora", label: "Sora", stack: "var(--font-sora), sans-serif" },
   {
@@ -37,9 +38,12 @@ export const APP_FONTS = [
   },
 ] as const;
 
+const DEFAULT_FONT = "jakarta";
+
 export function applyFont(key: string) {
   const root = document.documentElement;
-  if (key === "neue") root.removeAttribute("data-font");
+  // jakarta is the CSS default (body base rule) — no attribute needed.
+  if (key === DEFAULT_FONT) root.removeAttribute("data-font");
   else root.setAttribute("data-font", key);
   try {
     localStorage.setItem("app-font", key);
@@ -47,12 +51,12 @@ export function applyFont(key: string) {
 }
 
 export function FontSwitcher({ className }: { className?: string }) {
-  const [font, setFont] = useState<string>("neue");
+  const [font, setFont] = useState<string>(DEFAULT_FONT);
 
   useEffect(() => {
-    let saved = "neue";
+    let saved = DEFAULT_FONT;
     try {
-      saved = localStorage.getItem("app-font") || "neue";
+      saved = localStorage.getItem("app-font") || DEFAULT_FONT;
     } catch {}
     setFont(saved);
   }, []);
