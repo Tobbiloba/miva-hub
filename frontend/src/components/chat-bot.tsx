@@ -369,6 +369,27 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
       });
   }, [isInitialThreadEntry]);
 
+  // Pick up a prompt handed off from the student dashboard "Ask Askly" box and
+  // send it automatically once, on a fresh empty chat thread.
+  const pendingPromptSentRef = useRef(false);
+  useEffect(() => {
+    if (pendingPromptSentRef.current) return;
+    if (initialMessages.length > 0 || messages.length > 0) return;
+    let pending: string | null = null;
+    try {
+      pending = sessionStorage.getItem("askly:pending-prompt");
+      if (pending) sessionStorage.removeItem("askly:pending-prompt");
+    } catch {
+      return;
+    }
+    if (!pending?.trim()) return;
+    pendingPromptSentRef.current = true;
+    sendMessage({
+      role: "user",
+      parts: [{ type: "text", text: pending.trim() }],
+    });
+  }, [initialMessages.length, messages.length, sendMessage]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const messages = latestRef.current.messages;

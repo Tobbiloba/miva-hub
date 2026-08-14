@@ -120,7 +120,14 @@ export function DashboardClient({
   };
 
   const handleSubmit = (message: string) => {
-    if (!message.trim()) return;
+    const text = message.trim();
+    if (!text) return;
+    // Hand the prompt off to the chat home, which auto-sends it on mount.
+    try {
+      sessionStorage.setItem("askly:pending-prompt", text);
+    } catch {
+      // sessionStorage unavailable (private mode / SSR) — fall back to plain nav.
+    }
     router.push("/");
   };
 
