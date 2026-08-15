@@ -46,6 +46,12 @@ export async function PATCH(
       // Fire-and-forget: notify enrolled students about new content
       generateNewContentNotification(id).catch(() => {});
 
+      // Fire-and-forget: embed the now-published material so course-grounded
+      // chat can retrieve it (RAG). Safe to run repeatedly — it replaces chunks.
+      import("@/lib/ai/rag/index-material")
+        .then(({ indexCourseMaterial }) => indexCourseMaterial(id))
+        .catch(() => {});
+
       return NextResponse.json({ success: true, action: "approved" });
     }
 

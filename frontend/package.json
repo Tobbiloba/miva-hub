@@ -31,6 +31,8 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:migrate": "tsx scripts/db-migrate.ts",
+    "rag:migrate": "psql \"$POSTGRES_URL\" -f scripts/rag/material_chunk.sql",
+    "rag:backfill": "tsx scripts/backfill-embeddings.ts",
     "db:seed": "tsx scripts/seed-majors-and-courses.ts",
     "db:seed:plans": "tsx scripts/seed-subscription-plans.ts",
     "db:seed:old": "tsx scripts/seed-academic-data.ts",

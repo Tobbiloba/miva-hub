@@ -31,6 +31,7 @@ import {
   recordAcademicConversation,
 } from "lib/ai/academic-conversation-memory";
 import { buildCourseTutorContext } from "lib/ai/course-tutor-context";
+import { retrieveCourseContext } from "lib/ai/rag/retrieve";
 import { checkRateLimit, rateLimitResponse } from "lib/rate-limit";
 import { getUserAcademicContext } from "lib/user/user-context";
 import { generateUUID } from "lib/utils";
@@ -137,17 +138,28 @@ export async function POST(request: Request) {
       ? await getUserAcademicContext(session.user.email)
       : null;
 
-    // Course grounding: when the student selected a course context, load that
-    // course's published materials (enrollment-gated) so the main chat answers
-    // from real course content and cites sources inline. Null when no course is
-    // selected or the user is not enrolled in it.
+    // Course grounding: when the student selected a course context, ground the
+    // chat in that course's materials (enrollment-gated) and cite sources
+    // inline. Prefer semantic retrieval (RAG); fall back to whole-course context
+    // when the course has no embedded chunks yet. Null when no course is
+    // selected or the user is not enrolled.
+    const groundingQuery =
+      (message.parts?.find((p: any) => p.type === "text") as any)?.text ?? "";
     const courseGrounding = courseId
-      ? await buildCourseTutorContext(session.user.id, courseId).catch(
+      ? (await retrieveCourseContext(
+          session.user.id,
+          courseId,
+          groundingQuery,
+        ).catch((error) => {
+          logger.error("course retrieval failed", error);
+          return null;
+        })) ??
+        (await buildCourseTutorContext(session.user.id, courseId).catch(
           (error) => {
             logger.error("failed to build course grounding", error);
             return null;
           },
-        )
+        ))
       : null;
 
     const stream = createUIMessageStream({
