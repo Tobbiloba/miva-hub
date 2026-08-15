@@ -3,9 +3,10 @@
 import { appStore } from "@/app/store";
 import { useChat } from "@ai-sdk/react";
 import clsx from "clsx";
-import { cn, createDebounce, generateUUID, truncateString } from "lib/utils";
+import { cn, generateUUID, truncateString } from "lib/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { ChatAurora } from "./chat-aurora";
 import { ChatGreeting } from "./chat-greeting";
 import { SuggestionCards } from "./chat-suggestions";
 import { ErrorMessage, PreviewMessage } from "./message";
@@ -22,10 +23,8 @@ import { useShallow } from "zustand/shallow";
 import { deleteThreadAction } from "@/app/api/chat/actions";
 import { useGenerateThreadTitle } from "@/hooks/queries/use-generate-thread-title";
 import { useToRef } from "@/hooks/use-latest";
-import { useMounted } from "@/hooks/use-mounted";
 import { ChatApiSchemaRequestBody, ChatModel } from "app-types/chat";
 import { AnimatePresence, motion } from "framer-motion";
-import { getStorageManager } from "lib/browser-storage";
 import { Shortcuts, isShortcutEvent } from "lib/keyboard-shortcuts";
 import {
   ArrowDown,
@@ -37,7 +36,6 @@ import {
   PanelRightOpen,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { mutate } from "swr";
 import { safe } from "ts-safe";
@@ -58,16 +56,6 @@ type Props = {
   initialMessages: Array<UIMessage>;
   selectedChatModel?: string;
 };
-
-const LightRays = dynamic(() => import("ui/light-rays"), {
-  ssr: false,
-});
-
-const Particles = dynamic(() => import("ui/particles"), {
-  ssr: false,
-});
-
-const debounce = createDebounce();
 
 const CHAT_SUGGESTIONS = [
   {
@@ -93,9 +81,6 @@ const CHAT_SUGGESTIONS = [
   },
 ];
 
-const firstTimeStorage = getStorageManager("IS_FIRST");
-const isFirstTime = firstTimeStorage.get() ?? true;
-firstTimeStorage.set(false);
 
 export default function ChatBot({ threadId, initialMessages }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -128,8 +113,6 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
   const generateTitle = useGenerateThreadTitle({
     threadId,
   });
-
-  const [showParticles, setShowParticles] = useState(isFirstTime);
 
   const onFinish = useCallback(() => {
     const messages = latestRef.current.messages;
@@ -210,8 +193,6 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
     [_addToolResult],
   );
 
-  const mounted = useMounted();
-
   const latestRef = useToRef({
     toolChoice,
     model,
@@ -266,43 +247,6 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
     return false;
   }, [isLoading, messages.at(-1)]);
 
-  const particle = useMemo(() => {
-    return (
-      <AnimatePresence>
-        {showParticles && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 5 }}
-          >
-            <div className="absolute top-0 left-0 w-full h-full z-10">
-              <LightRays />
-            </div>
-            <div className="absolute top-0 left-0 w-full h-full z-10">
-              <Particles particleCount={400} particleBaseSize={10} />
-            </div>
-
-            <div className="absolute top-0 left-0 w-full h-full z-10">
-              <div className="w-full h-full bg-gradient-to-t from-background to-50% to-transparent z-20" />
-            </div>
-            <div className="absolute top-0 left-0 w-full h-full z-10">
-              <div className="w-full h-full bg-gradient-to-l from-background to-20% to-transparent z-20" />
-            </div>
-            <div className="absolute top-0 left-0 w-full h-full z-10">
-              <div className="w-full h-full bg-gradient-to-r from-background to-20% to-transparent z-20" />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    );
-  }, [showParticles]);
-
-  const handleFocus = useCallback(() => {
-    setShowParticles(false);
-    debounce(() => setShowParticles(true), 60000);
-  }, []);
-
   const handleScroll = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -311,8 +255,7 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
     const isScrollAtBottom = scrollHeight - scrollTop - clientHeight < 50;
 
     setIsAtBottom(isScrollAtBottom);
-    handleFocus();
-  }, [handleFocus]);
+  }, []);
 
   const scrollToBottom = useCallback(() => {
     containerRef.current?.scrollTo({
@@ -416,15 +359,9 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  useEffect(() => {
-    if (mounted) {
-      handleFocus();
-    }
-  }, [input]);
-
   return (
     <>
-      {particle}
+      <ChatAurora />
       <div
         className={cn(
           emptyMessage && "justify-center pb-24",
@@ -521,7 +458,6 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
             setInput={setInput}
             isLoading={isLoading || isPendingToolCall}
             onStop={stop}
-            onFocus={isFirstTime ? undefined : handleFocus}
           />
         </div>
         <DeleteThreadPopup
