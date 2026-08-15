@@ -288,7 +288,7 @@ export function DashboardClient({
             <AsklyGlassCard
               onClick={() => router.push("/student/assignments")}
               style={{
-                borderTop: "2px solid rgba(239,159,39,0.45)",
+                borderTop: "2px solid rgba(74,222,128,0.45)",
                 cursor: "pointer",
               }}
             >
@@ -300,7 +300,7 @@ export function DashboardClient({
                   width: "32px",
                   height: "32px",
                   borderRadius: "8px",
-                  background: "rgba(239,159,39,0.15)",
+                  background: "rgba(74,222,128,0.15)",
                   marginBottom: "0.75rem",
                 }}
               >
@@ -353,7 +353,7 @@ export function DashboardClient({
                 marginBottom: "0.75rem",
               }}
             >
-              <Clock size={15} style={{ color: "#60a5fa" }} />
+              <Clock size={15} style={{ color: "#4ade80" }} />
             </div>
             <p
               style={{
@@ -403,7 +403,7 @@ export function DashboardClient({
                 marginBottom: "0.75rem",
               }}
             >
-              <LayoutGrid size={15} style={{ color: "#34d399" }} />
+              <LayoutGrid size={15} style={{ color: "#dff226" }} />
             </div>
             <p
               style={{
@@ -447,7 +447,7 @@ export function DashboardClient({
                   marginBottom: "0.75rem",
                 }}
               >
-                <Bell size={15} style={{ color: "#f472b6" }} />
+                <Bell size={15} style={{ color: "#e39aa5" }} />
               </div>
               <p
                 style={{
@@ -489,7 +489,7 @@ export function DashboardClient({
                   marginBottom: "0.75rem",
                 }}
               >
-                <Bell size={15} style={{ color: "#f472b6" }} />
+                <Bell size={15} style={{ color: "#e39aa5" }} />
               </div>
               <p
                 style={{
@@ -532,10 +532,10 @@ export function DashboardClient({
             value: "1",
             label: "day streak",
           },
-          { icon: Clock, color: "#60a5fa", value: "0m", label: "today" },
+          { icon: Clock, color: "#4ade80", value: "0m", label: "today" },
           {
             icon: Target,
-            color: "#34d399",
+            color: "#dff226",
             value: "0 / 5",
             label: "weekly goal",
           },
