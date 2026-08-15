@@ -28,6 +28,9 @@ export interface AppState {
     name: string;
   }[];
   chatModel?: ChatModel;
+  // Selected course context for grounding the main chat (undefined = ungrounded).
+  chatCourseId?: string;
+  chatCourseLabel?: string;
   openShortcutsPopup: boolean;
   openChatPreferences: boolean;
   mcpCustomizationPopup?: MCPServerInfo & { id: string };
@@ -74,6 +77,8 @@ const initialState: AppState = {
   ],
   toolPresets: [],
   chatModel: undefined,
+  chatCourseId: undefined,
+  chatCourseLabel: undefined,
   openShortcutsPopup: false,
   openChatPreferences: false,
   mcpCustomizationPopup: undefined,
@@ -109,6 +114,8 @@ export const appStore = create<AppState & AppDispatch>()(
       name: "mc-app-store-v2.0.1",
       partialize: (state) => ({
         chatModel: state.chatModel || initialState.chatModel,
+        chatCourseId: state.chatCourseId,
+        chatCourseLabel: state.chatCourseLabel,
         toolChoice: state.toolChoice || initialState.toolChoice,
         allowedMcpServers:
           state.allowedMcpServers || initialState.allowedMcpServers,

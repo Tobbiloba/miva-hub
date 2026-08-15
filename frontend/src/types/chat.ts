@@ -97,6 +97,9 @@ export const chatApiSchemaRequestBodySchema = z.object({
   mentions: z.array(ChatMentionSchema).optional(),
   allowedMcpServers: z.record(z.string(), AllowedMCPServerZodSchema).optional(),
   allowedAppDefaultToolkit: z.array(z.string()).optional(),
+  // Optional course context: when set, the chat grounds its answers in that
+  // course's published materials and cites sources inline ([S1], [S2], ...).
+  courseId: z.string().uuid().optional(),
 });
 
 export type ChatApiSchemaRequestBody = z.infer<

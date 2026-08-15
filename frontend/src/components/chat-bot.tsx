@@ -96,6 +96,7 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
     threadMentions,
     pendingThreadMention,
     chatSidebar,
+    chatCourseId,
   ] = appStore(
     useShallow((state) => [
       state.mutate,
@@ -107,6 +108,7 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
       state.threadMentions,
       state.pendingThreadMention,
       state.chatSidebar,
+      state.chatCourseId,
     ]),
   );
 
@@ -174,6 +176,7 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
             : latestRef.current.allowedMcpServers,
           mentions: latestRef.current.mentions,
           message: lastMessage,
+          courseId: latestRef.current.chatCourseId,
         };
         return { body: requestBody };
       },
@@ -202,6 +205,7 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
     threadList,
     threadId,
     mentions: threadMentions[threadId],
+    chatCourseId,
   });
 
   const isLoading = useMemo(

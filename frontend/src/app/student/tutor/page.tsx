@@ -1,16 +1,8 @@
-import { CourseTutor } from "@/components/student/course-tutor";
+import { redirect } from "next/navigation";
 
+// The AI Tutor has been merged into the main chat: the homepage chat now
+// grounds answers in a selected course's materials via the course-context
+// selector. This route is kept as a redirect so old links keep working.
 export default function StudentTutorPage() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">AI Tutor</h1>
-        <p className="text-muted-foreground mt-1">
-          A tutor that has read your entire course — every answer cites the
-          exact material it came from.
-        </p>
-      </div>
-      <CourseTutor />
-    </div>
-  );
+  redirect("/");
 }

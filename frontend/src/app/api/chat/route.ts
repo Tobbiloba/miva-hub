@@ -30,6 +30,7 @@ import {
   getAcademicConversationContext,
   recordAcademicConversation,
 } from "lib/ai/academic-conversation-memory";
+import { buildCourseTutorContext } from "lib/ai/course-tutor-context";
 import { checkRateLimit, rateLimitResponse } from "lib/rate-limit";
 import { getUserAcademicContext } from "lib/user/user-context";
 import { generateUUID } from "lib/utils";
@@ -76,6 +77,7 @@ export async function POST(request: Request) {
       allowedAppDefaultToolkit,
       allowedMcpServers,
       mentions = [],
+      courseId,
     } = chatApiSchemaRequestBodySchema.parse(json);
 
     const model = await customModelProvider.getModel(chatModel);
@@ -133,6 +135,19 @@ export async function POST(request: Request) {
     // Get user academic context for all tool operations (moved outside to fix scope)
     const userAcademicContext = session?.user?.email
       ? await getUserAcademicContext(session.user.email)
+      : null;
+
+    // Course grounding: when the student selected a course context, load that
+    // course's published materials (enrollment-gated) so the main chat answers
+    // from real course content and cites sources inline. Null when no course is
+    // selected or the user is not enrolled in it.
+    const courseGrounding = courseId
+      ? await buildCourseTutorContext(session.user.id, courseId).catch(
+          (error) => {
+            logger.error("failed to build course grounding", error);
+            return null;
+          },
+        )
       : null;
 
     const stream = createUIMessageStream({
@@ -260,9 +275,16 @@ export async function POST(request: Request) {
           }
         }
 
+        // When a course context is selected, ground answers in its materials.
+        const courseGroundingPrompt =
+          courseGrounding && courseGrounding.sources.length > 0
+            ? `You are helping the student with a specific course. Answer using ONLY the COURSE MATERIALS below, and cite each factual claim inline with its numbered source, e.g. "Variables are covered in week 2 [S3]." If the materials do not cover the question, say so plainly and suggest the closest material — never invent syllabus content, deadlines, or grading policy.\n\n${courseGrounding.contextText}`
+            : undefined;
+
         const systemPrompt = mergeSystemPrompt(
           baseSystemPrompt + conversationContext,
           buildMcpServerCustomizationsSystemPrompt(mcpServerCustomizations),
+          courseGroundingPrompt,
           !supportToolCall && buildToolCallUnsupportedModelSystemPrompt,
         );
 
