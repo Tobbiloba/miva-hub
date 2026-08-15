@@ -4,6 +4,7 @@ import { SidebarMenu, SidebarMenuItem } from "ui/sidebar";
 import { SidebarGroupContent } from "ui/sidebar";
 import { Tooltip } from "ui/tooltip";
 
+import { CHAT_FIRST } from "lib/config/product";
 import { Shortcuts, getShortcutKeyList } from "lib/keyboard-shortcuts";
 import { FolderOpenIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -63,18 +64,20 @@ export function AppSidebarMenus() {
             </SidebarMenuItem>
           </Tooltip>
         </SidebarMenu>
-        <SidebarMenu>
-          <Tooltip>
-            <SidebarMenuItem>
-              <Link href="/student">
-                <SidebarMenuButton className="font-semibold">
-                  <FolderOpenIcon className="size-4" />
-                  Student
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-          </Tooltip>
-        </SidebarMenu>
+        {!CHAT_FIRST && (
+          <SidebarMenu>
+            <Tooltip>
+              <SidebarMenuItem>
+                <Link href="/student">
+                  <SidebarMenuButton className="font-semibold">
+                    <FolderOpenIcon className="size-4" />
+                    Student
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            </Tooltip>
+          </SidebarMenu>
+        )}
       </SidebarGroupContent>
     </SidebarGroup>
   );
