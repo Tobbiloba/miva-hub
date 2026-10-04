@@ -9,318 +9,146 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CheckCircle2, Crown, GraduationCap, Loader2, Zap } from "lucide-react";
+import {
+  INDIVIDUAL_PLANS,
+  type IndividualPlanKey,
+  PLAN_FEATURES,
+  YEARLY_SAVINGS_KOBO,
+  formatNaira,
+} from "@/lib/billing/plans";
+import { CheckCircle2, Crown, Loader2, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-interface Plan {
-  id: string;
-  name: string;
-  displayName: string;
-  description: string;
-  priceNgn: number;
-  features: string[];
-  limits: Record<string, number>;
-  paystackPlanCode: string;
-}
-
 interface PricingCardsProps {
-  plans: Plan[];
-  currentSubscription: any;
   isLoggedIn: boolean;
-  selectedPlan?: string;
+  /** Student already has access via a subscription — no checkout. */
+  hasActiveSubscription: boolean;
 }
 
+/**
+ * Public pricing cards. Plans and prices come from lib/billing/plans (the
+ * same source the checkout validates against), and checkout goes through
+ * the live /api/billing flow.
+ */
 export function PricingCards({
-  plans,
-  currentSubscription,
-  selectedPlan,
+  isLoggedIn,
+  hasActiveSubscription,
 }: PricingCardsProps) {
-  const [loading, setLoading] = useState<string | null>(null);
+  const [loading, setLoading] = useState<IndividualPlanKey | null>(null);
   const router = useRouter();
 
-  const handleSubscribe = async (plan: Plan) => {
-    setLoading(plan.id);
+  const handleSubscribe = async (plan: IndividualPlanKey) => {
+    if (!isLoggedIn) {
+      router.push("/sign-in");
+      return;
+    }
 
+    setLoading(plan);
     try {
-      const response = await fetch("/api/subscription/initialize", {
+      const response = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          planName: plan.name,
-          planCode: plan.paystackPlanCode,
-        }),
+        body: JSON.stringify({ plan }),
       });
-
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (response.status === 401) {
         toast.error("Please sign in to subscribe");
-        setLoading(null);
-        router.push("/sign-in?redirect=/pricing");
+        router.push("/sign-in");
         return;
       }
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to initialize payment");
+      if (!response.ok || !data.authorization_url) {
+        throw new Error(data.error || "Failed to start checkout");
       }
 
-      if (!data.authorizationUrl) {
-        throw new Error("No authorization URL returned");
-      }
-
-      window.location.href = data.authorizationUrl;
+      window.location.href = data.authorization_url;
     } catch (error) {
-      console.error("Subscription error:", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to start subscription",
+        error instanceof Error ? error.message : "Failed to start checkout",
       );
       setLoading(null);
     }
   };
 
-  const studentPlan = plans.find((p) => p.name === "STUDENT");
-  const premiumPlan = plans.find((p) => p.name === "PREMIUM");
-  const facultyPlan = plans.find((p) => p.name === "FACULTY");
-
-  if (!studentPlan || !premiumPlan || !facultyPlan) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        <p>Unable to load plans. Please refresh the page.</p>
-      </div>
-    );
-  }
-
-  const isCurrentPlan = (planId: string) => {
-    return (
-      currentSubscription?.planId === planId &&
-      currentSubscription?.status === "active"
-    );
-  };
+  const plans = [INDIVIDUAL_PLANS.monthly, INDIVIDUAL_PLANS.yearly];
 
   return (
-    <div className="grid gap-8 md:grid-cols-3 max-w-7xl mx-auto">
-      {/* Student Plan */}
-      <Card
-        className={`bg-card border-border/40 relative ${
-          selectedPlan === "STUDENT" ? "ring-2 ring-primary" : ""
-        }`}
-      >
-        {isCurrentPlan(studentPlan.id) && (
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-            <Badge className="bg-primary/10 text-primary border-primary/20">
-              Current Plan
-            </Badge>
-          </div>
-        )}
-
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-primary" />
-              <CardTitle className="text-2xl">
-                {studentPlan.displayName}
-              </CardTitle>
-            </div>
-            <Badge className="bg-primary/10 text-primary border-primary/20">
-              Popular
-            </Badge>
-          </div>
-          <CardDescription className="text-base">
-            {studentPlan.description}
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          <div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold">
-                ₦{(studentPlan.priceNgn / 100).toLocaleString()}
-              </span>
-              <span className="text-muted-foreground">/month</span>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Perfect for regular students
-            </p>
-          </div>
-
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={() => handleSubscribe(studentPlan)}
-            disabled={loading !== null || isCurrentPlan(studentPlan.id)}
+    <div className="grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
+      {plans.map((plan) => {
+        const isYearly = plan.key === "yearly";
+        const Icon = isYearly ? Crown : Zap;
+        return (
+          <Card
+            key={plan.key}
+            className={`bg-card border-border/40 relative ${
+              isYearly ? "md:shadow-xl ring-2 ring-primary" : ""
+            }`}
           >
-            {loading === studentPlan.id ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : isCurrentPlan(studentPlan.id) ? (
-              "Current Plan"
-            ) : (
-              "Subscribe to Student"
-            )}
-          </Button>
-
-          <div className="space-y-3">
-            <p className="text-sm font-semibold">Features:</p>
-            {studentPlan.features.slice(0, 8).map((feature, idx) => (
-              <div key={idx} className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                <span className="text-sm text-muted-foreground">{feature}</span>
+            {isYearly && (
+              <div className="absolute -top-3 right-4">
+                <Badge className="bg-primary text-primary-foreground border-0">
+                  Save {formatNaira(YEARLY_SAVINGS_KOBO)}
+                </Badge>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Premium Plan */}
-      <Card
-        className={`bg-card border-border/40 relative ${
-          selectedPlan === "PREMIUM" ? "ring-2 ring-primary" : ""
-        } md:scale-105 md:shadow-xl`}
-      >
-        {isCurrentPlan(premiumPlan.id) && (
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-            <Badge className="bg-primary/10 text-primary border-primary/20">
-              Current Plan
-            </Badge>
-          </div>
-        )}
-
-        <div className="absolute -top-3 right-4">
-          <Badge className="bg-primary text-primary-foreground border-0">
-            <Crown className="h-3 w-3 mr-1" />
-            Best Value
-          </Badge>
-        </div>
-
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Crown className="h-5 w-5 text-primary" />
-            <CardTitle className="text-2xl">
-              {premiumPlan.displayName}
-            </CardTitle>
-          </div>
-          <CardDescription className="text-base">
-            {premiumPlan.description}
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          <div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold">
-                ₦{(premiumPlan.priceNgn / 100).toLocaleString()}
-              </span>
-              <span className="text-muted-foreground">/month</span>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Advanced features with unlimited access
-            </p>
-          </div>
-
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={() => handleSubscribe(premiumPlan)}
-            disabled={loading !== null || isCurrentPlan(premiumPlan.id)}
-          >
-            {loading === premiumPlan.id ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : isCurrentPlan(premiumPlan.id) ? (
-              "Current Plan"
-            ) : (
-              "Subscribe to Premium"
             )}
-          </Button>
 
-          <div className="space-y-3">
-            <p className="text-sm font-semibold">
-              Everything in Student, plus:
-            </p>
-            {premiumPlan.features.slice(8, 16).map((feature, idx) => (
-              <div key={idx} className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                <span className="text-sm text-muted-foreground">{feature}</span>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Icon className="h-5 w-5 text-primary" aria-hidden="true" />
+                <CardTitle className="text-2xl">{plan.displayName}</CardTitle>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <CardDescription className="text-base">
+                {plan.description}
+              </CardDescription>
+            </CardHeader>
 
-      {/* Faculty Plan */}
-      <Card
-        className={`bg-card border-border/40 relative ${
-          selectedPlan === "FACULTY" ? "ring-2 ring-emerald-500" : ""
-        }`}
-      >
-        {isCurrentPlan(facultyPlan.id) && (
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-            <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
-              Current Plan
-            </Badge>
-          </div>
-        )}
-
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-            <CardTitle className="text-2xl">
-              {facultyPlan.displayName}
-            </CardTitle>
-          </div>
-          <CardDescription className="text-base">
-            {facultyPlan.description}
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          <div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold">
-                ₦{(facultyPlan.priceNgn / 100).toLocaleString()}
-              </span>
-              <span className="text-muted-foreground">/month</span>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              For educators and course creators
-            </p>
-          </div>
-
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={() => handleSubscribe(facultyPlan)}
-            disabled={loading !== null || isCurrentPlan(facultyPlan.id)}
-          >
-            {loading === facultyPlan.id ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : isCurrentPlan(facultyPlan.id) ? (
-              "Current Plan"
-            ) : (
-              "Subscribe to Faculty"
-            )}
-          </Button>
-
-          <div className="space-y-3">
-            <p className="text-sm font-semibold">Faculty Features:</p>
-            {facultyPlan.features.slice(0, 8).map((feature, idx) => (
-              <div key={idx} className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span className="text-sm text-muted-foreground">{feature}</span>
+            <CardContent className="space-y-6">
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-bold">
+                  {formatNaira(plan.priceKobo)}
+                </span>
+                <span className="text-muted-foreground">
+                  /{plan.periodLabel}
+                </span>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+
+              <Button
+                className="w-full min-h-11"
+                size="lg"
+                onClick={() => handleSubscribe(plan.key)}
+                disabled={loading !== null || hasActiveSubscription}
+              >
+                {loading === plan.key ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Redirecting to Paystack...
+                  </>
+                ) : hasActiveSubscription ? (
+                  "You're subscribed"
+                ) : (
+                  `Choose ${isYearly ? "Yearly" : "Monthly"}`
+                )}
+              </Button>
+
+              <ul className="space-y-3">
+                {PLAN_FEATURES.map((feature) => (
+                  <li key={feature} className="flex items-start gap-2">
+                    <CheckCircle2
+                      className="h-4 w-4 text-primary mt-0.5 flex-shrink-0"
+                      aria-hidden="true"
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {feature}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

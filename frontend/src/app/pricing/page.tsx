@@ -2,8 +2,9 @@ import { PaymentRequiredBanner } from "@/components/payment-required-banner";
 import { PricingCards } from "@/components/pricing/pricing-cards";
 import { Card, CardContent } from "@/components/ui/card";
 import { auth } from "@/lib/auth/server";
-import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
+import { getBillingStatus } from "@/lib/billing/status";
 import { CheckCircle2, Zap } from "lucide-react";
+import { headers } from "next/headers";
 
 export const metadata = {
   title: "Pricing - Askly",
@@ -14,29 +15,21 @@ export default async function PricingPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    from?: string;
-    plan?: string;
-    success?: string;
-    error?: string;
     required?: string;
+    error?: string;
   }>;
 }) {
   const params = await searchParams;
 
-  const session = await auth.api.getSession({
-    headers: await Promise.resolve(new Headers()),
-  });
+  const session = await auth.api
+    .getSession({ headers: await headers() })
+    .catch(() => null);
 
-  let currentSubscription: any = null;
+  let hasActiveSubscription = false;
   if (session?.user) {
-    currentSubscription =
-      await subscriptionRepository.getUserActiveSubscription(session.user.id);
+    const billing = await getBillingStatus(session.user.id);
+    hasActiveSubscription = billing.subscription?.status === "active";
   }
-
-  const plans = (await subscriptionRepository.getAllPlans()) as any[];
-
-  const successMessage = params.success;
-  const errorMessage = params.error;
 
   return (
     <div className="min-h-screen bg-background">
@@ -55,44 +48,22 @@ export default async function PricingPage({
           </p>
         </div>
 
-        {successMessage && (
-          <Card className="max-w-2xl mx-auto mb-8 bg-emerald-500/10 border-emerald-500/20">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                  Payment successful! Your subscription is now active. Check
-                  your profile for details.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {errorMessage && (
-          <Card className="max-w-2xl mx-auto mb-8 bg-destructive/10 border-destructive/20">
-            <CardContent className="pt-6">
-              <p className="text-sm font-medium text-destructive">
-                {errorMessage === "payment_failed"
-                  ? "Payment failed. Please try again or contact support."
-                  : "An error occurred. Please try again."}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
         {(params.required === "true" || params.error === "true") && (
           <div className="max-w-2xl mx-auto mb-8">
             <PaymentRequiredBanner showError={params.error === "true"} />
           </div>
         )}
 
-        <PricingCards
-          plans={plans}
-          currentSubscription={currentSubscription}
-          isLoggedIn={!!session?.user}
-          selectedPlan={params.plan}
-        />
+        <div id="pricing-section">
+          <PricingCards
+            isLoggedIn={!!session?.user}
+            hasActiveSubscription={hasActiveSubscription}
+          />
+        </div>
+
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          New students get a free trial. Prices in Naira, billed via Paystack.
+        </p>
 
         <div className="mt-16 text-center space-y-4">
           <h3 className="text-2xl font-bold">Why Students Choose Us</h3>

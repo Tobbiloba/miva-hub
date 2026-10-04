@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { loadLectureStudy } from "@/lib/academic/lecture-study";
-import { getSession } from "@/lib/auth/server";
+import { getApiSession } from "@/lib/auth/server";
+import { checkPaidAccess, paymentRequiredResponse } from "@/lib/billing/access";
 import globalLogger from "logger";
 
 const logger = globalLogger.withDefaults({ message: "Lecture Study API: " });
@@ -15,10 +16,14 @@ export async function GET(
   { params }: { params: Promise<{ materialId: string }> },
 ) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Paywall: study kits are paid content (trial, subscription, or seat)
+    const paid = await checkPaidAccess(session.user.id);
+    if (!paid.allowed) return paymentRequiredResponse(paid.reason);
 
     const { materialId } = await params;
     const access = await loadLectureStudy(materialId, session.user.id);

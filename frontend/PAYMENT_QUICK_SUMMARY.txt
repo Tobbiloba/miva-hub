@@ -1,178 +1,81 @@
-MIVA UNIVERSITY FRONTEND - PAYMENT & BILLING SYSTEM ANALYSIS
-============================================================
+ASKLY — PAYMENTS & BILLING (current system)
+===========================================
 
-EXECUTIVE SUMMARY:
-The MIVA University frontend has a complete, production-ready Paystack subscription 
-system with two pricing tiers (PRO ₦2,500/mo and MAX ₦5,500/mo), full payment processing, 
-webhook handling, and usage tracking.
+Provider: Paystack (NGN). All amounts are stored and sent in KOBO
+(₦1 = 100 kobo), including columns named *_ngn.
 
-KEY FINDINGS:
+PRICING — single source of truth: src/lib/billing/plans.ts
+  Individual (students):
+    ASKLY_MONTHLY  ₦3,000 / month   (300000 kobo, Paystack interval monthly)
+    ASKLY_YEARLY   ₦30,000 / year   (3000000 kobo, Paystack interval annually)
+  University (org) seats, prepaid one-time charge:
+    ₦2,000 / seat / month, ₦20,000 / seat / year
+  The subscription_plan DB rows (migration 0033) must match plans.ts;
+  checkout refuses to charge (503 + log) if they drift.
 
-1. PAYMENT PROVIDER: PAYSTACK
-   - Nigerian payment processor (ideal for student base)
-   - Full subscription management with recurring billing
-   - Currency: NGN (Nigerian Naira)
-   - API Integration: Fully implemented and tested
+WHO PAYS / WHO HAS ACCESS — src/lib/billing/rules.ts decidePaidAccess
+  1. Non-students (faculty, admin, super_admin) → always allowed
+  2. Student in free trial (user.trial_ends_at > now) → allowed
+  3. Student with own active subscription → allowed
+     (status active/trialing and current_period_end >= now; a renewing
+      subscription gets a 48h grace window past period end for the
+      renewal webhook to land; past_due/cancelled get none)
+  4. Student holding a university seat → allowed
+     (seat rule: active-enrollment students in signup order; the first
+      N = sum of seat limits of the university's currently-covering
+      subscriptions are covered)
+  5. Otherwise paywalled
+  Pages: (chat)/layout.tsx and student/layout.tsx redirect to /billing.
+  APIs: checkPaidAccess() → HTTP 402 {error, code: "PAYMENT_REQUIRED"}
+        (src/lib/billing/access.ts), on every AI/paid-content route.
 
-2. PRICING TIERS:
-   PRO Plan (₦2,500/month)
-   - 30 AI messages/day (GPT-3.5 Turbo)
-   - 3 quizzes/week, 2 exams/month
-   - 5 courses max, 2 flashcard sets/week
-   
-   MAX Plan (₦5,500/month)
-   - Unlimited everything
-   - GPT-4 + Claude 3.5 access
-   - Advanced features: offline mode, analytics, study groups
+STUDENT FLOW
+  /billing (or /pricing) → POST /api/billing/checkout {plan}
+    → pending payment_transaction row (OUR record of payer + plan)
+    → Paystack checkout → redirect to /billing/callback?reference=…
+    → POST /api/billing/verify verifies with Paystack and applies the
+      payment (same code as the webhook) → success only when active.
+  Renewals: Paystack charges automatically; webhooks extend the period.
+  Cancel: POST /api/billing/cancel → disables the Paystack subscription
+    FIRST (errors are surfaced, never swallowed), then marks
+    cancel_at_period_end. Access continues until current_period_end.
+  Profile billing tab: GET /api/billing/details, GET /api/billing/manage-link
+    (Paystack card-update page), POST /api/billing/cancel.
 
-3. PAYMENT FLOW:
-   User → Pricing Page → Subscribe → Paystack Checkout → Callback Handler → 
-   Transaction Verified → Subscription Created → Webhooks Handle Renewals
+UNIVERSITY FLOW (admin)
+  POST /api/admin/billing/checkout {seats, interval} → pending
+  university_subscription row stamped with the Paystack reference →
+  Paystack → GET /api/admin/billing/callback. Activation (callback or
+  webhook) finds the row by OUR reference (never Paystack metadata),
+  checks it belongs to the admin's university, and requires
+  amount paid >= seat_limit × price_per_seat. Early renewals stack.
+  Super admins can comp seats: /api/super-admin/universities/[id]/subscription.
 
-4. API ENDPOINTS:
-   POST   /api/subscription/initialize      - Start payment
-   GET    /api/subscription/callback        - Payment callback
-   GET    /api/subscription/status          - Check status
-   POST   /api/subscription/cancel          - Cancel subscription
-   GET    /api/subscription/details         - Full details
-   GET    /api/subscription/usage           - Usage stats
-   GET    /api/subscription/manage-link     - Paystack portal
-   POST   /api/webhooks/paystack            - Webhook receiver
+WEBHOOK — POST /api/webhooks/paystack (src/lib/billing/individual.ts)
+  Signature: HMAC-SHA512 of raw body with PAYSTACK_SECRET_KEY.
+  Idempotency: webhook_event.event_key = sha256(raw body), UNIQUE.
+    already processed → 200 no-op; recorded but failed → reprocessed.
+  Responses: 200 for processed/duplicate/ignored; 500 only on real
+    failure (so Paystack retries).
+  charge.success        org seat payment, or individual initial/renewal
+                        charge: amount+currency checked against the plan
+                        row, period extended, receipt emailed exactly once
+  subscription.create   stores SUB_ code + email token, aligns period
+  invoice.update (paid) extends period from Paystack dates
+  invoice.payment_failed → past_due (access ends)
+  subscription.not_renew / subscription.disable → non-renewing; access
+                        is NOT cut — it lapses at current_period_end
+  Period math: new end = max(existing end, next_payment_date or
+  paid_at + interval) — idempotent and order-independent.
+  One subscription row per user: upserts under a per-user advisory lock.
 
-5. DATABASE SCHEMA:
-   - subscription_plan (plans with features/limits)
-   - user_subscription (active subscriptions)
-   - payment_transaction (transaction history)
-   - usage_tracking (enforce daily/weekly/monthly limits)
-   - webhook_event (webhook audit log)
-   - subscription_change_log (audit trail)
+SETUP
+  1. Apply migrations (incl. 0033 plans, 0040 webhook event_key).
+  2. pnpm tsx scripts/setup-paystack-plans.ts  (creates Paystack plans
+     from plans.ts and writes plan codes to subscription_plan)
+  3. Paystack dashboard webhook URL: https://<host>/api/webhooks/paystack
+  Env: PAYSTACK_SECRET_KEY (live key in production — startup fails on
+  sk_test unless PAYSTACK_ALLOW_TEST_KEY=true), NEXT_PUBLIC_APP_URL
+  (required in production; Paystack callbacks and email links).
 
-6. FRONTEND COMPONENTS:
-   - /pricing page (plan selection)
-   - Profile billing tab (subscription management)
-   - PricingCards (plan display component)
-   - SubscriptionCard (current plan details)
-   - ManageSubscription (upgrade/cancel/update payment)
-   - PaymentHistoryTable (transaction history)
-   - UsageStatsCard (usage tracking with progress bars)
-
-7. USAGE TRACKING:
-   Enforces per-plan limits:
-   - AI messages: 30/day (PRO) vs unlimited (MAX)
-   - Quizzes: 3/week (PRO) vs unlimited (MAX)
-   - Exams: 2/month (PRO) vs unlimited (MAX)
-   - Plus: flashcards, practice problems, study guides, searches
-   
-   All limits are configurable per plan via database
-
-8. SECURITY:
-   - HMAC-SHA512 webhook signature verification
-   - Server-side API keys (never exposed to frontend)
-   - Database access via Drizzle ORM (prepared statements)
-   - Session management via Better Auth
-   - All payment routes require authentication
-
-9. WHAT'S WORKING:
-   ✅ Complete payment flow (initialize → verify → create subscription)
-   ✅ Recurring billing (handled via Paystack webhooks)
-   ✅ Subscription cancellation
-   ✅ Transaction history tracking
-   ✅ Usage limits enforcement
-   ✅ Upgrade/downgrade flows
-   ✅ Management portal link access
-   ✅ Database schema and indexes
-   ✅ Helper functions (check_usage_limit, increment_usage, etc.)
-
-10. NEEDS VERIFICATION/FIX:
-    ⚠️  Email token capture during callback
-        - Required to disable subscriptions
-        - Currently not being stored
-        
-    ⚠️  Paystack plan codes verification
-        - Hardcoded as PLN_pro_monthly and PLN_max_monthly
-        - Need to verify these match actual Paystack dashboard
-        
-    ⚠️  Webhook endpoint accessibility
-        - Must be publicly accessible in production
-        - NEXT_PUBLIC_APP_URL must be correct
-        
-    ⚠️  Trial periods
-        - Database fields exist but not implemented
-        - Could enable freemium conversions
-
-11. FILE LOCATIONS:
-    API Routes:
-    - /frontend/src/app/api/subscription/initialize/route.ts
-    - /frontend/src/app/api/subscription/callback/route.ts
-    - /frontend/src/app/api/subscription/cancel/route.ts
-    - /frontend/src/app/api/webhooks/paystack/route.ts
-    
-    Services:
-    - /frontend/src/lib/payment/paystack-service.ts
-    - /frontend/src/lib/db/pg/repositories/subscription-repository.pg.ts
-    
-    Components:
-    - /frontend/src/components/pricing/pricing-cards.tsx
-    - /frontend/src/components/profile/billing-tab.tsx
-    - /frontend/src/components/profile/subscription-card.tsx
-    - /frontend/src/components/profile/manage-subscription.tsx
-    
-    Database:
-    - /frontend/src/lib/db/pg/schema.pg.ts
-    - /frontend/src/lib/db/migrations/pg/0019_subscription_system.sql
-    
-    Setup Scripts:
-    - /frontend/scripts/create-paystack-plans.ts
-    - /frontend/scripts/update-plan-codes.ts
-
-12. ENVIRONMENT VARIABLES NEEDED:
-    PAYSTACK_SECRET_KEY           - For API calls
-    PAYSTACK_PUBLIC_KEY           - For frontend
-    NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY - Exposed public key
-    NEXT_PUBLIC_APP_URL           - Callback URL (http://localhost:3000)
-    POSTGRES_URL                  - Database connection
-    BETTER_AUTH_SECRET            - Auth encryption
-    BETTER_AUTH_URL               - Auth URL
-
-13. DEPLOYMENT STEPS:
-    1. Get Paystack live API keys
-    2. Run migrations: pnpm db:push
-    3. Create plans: pnpm paystack:create-plans
-    4. Update codes: pnpm paystack:update-codes
-    5. Configure webhook in Paystack dashboard
-    6. Test end-to-end payment flow
-    7. Enable HTTPS
-    8. Monitor webhooks for failures
-
-14. TESTING:
-    Can use Paystack test account with card:
-    Visa: 4084 0343 6173 6309  | CVV: 407  | Exp: 12/31
-    
-    For webhooks: Use ngrok to expose localhost, update webhook URL in Paystack
-
-15. STRENGTHS:
-    - Complete implementation ready for production
-    - Well-designed database schema with proper indexing
-    - Type-safe TypeScript throughout
-    - Proper error handling and validation
-    - Full audit trail of changes
-    - Clean separation of concerns
-
-16. RECOMMENDATIONS:
-    1. Capture and store email token during callback
-    2. Add rate limiting to payment endpoints
-    3. Implement automatic webhook retry with exponential backoff
-    4. Add email notifications for receipts and renewals
-    5. Set up monitoring/alerts for payment failures
-    6. Add integration tests for payment flows
-    7. Consider Stripe as backup provider
-    8. Add detailed logging for debugging
-
-CONCLUSION:
-The payment system is comprehensive and production-ready. Main action items are:
-1. Verify Paystack plan codes
-2. Fix email token capture
-3. Test webhook in production environment
-4. Add monitoring and error recovery
-
-Full detailed analysis saved to: PAYMENT_BILLING_ANALYSIS.md
+TESTS: src/lib/billing/rules.test.ts (npx vitest run src/lib/billing)

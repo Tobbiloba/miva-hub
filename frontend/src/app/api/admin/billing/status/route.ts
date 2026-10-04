@@ -3,6 +3,7 @@ import {
   ORG_PRICE_PER_SEAT_NGN,
   countStudentSeatsUsed,
   getActiveUniversitySubscription,
+  getUniversitySeatCoverage,
 } from "@/lib/billing/org";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { UniversitySubscriptionSchema } from "@/lib/db/pg/schema.pg";
@@ -24,8 +25,9 @@ export async function GET() {
       );
     }
 
-    const [activeSub, seatsUsed, [latestSub]] = await Promise.all([
+    const [activeSub, coverage, seatsUsed, [latestSub]] = await Promise.all([
       getActiveUniversitySubscription(university.id),
+      getUniversitySeatCoverage(university.id),
       countStudentSeatsUsed(university.id),
       pgDb
         .select()
@@ -45,7 +47,10 @@ export async function GET() {
           ? {
               id: sub.id,
               status: activeSub ? "active" : sub.status,
-              seatLimit: sub.seatLimit,
+              // While covered: total seats across all covering blocks —
+              // the same number the student paywall enforces.
+              seatLimit:
+                activeSub && coverage ? coverage.seatLimit : sub.seatLimit,
               interval: sub.interval,
               pricePerSeatNgn: sub.pricePerSeatNgn,
               currentPeriodStart: sub.currentPeriodStart,
@@ -55,7 +60,9 @@ export async function GET() {
           : null,
         covered: !!activeSub,
         seatsUsed,
-        overSeatLimit: !!activeSub && seatsUsed > activeSub.seatLimit,
+        // Students beyond the limit (by signup order) are NOT covered and
+        // fall back to their own trial/subscription.
+        overSeatLimit: !!coverage && seatsUsed > coverage.seatLimit,
         pricing: ORG_PRICE_PER_SEAT_NGN,
       },
     });

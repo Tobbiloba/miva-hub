@@ -4,7 +4,8 @@ import { z } from "zod";
 
 import { getEnrolledCourse } from "@/lib/ai/course-tutor-context";
 import { issueCredential } from "@/lib/ai/credential";
-import { getSession } from "auth/server";
+import { getApiSession } from "auth/server";
+import { checkPaidAccess, paymentRequiredResponse } from "@/lib/billing/access";
 import { pgDb } from "lib/db/pg/db.pg";
 import { CourseSchema, MicroCredentialSchema } from "lib/db/pg/schema.pg";
 import { checkRateLimit, rateLimitResponse } from "lib/rate-limit";
@@ -17,7 +18,7 @@ export const maxDuration = 60;
 /** GET /api/student/credentials — the student's issued micro-credentials. */
 export async function GET() {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -60,10 +61,14 @@ const bodySchema = z.object({ courseId: z.string().uuid() });
  */
 export async function POST(request: Request) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Paywall: AI features need a trial, subscription, or university seat
+    const access = await checkPaidAccess(session.user.id);
+    if (!access.allowed) return paymentRequiredResponse(access.reason);
 
     const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
     if (!parsed.success) {
@@ -73,7 +78,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const rateLimit = checkRateLimit(`credential:${session.user.id}`, 3, 3600);
+    const rateLimit = await checkRateLimit(
+      `credential:${session.user.id}`,
+      3,
+      3600,
+    );
     if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
 
     // Enrollment gate — identity from the session, never the body

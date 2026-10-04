@@ -4,14 +4,14 @@ import {
   smoothStream,
   streamText,
 } from "ai";
-import { getSession } from "auth/server";
+import { getApiSession } from "auth/server";
+import { checkPaidAccess, paymentRequiredResponse } from "@/lib/billing/access";
 import { colorize } from "consola/utils";
 import { customModelProvider } from "lib/ai/models";
 import { buildUserSystemPrompt } from "lib/ai/prompts";
 import { userRepository } from "lib/db/repository";
 import { checkRateLimit, rateLimitResponse } from "lib/rate-limit";
 import globalLogger from "logger";
-import { redirect } from "next/navigation";
 
 const logger = globalLogger.withDefaults({
   message: colorize("blackBright", `Temporary Chat API: `),
@@ -21,14 +21,18 @@ export async function POST(request: Request) {
   try {
     const json = await request.json();
 
-    const session = await getSession();
+    const session = await getApiSession();
 
     if (!session?.user.id) {
-      return redirect("/sign-in");
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Paywall: AI features need a trial, subscription, or university seat
+    const access = await checkPaidAccess(session.user.id);
+    if (!access.allowed) return paymentRequiredResponse(access.reason);
+
     // Per-user rate limit: caps LLM spend abuse (20 messages/min/user)
-    const rateLimit = checkRateLimit(`chat:${session.user.id}`, 20, 60);
+    const rateLimit = await checkRateLimit(`chat:${session.user.id}`, 20, 60);
     if (!rateLimit.allowed) {
       return rateLimitResponse(rateLimit);
     }

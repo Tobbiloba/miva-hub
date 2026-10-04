@@ -1,5 +1,6 @@
 import { AllowedMCPServer, VercelAIMcpTool } from "app-types/mcp";
-import { getSession } from "auth/server";
+import { getApiSession } from "auth/server";
+import { checkPaidAccess, paymentRequiredResponse } from "@/lib/billing/access";
 import { colorize } from "consola/utils";
 import { mcpClientsManager } from "lib/ai/mcp/mcp-manager";
 import {
@@ -15,7 +16,7 @@ import { safe } from "ts-safe";
 import {
   rememberAgentAction,
   rememberMcpServerCustomizationsAction,
-} from "../actions";
+} from "../chat-context";
 import {
   filterMCPToolsByAllowedMCPServers,
   filterMcpServerCustomizations,
@@ -37,14 +38,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const session = await getSession();
+    const session = await getApiSession();
 
     if (!session?.user.id) {
       return new Response("Unauthorized", { status: 401 });
     }
 
+    // Paywall: AI features need a trial, subscription, or university seat
+    const access = await checkPaidAccess(session.user.id);
+    if (!access.allowed) return paymentRequiredResponse(access.reason);
+
     // Realtime voice sessions are expensive: 5 new sessions/min/user
-    const rateLimit = checkRateLimit(`realtime:${session.user.id}`, 5, 60);
+    const rateLimit = await checkRateLimit(
+      `realtime:${session.user.id}`,
+      5,
+      60,
+    );
     if (!rateLimit.allowed) {
       return rateLimitResponse(rateLimit);
     }

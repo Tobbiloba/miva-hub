@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import { verifyPaystackSignature } from "@/lib/billing/rules";
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_API_URL =
@@ -19,7 +19,9 @@ export interface VerifyTransactionResponse {
     id: number;
     reference: string;
     amount: number;
+    currency: string;
     status: string;
+    paid_at?: string | null;
     customer: {
       id: number;
       customer_code: string;
@@ -36,11 +38,10 @@ export interface VerifyTransactionResponse {
       bank: string;
       channel: string;
     };
-    plan?: {
-      id: number;
-      plan_code: string;
-      name: string;
-    };
+    /** Paystack sends the plan code as a string here; plan_object has details. */
+    plan?: string | { id: number; plan_code: string; name: string } | null;
+    plan_object?: { plan_code?: string; interval?: string } | null;
+    metadata?: Record<string, any> | null;
     subscription?: {
       subscription_code: string;
       email_token: string;
@@ -195,22 +196,37 @@ class PaystackService {
       `/subscription/${subscriptionCode}/manage/link`,
       "GET",
     );
+    if (!response?.status || !response.data?.link) {
+      throw new Error(
+        `Paystack manage link failed: ${response?.message ?? "no link returned"}`,
+      );
+    }
     return response.data.link;
   }
 
   verifyWebhookSignature(payload: string, signature: string): boolean {
-    const hash = crypto
-      .createHmac("sha512", this.apiKey)
-      .update(payload)
-      .digest("hex");
-    try {
-      return crypto.timingSafeEqual(
-        Buffer.from(hash, "hex"),
-        Buffer.from(signature, "hex"),
+    return verifyPaystackSignature(payload, signature, this.apiKey);
+  }
+
+  /**
+   * The customer's Paystack subscriptions (fetch-customer includes them).
+   * Used to find the real SUB_ code + email token for a subscription we
+   * only know by a charge_<ref> placeholder, so cancel can disable it.
+   */
+  async getCustomerSubscriptions(customerCode: string): Promise<
+    Array<{
+      subscription_code: string;
+      email_token?: string;
+      status: string;
+    }>
+  > {
+    const res = await this.getCustomer(customerCode);
+    if (!res?.status) {
+      throw new Error(
+        `Paystack customer lookup failed: ${res?.message ?? "unknown error"}`,
       );
-    } catch {
-      return false;
     }
+    return Array.isArray(res.data?.subscriptions) ? res.data.subscriptions : [];
   }
 
   koboToNaira(kobo: number): number {

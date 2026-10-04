@@ -10,6 +10,7 @@ import { cn, truncateString } from "lib/utils";
 import { extractRichMaterials } from "lib/video-utils";
 import { ChevronDown, ChevronUp, TriangleAlertIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 import { Button } from "ui/button";
 import {
   AssistMessagePart,
@@ -200,6 +201,30 @@ export const ErrorMessage = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const maxLength = 200;
   const t = useTranslations();
+
+  // The chat API answers 402 PAYMENT_REQUIRED when a trial/subscription ends
+  if (error.message.includes("PAYMENT_REQUIRED")) {
+    return (
+      <div className="w-full mx-auto max-w-3xl px-6 animate-in fade-in mt-4">
+        <div className="flex items-start gap-3 px-2" role="alert">
+          <div className="p-1.5 bg-muted rounded-sm">
+            <TriangleAlertIcon className="h-3.5 w-3.5 text-destructive" />
+          </div>
+          <div className="flex-1 text-sm">
+            <p className="font-medium mb-1">Your Askly access has ended</p>
+            <p className="text-muted-foreground mb-3">
+              Your free trial or subscription is no longer active. Subscribe to
+              keep chatting.
+            </p>
+            <Button asChild size="sm">
+              <Link href="/billing">View plans</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full mx-auto max-w-3xl px-6 animate-in fade-in mt-4">
       <div className="flex flex-col gap-2">

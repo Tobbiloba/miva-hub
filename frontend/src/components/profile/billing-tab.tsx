@@ -3,11 +3,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreditCard } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ManageSubscription } from "./manage-subscription";
 import { PaymentHistoryTable } from "./payment-history-table";
 import { SubscriptionCard } from "./subscription-card";
-import { UsageStatsCard } from "./usage-stats-card";
 
 interface SubscriptionData {
   subscription: {
@@ -15,7 +14,6 @@ interface SubscriptionData {
     plan: any;
   } | null;
   transactions: any[];
-  availablePlans: any[];
 }
 
 export function BillingTab() {
@@ -23,8 +21,9 @@ export function BillingTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch("/api/subscription/details")
+  const load = useCallback(() => {
+    setError(null);
+    return fetch("/api/billing/details")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch");
         return res.json();
@@ -33,6 +32,10 @@ export function BillingTab() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   if (loading) {
     return (
@@ -54,7 +57,10 @@ export function BillingTab() {
             <Button
               variant="outline"
               className="mt-4"
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                setLoading(true);
+                load();
+              }}
             >
               Retry
             </Button>
@@ -70,17 +76,14 @@ export function BillingTab() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-2">
-        <SubscriptionCard
-          subscription={data.subscription.subscription}
-          plan={data.subscription.plan}
-        />
-        <UsageStatsCard />
-      </div>
+      <SubscriptionCard
+        subscription={data.subscription.subscription}
+        plan={data.subscription.plan}
+      />
       <ManageSubscription
         subscription={data.subscription.subscription}
         currentPlan={data.subscription.plan}
-        availablePlans={data.availablePlans}
+        onChanged={load}
       />
       <PaymentHistoryTable transactions={data.transactions} />
     </div>
@@ -107,7 +110,7 @@ function NoSubscriptionState() {
               Choose a plan to get started with Askly
             </p>
           </div>
-          <Button onClick={() => (window.location.href = "/pricing")}>
+          <Button onClick={() => (window.location.href = "/billing")}>
             View Plans
           </Button>
         </div>

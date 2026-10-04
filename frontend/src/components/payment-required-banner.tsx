@@ -26,8 +26,8 @@ export function PaymentRequiredBanner({
           </>
         ) : (
           <>
-            You need an active subscription to access the full features of Miva
-            Hub. Choose a plan below to get started!
+            You need an active subscription to access the full features of
+            Askly. Choose a plan below to get started!
           </>
         )}
       </AlertDescription>

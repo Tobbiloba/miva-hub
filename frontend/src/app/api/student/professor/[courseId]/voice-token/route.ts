@@ -5,7 +5,8 @@ import { z } from "zod";
 import { buildCourseTutorContext } from "@/lib/ai/course-tutor-context";
 import { getOrCreateProfessor } from "@/lib/ai/professor";
 import { VIVA_LIVE_MODEL } from "@/lib/ai/viva";
-import { getSession } from "auth/server";
+import { getApiSession } from "auth/server";
+import { checkPaidAccess, paymentRequiredResponse } from "@/lib/billing/access";
 import { checkRateLimit, rateLimitResponse } from "lib/rate-limit";
 import globalLogger from "logger";
 
@@ -24,16 +25,24 @@ export async function POST(
   { params }: { params: Promise<{ courseId: string }> },
 ) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Paywall: AI features need a trial, subscription, or university seat
+    const access = await checkPaidAccess(session.user.id);
+    if (!access.allowed) return paymentRequiredResponse(access.reason);
     const { courseId } = await params;
     if (!z.string().uuid().safeParse(courseId).success) {
       return NextResponse.json({ error: "Invalid course id" }, { status: 400 });
     }
 
-    const rateLimit = checkRateLimit(`office-hours:${session.user.id}`, 3, 300);
+    const rateLimit = await checkRateLimit(
+      `office-hours:${session.user.id}`,
+      3,
+      300,
+    );
     if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
 
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;

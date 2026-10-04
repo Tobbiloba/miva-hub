@@ -7,8 +7,15 @@ import {
   GraduationCap,
   Loader2,
 } from "lucide-react";
+import {
+  INDIVIDUAL_PLANS,
+  PLAN_FEATURES,
+  YEARLY_SAVINGS_KOBO,
+  formatNaira,
+  getIndividualPlanByName,
+} from "lib/billing/plans";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,14 +57,24 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
+  const loadStatus = useCallback(() => {
+    setLoading(true);
+    setLoadError(false);
     fetch("/api/billing/status")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`status ${res.status}`);
+        return res.json();
+      })
       .then(setStatus)
-      .catch(console.error)
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadStatus();
+  }, [loadStatus]);
 
   async function handleCheckout(plan: "monthly" | "yearly") {
     setCheckoutLoading(plan);
@@ -113,7 +130,21 @@ export default function BillingPage() {
     );
   }
 
-  if (!status) return null;
+  if (loadError || !status) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md text-center space-y-4">
+          <h1 className="text-2xl font-bold">Couldn&apos;t load your plan</h1>
+          <p className="text-muted-foreground">
+            Check your connection and try again.
+          </p>
+          <Button onClick={loadStatus} className="min-h-11">
+            Try again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const isPaywalled = status.paywalled;
   const hasActiveSub =
@@ -281,16 +312,11 @@ export default function BillingPage() {
 
           {isCanceled && (
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-3">
-                Your subscription ends on{" "}
-                {formatDate(status.subscription!.current_period_end)}.
-                Re-subscribe to keep access.
+              <p className="text-sm text-muted-foreground">
+                You won&apos;t be charged again. You keep full access until{" "}
+                {formatDate(status.subscription!.current_period_end)}; after
+                that you can subscribe again from this page.
               </p>
-              <PlanCards
-                onCheckout={handleCheckout}
-                checkoutLoading={checkoutLoading}
-                compact
-              />
             </CardContent>
           )}
         </Card>
@@ -329,45 +355,42 @@ export default function BillingPage() {
 function PlanCards({
   onCheckout,
   checkoutLoading,
-  compact,
 }: {
   onCheckout: (plan: "monthly" | "yearly") => void;
   checkoutLoading: string | null;
-  compact?: boolean;
 }) {
+  const monthly = INDIVIDUAL_PLANS.monthly;
+  const yearly = INDIVIDUAL_PLANS.yearly;
+  const yearlyPerMonth = Math.round(yearly.priceKobo / 12);
+
   return (
-    <div
-      className={`grid gap-4 ${compact ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-2"}`}
-    >
-      <Card className={compact ? "" : "border-2"}>
-        <CardHeader className={compact ? "pb-2" : ""}>
-          <CardTitle className={compact ? "text-base" : "text-xl"}>
-            Monthly
-          </CardTitle>
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+      <Card className="border-2">
+        <CardHeader>
+          <CardTitle className="text-xl">Monthly</CardTitle>
           <CardDescription>
-            <span className="text-2xl font-bold text-foreground">₦3,000</span>
-            <span className="text-muted-foreground">/month</span>
+            <span className="text-2xl font-bold text-foreground">
+              {formatNaira(monthly.priceKobo)}
+            </span>
+            <span className="text-muted-foreground">
+              /{monthly.periodLabel}
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!compact && (
-            <ul className="space-y-2 text-sm text-muted-foreground mb-4">
-              <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-emerald-500" /> Full AI
-                chat access
+          <ul className="space-y-2 text-sm text-muted-foreground mb-4">
+            {PLAN_FEATURES.slice(0, 3).map((feature) => (
+              <li key={feature} className="flex items-center gap-2">
+                <CheckCircle
+                  className="h-4 w-4 text-emerald-500"
+                  aria-hidden="true"
+                />{" "}
+                {feature}
               </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-emerald-500" /> All course
-                materials
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-emerald-500" /> Flashcards
-                & quizzes
-              </li>
-            </ul>
-          )}
+            ))}
+          </ul>
           <Button
-            className="w-full"
+            className="w-full min-h-11"
             onClick={() => onCheckout("monthly")}
             disabled={!!checkoutLoading}
           >
@@ -379,39 +402,47 @@ function PlanCards({
         </CardContent>
       </Card>
 
-      <Card className={compact ? "" : "border-2 border-primary"}>
-        <CardHeader className={compact ? "pb-2" : ""}>
+      <Card className="border-2 border-primary">
+        <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className={compact ? "text-base" : "text-xl"}>
-              Yearly
-            </CardTitle>
+            <CardTitle className="text-xl">Yearly</CardTitle>
             <Badge variant="secondary" className="text-xs">
-              Save ₦6,000
+              Save {formatNaira(YEARLY_SAVINGS_KOBO)}
             </Badge>
           </div>
           <CardDescription>
-            <span className="text-2xl font-bold text-foreground">₦30,000</span>
-            <span className="text-muted-foreground">/year</span>
+            <span className="text-2xl font-bold text-foreground">
+              {formatNaira(yearly.priceKobo)}
+            </span>
+            <span className="text-muted-foreground">/{yearly.periodLabel}</span>
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!compact && (
-            <ul className="space-y-2 text-sm text-muted-foreground mb-4">
-              <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-emerald-500" /> Everything
-                in Monthly
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-emerald-500" /> Effective
-                ₦2,500/month
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-emerald-500" /> Best value
-              </li>
-            </ul>
-          )}
+          <ul className="space-y-2 text-sm text-muted-foreground mb-4">
+            <li className="flex items-center gap-2">
+              <CheckCircle
+                className="h-4 w-4 text-emerald-500"
+                aria-hidden="true"
+              />{" "}
+              Everything in Monthly
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle
+                className="h-4 w-4 text-emerald-500"
+                aria-hidden="true"
+              />{" "}
+              Effective {formatNaira(yearlyPerMonth)}/month
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle
+                className="h-4 w-4 text-emerald-500"
+                aria-hidden="true"
+              />{" "}
+              Best value
+            </li>
+          </ul>
           <Button
-            className="w-full"
+            className="w-full min-h-11"
             variant="default"
             onClick={() => onCheckout("yearly")}
             disabled={!!checkoutLoading}
@@ -430,12 +461,9 @@ function PlanCards({
 // ─── Helpers ───
 
 function getPlanDisplayName(plan?: string): string {
-  if (!plan) return "Askly";
-  if (plan.includes("MONTHLY") || plan.includes("monthly"))
-    return "Monthly - ₦3,000/mo";
-  if (plan.includes("YEARLY") || plan.includes("yearly"))
-    return "Yearly - ₦30,000/yr";
-  return plan;
+  const def = getIndividualPlanByName(plan);
+  if (!def) return plan || "Askly";
+  return `${def.displayName} - ${formatNaira(def.priceKobo)}/${def.periodLabel}`;
 }
 
 function formatDate(iso: string): string {

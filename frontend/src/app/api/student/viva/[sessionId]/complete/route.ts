@@ -4,7 +4,8 @@ import { z } from "zod";
 
 import { type VivaTurn, scoreVivaTranscript } from "@/lib/ai/viva";
 import { getUserUniversity } from "@/lib/tenant";
-import { getSession } from "auth/server";
+import { getApiSession } from "auth/server";
+import { checkPaidAccess, paymentRequiredResponse } from "@/lib/billing/access";
 import { pgDb } from "lib/db/pg/db.pg";
 import { CourseSchema, VivaSessionSchema } from "lib/db/pg/schema.pg";
 import globalLogger from "logger";
@@ -33,10 +34,14 @@ export async function POST(
   { params }: { params: Promise<{ sessionId: string }> },
 ) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Paywall: AI features need a trial, subscription, or university seat
+    const access = await checkPaidAccess(session.user.id);
+    if (!access.allowed) return paymentRequiredResponse(access.reason);
     const { sessionId } = await params;
 
     const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));

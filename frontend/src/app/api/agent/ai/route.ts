@@ -6,7 +6,8 @@ import { buildAgentGenerationPrompt } from "lib/ai/prompts";
 import globalLogger from "logger";
 
 import { AgentGenerateSchema } from "app-types/agent";
-import { getSession } from "auth/server";
+import { getApiSession } from "auth/server";
+import { checkPaidAccess, paymentRequiredResponse } from "@/lib/billing/access";
 import { colorize } from "consola/utils";
 import { mcpClientsManager } from "lib/ai/mcp/mcp-manager";
 import { checkRateLimit, rateLimitResponse } from "lib/rate-limit";
@@ -30,13 +31,21 @@ export async function POST(request: Request) {
 
     logger.info(`chatModel: ${chatModel?.provider}/${chatModel?.model}`);
 
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session) {
       return new Response("Unauthorized", { status: 401 });
     }
 
+    // Paywall: AI features need a trial, subscription, or university seat
+    const access = await checkPaidAccess(session.user.id);
+    if (!access.allowed) return paymentRequiredResponse(access.reason);
+
     // Per-user rate limit: each call is a full agent-generation LLM run
-    const rateLimit = checkRateLimit(`agent-ai:${session.user.id}`, 10, 60);
+    const rateLimit = await checkRateLimit(
+      `agent-ai:${session.user.id}`,
+      10,
+      60,
+    );
     if (!rateLimit.allowed) {
       return rateLimitResponse(rateLimit);
     }

@@ -24,20 +24,18 @@ export function SubscriptionCard({
   const isCancelled = subscription.cancelAtPeriodEnd;
   const isExpired = new Date(subscription.currentPeriodEnd) < new Date();
 
-  const planColor =
-    plan.name === "MAX"
-      ? "bg-primary/10 text-primary border-primary/20"
-      : "bg-primary/10 text-primary border-primary/20";
+  const planColor = "bg-primary/10 text-primary border-primary/20";
+  const isPastDue = status === "past_due";
 
   const getStatusBadge = () => {
-    if (status === "suspended") {
+    if (status === "suspended" || isPastDue) {
       return (
         <Badge
           variant="secondary"
           className="bg-destructive/10 text-destructive border-destructive/30"
         >
           <Clock className="h-3 w-3 mr-1" />
-          Suspended
+          {isPastDue ? "Payment failed" : "Suspended"}
         </Badge>
       );
     }
@@ -97,7 +95,9 @@ export function SubscriptionCard({
               <p className="text-2xl font-bold">
                 ₦{(plan.priceNgn / 100).toLocaleString()}
               </p>
-              <p className="text-xs text-muted-foreground">per month</p>
+              <p className="text-xs text-muted-foreground">
+                per {plan.interval === "yearly" ? "year" : "month"}
+              </p>
             </div>
           </div>
 
@@ -133,22 +133,14 @@ export function SubscriptionCard({
               <div className="mt-1 text-sm text-muted-foreground">
                 Card (via Paystack)
               </div>
-              <button
-                className="mt-1 text-xs text-primary hover:underline"
-                onClick={() => {
-                  /* Will be handled by manage subscription */
-                }}
-              >
-                View details
-              </button>
             </div>
           </div>
 
-          {(isExpired || status === "suspended") && (
+          {(isExpired || status === "suspended" || isPastDue) && (
             <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
               <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
-                {status === "suspended"
-                  ? "⚠️ Your subscription is suspended. Please update your payment method to reactivate."
+                {status === "suspended" || isPastDue
+                  ? "⚠️ Your last payment failed. Please update your payment method to reactivate."
                   : "⚠️ Your subscription has expired. Renew now to continue accessing premium features."}
               </p>
             </div>

@@ -19,7 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ExternalLink, TrendingDown, TrendingUp, XCircle } from "lucide-react";
+import { ExternalLink, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -27,39 +27,41 @@ import { toast } from "sonner";
 interface ManageSubscriptionProps {
   subscription: any;
   currentPlan: any;
-  availablePlans: any[];
+  /** Re-fetch billing details after a change (e.g. cancel). */
+  onChanged?: () => void;
 }
 
 export function ManageSubscription({
   subscription,
   currentPlan,
-  availablePlans,
+  onChanged,
 }: ManageSubscriptionProps) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const otherPlan = availablePlans.find((p) => p.id !== currentPlan.id);
-  const isUpgrade = otherPlan && otherPlan.priceNgn > currentPlan.priceNgn;
   const isExpired =
     new Date(subscription.currentPeriodEnd) < new Date() ||
     subscription.status === "expired";
-  const isSuspended = subscription.status === "suspended";
+  const isPastDue = subscription.status === "past_due";
 
   const handleUpdatePayment = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/subscription/manage-link");
+      const res = await fetch("/api/billing/manage-link");
       const data = await res.json();
 
       if (res.ok && data.link) {
-        window.open(data.link, "_blank");
+        window.open(data.link, "_blank", "noopener,noreferrer");
         toast.success("Opening payment management portal...");
       } else {
         throw new Error(data.error || "Failed to get manage link");
       }
     } catch (error) {
-      console.error("Error getting manage link:", error);
-      toast.error("Failed to open payment management");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to open payment management",
+      );
     } finally {
       setLoading(false);
     }
@@ -68,21 +70,20 @@ export function ManageSubscription({
   const handleCancel = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/subscription/cancel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
+      const res = await fetch("/api/billing/cancel", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
 
-      if (res.ok) {
-        toast.success("Subscription will cancel at end of billing period");
-        setTimeout(() => router.refresh(), 1000);
-      } else {
-        const data = await res.json();
+      if (!res.ok) {
         throw new Error(data.error || "Failed to cancel");
       }
+      toast.success("Subscription will cancel at end of billing period");
+      onChanged?.();
     } catch (error) {
-      console.error("Error cancelling subscription:", error);
-      toast.error("Failed to cancel subscription");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to cancel subscription",
+      );
     } finally {
       setLoading(false);
     }
@@ -93,67 +94,46 @@ export function ManageSubscription({
       <CardHeader>
         <CardTitle>Manage Subscription</CardTitle>
         <CardDescription>
-          Update payment method, change plan, or cancel subscription
+          Update your payment method or cancel your subscription
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {(isExpired || isSuspended) && (
+        {(isExpired || isPastDue) && (
           <div className="mb-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
             <p className="text-sm font-medium mb-3">
-              {isSuspended
-                ? "Reactivate your subscription to continue"
+              {isPastDue
+                ? "Your last renewal payment failed. Update your card or subscribe again to regain access."
                 : "Renew your subscription to regain access"}
             </p>
             <Button
-              className="w-full sm:w-auto"
-              onClick={() => router.push("/pricing")}
+              className="w-full sm:w-auto min-h-11"
+              onClick={() => router.push("/billing")}
             >
-              {isSuspended ? "Reactivate Now" : "Renew Now"}
+              Renew Now
             </Button>
           </div>
         )}
 
-        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Button
             variant="outline"
-            className="w-full"
+            className="w-full min-h-11"
             onClick={handleUpdatePayment}
             disabled={loading || isExpired}
           >
-            <ExternalLink className="h-4 w-4 mr-2" />
+            <ExternalLink className="h-4 w-4 mr-2" aria-hidden="true" />
             Update Payment Method
           </Button>
-
-          {otherPlan && !isExpired && (
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() =>
-                router.push(`/pricing?from=profile&plan=${otherPlan.name}`)
-              }
-            >
-              {isUpgrade ? (
-                <>
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  Upgrade to {otherPlan.displayName}
-                </>
-              ) : (
-                <>
-                  <TrendingDown className="h-4 w-4 mr-2" />
-                  Switch to {otherPlan.displayName}
-                </>
-              )}
-            </Button>
-          )}
 
           {!subscription.cancelAtPeriodEnd && !isExpired && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                  className="w-full min-h-11 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  disabled={loading}
                 >
-                  <XCircle className="h-4 w-4 mr-2" />
+                  <XCircle className="h-4 w-4 mr-2" aria-hidden="true" />
                   Cancel Subscription
                 </Button>
               </AlertDialogTrigger>
@@ -163,7 +143,8 @@ export function ManageSubscription({
                   <AlertDialogDescription>
                     Your subscription will remain active until the end of your
                     billing period. You&apos;ll still have access to{" "}
-                    {currentPlan.displayName} features until then.
+                    {currentPlan.displayName} until then, and you won&apos;t be
+                    charged again.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

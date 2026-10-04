@@ -28,9 +28,27 @@ export function checkEnv() {
     }
   }
 
-  if (isProd && process.env.PAYSTACK_SECRET_KEY?.startsWith("sk_test")) {
-    console.warn(
-      "⚠️ [env-check] PAYSTACK_SECRET_KEY is a TEST key in production — payments will not be real",
-    );
+  // Billing: a test key in production means students "pay" but no money
+  // moves; a missing public URL sends Paystack callbacks to localhost.
+  // Both are hard failures. PAYSTACK_ALLOW_TEST_KEY=true opts a staging
+  // deploy (NODE_ENV=production) into test mode explicitly.
+  if (isProd && process.env.PAYSTACK_SECRET_KEY) {
+    if (
+      process.env.PAYSTACK_SECRET_KEY.startsWith("sk_test") &&
+      process.env.PAYSTACK_ALLOW_TEST_KEY !== "true"
+    ) {
+      throw new Error(
+        "[env-check] PAYSTACK_SECRET_KEY is a TEST key in production — payments would not be real. Use the live key, or set PAYSTACK_ALLOW_TEST_KEY=true for a staging deploy.",
+      );
+    }
+    if (
+      !process.env.NEXT_PUBLIC_APP_URL &&
+      !process.env.NEXT_PUBLIC_BASE_URL &&
+      !process.env.BETTER_AUTH_URL
+    ) {
+      throw new Error(
+        "[env-check] NEXT_PUBLIC_APP_URL is not set — Paystack callback URLs would point at localhost.",
+      );
+    }
   }
 }

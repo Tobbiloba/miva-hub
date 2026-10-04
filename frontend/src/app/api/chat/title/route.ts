@@ -1,7 +1,8 @@
 import { smoothStream, streamText } from "ai";
 
 import { ChatModel } from "app-types/chat";
-import { getSession } from "auth/server";
+import { getApiSession } from "auth/server";
+import { checkPaidAccess, paymentRequiredResponse } from "@/lib/billing/access";
 import { colorize } from "consola/utils";
 import { customModelProvider } from "lib/ai/models";
 import { CREATE_THREAD_TITLE_PROMPT } from "lib/ai/prompts";
@@ -28,13 +29,17 @@ export async function POST(request: Request) {
       threadId: string;
     };
 
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session) {
       return new Response("Unauthorized", { status: 401 });
     }
 
+    // Paywall: AI features need a trial, subscription, or university seat
+    const access = await checkPaidAccess(session.user.id);
+    if (!access.allowed) return paymentRequiredResponse(access.reason);
+
     // Cheap model call, but still metered per user
-    const rateLimit = checkRateLimit(`title:${session.user.id}`, 20, 60);
+    const rateLimit = await checkRateLimit(`title:${session.user.id}`, 20, 60);
     if (!rateLimit.allowed) {
       return rateLimitResponse(rateLimit);
     }

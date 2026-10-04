@@ -7,6 +7,7 @@
  */
 
 import { config } from "dotenv";
+import { INDIVIDUAL_PLANS } from "../src/lib/billing/plans";
 config({ path: ".env.local" });
 config({ path: ".env" });
 
@@ -18,30 +19,14 @@ if (!PAYSTACK_SECRET_KEY) {
   process.exit(1);
 }
 
-interface PaystackPlan {
-  name: string;
-  amount: number; // kobo
-  interval: "monthly" | "annually";
-  description: string;
-  currency: string;
-}
-
-const PLANS: PaystackPlan[] = [
-  {
-    name: "Askly Monthly",
-    amount: 300000, // ₦3,000
-    interval: "monthly",
-    description: "Full access to Askly — billed monthly",
-    currency: "NGN",
-  },
-  {
-    name: "Askly Yearly",
-    amount: 3000000, // ₦30,000
-    interval: "annually",
-    description: "Full access to Askly — billed yearly (save ₦6,000)",
-    currency: "NGN",
-  },
-];
+// Plans come from the single pricing source of truth.
+const PLANS = Object.values(INDIVIDUAL_PLANS).map((plan) => ({
+  name: plan.paystackName,
+  amount: plan.priceKobo, // kobo
+  interval: plan.paystackInterval,
+  description: plan.description,
+  currency: "NGN",
+}));
 
 async function paystackRequest(endpoint: string, method = "GET", body?: any) {
   const res = await fetch(`${PAYSTACK_API_URL}${endpoint}`, {
@@ -72,6 +57,15 @@ async function main() {
 
   for (const plan of PLANS) {
     if (existingPlans[plan.name]) {
+      // Paystack plan amounts are fixed per plan code: a price change needs
+      // a NEW Paystack plan, otherwise renewals keep charging the old amount.
+      const remote = existing.data.find((p: any) => p.name === plan.name);
+      if (remote && remote.amount !== plan.amount) {
+        console.error(
+          `  ${plan.name}: Paystack amount ${remote.amount} != code ${plan.amount} kobo — create a new plan on Paystack and update the code; not reusing ${existingPlans[plan.name]}`,
+        );
+        continue;
+      }
       console.log(
         `  ${plan.name}: already exists → ${existingPlans[plan.name]}`,
       );
@@ -92,8 +86,12 @@ async function main() {
 
   console.log("\n=== Add to .env.local ===\n");
 
-  const monthly = results.find((r) => r.name === "Askly Monthly");
-  const yearly = results.find((r) => r.name === "Askly Yearly");
+  const monthly = results.find(
+    (r) => r.name === INDIVIDUAL_PLANS.monthly.paystackName,
+  );
+  const yearly = results.find(
+    (r) => r.name === INDIVIDUAL_PLANS.yearly.paystackName,
+  );
 
   if (monthly) console.log(`PAYSTACK_PLAN_MONTHLY=${monthly.planCode}`);
   if (yearly) console.log(`PAYSTACK_PLAN_YEARLY=${yearly.planCode}`);
@@ -109,11 +107,11 @@ async function main() {
       );
       if (monthly)
         console.log(
-          `  UPDATE subscription_plan SET paystack_plan_code='${monthly.planCode}' WHERE name='ASKLY_MONTHLY';`,
+          `  UPDATE subscription_plan SET paystack_plan_code='${monthly.planCode}' WHERE name='${INDIVIDUAL_PLANS.monthly.name}';`,
         );
       if (yearly)
         console.log(
-          `  UPDATE subscription_plan SET paystack_plan_code='${yearly.planCode}' WHERE name='ASKLY_YEARLY';`,
+          `  UPDATE subscription_plan SET paystack_plan_code='${yearly.planCode}' WHERE name='${INDIVIDUAL_PLANS.yearly.name}';`,
         );
     } else {
       const { pgDb } = await import("../src/lib/db/pg/db.pg");
@@ -126,15 +124,21 @@ async function main() {
         await pgDb
           .update(SubscriptionPlanSchema)
           .set({ paystackPlanCode: monthly.planCode })
-          .where(eq(SubscriptionPlanSchema.name, "ASKLY_MONTHLY"));
-        console.log(`  ASKLY_MONTHLY → ${monthly.planCode} (updated in DB)`);
+          .where(
+            eq(SubscriptionPlanSchema.name, INDIVIDUAL_PLANS.monthly.name),
+          );
+        console.log(
+          `  ${INDIVIDUAL_PLANS.monthly.name} → ${monthly.planCode} (updated in DB)`,
+        );
       }
       if (yearly) {
         await pgDb
           .update(SubscriptionPlanSchema)
           .set({ paystackPlanCode: yearly.planCode })
-          .where(eq(SubscriptionPlanSchema.name, "ASKLY_YEARLY"));
-        console.log(`  ASKLY_YEARLY → ${yearly.planCode} (updated in DB)`);
+          .where(eq(SubscriptionPlanSchema.name, INDIVIDUAL_PLANS.yearly.name));
+        console.log(
+          `  ${INDIVIDUAL_PLANS.yearly.name} → ${yearly.planCode} (updated in DB)`,
+        );
       }
     }
   }

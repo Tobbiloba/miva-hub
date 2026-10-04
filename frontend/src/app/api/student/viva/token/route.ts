@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { buildCourseTutorContext } from "@/lib/ai/course-tutor-context";
 import { VIVA_LIVE_MODEL, buildVivaSystemPrompt } from "@/lib/ai/viva";
-import { getSession } from "auth/server";
+import { getApiSession } from "auth/server";
+import { checkPaidAccess, paymentRequiredResponse } from "@/lib/billing/access";
 import { pgDb } from "lib/db/pg/db.pg";
 import { VivaSessionSchema } from "lib/db/pg/schema.pg";
 import { checkRateLimit, rateLimitResponse } from "lib/rate-limit";
@@ -19,13 +20,17 @@ const logger = globalLogger.withDefaults({ message: "Viva Token API: " });
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Paywall: AI features need a trial, subscription, or university seat
+    const access = await checkPaidAccess(session.user.id);
+    if (!access.allowed) return paymentRequiredResponse(access.reason);
+
     // Live sessions are expensive: 3 new vivas per 5 minutes per student.
-    const rateLimit = checkRateLimit(`viva:${session.user.id}`, 3, 300);
+    const rateLimit = await checkRateLimit(`viva:${session.user.id}`, 3, 300);
     if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
 
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;

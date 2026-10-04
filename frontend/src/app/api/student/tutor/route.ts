@@ -2,7 +2,8 @@ import { type ModelMessage, generateText } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { getSession } from "auth/server";
+import { getApiSession } from "auth/server";
+import { checkPaidAccess, paymentRequiredResponse } from "@/lib/billing/access";
 import { buildCourseTutorContext } from "lib/ai/course-tutor-context";
 import { recordAIDecision } from "lib/ai/decision-ledger";
 import { customModelProvider } from "lib/ai/models";
@@ -45,13 +46,17 @@ ${contextText}`;
 
 export async function POST(request: Request) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const userId = session.user.id;
 
-    const rateLimit = checkRateLimit(`tutor:${userId}`, 15, 60);
+    // Paywall: AI features need a trial, subscription, or university seat
+    const access = await checkPaidAccess(userId);
+    if (!access.allowed) return paymentRequiredResponse(access.reason);
+
+    const rateLimit = await checkRateLimit(`tutor:${userId}`, 15, 60);
     if (!rateLimit.allowed) {
       return rateLimitResponse(rateLimit);
     }
@@ -154,7 +159,7 @@ export async function POST(request: Request) {
 /** List the session student's enrolled courses for the tutor course picker. */
 export async function GET() {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

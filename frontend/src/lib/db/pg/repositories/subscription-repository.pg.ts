@@ -52,6 +52,11 @@ export class SubscriptionRepository {
           gte(UserSubscriptionSchema.currentPeriodEnd, new Date()),
         ),
       )
+      // Deterministic when legacy duplicate rows exist: latest period wins.
+      .orderBy(
+        desc(UserSubscriptionSchema.currentPeriodEnd),
+        desc(UserSubscriptionSchema.createdAt),
+      )
       .limit(1);
     return subscription;
   }
@@ -205,17 +210,32 @@ export class SubscriptionRepository {
       .limit(limit);
   }
 
-  async logWebhookEvent(data: {
+  /**
+   * Record a webhook delivery, idempotent on eventKey (sha256 of the raw
+   * body). Returns the row and whether this call inserted it; on a
+   * redelivery the existing row comes back so the caller can decide
+   * whether it still needs processing.
+   */
+  async recordWebhookDelivery(data: {
+    eventKey: string;
     eventType: string;
     paystackEventId?: string;
     payload: Record<string, any>;
     signature?: string;
   }) {
-    const [event] = await db
+    const [inserted] = await db
       .insert(WebhookEventSchema)
       .values(data)
+      .onConflictDoNothing({ target: WebhookEventSchema.eventKey })
       .returning();
-    return event;
+    if (inserted) return { event: inserted, isNew: true as const };
+
+    const [existing] = await db
+      .select()
+      .from(WebhookEventSchema)
+      .where(eq(WebhookEventSchema.eventKey, data.eventKey))
+      .limit(1);
+    return { event: existing, isNew: false as const };
   }
 
   async markWebhookProcessed(
@@ -228,7 +248,12 @@ export class SubscriptionRepository {
       .set({
         processed: success,
         processedAt: new Date(),
-        errorMessage,
+        errorMessage: success ? null : errorMessage,
+        ...(success
+          ? {}
+          : {
+              retryCount: sql`coalesce(${WebhookEventSchema.retryCount}, 0) + 1`,
+            }),
       })
       .where(eq(WebhookEventSchema.id, eventId))
       .returning();
@@ -261,7 +286,10 @@ export class SubscriptionRepository {
         eq(UserSubscriptionSchema.planId, SubscriptionPlanSchema.id),
       )
       .where(eq(UserSubscriptionSchema.userId, userId))
-      .orderBy(desc(UserSubscriptionSchema.createdAt))
+      .orderBy(
+        desc(UserSubscriptionSchema.currentPeriodEnd),
+        desc(UserSubscriptionSchema.createdAt),
+      )
       .limit(1);
 
     return result;

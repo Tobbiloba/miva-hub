@@ -4,7 +4,8 @@ import {
   gradeSubmission,
 } from "@/lib/ai/agents/submission-grader";
 import { recordAIDecision } from "@/lib/ai/decision-ledger";
-import { getSession } from "@/lib/auth/server";
+import { getApiSession } from "@/lib/auth/server";
+import { checkPaidAccess, paymentRequiredResponse } from "@/lib/billing/access";
 import { getStudentInfo } from "@/lib/auth/student";
 import { s3Service } from "@/lib/aws/s3-service";
 import type { S3AccessOptions } from "@/lib/aws/s3-service";
@@ -77,7 +78,7 @@ export async function POST(
 ) {
   try {
     const { assignmentId } = await params;
-    const session = await getSession();
+    const session = await getApiSession();
     const studentInfo = getStudentInfo(session);
 
     if (!studentInfo) {
@@ -87,8 +88,12 @@ export async function POST(
       );
     }
 
+    // Paywall: AI features need a trial, subscription, or university seat
+    const access = await checkPaidAccess(studentInfo.id);
+    if (!access.allowed) return paymentRequiredResponse(access.reason);
+
     // Per-student rate limit: each snap is a Gemini vision grading run
-    const rateLimit = checkRateLimit(`snap:${studentInfo.id}`, 5, 60);
+    const rateLimit = await checkRateLimit(`snap:${studentInfo.id}`, 5, 60);
     if (!rateLimit.allowed) {
       return rateLimitResponse(rateLimit);
     }

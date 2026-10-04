@@ -4,7 +4,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getUserUniversity } from "@/lib/tenant";
-import { getSession } from "auth/server";
+import { getApiSession } from "auth/server";
+import { checkPaidAccess, paymentRequiredResponse } from "@/lib/billing/access";
 import { buildCourseTutorContext } from "lib/ai/course-tutor-context";
 import { recordAIDecision } from "lib/ai/decision-ledger";
 import { customModelProvider } from "lib/ai/models";
@@ -46,7 +47,7 @@ export async function GET(
   { params }: { params: Promise<{ courseId: string }> },
 ) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -106,14 +107,18 @@ export async function POST(
   { params }: { params: Promise<{ courseId: string }> },
 ) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const userId = session.user.id;
+
+    // Paywall: AI features need a trial, subscription, or university seat
+    const access = await checkPaidAccess(userId);
+    if (!access.allowed) return paymentRequiredResponse(access.reason);
     const { courseId } = await params;
 
-    const rateLimit = checkRateLimit(`professor:${userId}`, 15, 60);
+    const rateLimit = await checkRateLimit(`professor:${userId}`, 15, 60);
     if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
 
     const parsed = chatBodySchema.safeParse(await request.json());

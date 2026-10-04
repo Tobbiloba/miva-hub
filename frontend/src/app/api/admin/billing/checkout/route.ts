@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/auth/admin";
+import { getAppBaseUrl } from "@/lib/billing/app-url";
 import { ORG_PRICE_PER_SEAT_NGN, type OrgInterval } from "@/lib/billing/org";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
@@ -6,10 +7,9 @@ import { UniversitySubscriptionSchema } from "@/lib/db/pg/schema.pg";
 import { paystackService } from "@/lib/payment/paystack-service";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getUserUniversity } from "@/lib/tenant";
+import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:4001";
 
 const checkoutSchema = z.object({
   seats: z.number().int().min(1).max(100000),
@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
     if (adminAccess instanceof NextResponse) return adminAccess;
 
     if (
-      !checkRateLimit(`org-checkout:${adminAccess.user.id}`, 10, 3600).allowed
+      !(await checkRateLimit(`org-checkout:${adminAccess.user.id}`, 10, 3600))
+        .allowed
     ) {
       return NextResponse.json(
         { success: false, error: "Too many checkout attempts" },
@@ -45,6 +46,9 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { seats, interval } = checkoutSchema.parse(body);
+
+    // Resolve before writing anything: throws in production if unset
+    const callbackUrl = `${getAppBaseUrl()}/api/admin/billing/callback`;
 
     const pricePerSeat = ORG_PRICE_PER_SEAT_NGN[interval as OrgInterval];
     const amountKobo = seats * pricePerSeat;
@@ -64,7 +68,7 @@ export async function POST(request: NextRequest) {
     const initRes = await paystackService.initializeTransaction({
       email: adminAccess.user.email,
       amount: amountKobo,
-      callbackUrl: `${BASE_URL}/api/admin/billing/callback`,
+      callbackUrl,
       metadata: {
         type: "university_subscription",
         universityId: university.id,
@@ -84,6 +88,13 @@ export async function POST(request: NextRequest) {
         { status: 502 },
       );
     }
+
+    // Stamp OUR reference on the pending row: activation (callback and
+    // webhook) finds the subscription by it, never by Paystack metadata.
+    await pgDb
+      .update(UniversitySubscriptionSchema)
+      .set({ paystackReference: initRes.data.reference, updatedAt: new Date() })
+      .where(eq(UniversitySubscriptionSchema.id, pending.id));
 
     // Audit trail in payment_transaction (admin is the payer)
     await subscriptionRepository

@@ -4,7 +4,8 @@ import { z } from "zod";
 
 import { getEnrolledCourse } from "@/lib/ai/course-tutor-context";
 import { generateStudyPlan } from "@/lib/ai/study-plan";
-import { getSession } from "auth/server";
+import { getApiSession } from "auth/server";
+import { checkPaidAccess, paymentRequiredResponse } from "@/lib/billing/access";
 import { pgDb } from "lib/db/pg/db.pg";
 import { StudyPlanSchema } from "lib/db/pg/schema.pg";
 import { checkRateLimit, rateLimitResponse } from "lib/rate-limit";
@@ -34,7 +35,7 @@ export async function GET(
   { params }: { params: Promise<{ courseId: string }> },
 ) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -83,16 +84,24 @@ export async function POST(
   { params }: { params: Promise<{ courseId: string }> },
 ) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Paywall: AI features need a trial, subscription, or university seat
+    const access = await checkPaidAccess(session.user.id);
+    if (!access.allowed) return paymentRequiredResponse(access.reason);
     const { courseId } = await params;
     if (!z.string().uuid().safeParse(courseId).success) {
       return NextResponse.json({ error: "Invalid course id" }, { status: 400 });
     }
 
-    const rateLimit = checkRateLimit(`study-plan:${session.user.id}`, 3, 3600);
+    const rateLimit = await checkRateLimit(
+      `study-plan:${session.user.id}`,
+      3,
+      3600,
+    );
     if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
 
     const course = await getEnrolledCourse(session.user.id, courseId);

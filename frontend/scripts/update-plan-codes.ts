@@ -1,49 +1,10 @@
-import "load-env";
-import { eq } from "drizzle-orm";
-import { pgDb as db } from "lib/db/pg/db.pg";
-import { SubscriptionPlanSchema } from "lib/db/pg/schema.pg";
-
-const PRO_PLAN_CODE = process.env.PRO_PLAN_CODE || "";
-const MAX_PLAN_CODE = process.env.MAX_PLAN_CODE || "";
-
-async function updatePlanCodes() {
-  console.log("🚀 Updating Paystack plan codes in database...\n");
-
-  if (!PRO_PLAN_CODE || !MAX_PLAN_CODE) {
-    console.error("❌ ERROR: Plan codes not provided!");
-    console.error("\nUsage:");
-    console.error(
-      "  PRO_PLAN_CODE=PLN_xxx MAX_PLAN_CODE=PLN_yyy pnpm paystack:update-codes",
-    );
-    console.error("\nOr add them to your .env file:");
-    console.error("  PRO_PLAN_CODE=PLN_xxx");
-    console.error("  MAX_PLAN_CODE=PLN_yyy");
-    process.exit(1);
-  }
-
-  try {
-    console.log(`Updating PRO plan code to: ${PRO_PLAN_CODE}`);
-    await db
-      .update(SubscriptionPlanSchema)
-      .set({ paystackPlanCode: PRO_PLAN_CODE })
-      .where(eq(SubscriptionPlanSchema.name, "PRO"));
-    console.log("✅ PRO plan code updated");
-
-    console.log(`\nUpdating MAX plan code to: ${MAX_PLAN_CODE}`);
-    await db
-      .update(SubscriptionPlanSchema)
-      .set({ paystackPlanCode: MAX_PLAN_CODE })
-      .where(eq(SubscriptionPlanSchema.name, "MAX"));
-    console.log("✅ MAX plan code updated");
-
-    console.log("\n✅ All plan codes updated successfully!");
-    console.log("\n📝 Next step: Test the payment flow at /pricing");
-
-    process.exit(0);
-  } catch (error) {
-    console.error("\n❌ Error updating plan codes:", error);
-    process.exit(1);
-  }
-}
-
-updatePlanCodes();
+/**
+ * Retired: this used to write PRO/MAX plan codes from env vars. The live
+ * plans are ASKLY_MONTHLY / ASKLY_YEARLY and their codes are written by
+ * setup-paystack-plans.ts. Kept only so `pnpm paystack:update-codes` fails
+ * with a pointer instead of writing legacy codes.
+ */
+console.error(
+  "update-plan-codes is retired. Run: pnpm tsx scripts/setup-paystack-plans.ts",
+);
+process.exit(1);

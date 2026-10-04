@@ -33,7 +33,6 @@ export default async function ChatLayout({
   const isCollapsed =
     cookieStore.get(COOKIE_KEY_SIDEBAR_STATE)?.value !== "true";
   return (
-    // <SubscriptionGuard>
     <SidebarProvider defaultOpen={!isCollapsed}>
       <SWRConfigProvider>
         <ToolsInfoDrawerProvider>
@@ -46,6 +45,5 @@ export default async function ChatLayout({
         </ToolsInfoDrawerProvider>
       </SWRConfigProvider>
     </SidebarProvider>
-    // </SubscriptionGuard>
   );
 }
