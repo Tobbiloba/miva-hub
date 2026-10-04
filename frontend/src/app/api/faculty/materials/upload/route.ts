@@ -4,7 +4,8 @@ import {
 } from "@/lib/auth/faculty";
 import { s3Service } from "@/lib/aws/s3-service";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-import { NextRequest, NextResponse } from "next/server";
+import { extractTranscriptForMaterial } from "@/lib/extraction/transcript-extractor";
+import { NextRequest, NextResponse, after } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -193,6 +194,17 @@ export async function POST(request: NextRequest) {
     await pgAcademicRepository.updateCourseMaterial(insertedMaterial.id, {
       publicUrl,
     });
+
+    // Extract the PDF's text so course-grounded chat can retrieve it
+    // (extraction indexes the material once it has text).
+    if (file.type === "application/pdf") {
+      const pdfBuffer = Buffer.from(await file.arrayBuffer());
+      after(() =>
+        extractTranscriptForMaterial(insertedMaterial.id, file.type, {
+          pdfBuffer,
+        }).catch(() => {}),
+      );
+    }
 
     return NextResponse.json({
       message: "File uploaded successfully",

@@ -31,7 +31,7 @@ let currentMetadata = null;
 document.addEventListener("DOMContentLoaded", async () => {
   // Check login state
   const sessionRes = await sendMessage({ type: "GET_SESSION" });
-  const isLoggedIn = sessionRes?.ok && sessionRes.data?.cookieValue;
+  const isLoggedIn = sessionRes?.ok && sessionRes.data?.token;
 
   if (!isLoggedIn) {
     loginPrompt.style.display = "block";
@@ -179,9 +179,13 @@ captureBtn.addEventListener("click", async () => {
   captureBtn.textContent = "Capture this lesson";
 
   if (result?.ok) {
-    const id = result.data.job_id || result.data.material_id || "?";
+    const { visibility, shareable } = result.data;
     showSuccess(
-      `Captured! ID: ${id.slice(0, 8)}... Status: ${result.data.status}`
+      visibility === "private"
+        ? shareable
+          ? "Captured! It's private to you and will power your Askly chat shortly. It's also been offered to your course library for review."
+          : "Captured! It's private to you and will power your Askly chat shortly."
+        : "Captured! It's pending admin review before it joins the course library."
     );
     loadRecentCaptures();
   } else {
@@ -217,9 +221,9 @@ async function loadRecentCaptures() {
     <div class="capture-item">
       <div class="capture-info">
         <div class="capture-title">${escapeHtml(c.lesson_title)}</div>
-        <div class="capture-meta">${escapeHtml(c.course_code || "?")} &middot; ${c.content_type} &middot; ${timeAgo(c.timestamp)}</div>
+        <div class="capture-meta">${escapeHtml(c.course_code || "?")} &middot; ${escapeHtml(c.content_type)} &middot; ${timeAgo(c.timestamp)}</div>
       </div>
-      <span class="status-badge status-${c.status}">${c.status}</span>
+      <span class="status-badge status-${escapeHtml(c.status)}">${escapeHtml(c.status)}</span>
     </div>
   `
     )

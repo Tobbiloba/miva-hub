@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, or } from "drizzle-orm";
 import { pgDb } from "lib/db/pg/db.pg";
 import {
   CourseMaterialSchema,
@@ -25,6 +25,8 @@ export interface TutorSource {
   weekNumber: number | null;
   /** Whether full text (transcript) was available, vs. only a description */
   hasFullText: boolean;
+  /** The student's own private capture (not shared course material) */
+  isPrivate?: boolean;
 }
 
 export interface CourseTutorContext {
@@ -45,6 +47,32 @@ export interface CourseTutorContext {
 // leaving room for history + answer, and keeping free-tier TPM viable.
 const MAX_CONTEXT_CHARS = 200_000;
 const MAX_CHARS_PER_SOURCE = 40_000;
+
+/**
+ * Course text is untrusted (scraped/uploaded) and is embedded in the system
+ * prompt inside <course_materials> tags. Neutralize any tag that could close
+ * that block early and smuggle instructions outside it.
+ */
+export function neutralizeMaterialText(text: string): string {
+  return text.replace(/<\/?\s*course_materials\s*>/gi, "[course_materials]");
+}
+
+/**
+ * Materials a student may be grounded on: shared material once published,
+ * plus their own private captures. Never deleted material.
+ */
+export function groundableMaterialFilter(studentId: string) {
+  return and(
+    isNull(CourseMaterialSchema.deletedAt),
+    or(
+      and(
+        isNull(CourseMaterialSchema.ownerUserId),
+        eq(CourseMaterialSchema.isPublished, true),
+      ),
+      eq(CourseMaterialSchema.ownerUserId, studentId),
+    ),
+  );
+}
 
 /**
  * Verify the student is actively enrolled in the course (tenant + access
@@ -94,13 +122,13 @@ export async function buildCourseTutorContext(
       description: CourseMaterialSchema.description,
       weekNumber: CourseMaterialSchema.weekNumber,
       transcriptText: CourseMaterialSchema.transcriptText,
+      ownerUserId: CourseMaterialSchema.ownerUserId,
     })
     .from(CourseMaterialSchema)
     .where(
       and(
         eq(CourseMaterialSchema.courseId, courseId),
-        eq(CourseMaterialSchema.isPublished, true),
-        isNull(CourseMaterialSchema.deletedAt),
+        groundableMaterialFilter(studentId),
       ),
     )
     .orderBy(
@@ -114,9 +142,11 @@ export async function buildCourseTutorContext(
 
   for (const material of materials) {
     const fullText = material.transcriptText?.trim();
-    const body = (fullText || material.description?.trim() || "").slice(
-      0,
-      MAX_CHARS_PER_SOURCE,
+    const body = neutralizeMaterialText(
+      (fullText || material.description?.trim() || "").slice(
+        0,
+        MAX_CHARS_PER_SOURCE,
+      ),
     );
     if (!body) continue;
 
@@ -126,6 +156,7 @@ export async function buildCourseTutorContext(
       `type: ${material.materialType}`,
       material.weekNumber != null ? `week ${material.weekNumber}` : null,
       fullText ? "full text" : "description only",
+      material.ownerUserId ? "your own capture" : null,
     ]
       .filter(Boolean)
       .join(" | ");
@@ -140,6 +171,7 @@ export async function buildCourseTutorContext(
       materialType: material.materialType,
       weekNumber: material.weekNumber,
       hasFullText: !!fullText,
+      isPrivate: !!material.ownerUserId,
     });
     blocks.push(block);
     used += block.length;

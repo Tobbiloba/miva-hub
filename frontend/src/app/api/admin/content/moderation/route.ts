@@ -1,20 +1,30 @@
 import { requireAdmin } from "@/lib/auth/admin";
+import { getAdminScope } from "@/lib/tenant";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
   CourseMaterialSchema,
   CourseSchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, or, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
  * GET /api/admin/content/moderation
- * List unpublished volunteer-captured materials awaiting moderation.
+ * List captures awaiting moderation in the admin's university: volunteer
+ * captures, plus students' private captures they may share with the course.
  */
 export async function GET(request: NextRequest) {
   const adminAccess = await requireAdmin();
   if (adminAccess instanceof NextResponse) return adminAccess;
+
+  const scope = await getAdminScope(adminAccess.user.id);
+  if (!scope.superAdmin && !scope.university) {
+    return NextResponse.json(
+      { error: "Your account is not linked to a university" },
+      { status: 403 },
+    );
+  }
 
   const { searchParams } = new URL(request.url);
   const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
@@ -35,6 +45,15 @@ export async function GET(request: NextRequest) {
     eq(CourseMaterialSchema.isPublished, false),
     eq(CourseMaterialSchema.ingestionSource, "volunteer_extension"),
     isNull(CourseMaterialSchema.deletedAt),
+    // Private-only student captures (personal pages, declined shares) are
+    // never shown to moderators.
+    or(
+      isNull(CourseMaterialSchema.ownerUserId),
+      eq(CourseMaterialSchema.shareable, true),
+    ),
+    ...(scope.superAdmin
+      ? []
+      : [eq(CourseSchema.universityId, scope.university!.id)]),
     ...(transcriptFilter
       ? [eq(CourseMaterialSchema.transcriptStatus, transcriptFilter as any)]
       : []),
@@ -53,6 +72,7 @@ export async function GET(request: NextRequest) {
       publicUrl: CourseMaterialSchema.publicUrl,
       weekNumber: CourseMaterialSchema.weekNumber,
       ingestionSource: CourseMaterialSchema.ingestionSource,
+      isStudentShareRequest: sql<boolean>`${CourseMaterialSchema.ownerUserId} IS NOT NULL`,
       createdAt: CourseMaterialSchema.createdAt,
       courseCode: CourseSchema.courseCode,
       courseTitle: CourseSchema.title,
@@ -74,6 +94,7 @@ export async function GET(request: NextRequest) {
   const [countResult] = await pgDb
     .select({ count: sql<number>`count(*)::int` })
     .from(CourseMaterialSchema)
+    .innerJoin(CourseSchema, eq(CourseMaterialSchema.courseId, CourseSchema.id))
     .where(baseWhere);
 
   return NextResponse.json({

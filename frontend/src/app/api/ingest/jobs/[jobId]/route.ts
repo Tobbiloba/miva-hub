@@ -1,8 +1,7 @@
-import { auth } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { IngestionJobSchema } from "@/lib/db/pg/schema.pg";
-import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
+import { getIngestUserId } from "@/lib/extension/token";
+import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -10,8 +9,8 @@ export async function GET(
   { params }: { params: Promise<{ jobId: string }> },
 ) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) {
+    const userId = await getIngestUserId();
+    if (!userId) {
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 },
@@ -32,7 +31,13 @@ export async function GET(
         createdAt: IngestionJobSchema.createdAt,
       })
       .from(IngestionJobSchema)
-      .where(eq(IngestionJobSchema.id, jobId))
+      // Only the user who submitted the capture can see its job
+      .where(
+        and(
+          eq(IngestionJobSchema.id, jobId),
+          eq(IngestionJobSchema.volunteerId, userId),
+        ),
+      )
       .limit(1);
 
     if (!job) {

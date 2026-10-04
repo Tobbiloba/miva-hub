@@ -1,24 +1,53 @@
 /**
  * Askly Capture — Background Service Worker
- * Handles auth token storage, API communication, and job tracking.
+ * Handles extension-token storage, API communication, and job tracking.
  */
 
 // ── Storage helpers ─────────────────────────────────────────────
 
+const DEFAULT_API_URL = "https://askly-miva.vercel.app";
+// The token is only ever sent to these origins (must mirror host_permissions).
+// A custom API URL outside this list is ignored, so a mistyped or malicious
+// setting can't exfiltrate the token.
+const ALLOWED_API_ORIGINS = [DEFAULT_API_URL, "http://localhost:4001"];
+
 async function getApiUrl() {
   const { askly_api_url } = await chrome.storage.local.get("askly_api_url");
-  return askly_api_url || "https://askly-miva.vercel.app"; // default to production
+  try {
+    const origin = new URL(askly_api_url).origin;
+    if (ALLOWED_API_ORIGINS.includes(origin)) return origin;
+  } catch {
+    // unset or invalid → default
+  }
+  return DEFAULT_API_URL;
 }
 
 async function getAuthHeaders() {
   const { askly_session } = await chrome.storage.local.get("askly_session");
-  if (!askly_session?.cookieValue) {
+  if (!askly_session?.token) {
     throw new Error("Not logged in");
+  }
+  if (
+    askly_session.expiresAt &&
+    Date.parse(askly_session.expiresAt) <= Date.now()
+  ) {
+    await chrome.storage.local.remove(["askly_session"]);
+    throw new Error("Session expired — please log in again");
   }
   return {
     "Content-Type": "application/json",
-    Cookie: askly_session.cookieValue,
+    Authorization: `Bearer ${askly_session.token}`,
   };
+}
+
+async function readError(res) {
+  const err = await res.json().catch(() => ({ error: res.statusText }));
+  if (res.status === 401) {
+    // Token revoked or expired server-side
+    await chrome.storage.local.remove(["askly_session"]);
+    return "Your Askly login expired — please log in again";
+  }
+  return err.error || err.message || `HTTP ${res.status}`;
 }
 
 // ── API methods ─────────────────────────────────────────────────
@@ -59,8 +88,7 @@ async function submitLesson(metadata) {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || `HTTP ${res.status}`);
+    throw new Error(await readError(res));
   }
 
   const result = await res.json();
@@ -72,6 +100,7 @@ async function submitLesson(metadata) {
     course_code: metadata.course_code,
     content_type: metadata.page_type,
     status: result.status,
+    visibility: result.visibility,
     timestamp: Date.now(),
   });
 
@@ -82,18 +111,7 @@ async function pollJobStatus(jobId) {
   const apiUrl = await getApiUrl();
   const headers = await getAuthHeaders();
 
-  const res = await fetch(`${apiUrl}/api/ingest/jobs/${jobId}`, { headers });
-
-  if (!res.ok) return null;
-  return res.json();
-}
-
-async function triggerProcessing() {
-  const apiUrl = await getApiUrl();
-  const headers = await getAuthHeaders();
-
-  const res = await fetch(`${apiUrl}/api/ingest/process-jobs`, {
-    method: "POST",
+  const res = await fetch(`${apiUrl}/api/ingest/jobs/${encodeURIComponent(jobId)}`, {
     headers,
   });
 
@@ -104,10 +122,11 @@ async function triggerProcessing() {
 async function loginToAskly(email, password) {
   const apiUrl = await getApiUrl();
 
-  const res = await fetch(`${apiUrl}/api/auth/sign-in/email`, {
+  // Exchanges credentials for a dedicated, revocable extension token
+  const res = await fetch(`${apiUrl}/api/extension/token`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, label: "Askly Capture" }),
   });
 
   if (!res.ok) {
@@ -119,65 +138,30 @@ async function loginToAskly(email, password) {
 
   const data = await res.json();
 
-  // Extract session cookies from response headers.
-  // Try getSetCookie() first, fall back to get('set-cookie'), then use
-  // the response body token to read cookies from the browser cookie jar.
-  let cookieValue = "";
-
-  // Method 1: getSetCookie() (Chrome 115+)
-  const setCookies = res.headers.getSetCookie
-    ? res.headers.getSetCookie()
-    : [];
-
-  if (setCookies.length > 0) {
-    const parts = [];
-    for (const sc of setCookies) {
-      const nameValue = sc.split(";")[0];
-      if (
-        nameValue.startsWith("better-auth.session_token=") ||
-        nameValue.startsWith("better-auth.session_data=")
-      ) {
-        parts.push(nameValue);
-      }
-    }
-    cookieValue = parts.join("; ");
-  }
-
-  // Method 2: If Set-Cookie headers weren't accessible, read cookies
-  // from Chrome's cookie store for the API domain
-  if (!cookieValue && chrome.cookies) {
-    const apiUrl = await getApiUrl();
-    const url = new URL(apiUrl);
-    const cookies = await chrome.cookies.getAll({ domain: url.hostname });
-    const parts = cookies
-      .filter(
-        (c) =>
-          c.name === "better-auth.session_token" ||
-          c.name === "better-auth.session_data"
-      )
-      .map((c) => `${c.name}=${c.value}`);
-    cookieValue = parts.join("; ");
-  }
-
-  // Method 3: Fall back to raw token from response body — construct
-  // a minimal cookie (works when CSRF check is disabled in dev)
-  if (!cookieValue && data.token) {
-    cookieValue = `better-auth.session_token=${data.token}`;
-  }
-
-  if (!cookieValue) {
-    throw new Error("Login succeeded but failed to capture session cookie");
-  }
-
-  // Store session
   await chrome.storage.local.set({
     askly_session: {
-      cookieValue,
+      token: data.token,
+      expiresAt: data.expires_at,
       user: data.user,
     },
   });
 
   return data;
+}
+
+async function logoutFromAskly() {
+  try {
+    const apiUrl = await getApiUrl();
+    const headers = await getAuthHeaders();
+    // Revoke server-side so a copied token stops working too
+    await fetch(`${apiUrl}/api/extension/token`, {
+      method: "DELETE",
+      headers,
+    });
+  } catch {
+    // Already logged out / offline — still clear the local copy
+  }
+  await chrome.storage.local.remove(["askly_session"]);
 }
 
 // ── Recent captures storage ─────────────────────────────────────
@@ -210,6 +194,9 @@ let lastPageMetadata = null;
 // ── Message handler ─────────────────────────────────────────────
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  // Only this extension's own pages and content scripts may talk to us
+  if (sender.id !== chrome.runtime.id) return false;
+
   const handle = async () => {
     try {
       switch (msg.type) {
@@ -221,9 +208,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           return { ok: true, data: lastPageMetadata };
 
         case "SUBMIT_CAPTURE": {
+          // The server processes the capture right after accepting it
           const result = await submitLesson(msg.data);
-          // Trigger processing after submission
-          triggerProcessing().catch(() => {}); // fire-and-forget
           return { ok: true, data: result };
         }
 
@@ -241,7 +227,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
 
         case "LOGOUT":
-          await chrome.storage.local.remove(["askly_session"]);
+          await logoutFromAskly();
           return { ok: true };
 
         case "GET_SESSION": {
@@ -250,7 +236,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           );
           return {
             ok: true,
-            data: askly_session?.cookieValue ? askly_session : null,
+            data: askly_session?.token
+              ? { user: askly_session.user, token: true }
+              : null,
           };
         }
 

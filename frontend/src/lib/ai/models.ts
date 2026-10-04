@@ -152,6 +152,19 @@ const {
 // XPRIZE compliance + cost: Gemini is the default brain for all chat flows.
 const fallbackModel = staticModels.google["gemini-2.5-flash"];
 
+// Optional cost guard for the hosted product: restrict which models clients
+// may select, e.g. CHAT_MODEL_ALLOWLIST="google/gemini-2.5-flash,openai/gpt-4.1-mini".
+// Unset = every model whose provider has an API key configured.
+const modelAllowlist = process.env.CHAT_MODEL_ALLOWLIST?.split(",")
+  .map((m) => m.trim())
+  .filter(Boolean);
+
+function isAllowedModel(provider: string, name: string): boolean {
+  return (
+    !modelAllowlist?.length || modelAllowlist.includes(`${provider}/${name}`)
+  );
+}
+
 // Create models info with async API key checking
 async function createModelsInfo() {
   const allModels = await createAllModels();
@@ -165,10 +178,12 @@ async function createModelsInfo() {
   const providersWithAPIKeys = await Promise.all(
     Object.entries(fullModels).map(async ([provider, models]) => ({
       provider,
-      models: Object.entries(models).map(([name, model]) => ({
-        name,
-        isToolCallUnsupported: allUnsupportedModels.has(model),
-      })),
+      models: Object.entries(models)
+        .filter(([name]) => isAllowedModel(provider, name))
+        .map(([name, model]) => ({
+          name,
+          isToolCallUnsupported: allUnsupportedModels.has(model),
+        })),
       hasAPIKey: await checkProviderAPIKey(
         provider as keyof typeof staticModels | "ollama",
       ),
@@ -191,7 +206,9 @@ export const customModelProvider = {
     return providersWithAPIKeys;
   },
   async getModel(model?: ChatModel): Promise<LanguageModel> {
-    if (!model) return fallbackModel;
+    if (!model || !isAllowedModel(model.provider, model.model)) {
+      return fallbackModel;
+    }
     const { fullModels } = await createModelsInfo();
     return fullModels[model.provider]?.[model.model] || fallbackModel;
   },

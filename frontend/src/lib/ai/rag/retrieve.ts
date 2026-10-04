@@ -5,6 +5,7 @@ import {
   type CourseTutorContext,
   type TutorSource,
   getEnrolledCourse,
+  neutralizeMaterialText,
 } from "lib/ai/course-tutor-context";
 import { pgDb } from "lib/db/pg/db.pg";
 import { embedQuery, toVectorLiteral } from "./embedding";
@@ -19,12 +20,15 @@ interface ChunkRow {
   material_type: string | null;
   week_number: number | null;
   content: string;
+  owner_user_id: string | null;
   score: number;
 }
 
 /**
  * Semantic retrieval for course-grounded chat: embed the query, vector-search
- * the course's chunks (enrollment-gated), and assemble a numbered [S1]..[Sn]
+ * the course's chunks the student may see (enrollment-gated; shared published
+ * material + the student's own private captures; never deleted material — the
+ * join re-checks the material's live state), and assemble a numbered [S1]..[Sn]
  * context block matching the shape the chat grounding already consumes.
  * Returns null when the student isn't enrolled or the course has no indexed
  * chunks (caller falls back to whole-course context).
@@ -44,11 +48,18 @@ export async function retrieveCourseContext(
   const qvec = toVectorLiteral(await embedQuery(queryText));
 
   const result = await pgDb.execute(
-    sql`SELECT material_id, title, material_type, week_number, content,
-               1 - (embedding <=> ${qvec}::vector) AS score
-        FROM material_chunk
-        WHERE course_id = ${courseId}
-        ORDER BY embedding <=> ${qvec}::vector
+    sql`SELECT c.material_id, c.title, c.material_type, c.week_number,
+               c.content, c.owner_user_id,
+               1 - (c.embedding <=> ${qvec}::vector) AS score
+        FROM material_chunk c
+        JOIN course_material m ON m.id = c.material_id
+        WHERE c.course_id = ${courseId}
+          AND m.deleted_at IS NULL
+          AND (
+            (c.owner_user_id IS NULL AND m.owner_user_id IS NULL AND m.is_published)
+            OR (c.owner_user_id = ${studentId} AND m.owner_user_id = ${studentId})
+          )
+        ORDER BY c.embedding <=> ${qvec}::vector
         LIMIT ${k}`,
   );
 
@@ -65,11 +76,12 @@ export async function retrieveCourseContext(
       `[S${index}] "${row.title ?? "Course material"}"`,
       row.material_type ? `type: ${row.material_type}` : null,
       row.week_number != null ? `week ${row.week_number}` : null,
+      row.owner_user_id ? "your own capture" : null,
     ]
       .filter(Boolean)
       .join(" | ");
 
-    const block = `${header}\n${row.content}`;
+    const block = `${header}\n${neutralizeMaterialText(row.content)}`;
     if (used + block.length > MAX_CONTEXT_CHARS) break;
 
     sources.push({
@@ -79,6 +91,7 @@ export async function retrieveCourseContext(
       materialType: row.material_type ?? "unknown",
       weekNumber: row.week_number,
       hasFullText: true,
+      isPrivate: !!row.owner_user_id,
     });
     blocks.push(block);
     used += block.length;

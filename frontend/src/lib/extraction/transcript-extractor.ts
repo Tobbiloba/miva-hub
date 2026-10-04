@@ -254,6 +254,12 @@ export async function extractTranscriptForMaterial(
       })
       .where(eq(CourseMaterialSchema.id, materialId));
 
+    // Make the new text retrievable. The indexer decides whether the material
+    // may ground chat yet (private capture / published) and records failures
+    // in rag_index_status for the backfill to retry.
+    const { indexCourseMaterial } = await import("@/lib/ai/rag/index-material");
+    await indexCourseMaterial(materialId).catch(() => {});
+
     return { status: "extracted", wordCount };
   } catch (error: any) {
     console.error(`[transcript] Extraction failed for ${materialId}:`, error);

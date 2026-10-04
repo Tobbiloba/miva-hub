@@ -1,108 +1,87 @@
 /**
- * Backfill RAG embeddings for published course materials into material_chunk.
+ * Backfill / retry RAG embeddings into material_chunk.
  *
- * Chunks each material's transcript, embeds with OpenAI text-embedding-3-small,
- * and (re)writes its chunks. Idempotent per material.
+ * Indexes every material that may ground chat (published shared material and
+ * students' private captures) whose rag_index_status is not yet "indexed" —
+ * i.e. never indexed, or a previous attempt failed. Uses the same indexer as
+ * the app, so ownership and status are recorded identically.
  *
- * Run all:            npx tsx scripts/backfill-embeddings.ts
- * Run one course:     npx tsx scripts/backfill-embeddings.ts COS203
- *
- * Safety: refuses to run against a non-local database.
+ * Run pending/failed:  npx tsx --conditions=react-server scripts/backfill-embeddings.ts
+ * One course:          ... scripts/backfill-embeddings.ts COS203
+ * Re-index everything: ... scripts/backfill-embeddings.ts --all
+ * Remote database:     add --allow-remote (deliberate; e.g. after applying
+ *                      the material_chunk migration to production)
  */
 import "load-env";
 
-import { openai } from "@ai-sdk/openai";
-import { embedMany } from "ai";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
+import { indexCourseMaterial } from "lib/ai/rag/index-material";
 import { pgDb } from "lib/db/pg/db.pg";
-import { sql } from "drizzle-orm";
-import {
-  CourseMaterialSchema,
-  CourseSchema,
-} from "lib/db/pg/schema.pg";
-import { chunkText } from "lib/ai/rag/chunk";
+import { CourseMaterialSchema, CourseSchema } from "lib/db/pg/schema.pg";
+
+const args = process.argv.slice(2);
+const reindexAll = args.includes("--all");
+const allowRemote = args.includes("--allow-remote");
+const courseFilter = args.find((a) => !a.startsWith("--"))?.trim();
 
 const dbUrl = process.env.POSTGRES_URL ?? "";
-if (!/localhost|127\.0\.0\.1/.test(dbUrl)) {
+if (!allowRemote && !/localhost|127\.0\.0\.1/.test(dbUrl)) {
   console.error(
-    `Refusing to run: POSTGRES_URL is not local (${dbUrl.replace(/:[^:@/]+@/, ":***@")}).`,
+    `Refusing to run: POSTGRES_URL is not local (${dbUrl.replace(/:[^:@/]+@/, ":***@")}). Pass --allow-remote to index a remote database deliberately.`,
   );
   process.exit(1);
 }
 
-const EMBED_MODEL = "text-embedding-3-small";
-const toVectorLiteral = (v: number[]) => `[${v.join(",")}]`;
-
 async function main() {
-  const courseFilter = process.argv[2]?.trim();
-
   const rows = await pgDb
     .select({
       id: CourseMaterialSchema.id,
-      courseId: CourseMaterialSchema.courseId,
       title: CourseMaterialSchema.title,
-      materialType: CourseMaterialSchema.materialType,
-      weekNumber: CourseMaterialSchema.weekNumber,
-      description: CourseMaterialSchema.description,
-      transcriptText: CourseMaterialSchema.transcriptText,
       courseCode: CourseSchema.courseCode,
     })
     .from(CourseMaterialSchema)
     .innerJoin(CourseSchema, eq(CourseMaterialSchema.courseId, CourseSchema.id))
     .where(
       and(
-        eq(CourseMaterialSchema.isPublished, true),
         isNull(CourseMaterialSchema.deletedAt),
+        or(
+          eq(CourseMaterialSchema.isPublished, true),
+          isNotNull(CourseMaterialSchema.ownerUserId),
+        ),
+        reindexAll
+          ? undefined
+          : or(
+              isNull(CourseMaterialSchema.ragIndexStatus),
+              inArray(CourseMaterialSchema.ragIndexStatus, [
+                "pending",
+                "failed",
+              ]),
+            ),
+        courseFilter ? eq(CourseSchema.courseCode, courseFilter) : undefined,
       ),
     );
 
-  const materials = courseFilter
-    ? rows.filter((r) => r.courseCode === courseFilter)
-    : rows;
-
   console.log(
-    `Indexing ${materials.length} published material(s)${courseFilter ? ` for ${courseFilter}` : ""}...`,
+    `Indexing ${rows.length} material(s)${courseFilter ? ` for ${courseFilter}` : ""}...`,
   );
 
   let totalChunks = 0;
-  let indexed = 0;
-  for (const m of materials) {
-    const text = (m.transcriptText || m.description || "").trim();
-    const chunks = chunkText(text);
-    if (chunks.length === 0) {
-      console.log(`  · skip "${m.title}" (${m.courseCode}) — no text`);
-      await pgDb.execute(
-        sql`DELETE FROM material_chunk WHERE material_id = ${m.id}`,
-      );
-      continue;
+  let failed = 0;
+  for (const m of rows) {
+    try {
+      const chunks = await indexCourseMaterial(m.id);
+      totalChunks += chunks;
+      console.log(`  ✓ "${m.title}" (${m.courseCode}) — ${chunks} chunks`);
+    } catch (error) {
+      failed++;
+      console.error(`  ✗ "${m.title}" (${m.courseCode}) —`, error);
     }
-
-    const { embeddings } = await embedMany({
-      model: openai.textEmbedding(EMBED_MODEL),
-      values: chunks,
-    });
-
-    await pgDb.execute(
-      sql`DELETE FROM material_chunk WHERE material_id = ${m.id}`,
-    );
-    for (let i = 0; i < chunks.length; i++) {
-      await pgDb.execute(
-        sql`INSERT INTO material_chunk
-          (course_id, material_id, chunk_index, title, material_type, week_number, content, embedding)
-          VALUES (${m.courseId}, ${m.id}, ${i}, ${m.title}, ${m.materialType}, ${m.weekNumber}, ${chunks[i]}, ${toVectorLiteral(embeddings[i])}::vector)`,
-      );
-    }
-    totalChunks += chunks.length;
-    indexed++;
-    console.log(
-      `  ✓ "${m.title}" (${m.courseCode}) — ${chunks.length} chunks`,
-    );
   }
 
   console.log(
-    `Done. Indexed ${indexed} material(s), ${totalChunks} chunks total.`,
+    `Done. ${rows.length - failed} indexed, ${failed} failed, ${totalChunks} chunks total.`,
   );
-  process.exit(0);
+  process.exit(failed > 0 ? 1 : 0);
 }
 
 main().catch((e) => {

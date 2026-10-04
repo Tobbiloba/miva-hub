@@ -89,6 +89,14 @@ saveApiBtn.addEventListener("click", async () => {
   const url = apiUrlInput.value.trim();
   // Remove trailing slash
   const cleanUrl = url.replace(/\/+$/, "");
+  // Must mirror ALLOWED_API_ORIGINS in background.js — the login token is
+  // only ever sent to these servers.
+  const allowed = ["https://askly-miva.vercel.app", "http://localhost:4001"];
+  if (cleanUrl && !allowed.includes(cleanUrl)) {
+    apiSuccess.textContent = `Only these servers are allowed: ${allowed.join(", ")}`;
+    apiSuccess.style.display = "block";
+    return;
+  }
   await chrome.storage.local.set({ askly_api_url: cleanUrl || null });
   apiSuccess.textContent = cleanUrl
     ? `API URL set to ${cleanUrl}`
