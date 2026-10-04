@@ -22,6 +22,7 @@ import {
   unique,
   uuid,
   varchar,
+  vector,
 } from "drizzle-orm/pg-core";
 
 // ===============================
@@ -703,6 +704,22 @@ export const CourseMaterialSchema = pgTable(
       onDelete: "set null",
     }),
     deletedAt: timestamp("deleted_at"), // soft delete for rejected content
+    // Student-owned private capture. NULL = shared course material (visible to
+    // every enrolled student once published). Set = grounds only this student's
+    // chat until a moderator approves sharing (approval clears it).
+    ownerUserId: uuid("owner_user_id").references(() => UserSchema.id, {
+      onDelete: "cascade",
+    }),
+    // Whether a private capture may be offered to the shared corpus. False for
+    // personal pages (assignment status, grades) and for rejected share requests.
+    shareable: boolean("shareable").notNull().default(true),
+    // RAG indexing state (material_chunk). NULL = not indexable yet (shared
+    // material awaiting approval). "failed" rows are retried by the backfill.
+    ragIndexStatus: varchar("rag_index_status", {
+      enum: ["pending", "indexed", "failed", "empty"],
+    }),
+    ragIndexedAt: timestamp("rag_indexed_at"),
+    ragIndexError: text("rag_index_error"),
     // Transcript / text extraction fields
     transcriptText: text("transcript_text"),
     transcriptSource: transcriptSourceEnum("transcript_source"),
@@ -733,6 +750,8 @@ export const CourseMaterialSchema = pgTable(
     index("material_session_idx").on(table.sessionId),
     index("material_ingestion_source_idx").on(table.ingestionSource),
     index("material_volunteer_idx").on(table.volunteerId),
+    index("material_owner_idx").on(table.ownerUserId),
+    index("material_rag_index_status_idx").on(table.ragIndexStatus),
     index("material_transcript_status_idx").on(table.transcriptStatus),
     index("material_yt_dlp_status_idx").on(table.ytDlpStatus),
     index("material_transcript_text_gin_idx").using(
@@ -997,6 +1016,10 @@ export const AnnouncementSchema = pgTable(
   "announcement",
   {
     id: uuid("id").primaryKey().notNull().defaultRandom(),
+    // Tenant scope. NULL = platform-wide (super_admin only).
+    universityId: uuid("university_id").references(() => UniversitySchema.id, {
+      onDelete: "cascade",
+    }),
     title: text("title").notNull(),
     content: text("content").notNull(),
     courseId: uuid("course_id").references(() => CourseSchema.id, {
@@ -1034,6 +1057,7 @@ export const AnnouncementSchema = pgTable(
       .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
+    index("announcement_university_idx").on(table.universityId),
     index("announcement_course_idx").on(table.courseId),
     index("announcement_department_idx").on(table.departmentId),
     index("announcement_target_idx").on(table.targetAudience),
@@ -1272,6 +1296,11 @@ export const IngestionJobSchema = pgTable(
       onDelete: "set null",
     }),
     contentType: varchar("content_type", { enum: ["video", "pdf"] }).notNull(),
+    // Set for student (non-volunteer) captures: the resulting material is
+    // private to this user. NULL = volunteer capture into the shared corpus.
+    ownerUserId: uuid("owner_user_id").references(() => UserSchema.id, {
+      onDelete: "cascade",
+    }),
     payload: json("payload").notNull().$type<Record<string, any>>(), // vimeo or pdf details
     status: ingestionJobStatusEnum("status").notNull().default("queued"),
     courseMaterialId: uuid("course_material_id").references(
@@ -1294,6 +1323,71 @@ export const IngestionJobSchema = pgTable(
     index("ingestion_job_created_idx").on(table.createdAt),
   ],
 );
+
+// RAG storage: chunks of course material + text-embedding-3-small vectors.
+// Shared chunks (ownerUserId NULL) ground every enrolled student; private
+// chunks ground only their owner. Rows cascade with their material.
+export const MaterialChunkSchema = pgTable(
+  "material_chunk",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    materialId: uuid("material_id")
+      .notNull()
+      .references(() => CourseMaterialSchema.id, { onDelete: "cascade" }),
+    ownerUserId: uuid("owner_user_id").references(() => UserSchema.id, {
+      onDelete: "cascade",
+    }),
+    chunkIndex: integer("chunk_index").notNull(),
+    title: text("title"),
+    materialType: text("material_type"),
+    weekNumber: integer("week_number"),
+    content: text("content").notNull(),
+    embedding: vector("embedding", { dimensions: 1536 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("material_chunk_course_idx").on(table.courseId),
+    index("material_chunk_material_idx").on(table.materialId),
+    index("material_chunk_owner_idx").on(table.ownerUserId),
+    index("material_chunk_embedding_idx").using(
+      "hnsw",
+      table.embedding.op("vector_cosine_ops"),
+    ),
+  ],
+);
+
+// Long-lived, revocable credential for the Askly Capture extension.
+// Only the sha256 of the token is stored; the raw token is shown once.
+export const ExtensionTokenSchema = pgTable(
+  "extension_token",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull().unique(),
+    label: text("label"),
+    lastUsedAt: timestamp("last_used_at"),
+    expiresAt: timestamp("expires_at").notNull(),
+    revokedAt: timestamp("revoked_at"),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("extension_token_user_idx").on(table.userId)],
+);
+
+// Fixed-window rate-limit counters, shared across all app instances.
+export const RateLimitBucketSchema = pgTable("rate_limit_bucket", {
+  key: text("key").primaryKey().notNull(),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+  count: integer("count").notNull(),
+});
 
 // ===============================
 // SYSTEM MANAGEMENT SCHEMAS
@@ -1340,6 +1434,10 @@ export const CalendarEventSchema = pgTable(
   "calendar_event",
   {
     id: uuid("id").primaryKey().notNull().defaultRandom(),
+    // Tenant scope. NULL = platform-wide (super_admin only).
+    universityId: uuid("university_id").references(() => UniversitySchema.id, {
+      onDelete: "cascade",
+    }),
     title: text("title").notNull(),
     description: text("description"),
     eventType: varchar("event_type", {
@@ -1390,6 +1488,7 @@ export const CalendarEventSchema = pgTable(
       .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
+    index("calendar_event_university_idx").on(table.universityId),
     index("calendar_event_type_idx").on(table.eventType),
     index("calendar_event_date_idx").on(table.startDate),
     index("calendar_event_priority_idx").on(table.priority),
@@ -1405,6 +1504,10 @@ export const ReportConfigSchema = pgTable(
   "report_config",
   {
     id: uuid("id").primaryKey().notNull().defaultRandom(),
+    // Tenant scope. NULL = platform-wide (super_admin only).
+    universityId: uuid("university_id").references(() => UniversitySchema.id, {
+      onDelete: "cascade",
+    }),
     name: text("name").notNull(),
     description: text("description"),
     category: varchar("category", {
@@ -1459,6 +1562,7 @@ export const ReportConfigSchema = pgTable(
       .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
+    index("report_university_idx").on(table.universityId),
     index("report_category_idx").on(table.category),
     index("report_type_idx").on(table.reportType),
     index("report_schedule_idx").on(table.schedule),
@@ -1660,7 +1764,11 @@ export const PaymentTransactionSchema = pgTable("payment_transaction", {
 export const WebhookEventSchema = pgTable("webhook_event", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   eventType: text("event_type").notNull(),
-  paystackEventId: text("paystack_event_id").unique(),
+  // Paystack's data.id — NOT unique per event (subscription.create/disable
+  // share the subscription id). Kept for lookup only.
+  paystackEventId: text("paystack_event_id"),
+  // sha256 of the raw webhook body: identical redeliveries collide here.
+  eventKey: text("event_key").unique(),
 
   payload: json("payload").notNull().$type<Record<string, any>>(),
   signature: text("signature"),

@@ -1,29 +1,13 @@
 /**
- * Simple in-memory fixed-window rate limiter.
+ * Fixed-window rate limiter backed by Postgres (`rate_limit_bucket`).
  *
- * Suitable for the current single-instance Node deployment (next start in
- * Docker). If the frontend ever scales to multiple instances or serverless,
- * replace the store with Redis/Postgres.
+ * Counters live in the database so limits hold across every app instance
+ * (Vercel functions, multiple containers). Each check is one atomic upsert.
  */
 
-interface WindowEntry {
-  windowStart: number;
-  count: number;
-}
-
-const store = new Map<string, WindowEntry>();
-
-// Prevent unbounded growth: prune expired entries periodically.
-const MAX_ENTRIES = 50_000;
-
-function prune(windowMs: number) {
-  const now = Date.now();
-  for (const [key, entry] of store) {
-    if (now - entry.windowStart >= windowMs) {
-      store.delete(key);
-    }
-  }
-}
+import { pgDb } from "@/lib/db/pg/db.pg";
+import { sql } from "drizzle-orm";
+import logger from "logger";
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -37,33 +21,40 @@ export interface RateLimitResult {
  * @param limit max requests per window
  * @param windowSec window length in seconds
  */
-export function checkRateLimit(
+export async function checkRateLimit(
   key: string,
   limit: number,
   windowSec: number,
-): RateLimitResult {
-  const now = Date.now();
-  const windowMs = windowSec * 1000;
-
-  if (store.size > MAX_ENTRIES) {
-    prune(windowMs);
+): Promise<RateLimitResult> {
+  try {
+    // Start a new window when the stored one has expired, otherwise increment.
+    const result = await pgDb.execute(sql`
+      INSERT INTO rate_limit_bucket (key, window_start, count)
+      VALUES (${key}, now(), 1)
+      ON CONFLICT (key) DO UPDATE SET
+        count = CASE
+          WHEN rate_limit_bucket.window_start <= now() - make_interval(secs => ${windowSec})
+          THEN 1 ELSE rate_limit_bucket.count + 1 END,
+        window_start = CASE
+          WHEN rate_limit_bucket.window_start <= now() - make_interval(secs => ${windowSec})
+          THEN now() ELSE rate_limit_bucket.window_start END
+      RETURNING count,
+        GREATEST(0, CEIL(EXTRACT(EPOCH FROM
+          (window_start + make_interval(secs => ${windowSec}) - now()))))::int AS retry_after
+    `);
+    const row = result.rows[0] as { count: number; retry_after: number };
+    const count = Number(row.count);
+    const retryAfterSec = Math.max(1, Number(row.retry_after));
+    if (count > limit) {
+      return { allowed: false, remaining: 0, retryAfterSec };
+    }
+    return { allowed: true, remaining: limit - count, retryAfterSec };
+  } catch (error) {
+    // The request's own DB work will fail too if Postgres is down; don't turn
+    // a limiter hiccup into a second, different error for the caller.
+    logger.error(`Rate limit check failed for ${key}:`, error);
+    return { allowed: true, remaining: limit, retryAfterSec: windowSec };
   }
-
-  const entry = store.get(key);
-
-  if (!entry || now - entry.windowStart >= windowMs) {
-    store.set(key, { windowStart: now, count: 1 });
-    return { allowed: true, remaining: limit - 1, retryAfterSec: windowSec };
-  }
-
-  entry.count += 1;
-  const retryAfterSec = Math.ceil((entry.windowStart + windowMs - now) / 1000);
-
-  if (entry.count > limit) {
-    return { allowed: false, remaining: 0, retryAfterSec };
-  }
-
-  return { allowed: true, remaining: limit - entry.count, retryAfterSec };
 }
 
 /** Standard 429 response with Retry-After header */
@@ -80,4 +71,11 @@ export function rateLimitResponse(result: RateLimitResult): Response {
       },
     },
   );
+}
+
+/** Best-effort client IP from proxy headers (for unauthenticated endpoints). */
+export function getClientIp(request: Request): string {
+  const fwd = request.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0].trim();
+  return request.headers.get("x-real-ip") ?? "unknown";
 }

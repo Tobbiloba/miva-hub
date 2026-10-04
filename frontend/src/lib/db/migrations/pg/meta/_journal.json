@@ -281,6 +281,13 @@
       "when": 1783933989525,
       "tag": "0039_chemical_guardsmen",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1791125735892,
+      "tag": "0040_security_tenant_rag",
+      "breakpoints": true
     }
   ]
 }
