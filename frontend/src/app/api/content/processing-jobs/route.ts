@@ -3,7 +3,9 @@ import { pgDb as db } from "@/lib/db/pg/db.pg";
 import {
   AIProcessingJobSchema,
   CourseMaterialSchema,
+  CourseSchema,
 } from "@/lib/db/pg/schema.pg";
+import { resolveStatsScope } from "@/lib/tenant-content";
 import { type SQL, and, count, desc, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -20,8 +22,19 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
+    // Tenant scope from the SESSION (super_admin → "all")
+    const scope = await resolveStatsScope(sessionOrError.user.id);
+    if (!scope) {
+      return NextResponse.json(
+        { error: "Admin is not assigned to a university" },
+        { status: 403 },
+      );
+    }
+    const tenantCondition =
+      scope === "all" ? undefined : eq(CourseSchema.universityId, scope);
+
     // Build query conditions
-    const conditions: SQL[] = [];
+    const conditions: SQL[] = tenantCondition ? [tenantCondition] : [];
     if (status && status !== "all") {
       conditions.push(eq(AIProcessingJobSchema.status, status as any));
     }
@@ -44,9 +57,13 @@ export async function GET(request: NextRequest) {
         courseId: CourseMaterialSchema.courseId,
       })
       .from(AIProcessingJobSchema)
-      .leftJoin(
+      .innerJoin(
         CourseMaterialSchema,
         eq(AIProcessingJobSchema.courseMaterialId, CourseMaterialSchema.id),
+      )
+      .innerJoin(
+        CourseSchema,
+        eq(CourseMaterialSchema.courseId, CourseSchema.id),
       )
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(AIProcessingJobSchema.createdAt))
@@ -57,6 +74,14 @@ export async function GET(request: NextRequest) {
     const totalCountResult = await db
       .select({ count: count(AIProcessingJobSchema.id) })
       .from(AIProcessingJobSchema)
+      .innerJoin(
+        CourseMaterialSchema,
+        eq(AIProcessingJobSchema.courseMaterialId, CourseMaterialSchema.id),
+      )
+      .innerJoin(
+        CourseSchema,
+        eq(CourseMaterialSchema.courseId, CourseSchema.id),
+      )
       .where(conditions.length > 0 ? and(...conditions) : undefined);
 
     const totalCount = totalCountResult[0]?.count || 0;
@@ -68,6 +93,15 @@ export async function GET(request: NextRequest) {
         count: count(AIProcessingJobSchema.id),
       })
       .from(AIProcessingJobSchema)
+      .innerJoin(
+        CourseMaterialSchema,
+        eq(AIProcessingJobSchema.courseMaterialId, CourseMaterialSchema.id),
+      )
+      .innerJoin(
+        CourseSchema,
+        eq(CourseMaterialSchema.courseId, CourseSchema.id),
+      )
+      .where(tenantCondition)
       .groupBy(AIProcessingJobSchema.status);
 
     const statusCounts = stats.reduce(

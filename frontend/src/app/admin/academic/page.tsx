@@ -19,6 +19,7 @@ import {
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { AcademicSessionSchema, UserSchema } from "@/lib/db/pg/schema.pg";
+import { getAdminScope } from "@/lib/tenant";
 import { and, desc, eq, sql } from "drizzle-orm";
 import {
   AlertCircle,
@@ -40,17 +41,31 @@ export default async function AcademicManagementPage() {
     return <div>Access denied. Admin privileges required.</div>;
   }
 
+  // Tenant scope: only the admin's own university (super_admin → all)
+  const scope = await getAdminScope(adminAccess.user.id);
+  if (!scope.superAdmin && !scope.university) {
+    return (
+      <div>Access denied. Your account is not assigned to a university.</div>
+    );
+  }
+  const uniId = scope.university?.id;
+  const sessionTenant = uniId
+    ? eq(AcademicSessionSchema.universityId, uniId)
+    : undefined;
+  const userTenant = uniId ? eq(UserSchema.universityId, uniId) : undefined;
+
   // Fetch current session
   const [currentSession] = await pgDb
     .select()
     .from(AcademicSessionSchema)
-    .where(eq(AcademicSessionSchema.isCurrent, true))
+    .where(and(eq(AcademicSessionSchema.isCurrent, true), sessionTenant))
     .limit(1);
 
   // Fetch all sessions
   const sessions = await pgDb
     .select()
     .from(AcademicSessionSchema)
+    .where(sessionTenant)
     .orderBy(desc(AcademicSessionSchema.sessionName));
 
   // Fetch student counts
@@ -60,6 +75,7 @@ export default async function AcademicManagementPage() {
     .where(
       and(
         eq(UserSchema.role, "student"),
+        userTenant,
         eq(UserSchema.enrollmentStatus, "active"),
       ),
     );
@@ -70,6 +86,7 @@ export default async function AcademicManagementPage() {
     .where(
       and(
         eq(UserSchema.role, "student"),
+        userTenant,
         eq(UserSchema.enrollmentStatus, "graduated"),
       ),
     );
@@ -84,6 +101,7 @@ export default async function AcademicManagementPage() {
     .where(
       and(
         eq(UserSchema.role, "student"),
+        userTenant,
         eq(UserSchema.enrollmentStatus, "active"),
       ),
     )
@@ -100,6 +118,7 @@ export default async function AcademicManagementPage() {
     .where(
       and(
         eq(UserSchema.role, "student"),
+        userTenant,
         eq(UserSchema.enrollmentStatus, "active"),
       ),
     )

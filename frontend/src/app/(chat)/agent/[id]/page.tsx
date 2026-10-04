@@ -28,7 +28,8 @@ export default async function AgentPage({
   }
 
   const isOwner = agent.userId === session.user.id;
-  const hasEditAccess = isOwner || agent.visibility === "public";
+  // Only the owner may edit; "public" grants use, never edit
+  const hasEditAccess = isOwner;
 
   return (
     <EditAgent

@@ -3,9 +3,11 @@ import { pgDb } from "@/lib/db/pg/db.pg";
 import {
   CourseInstructorSchema,
   CourseSchema,
+  DepartmentSchema,
   FacultySchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
+import { isSameTenant } from "@/lib/tenant";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -18,6 +20,27 @@ const assignInstructorSchema = z.object({
     .default("primary"),
 });
 
+/**
+ * Instructor assignments inherit their tenant from the course — admins may
+ * only manage instructors of their own university's courses (prevents
+ * cross-university IDOR). Returns the course's universityId, or null when
+ * the course is missing or foreign (→ 404, no existence leak).
+ */
+async function tenantCourseUniversity(
+  adminUserId: string,
+  courseId: string,
+): Promise<string | null> {
+  const [course] = await pgDb
+    .select({ universityId: CourseSchema.universityId })
+    .from(CourseSchema)
+    .where(eq(CourseSchema.id, courseId))
+    .limit(1);
+  if (!course || !(await isSameTenant(adminUserId, course.universityId))) {
+    return null;
+  }
+  return course.universityId;
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -27,6 +50,13 @@ export async function GET(
     if (adminAccess instanceof NextResponse) return adminAccess;
 
     const { id: courseId } = await params;
+
+    if (!(await tenantCourseUniversity(adminAccess.user.id, courseId))) {
+      return NextResponse.json(
+        { success: false, error: "Course not found" },
+        { status: 404 },
+      );
+    }
 
     const instructors = await pgDb
       .select({
@@ -73,25 +103,33 @@ export async function POST(
     const body = await request.json();
     const validated = assignInstructorSchema.parse(body);
 
-    // Verify course exists
-    const [course] = await pgDb
-      .select({ id: CourseSchema.id })
-      .from(CourseSchema)
-      .where(eq(CourseSchema.id, courseId))
-      .limit(1);
+    // Verify course exists — tenant-checked
+    const courseUniversityId = await tenantCourseUniversity(
+      adminAccess.user.id,
+      courseId,
+    );
 
-    if (!course) {
+    if (!courseUniversityId) {
       return NextResponse.json(
         { success: false, error: "Course not found" },
         { status: 404 },
       );
     }
 
-    // Verify faculty exists
+    // Verify faculty exists in the course's university (via department)
     const [faculty] = await pgDb
       .select({ id: FacultySchema.id })
       .from(FacultySchema)
-      .where(eq(FacultySchema.id, validated.facultyId))
+      .innerJoin(
+        DepartmentSchema,
+        eq(FacultySchema.departmentId, DepartmentSchema.id),
+      )
+      .where(
+        and(
+          eq(FacultySchema.id, validated.facultyId),
+          eq(DepartmentSchema.universityId, courseUniversityId),
+        ),
+      )
       .limit(1);
 
     if (!faculty) {

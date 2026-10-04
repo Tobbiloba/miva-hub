@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { CourseInstructorSchema } from "@/lib/db/pg/schema.pg";
+import { CourseInstructorSchema, CourseSchema } from "@/lib/db/pg/schema.pg";
+import { isSameTenant } from "@/lib/tenant";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -8,6 +9,27 @@ import { z } from "zod";
 const updateRoleSchema = z.object({
   role: z.enum(["primary", "assistant", "lab_instructor", "grader"]),
 });
+
+/**
+ * Instructor assignments inherit their tenant from the course — admins may
+ * only manage instructors of their own university's courses (prevents
+ * cross-university IDOR). Returns the course's universityId, or null when
+ * the course is missing or foreign (→ 404, no existence leak).
+ */
+async function tenantCourseUniversity(
+  adminUserId: string,
+  courseId: string,
+): Promise<string | null> {
+  const [course] = await pgDb
+    .select({ universityId: CourseSchema.universityId })
+    .from(CourseSchema)
+    .where(eq(CourseSchema.id, courseId))
+    .limit(1);
+  if (!course || !(await isSameTenant(adminUserId, course.universityId))) {
+    return null;
+  }
+  return course.universityId;
+}
 
 export async function PUT(
   request: NextRequest,
@@ -20,6 +42,13 @@ export async function PUT(
     const { id: courseId, facultyId } = await params;
     const body = await request.json();
     const validated = updateRoleSchema.parse(body);
+
+    if (!(await tenantCourseUniversity(adminAccess.user.id, courseId))) {
+      return NextResponse.json(
+        { success: false, error: "Assignment not found" },
+        { status: 404 },
+      );
+    }
 
     const [existing] = await pgDb
       .select()
@@ -42,7 +71,12 @@ export async function PUT(
     const [updated] = await pgDb
       .update(CourseInstructorSchema)
       .set({ role: validated.role })
-      .where(eq(CourseInstructorSchema.id, existing.id))
+      .where(
+        and(
+          eq(CourseInstructorSchema.id, existing.id),
+          eq(CourseInstructorSchema.courseId, courseId),
+        ),
+      )
       .returning();
 
     return NextResponse.json({
@@ -78,6 +112,13 @@ export async function DELETE(
 
     const { id: courseId, facultyId } = await params;
 
+    if (!(await tenantCourseUniversity(adminAccess.user.id, courseId))) {
+      return NextResponse.json(
+        { success: false, error: "Assignment not found" },
+        { status: 404 },
+      );
+    }
+
     const [existing] = await pgDb
       .select()
       .from(CourseInstructorSchema)
@@ -98,7 +139,12 @@ export async function DELETE(
 
     await pgDb
       .delete(CourseInstructorSchema)
-      .where(eq(CourseInstructorSchema.id, existing.id));
+      .where(
+        and(
+          eq(CourseInstructorSchema.id, existing.id),
+          eq(CourseInstructorSchema.courseId, courseId),
+        ),
+      );
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,5 @@
 import { join } from "path";
-import { getSession } from "@/lib/auth/server";
+import { getApiSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { UserSchema } from "@/lib/db/pg/schema.pg";
 import { eq } from "drizzle-orm";
@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
 
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(_request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
 
     if (!session?.user?.id) {
       return NextResponse.json(

@@ -5,6 +5,7 @@ import {
   StudentEnrollmentSchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
+import { getAdminScope } from "@/lib/tenant";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -27,14 +28,27 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = createEnrollmentSchema.parse(body);
 
-    // Verify student exists
+    // Tenant scope from the SESSION: university admins may only enroll their
+    // own students into their own courses. super_admin is unscoped but the
+    // student and course must still belong to the same university.
+    const scope = await getAdminScope(adminAccess.user.id);
+    if (!scope.superAdmin && !scope.university) {
+      return NextResponse.json(
+        { success: false, error: "Admin is not assigned to a university" },
+        { status: 403 },
+      );
+    }
+    const tenantId = scope.university?.id;
+
+    // Verify student exists (in tenant)
     const [student] = await pgDb
-      .select({ id: UserSchema.id })
+      .select({ id: UserSchema.id, universityId: UserSchema.universityId })
       .from(UserSchema)
       .where(
         and(
           eq(UserSchema.id, validated.studentId),
           eq(UserSchema.role, "student"),
+          ...(tenantId ? [eq(UserSchema.universityId, tenantId)] : []),
         ),
       )
       .limit(1);
@@ -46,14 +60,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify course exists
+    // Verify course exists (in the student's university)
     const [course] = await pgDb
       .select({ id: CourseSchema.id })
       .from(CourseSchema)
-      .where(eq(CourseSchema.id, validated.courseId))
+      .where(
+        and(
+          eq(CourseSchema.id, validated.courseId),
+          ...(student.universityId
+            ? [eq(CourseSchema.universityId, student.universityId)]
+            : []),
+        ),
+      )
       .limit(1);
 
-    if (!course) {
+    if (!course || !student.universityId) {
       return NextResponse.json(
         { success: false, error: "Course not found" },
         { status: 404 },

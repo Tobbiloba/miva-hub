@@ -4,7 +4,7 @@ import {
 } from "@/lib/ai/agents/submission-grader";
 import { recordAIDecision } from "@/lib/ai/decision-ledger";
 import { getFacultyInfo } from "@/lib/auth/faculty";
-import { getSession } from "@/lib/auth/server";
+import { getApiSession } from "@/lib/auth/server";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
@@ -18,7 +18,7 @@ const aiGradeRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     const facultyInfo = getFacultyInfo(session);
 
     if (!facultyInfo) {
@@ -29,7 +29,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Per-faculty rate limit: each call is a Gemini grading run
-    const rateLimit = checkRateLimit(`grade-ai:${facultyInfo.id}`, 10, 60);
+    const rateLimit = await checkRateLimit(
+      `grade-ai:${facultyInfo.id}`,
+      10,
+      60,
+    );
     if (!rateLimit.allowed) {
       return rateLimitResponse(rateLimit);
     }

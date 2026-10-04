@@ -1,23 +1,46 @@
+import { getApiSession } from "@/lib/auth/server";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { getAdminScope } from "@/lib/tenant";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
+    // Authenticated + tenant-scoped: callers only ever see their own
+    // university's catalogue (super_admin sees all). The middleware matcher
+    // skips /api/courses, so the check lives here and answers 401 JSON.
+    const session = await getApiSession();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 },
+      );
+    }
+    const scope = await getAdminScope(session.user.id);
+    if (!scope.superAdmin && !scope.university) {
+      return NextResponse.json(
+        { error: "No university associated with your account" },
+        { status: 403 },
+      );
+    }
+    const universityId = scope.university?.id;
+
     // Get query parameters
     const departmentId = request.nextUrl.searchParams.get("departmentId");
     const level = request.nextUrl.searchParams.get("level");
     const semester = request.nextUrl.searchParams.get("semester");
 
     // Get active courses - filtered by department, level, and semester if provided
-    const courses = departmentId
-      ? await pgAcademicRepository.getCoursesByDepartment(departmentId, {
-          level: level ?? undefined,
-          semester: semester ?? undefined,
-        })
-      : await pgAcademicRepository.getActiveCourses({
-          level: level ?? undefined,
-          semester: semester ?? undefined,
-        });
+    const courses = (
+      departmentId
+        ? await pgAcademicRepository.getCoursesByDepartment(departmentId, {
+            level: level ?? undefined,
+            semester: semester ?? undefined,
+          })
+        : await pgAcademicRepository.getActiveCourses({
+            level: level ?? undefined,
+            semester: semester ?? undefined,
+          })
+    ).filter((course) => !universityId || course.universityId === universityId);
 
     // Get current semester info
     const currentSemester =

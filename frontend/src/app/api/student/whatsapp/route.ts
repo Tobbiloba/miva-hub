@@ -2,7 +2,7 @@ import { randomInt } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-import { getSession } from "auth/server";
+import { getApiSession } from "auth/server";
 import { pgDb } from "lib/db/pg/db.pg";
 import { WhatsAppLinkSchema } from "lib/db/pg/schema.pg";
 import globalLogger from "logger";
@@ -22,7 +22,7 @@ function generateCode(): string {
 /** GET /api/student/whatsapp — current link status for the session user. */
 export async function GET() {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -59,7 +59,7 @@ export async function GET() {
 /** POST /api/student/whatsapp — generate (or refresh) a linking code. */
 export async function POST() {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -95,7 +95,7 @@ export async function POST() {
 /** DELETE /api/student/whatsapp — unlink the phone number. */
 export async function DELETE() {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

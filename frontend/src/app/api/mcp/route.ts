@@ -1,13 +1,12 @@
-import { getSession } from "auth/server";
+import { requireSuperAdmin } from "lib/auth/admin";
 import { McpServerSchema } from "lib/db/pg/schema.pg";
 import { NextResponse } from "next/server";
 import { saveMcpClientAction } from "./actions";
 
 export async function POST(request: Request) {
-  const session = await getSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const access = await requireSuperAdmin();
+  if (access instanceof NextResponse) return access;
+
   const json = (await request.json()) as typeof McpServerSchema.$inferInsert;
 
   try {

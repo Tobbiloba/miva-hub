@@ -6,7 +6,7 @@ import { sendPasswordResetEmail } from "@/lib/auth/password-reset";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
 import { cancelSubscriptionForUser } from "@/lib/payment/cancel-subscription";
-import { getSession } from "auth/server";
+import { getApiSession } from "auth/server";
 import { recordAIDecision } from "lib/ai/decision-ledger";
 import { customModelProvider } from "lib/ai/models";
 import { checkRateLimit, rateLimitResponse } from "lib/rate-limit";
@@ -118,7 +118,7 @@ You can also take REAL actions on the student's behalf:
 
 export async function POST(request: Request) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -127,7 +127,7 @@ export async function POST(request: Request) {
     const universityId =
       (session.user as { universityId?: string | null }).universityId ?? null;
 
-    const rateLimit = checkRateLimit(`support:${userId}`, 10, 60);
+    const rateLimit = await checkRateLimit(`support:${userId}`, 10, 60);
     if (!rateLimit.allowed) {
       return rateLimitResponse(rateLimit);
     }

@@ -1,84 +1,50 @@
-import { deleteResetToken, getResetToken } from "@/lib/auth/reset-token-store";
-import { pgDb as db } from "@/lib/db/pg/db.pg";
-import { AccountSchema, UserSchema } from "@/lib/db/pg/schema.pg";
-import bcrypt from "bcryptjs";
-import { and, eq } from "drizzle-orm";
+import { auth } from "@/lib/auth/server";
+import { APIError } from "better-auth/api";
 import { NextRequest, NextResponse } from "next/server";
 
+/**
+ * Thin wrapper over better-auth's POST /reset-password so the existing
+ * confirm page keeps its contract. better-auth validates the token from the
+ * `verification` table, hashes with its own hasher (scrypt — the one sign-in
+ * verifies against), updates the credential account, burns the token and
+ * revokes existing sessions.
+ */
 export async function POST(request: NextRequest) {
   try {
-    const { token, email, password } = await request.json();
+    const { token, password } = await request.json();
 
-    if (!token || !email || !password) {
+    if (!token || typeof token !== "string" || !password) {
       return NextResponse.json(
-        { error: "Token, email, and password are required" },
+        { error: "Token and password are required" },
         { status: 400 },
       );
     }
 
-    // Check if token is valid
-    const tokenData = getResetToken(token);
-
-    if (!tokenData || tokenData.email !== email.toLowerCase()) {
-      return NextResponse.json(
-        { error: "Invalid or expired reset token" },
-        { status: 400 },
-      );
-    }
-
-    // Validate password
-    if (password.length < 8) {
+    if (typeof password !== "string" || password.length < 8) {
       return NextResponse.json(
         { error: "Password must be at least 8 characters" },
         { status: 400 },
       );
     }
 
-    // Find user
-    const [user] = await db
-      .select()
-      .from(UserSchema)
-      .where(eq(UserSchema.email, email.toLowerCase()))
-      .limit(1);
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Update user password
-    await db
-      .update(UserSchema)
-      .set({
-        password: hashedPassword,
-      })
-      .where(eq(UserSchema.id, user.id));
-
-    // Also update account password (Better Auth stores password in account table for email provider)
-    await db
-      .update(AccountSchema)
-      .set({
-        password: hashedPassword,
-      })
-      .where(
-        and(
-          eq(AccountSchema.userId, user.id),
-          eq(AccountSchema.providerId, "credential"),
-        ),
-      );
-
-    // Delete used token
-    deleteResetToken(token);
-
-    console.log(`Password reset successful for ${email}`);
+    await auth.api.resetPassword({ body: { token, newPassword: password } });
 
     return NextResponse.json(
       { message: "Password reset successfully" },
       { status: 200 },
     );
   } catch (error) {
+    if (error instanceof APIError && error.statusCode === 400) {
+      const message = error.body?.message ?? "";
+      return NextResponse.json(
+        {
+          error: /token/i.test(message)
+            ? "Invalid or expired reset token"
+            : message || "Invalid request",
+        },
+        { status: 400 },
+      );
+    }
     console.error("Password confirm error:", error);
     return NextResponse.json(
       { error: "An error occurred while processing your request" },

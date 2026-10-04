@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const session = sessionOrError;
 
     // Strict limit: each run is a full multimodal Gemini pipeline (up to 14MB media)
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `lecture-studio:${session.user.id}`,
       3,
       600,

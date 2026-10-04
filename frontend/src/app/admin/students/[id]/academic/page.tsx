@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
+import { isSameTenant } from "@/lib/tenant";
 import {
   CourseSchema,
   ProgramSchema,
@@ -27,7 +28,7 @@ import {
   calculateCumulativeGPA,
   classifyDegree,
 } from "@/lib/utils/grade-calculator";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -68,13 +69,18 @@ export default async function StudentAcademicPage({ params }: PageProps) {
       admissionSession: UserSchema.admissionSession,
       admissionLevel: UserSchema.admissionLevel,
       graduationDate: UserSchema.graduationDate,
+      universityId: UserSchema.universityId,
     })
     .from(UserSchema)
     .leftJoin(ProgramSchema, eq(UserSchema.programId, ProgramSchema.id))
     .where(and(eq(UserSchema.id, id), eq(UserSchema.role, "student")))
     .limit(1);
 
-  if (!student) {
+  // Tenant-checked: a foreign student renders as "not found"
+  if (
+    !student ||
+    !(await isSameTenant(adminAccess.user.id, student.universityId))
+  ) {
     return (
       <div className="p-6">
         <p>Student not found.</p>
@@ -144,7 +150,15 @@ export default async function StudentAcademicPage({ params }: PageProps) {
       code: ProgramSchema.code,
     })
     .from(ProgramSchema)
-    .where(eq(ProgramSchema.isActive, true));
+    .where(
+      and(
+        eq(ProgramSchema.isActive, true),
+        // Only programs of the student's own university
+        student.universityId
+          ? eq(ProgramSchema.universityId, student.universityId)
+          : sql`false`,
+      ),
+    );
 
   const statusColor = (status: string) => {
     switch (status) {

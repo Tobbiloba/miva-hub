@@ -14,7 +14,9 @@ import { MCPIcon } from "ui/mcp-icon";
 import { SidebarGroup } from "ui/sidebar";
 import { WriteIcon } from "ui/write-icon";
 
-export function AppSidebarMenus() {
+export function AppSidebarMenus({
+  isSuperAdmin = false,
+}: { isSuperAdmin?: boolean }) {
   const router = useRouter();
   const t = useTranslations("");
   const { setOpenMobile } = useSidebar();
@@ -52,18 +54,21 @@ export function AppSidebarMenus() {
             </SidebarMenuItem>
           </Tooltip>
         </SidebarMenu>
-        <SidebarMenu>
-          <Tooltip>
-            <SidebarMenuItem>
-              <Link href="/mcp">
-                <SidebarMenuButton className="font-semibold">
-                  <MCPIcon className="size-4 fill-accent-foreground" />
-                  {t("Layout.mcpConfiguration")}
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-          </Tooltip>
-        </SidebarMenu>
+        {/* MCP servers are platform-global; only super_admin manages them */}
+        {isSuperAdmin && (
+          <SidebarMenu>
+            <Tooltip>
+              <SidebarMenuItem>
+                <Link href="/mcp">
+                  <SidebarMenuButton className="font-semibold">
+                    <MCPIcon className="size-4 fill-accent-foreground" />
+                    {t("Layout.mcpConfiguration")}
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            </Tooltip>
+          </SidebarMenu>
+        )}
         {!CHAT_FIRST && (
           <SidebarMenu>
             <Tooltip>

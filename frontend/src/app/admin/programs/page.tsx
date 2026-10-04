@@ -22,6 +22,7 @@ import {
   ProgramCurriculumSchema,
   ProgramSchema,
 } from "@/lib/db/pg/schema.pg";
+import { getAdminScope } from "@/lib/tenant";
 import { asc, eq, sql } from "drizzle-orm";
 import { BookOpen, Building2, FileText } from "lucide-react";
 import Link from "next/link";
@@ -30,6 +31,14 @@ export default async function ProgramsListPage() {
   const adminAccess = await requireAdmin();
   if (adminAccess instanceof Response) {
     return <div>Access denied. Admin privileges required.</div>;
+  }
+
+  // Tenant scope: only the admin's own university (super_admin → all)
+  const scope = await getAdminScope(adminAccess.user.id);
+  if (!scope.superAdmin && !scope.university) {
+    return (
+      <div>Access denied. Your account is not assigned to a university.</div>
+    );
   }
 
   const programs = await pgDb
@@ -51,6 +60,11 @@ export default async function ProgramsListPage() {
     .leftJoin(
       ProgramCurriculumSchema,
       eq(ProgramSchema.id, ProgramCurriculumSchema.programId),
+    )
+    .where(
+      scope.university
+        ? eq(ProgramSchema.universityId, scope.university.id)
+        : undefined,
     )
     .groupBy(ProgramSchema.id, DepartmentSchema.name)
     .orderBy(asc(ProgramSchema.name));

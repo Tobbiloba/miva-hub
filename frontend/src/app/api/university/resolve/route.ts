@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  const rl = checkRateLimit(`uni-resolve:${ip}`, 20, 60);
+  const rl = await checkRateLimit(`uni-resolve:${ip}`, 20, 60);
   if (!rl.allowed) return rateLimitResponse(rl);
 
   const email = request.nextUrl.searchParams.get("email");

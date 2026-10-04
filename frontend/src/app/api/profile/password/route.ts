@@ -1,8 +1,6 @@
-import { getSession } from "@/lib/auth/server";
-import { pgDb } from "@/lib/db/pg/db.pg";
-import { UserSchema } from "@/lib/db/pg/schema.pg";
-import { compare, hash } from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { auth } from "@/lib/auth/server";
+import { APIError } from "better-auth/api";
+import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -14,100 +12,72 @@ const passwordChangeSchema = z.object({
     .min(8, "New password must be at least 8 characters long"),
 });
 
+/**
+ * POST /api/profile/password — change the signed-in user's password.
+ * Delegates to better-auth, which owns the credential account and its hash
+ * (the legacy user.password column is never populated by better-auth).
+ */
 export async function POST(request: NextRequest) {
+  const requestHeaders = await headers();
+  const session = await auth.api.getSession({ headers: requestHeaders });
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { success: false, error: "Authentication required" },
+      { status: 401 },
+    );
+  }
+
+  const parsed = passwordChangeSchema.safeParse(
+    await request.json().catch(() => null),
+  );
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: parsed.error.issues[0]?.message ?? "Validation failed",
+        details: parsed.error.issues,
+      },
+      { status: 400 },
+    );
+  }
+  const { currentPassword, newPassword } = parsed.data;
+
+  if (currentPassword === newPassword) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "New password must be different from current password",
+      },
+      { status: 400 },
+    );
+  }
+
   try {
-    const session = await getSession();
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "Authentication required" },
-        { status: 401 },
-      );
-    }
-
-    // Parse and validate request body
-    const body = await request.json();
-    const validatedData = passwordChangeSchema.parse(body);
-
-    // Get current user with password
-    const user = await pgDb
-      .select()
-      .from(UserSchema)
-      .where(eq(UserSchema.id, session.user.id))
-      .limit(1);
-
-    if (user.length === 0) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 },
-      );
-    }
-
-    // Verify current password
-    const isCurrentPasswordValid = await compare(
-      validatedData.currentPassword,
-      user[0].password,
-    );
-
-    if (!isCurrentPasswordValid) {
-      return NextResponse.json(
-        { success: false, error: "Current password is incorrect" },
-        { status: 400 },
-      );
-    }
-
-    // Check if new password is different from current password
-    const isSamePassword = await compare(
-      validatedData.newPassword,
-      user[0].password,
-    );
-
-    if (isSamePassword) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "New password must be different from current password",
-        },
-        { status: 400 },
-      );
-    }
-
-    // Hash the new password
-    const hashedNewPassword = await hash(validatedData.newPassword, 12);
-
-    // Update password in database
-    await pgDb
-      .update(UserSchema)
-      .set({
-        password: hashedNewPassword,
-        updatedAt: new Date(),
-      })
-      .where(eq(UserSchema.id, session.user.id));
-
+    await auth.api.changePassword({
+      body: { currentPassword, newPassword, revokeOtherSessions: true },
+      headers: requestHeaders,
+    });
     return NextResponse.json({
       success: true,
       message: "Password changed successfully",
     });
   } catch (error) {
-    console.error("[Profile Password API] Error:", error);
-
-    if (error instanceof z.ZodError) {
+    if (error instanceof APIError) {
+      // e.g. INVALID_PASSWORD for a wrong current password
       return NextResponse.json(
         {
           success: false,
-          error: "Validation failed",
-          details: error.issues,
+          error:
+            error.body?.code === "INVALID_PASSWORD"
+              ? "Current password is incorrect"
+              : (error.body?.message ?? "Failed to change password"),
         },
         { status: 400 },
       );
     }
-
+    console.error("[Profile Password API] Error:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to change password",
-        message: error instanceof Error ? error.message : "Unknown error",
-      },
+      { success: false, error: "Failed to change password" },
       { status: 500 },
     );
   }

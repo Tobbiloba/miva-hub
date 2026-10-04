@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { getSession } from "@/lib/auth/server";
+import { getApiSession } from "@/lib/auth/server";
 import { getStudentInfo } from "@/lib/auth/student";
 import { s3Service } from "@/lib/aws/s3-service";
 import type { S3AccessOptions } from "@/lib/aws/s3-service";
@@ -16,7 +16,7 @@ export async function POST(
 ) {
   try {
     const { assignmentId } = await params;
-    const session = await getSession();
+    const session = await getApiSession();
     const studentInfo = getStudentInfo(session);
 
     if (!studentInfo) {
@@ -221,7 +221,7 @@ export async function GET(
 ) {
   try {
     const { assignmentId } = await params;
-    const session = await getSession();
+    const session = await getApiSession();
     const studentInfo = getStudentInfo(session);
 
     if (!studentInfo) {

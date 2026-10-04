@@ -1,7 +1,19 @@
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { sendEmail } from "@/lib/email/smtp-service";
 import { buildWelcomeEmail } from "@/lib/email/templates/welcome";
+import {
+  checkRateLimit,
+  getClientIp,
+  rateLimitResponse,
+} from "@/lib/rate-limit";
 import { auth } from "lib/auth/server";
+import { withSignupAssignment } from "lib/auth/signup-context";
+import { UNKNOWN_EMAIL_DOMAIN_MESSAGE } from "lib/auth/signup-policy";
+import { pgDb } from "lib/db/pg/db.pg";
+import { ProgramSchema, UserSchema } from "lib/db/pg/schema.pg";
+import { resolveUniversityFromEmail } from "lib/tenant";
+import { APIError } from "better-auth/api";
+import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -48,19 +60,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Resolve tenant from the email domain (active universities only).
-    // Signup is hard-gated: only emails on a registered university's
-    // domain list may create student accounts.
-    const { resolveUniversityFromEmail } = await import("lib/tenant");
+    const ip = getClientIp(request);
+    const limit = await checkRateLimit(`register:${ip}`, 5, 15 * 60);
+    if (!limit.allowed) return rateLimitResponse(limit);
+
+    // Fast, friendly domain check + program tenancy. The better-auth
+    // user-create hook re-applies the domain gate when the row is inserted.
     const university = await resolveUniversityFromEmail(email);
     if (!university) {
       return NextResponse.json(
-        {
-          error:
-            "Your email domain isn't registered with any university on Askly. Use your school email address, or ask your university to join the platform.",
-          code: "UNKNOWN_EMAIL_DOMAIN",
-        },
+        { error: UNKNOWN_EMAIL_DOMAIN_MESSAGE, code: "UNKNOWN_EMAIL_DOMAIN" },
         { status: 403 },
+      );
+    }
+
+    // The program must belong to the student's own university
+    const UUID_RE =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const [program] = UUID_RE.test(String(programId))
+      ? await pgDb
+          .select({ id: ProgramSchema.id })
+          .from(ProgramSchema)
+          .where(
+            and(
+              eq(ProgramSchema.id, programId),
+              eq(ProgramSchema.universityId, university.id),
+              eq(ProgramSchema.isActive, true),
+            ),
+          )
+          .limit(1)
+      : [];
+    if (!program) {
+      return NextResponse.json(
+        { error: "Selected program is not offered by your university" },
+        { status: 400 },
       );
     }
 
@@ -81,16 +114,20 @@ export async function POST(request: NextRequest) {
     const enrollmentSemester =
       currentSemester === "first" ? `${startYear}-fall` : `${endYear}-spring`;
 
-    // 1. Create user via Better Auth
-    const signUpResponse = await auth.api.signUpEmail({
-      body: {
-        email: email.toLowerCase().trim(),
-        name: name.trim(),
-        password,
-        callbackURL: "/student/dashboard",
-      },
-      headers: request.headers,
-    });
+    // 1. Create user via Better Auth. Its user-create hook is the tenant
+    // gate: it resolves the university from the email domain (rejecting
+    // unregistered domains) and assigns role, tenant and trial in the INSERT.
+    const signUpResponse = await withSignupAssignment({ role: "student" }, () =>
+      auth.api.signUpEmail({
+        body: {
+          email: email.toLowerCase().trim(),
+          name: name.trim(),
+          password,
+          callbackURL: "/student/dashboard",
+        },
+        headers: request.headers,
+      }),
+    );
 
     if (!signUpResponse?.user) {
       return NextResponse.json(
@@ -101,31 +138,21 @@ export async function POST(request: NextRequest) {
 
     const userId = signUpResponse.user.id;
 
-    // 2. Update user with academic fields + trial
-    const { pgDb } = await import("lib/db/pg/db.pg");
-    const { UserSchema } = await import("lib/db/pg/schema.pg");
-    const { eq } = await import("drizzle-orm");
-
+    // 2. Fill in the academic profile (tenant/role/trial already set)
     const now = new Date();
-    const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
     await pgDb
       .update(UserSchema)
       .set({
-        universityId: university.id,
-        role: "student",
         programId,
         currentLevel: Number(level),
         currentSemester,
         academicYear,
-        enrollmentStatus: "active",
         isVerified: false,
         studentId: matricNumber || null,
         year: String(level),
         admissionSession: activeSession.sessionName,
         admissionLevel: Number(level),
-        trialStartedAt: now,
-        trialEndsAt: trialEnd,
         termsAcceptedAt: now,
       })
       .where(eq(UserSchema.id, userId));
@@ -172,7 +199,6 @@ export async function POST(request: NextRequest) {
 
     console.log(`Self-service signup complete:`, {
       userId,
-      email,
       programId,
       level,
       semester: currentSemester,
@@ -187,6 +213,16 @@ export async function POST(request: NextRequest) {
       semester: currentSemester,
     });
   } catch (error: any) {
+    if (
+      error instanceof APIError &&
+      error.body?.code === "UNKNOWN_EMAIL_DOMAIN"
+    ) {
+      return NextResponse.json(
+        { error: error.body.message, code: "UNKNOWN_EMAIL_DOMAIN" },
+        { status: 403 },
+      );
+    }
+
     console.error("Registration error:", error);
 
     if (error.message?.includes("User already exists")) {

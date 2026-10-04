@@ -5,6 +5,7 @@ import {
   ProgramSchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
+import { getUserUniversity } from "@/lib/tenant";
 import { and, eq, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -18,11 +19,30 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const dryRun = body.dryRun === true;
 
-    // Get current active session
+    // Tenant scope: end-semester only affects the admin's own university.
+    const university = await getUserUniversity(adminAccess.user.id);
+    if (!university) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No university associated with your account",
+          message:
+            "Ending a semester requires a university-scoped admin. Super admins must act within a specific university.",
+        },
+        { status: 403 },
+      );
+    }
+
+    // Get current active session for this university
     const [currentSession] = await pgDb
       .select()
       .from(AcademicSessionSchema)
-      .where(eq(AcademicSessionSchema.isCurrent, true))
+      .where(
+        and(
+          eq(AcademicSessionSchema.isCurrent, true),
+          eq(AcademicSessionSchema.universityId, university.id),
+        ),
+      )
       .limit(1);
 
     if (!currentSession) {
@@ -54,6 +74,7 @@ export async function POST(request: NextRequest) {
       .leftJoin(ProgramSchema, eq(UserSchema.programId, ProgramSchema.id))
       .where(
         and(
+          eq(UserSchema.universityId, university.id),
           eq(UserSchema.enrollmentStatus, "active"),
           eq(UserSchema.currentSemester, "first"),
           eq(UserSchema.role, "student"),
@@ -101,7 +122,7 @@ export async function POST(request: NextRequest) {
 
     // Execute the transition in a transaction
     const result = await pgDb.transaction(async (tx) => {
-      // Step 1: Move all active first-semester students to second semester
+      // Step 1: Move this university's active first-semester students
       const updatedStudents = await tx
         .update(UserSchema)
         .set({
@@ -110,6 +131,7 @@ export async function POST(request: NextRequest) {
         })
         .where(
           and(
+            eq(UserSchema.universityId, university.id),
             eq(UserSchema.enrollmentStatus, "active"),
             eq(UserSchema.currentSemester, "first"),
             eq(UserSchema.role, "student"),
@@ -117,14 +139,19 @@ export async function POST(request: NextRequest) {
         )
         .returning({ id: UserSchema.id });
 
-      // Step 2: Update the academic session's current semester
+      // Step 2: Update this university's current session semester
       await tx
         .update(AcademicSessionSchema)
         .set({
           currentSemester: "second",
           updatedAt: new Date(),
         })
-        .where(eq(AcademicSessionSchema.isCurrent, true));
+        .where(
+          and(
+            eq(AcademicSessionSchema.id, currentSession.id),
+            eq(AcademicSessionSchema.universityId, university.id),
+          ),
+        );
 
       return { studentsUpdated: updatedStudents.length };
     });

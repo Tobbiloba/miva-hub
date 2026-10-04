@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { getAdminScope } from "@/lib/tenant";
 import {
   BookOpen,
   Building2,
@@ -34,12 +35,21 @@ export default async function DepartmentManagementPage() {
     return <div>Access denied. Admin privileges required.</div>;
   }
 
+  // Tenant scope: only the admin's own university (super_admin → all)
+  const scope = await getAdminScope(adminAccess.user.id);
+  if (!scope.superAdmin && !scope.university) {
+    return (
+      <div>Access denied. Your account is not assigned to a university.</div>
+    );
+  }
+  const universityId = scope.university?.id;
+
   // Fetch departments and related data
   const [departments, courseAnalytics, facultyAnalytics] = await Promise.all([
-    pgAcademicRepository.getDepartments(),
+    pgAcademicRepository.getDepartments(universityId),
     // Get course analytics for each department
     (async () => {
-      const depts = await pgAcademicRepository.getDepartments();
+      const depts = await pgAcademicRepository.getDepartments(universityId);
       const analytics = await Promise.all(
         depts.map(async (dept) => {
           const courses = await pgAcademicRepository.getCoursesByDepartment(
@@ -60,7 +70,7 @@ export default async function DepartmentManagementPage() {
     })(),
     // Get faculty analytics
     (async () => {
-      const depts = await pgAcademicRepository.getDepartments();
+      const depts = await pgAcademicRepository.getDepartments(universityId);
       const analytics = await Promise.all(
         depts.map(async (dept) => {
           const faculty = await pgAcademicRepository.getFacultyByDepartment(

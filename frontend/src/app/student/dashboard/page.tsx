@@ -44,7 +44,9 @@ async function getPageData(userId: string) {
   // Latest announcement for enrolled course (or site-wide)
   const announcements = firstCourse
     ? await pgAcademicRepository
-        .getAnnouncements(firstCourse.id, undefined, 1)
+        .getAnnouncements(firstCourse.id, undefined, 1, {
+          universityId: firstCourse.universityId,
+        })
         .catch(() => [])
     : [];
 

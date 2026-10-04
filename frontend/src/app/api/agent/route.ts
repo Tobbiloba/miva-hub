@@ -1,12 +1,10 @@
 import { AgentCreateSchema, AgentQuerySchema } from "app-types/agent";
-import { getSession } from "auth/server";
-import { serverCache } from "lib/cache";
-import { CacheKeys } from "lib/cache/cache-keys";
+import { getApiSession } from "auth/server";
 import { agentRepository } from "lib/db/repository";
 import { z } from "zod";
 
 export async function GET(request: Request) {
-  const session = await getSession();
+  const session = await getApiSession();
 
   if (!session?.user.id) {
     return new Response("Unauthorized", { status: 401 });
@@ -51,7 +49,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const session = await getSession();
+  const session = await getApiSession();
 
   if (!session?.user.id) {
     return new Response("Unauthorized", { status: 401 });
@@ -65,7 +63,6 @@ export async function POST(request: Request): Promise<Response> {
       ...data,
       userId: session.user.id,
     });
-    serverCache.delete(CacheKeys.agentInstructions(agent.id));
 
     return Response.json(agent);
   } catch (error) {

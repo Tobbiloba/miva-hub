@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/auth/server";
+import { getApiSession } from "@/lib/auth/server";
 import { getUniversityById } from "@/lib/tenant";
 import { NextResponse } from "next/server";
 
@@ -7,10 +7,8 @@ import { NextResponse } from "next/server";
  * Used by admin UIs to validate emails against the tenant's domains.
  */
 export async function GET() {
-  let session: Awaited<ReturnType<typeof getSession>>;
-  try {
-    session = await getSession();
-  } catch {
+  const session = await getApiSession();
+  if (!session) {
     return NextResponse.json(
       { error: "Authentication required" },
       { status: 401 },

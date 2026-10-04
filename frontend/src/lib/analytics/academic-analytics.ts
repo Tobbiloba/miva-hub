@@ -7,6 +7,17 @@ import { pgAcademicRepository } from "lib/db/pg/repositories/academic-repository
 import { getCurrentSemester } from "lib/utils/semester";
 import { safe } from "ts-safe";
 
+/**
+ * Tenant scope for every analytics query: a universityId (university
+ * admins) or "all" (super_admin only, platform-wide). Required on every
+ * entry point and part of every cache key so one tenant's numbers can never
+ * be served to another.
+ */
+export type AnalyticsScope = string | "all";
+
+const inScope = (scope: AnalyticsScope, universityId: string) =>
+  scope === "all" || universityId === scope;
+
 // Types for analytics data
 export interface SystemOverview {
   totalStudents: number;
@@ -97,10 +108,10 @@ class AcademicAnalyticsService {
   /**
    * Get system overview analytics
    */
-  async getSystemOverview(): Promise<SystemOverview> {
-    return this.cached("system-overview", async () => {
+  async getSystemOverview(scope: AnalyticsScope): Promise<SystemOverview> {
+    return this.cached(`${scope}:system-overview`, async () => {
       const [systemStats, currentSemester] = await Promise.all([
-        pgAcademicRepository.getSystemStats(),
+        pgAcademicRepository.getSystemStats(scope),
         getCurrentSemester(),
       ]);
 
@@ -118,17 +129,23 @@ class AcademicAnalyticsService {
   /**
    * Get course analytics for all courses or specific department
    */
-  async getCourseAnalytics(departmentId?: string): Promise<CourseAnalytics[]> {
-    const cacheKey = `course-analytics-${departmentId || "all"}`;
+  async getCourseAnalytics(
+    scope: AnalyticsScope,
+    departmentId?: string,
+  ): Promise<CourseAnalytics[]> {
+    const cacheKey = `${scope}:course-analytics-${departmentId || "all"}`;
 
     return this.cached(cacheKey, async () => {
       try {
         const currentSemester = await getCurrentSemester();
 
-        // Get all active courses
-        const courses = departmentId
-          ? await pgAcademicRepository.getCoursesByDepartment(departmentId)
-          : await pgAcademicRepository.getActiveCourses();
+        // Get all active courses (tenant-scoped — departmentId comes from
+        // the query string, so foreign departments simply yield nothing)
+        const courses = (
+          departmentId
+            ? await pgAcademicRepository.getCoursesByDepartment(departmentId)
+            : await pgAcademicRepository.getActiveCourses()
+        ).filter((course) => inScope(scope, course.universityId));
 
         const courseAnalytics = await Promise.all(
           courses.map(async (course) => {
@@ -169,9 +186,10 @@ class AcademicAnalyticsService {
    * Get student performance analytics
    */
   async getStudentPerformance(
+    scope: AnalyticsScope,
     limit: number = 50,
   ): Promise<StudentPerformance[]> {
-    const cacheKey = `student-performance-${limit}`;
+    const cacheKey = `${scope}:student-performance-${limit}`;
 
     return this.cached(cacheKey, async () => {
       try {
@@ -192,16 +210,21 @@ class AcademicAnalyticsService {
    * Get faculty analytics
    */
   async getFacultyAnalytics(
+    scope: AnalyticsScope,
     departmentId?: string,
   ): Promise<FacultyAnalytics[]> {
-    const cacheKey = `faculty-analytics-${departmentId || "all"}`;
+    const cacheKey = `${scope}:faculty-analytics-${departmentId || "all"}`;
 
     return this.cached(cacheKey, async () => {
       try {
-        // Get faculty members
-        const faculty = departmentId
-          ? await pgAcademicRepository.getFacultyByDepartment(departmentId)
-          : []; // Would need a method to get all faculty
+        // Get faculty members — only for a department in the tenant
+        const department = departmentId
+          ? await pgAcademicRepository.getDepartmentById(departmentId)
+          : null;
+        const faculty =
+          department && inScope(scope, department.universityId)
+            ? await pgAcademicRepository.getFacultyByDepartment(department.id)
+            : []; // Would need a method to get all faculty
 
         const facultyAnalytics = await Promise.all(
           faculty.map(async (member) => {
@@ -247,10 +270,14 @@ class AcademicAnalyticsService {
   /**
    * Get department analytics
    */
-  async getDepartmentAnalytics(): Promise<DepartmentAnalytics[]> {
-    return this.cached("department-analytics", async () => {
+  async getDepartmentAnalytics(
+    scope: AnalyticsScope,
+  ): Promise<DepartmentAnalytics[]> {
+    return this.cached(`${scope}:department-analytics`, async () => {
       try {
-        const departments = await pgAcademicRepository.getDepartments();
+        const departments = await pgAcademicRepository.getDepartments(
+          scope === "all" ? undefined : scope,
+        );
         const currentSemester = await getCurrentSemester();
 
         const departmentAnalytics = await Promise.all(
@@ -305,11 +332,13 @@ class AcademicAnalyticsService {
   /**
    * Get learning insights and trends
    */
-  async getLearningInsights(): Promise<LearningInsights> {
-    return this.cached("learning-insights", async () => {
+  async getLearningInsights(scope: AnalyticsScope): Promise<LearningInsights> {
+    return this.cached(`${scope}:learning-insights`, async () => {
       try {
         const currentSemester = await getCurrentSemester();
-        const courses = await pgAcademicRepository.getActiveCourses();
+        const courses = (await pgAcademicRepository.getActiveCourses()).filter(
+          (course) => inScope(scope, course.universityId),
+        );
 
         // Get course statistics for insights
         const courseStats = await Promise.all(
@@ -400,9 +429,10 @@ class AcademicAnalyticsService {
    * Get assignment analytics
    */
   async getAssignmentAnalytics(
+    scope: AnalyticsScope,
     courseId?: string,
   ): Promise<AssignmentAnalytics[]> {
-    const cacheKey = `assignment-analytics-${courseId || "all"}`;
+    const cacheKey = `${scope}:assignment-analytics-${courseId || "all"}`;
 
     return this.cached(cacheKey, async () => {
       try {
@@ -421,11 +451,11 @@ class AcademicAnalyticsService {
   /**
    * Get real-time statistics for dashboard
    */
-  async getRealTimeStats() {
-    return this.cached("realtime-stats", async () => {
+  async getRealTimeStats(scope: AnalyticsScope) {
+    return this.cached(`${scope}:realtime-stats`, async () => {
       try {
         const [systemStats, currentSemester] = await Promise.all([
-          pgAcademicRepository.getSystemStats(),
+          pgAcademicRepository.getSystemStats(scope),
           getCurrentSemester(),
         ]);
 
@@ -484,8 +514,8 @@ export const academicAnalytics = new AcademicAnalyticsService();
 /**
  * Helper functions for safe analytics calls
  */
-export const getSystemOverview = () =>
-  safe(() => academicAnalytics.getSystemOverview()).orElse({
+export const getSystemOverview = (scope: AnalyticsScope) =>
+  safe(() => academicAnalytics.getSystemOverview(scope)).orElse({
     totalStudents: 0,
     totalCourses: 0,
     totalFaculty: 0,
@@ -494,11 +524,16 @@ export const getSystemOverview = () =>
     activeSemester: "N/A",
   });
 
-export const getCourseAnalytics = (departmentId?: string) =>
-  safe(() => academicAnalytics.getCourseAnalytics(departmentId)).orElse([]);
+export const getCourseAnalytics = (
+  scope: AnalyticsScope,
+  departmentId?: string,
+) =>
+  safe(() => academicAnalytics.getCourseAnalytics(scope, departmentId)).orElse(
+    [],
+  );
 
-export const getLearningInsights = () =>
-  safe(() => academicAnalytics.getLearningInsights()).orElse({
+export const getLearningInsights = (scope: AnalyticsScope) =>
+  safe(() => academicAnalytics.getLearningInsights(scope)).orElse({
     popularCourses: [],
     difficultCourses: [],
     engagementMetrics: {
@@ -513,11 +548,16 @@ export const getLearningInsights = () =>
     },
   });
 
-export const getDepartmentAnalytics = () =>
-  safe(() => academicAnalytics.getDepartmentAnalytics()).orElse([]);
+export const getDepartmentAnalytics = (scope: AnalyticsScope) =>
+  safe(() => academicAnalytics.getDepartmentAnalytics(scope)).orElse([]);
 
-export const getFacultyAnalytics = (departmentId?: string) =>
-  safe(() => academicAnalytics.getFacultyAnalytics(departmentId)).orElse([]);
+export const getFacultyAnalytics = (
+  scope: AnalyticsScope,
+  departmentId?: string,
+) =>
+  safe(() => academicAnalytics.getFacultyAnalytics(scope, departmentId)).orElse(
+    [],
+  );
 
-export const getRealTimeStats = () =>
-  safe(() => academicAnalytics.getRealTimeStats()).orElse(null);
+export const getRealTimeStats = (scope: AnalyticsScope) =>
+  safe(() => academicAnalytics.getRealTimeStats(scope)).orElse(null);

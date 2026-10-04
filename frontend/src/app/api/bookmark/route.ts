@@ -1,4 +1,4 @@
-import { getSession } from "auth/server";
+import { getApiSession } from "auth/server";
 import { bookmarkRepository } from "lib/db/repository";
 import { z } from "zod";
 
@@ -8,7 +8,7 @@ const BookmarkSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const session = await getSession();
+  const session = await getApiSession();
 
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const session = await getSession();
+  const session = await getApiSession();
 
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });

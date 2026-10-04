@@ -1,7 +1,14 @@
+import { randomBytes } from "node:crypto";
 import { requireAdmin } from "@/lib/auth/admin";
+import { createCredentialUser } from "@/lib/auth/provision-user";
+import { generateTempPassword } from "@/lib/auth/temp-password";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { FacultySchema, UserSchema } from "@/lib/db/pg/schema.pg";
-import { hash } from "bcryptjs";
+import {
+  DepartmentSchema,
+  FacultySchema,
+  UserSchema,
+} from "@/lib/db/pg/schema.pg";
+import { getAdminScope } from "@/lib/tenant";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -43,9 +50,16 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
-    // Tenant scope: admins only see their own university's faculty
-    const { getUserUniversity } = await import("@/lib/tenant");
-    const university = await getUserUniversity(adminAccess.user.id);
+    // Tenant scope: super_admin is unscoped by role; a university admin
+    // without a university is misconfigured and gets 403, never unfiltered
+    const scope = await getAdminScope(adminAccess.user.id);
+    if (!scope.superAdmin && !scope.university) {
+      return NextResponse.json(
+        { success: false, error: "Admin is not assigned to a university" },
+        { status: 403 },
+      );
+    }
+    const university = scope.university;
 
     // Fetch faculty with user data
     const facultyQuery = pgDb
@@ -171,11 +185,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // The department must belong to the admin's university
+    const [department] = await pgDb
+      .select({ id: DepartmentSchema.id })
+      .from(DepartmentSchema)
+      .where(
+        and(
+          eq(DepartmentSchema.id, validatedData.departmentId),
+          eq(DepartmentSchema.universityId, adminUniversity.id),
+        ),
+      )
+      .limit(1);
+    if (!department) {
+      return NextResponse.json(
+        { success: false, error: "Department not found" },
+        { status: 404 },
+      );
+    }
+
     // Check for duplicate email
     const existingUser = await pgDb
       .select()
       .from(UserSchema)
-      .where(eq(UserSchema.email, validatedData.email))
+      .where(eq(UserSchema.email, validatedData.email.toLowerCase().trim()))
       .limit(1);
 
     if (existingUser.length > 0) {
@@ -189,46 +221,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate a temporary password (faculty should change this on first login)
-    const tempPassword = `faculty${Math.random().toString(36).slice(-8)}`;
-    const hashedPassword = await hash(tempPassword, 12);
-
-    // Create the faculty user
-    const userId = crypto.randomUUID();
-    const newUser = await pgDb
-      .insert(UserSchema)
-      .values({
-        id: userId,
-        name: validatedData.name,
-        email: validatedData.email,
-        password: hashedPassword,
-        role: "faculty",
-        universityId: adminUniversity.id,
-        isEmailVerified: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning();
+    // Temporary password (faculty should change it on first login).
+    // Created through better-auth: its hasher + credential account row (what
+    // sign-in verifies) and the tenant/role policy hook. Pre-verified: the
+    // domain was checked above and no verification-email flow exists here.
+    const tempPassword = generateTempPassword();
+    const createdUser = await createCredentialUser({
+      email: validatedData.email,
+      name: validatedData.name,
+      password: tempPassword,
+      assignment: { universityId: adminUniversity.id, role: "faculty" },
+      emailVerified: true,
+    });
+    const newUser = [createdUser];
 
     // Create faculty profile. employee ID generated (editable later);
     // matches the invite-onboarding path's format.
-    const employeeId = `FAC-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(-4).toUpperCase()}`;
-    const newFaculty = await pgDb
-      .insert(FacultySchema)
-      .values({
-        id: crypto.randomUUID(),
-        userId: userId,
-        employeeId,
-        position: validatedData.position,
-        departmentId: validatedData.departmentId,
-        officeLocation: validatedData.office || null,
-        officeHours: validatedData.officeHours || null,
-        bio: validatedData.bio || null,
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning();
+    const employeeId = `FAC-${Date.now().toString(36).toUpperCase()}${randomBytes(2).toString("hex").toUpperCase()}`;
+    let newFaculty: (typeof FacultySchema.$inferSelect)[];
+    try {
+      newFaculty = await pgDb
+        .insert(FacultySchema)
+        .values({
+          userId: createdUser.id,
+          employeeId,
+          position: validatedData.position,
+          departmentId: department.id,
+          officeLocation: validatedData.office || null,
+          officeHours: validatedData.officeHours || null,
+          bio: validatedData.bio || null,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+    } catch (error) {
+      // Don't leave a faculty-role login without its faculty record
+      await pgDb
+        .delete(UserSchema)
+        .where(eq(UserSchema.id, createdUser.id))
+        .catch(() => {});
+      throw error;
+    }
 
     // Combine user and faculty data for response
     const { password: _, ...userData } = newUser[0];

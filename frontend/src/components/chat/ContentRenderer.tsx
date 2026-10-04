@@ -1,5 +1,6 @@
 "use client";
 
+import { escapeHtml } from "lib/escape-html";
 import { cn } from "lib/utils";
 import {
   BookOpen,
@@ -420,7 +421,9 @@ export function ContentRenderer({
           </h3>
           <p className="text-sm text-muted-foreground">
             You have{" "}
-            <span className="font-semibold text-amber-600 dark:text-amber-400">{total_count}</span>{" "}
+            <span className="font-semibold text-amber-600 dark:text-amber-400">
+              {total_count}
+            </span>{" "}
             assignments due soon
           </p>
         </div>
@@ -521,7 +524,7 @@ export function ContentRenderer({
                 <div
                   className="prose prose-sm text-muted-foreground"
                   dangerouslySetInnerHTML={{
-                    __html: content.replace(/\n/g, "<br/>"),
+                    __html: escapeHtml(content).replace(/\n/g, "<br/>"),
                   }}
                 />
               </div>

@@ -198,7 +198,7 @@ export class MCPClient {
       if (isMaybeStdioConfig(this.serverConfig)) {
         // Skip stdio transport
         if (IS_MCP_SERVER_REMOTE_ONLY) {
-          throw new Error("VERCEL: Stdio transport is not supported");
+          throw new Error("Stdio MCP transport is disabled");
         }
 
         const config = MCPStdioConfigZodSchema.parse(this.serverConfig);

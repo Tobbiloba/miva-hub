@@ -1,7 +1,8 @@
 import { requireAdmin } from "@/lib/auth/admin";
+import { createCredentialUser } from "@/lib/auth/provision-user";
+import { generateTempPassword } from "@/lib/auth/temp-password";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
-  AccountSchema,
   CourseInstructorSchema,
   CourseSchema,
   DepartmentSchema,
@@ -229,11 +230,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (password !== undefined && password !== null && password !== "") {
+      if (typeof password !== "string" || password.length < 8) {
+        return NextResponse.json(
+          { success: false, message: "Password must be at least 8 characters" },
+          { status: 400 },
+        );
+      }
+    }
+
     // Check if email already exists
     const existingUser = await pgDb
       .select()
       .from(UserSchema)
-      .where(eq(UserSchema.email, email))
+      .where(eq(UserSchema.email, String(email).toLowerCase().trim()))
       .limit(1);
 
     if (existingUser.length > 0) {
@@ -254,46 +264,23 @@ export async function POST(request: NextRequest) {
     }
     const university = scope.university;
 
-    // Hash with better-auth's own algorithm — sign-in verifies against the
-    // account (credential) row, so a bare UserSchema.password can never log in
-    const { hashPassword } = await import("better-auth/crypto");
-    const tempPassword =
-      password || `${role}${Math.random().toString(36).slice(-8)}`;
-    const hashedPassword = await hashPassword(tempPassword);
-
-    // Create user + credential account row atomically so the user can sign in
-    const newUser = await pgDb.transaction(async (tx) => {
-      // Assign-then-index: .returning() inside a transaction infers a union
-      // type that breaks array destructuring but not indexing
-      const createdRows = await tx
-        .insert(UserSchema)
-        .values({
-          name,
-          email,
-          role,
-          password: hashedPassword,
-          universityId: university?.id ?? null,
-          studentId: role === "student" ? studentId : null,
-          major: role === "student" ? major : null,
-          year: role === "student" ? year : null,
-          currentSemester: role === "student" ? currentSemester : null,
-          enrollmentStatus: "active",
-          emailVerified: true,
-        })
-        .returning();
-      const created = createdRows[0];
-
-      await tx.insert(AccountSchema).values({
-        accountId: created.id,
-        providerId: "credential",
-        userId: created.id,
-        password: hashedPassword,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-
-      return [created];
+    // Create through better-auth: its hasher + credential account row (what
+    // sign-in verifies) and the tenant/role/trial policy hook
+    const tempPassword = password || generateTempPassword();
+    const created = await createCredentialUser({
+      email,
+      name,
+      password: tempPassword,
+      assignment: { universityId: university?.id ?? null, role },
+      emailVerified: true,
+      profile: {
+        studentId: role === "student" ? studentId : null,
+        major: role === "student" ? major : null,
+        year: role === "student" ? year : null,
+        currentSemester: role === "student" ? currentSemester : null,
+      },
     });
+    const newUser = [created];
 
     // Never expose the password hash to the client
     const { password: _password, ...safeUser } = newUser[0];

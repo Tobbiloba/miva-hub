@@ -1,6 +1,7 @@
-import { getSession } from "@/lib/auth/server";
+import { getApiSession } from "@/lib/auth/server";
 import { s3Service } from "@/lib/aws/s3-service";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { canAccessMaterial } from "@/lib/material-access";
 import { NextRequest, NextResponse } from "next/server";
 
 interface Params {
@@ -23,7 +24,7 @@ export async function GET(
     }
 
     // Get user session for authentication
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Authentication required" },
@@ -41,17 +42,16 @@ export async function GET(
       );
     }
 
-    // Check if user has access to this material
-    const userRole = await getUserRole(session.user.email);
-    const hasAccess = await checkUserAccess(
-      session.user.id,
-      session.user.email,
-      material.courseId,
-      userRole,
-    );
-    if (!hasAccess) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    // Shared access rule (same-tenant admin / instructor-or-uploader faculty
+    // / enrolled student; private captures owner-only). No access looks
+    // like a missing material so cross-tenant ids don't leak existence.
+    if (!(await canAccessMaterial(session.user.id, material))) {
+      return NextResponse.json(
+        { error: "Material not found" },
+        { status: 404 },
+      );
     }
+    const userRole = await getUserRole(session.user.email);
 
     // Extract S3 key from contentUrl (handle both S3 URLs and legacy local paths)
     const s3Key = extractS3KeyFromUrl(material.contentUrl);
@@ -166,47 +166,6 @@ function extractS3KeyFromUrl(contentUrl: string | null): string | null {
   }
 
   return null;
-}
-
-/**
- * Check if user has access to the course material with FERPA compliance
- */
-async function checkUserAccess(
-  userId: string,
-  userEmail: string | null,
-  courseId: string,
-  userRole: "student" | "faculty" | "admin",
-): Promise<boolean> {
-  try {
-    // Admin users have access to all materials
-    if (userRole === "admin") {
-      return true;
-    }
-
-    // Faculty users have access to courses they teach
-    if (userRole === "faculty" && userEmail) {
-      // Check if faculty is assigned to teach this course
-      const faculty = await pgAcademicRepository.getFacultyByUserId(userId);
-      if (faculty) {
-        // TODO: Check course instructor assignments
-        // For now, allow faculty access to all courses
-        return true;
-      }
-    }
-
-    // Students can only access courses they're enrolled in (FERPA compliance)
-    if (userRole === "student") {
-      const enrollments =
-        await pgAcademicRepository.getStudentEnrollments(userId);
-      return enrollments.some((e) => e.courseId === courseId);
-    }
-
-    // Deny access by default
-    return false;
-  } catch (error) {
-    console.error("Error checking user access:", error);
-    return false;
-  }
 }
 
 // Note: Content type handling and range requests are now handled by CloudFront/S3

@@ -1,7 +1,8 @@
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { ClassScheduleSchema } from "@/lib/db/pg/schema.pg";
-import { eq } from "drizzle-orm";
+import { ClassScheduleSchema, CourseSchema } from "@/lib/db/pg/schema.pg";
+import { isSameTenant } from "@/lib/tenant";
+import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -31,6 +32,25 @@ const updateScheduleSchema = z.object({
   semester: z.string().min(1).optional(),
 });
 
+/**
+ * Schedules inherit their tenant from the parent course — admins may only
+ * touch schedules of their own university's courses (prevents
+ * cross-university IDOR). Missing and foreign rows both return null → 404.
+ */
+async function findTenantSchedule(adminUserId: string, scheduleId: string) {
+  const [row] = await pgDb
+    .select({
+      schedule: ClassScheduleSchema,
+      universityId: CourseSchema.universityId,
+    })
+    .from(ClassScheduleSchema)
+    .innerJoin(CourseSchema, eq(ClassScheduleSchema.courseId, CourseSchema.id))
+    .where(eq(ClassScheduleSchema.id, scheduleId))
+    .limit(1);
+  if (!row || !(await isSameTenant(adminUserId, row.universityId))) return null;
+  return row.schedule;
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -41,11 +61,7 @@ export async function GET(
 
     const { id } = await params;
 
-    const [schedule] = await pgDb
-      .select()
-      .from(ClassScheduleSchema)
-      .where(eq(ClassScheduleSchema.id, id))
-      .limit(1);
+    const schedule = await findTenantSchedule(adminAccess.user.id, id);
 
     if (!schedule) {
       return NextResponse.json(
@@ -79,11 +95,7 @@ export async function PUT(
     const body = await request.json();
     const validated = updateScheduleSchema.parse(body);
 
-    const [existing] = await pgDb
-      .select()
-      .from(ClassScheduleSchema)
-      .where(eq(ClassScheduleSchema.id, id))
-      .limit(1);
+    const existing = await findTenantSchedule(adminAccess.user.id, id);
 
     if (!existing) {
       return NextResponse.json(
@@ -105,7 +117,12 @@ export async function PUT(
     const [updated] = await pgDb
       .update(ClassScheduleSchema)
       .set({ ...validated, updatedAt: new Date() })
-      .where(eq(ClassScheduleSchema.id, id))
+      .where(
+        and(
+          eq(ClassScheduleSchema.id, id),
+          eq(ClassScheduleSchema.courseId, existing.courseId),
+        ),
+      )
       .returning();
 
     return NextResponse.json({
@@ -141,11 +158,7 @@ export async function DELETE(
 
     const { id } = await params;
 
-    const [existing] = await pgDb
-      .select()
-      .from(ClassScheduleSchema)
-      .where(eq(ClassScheduleSchema.id, id))
-      .limit(1);
+    const existing = await findTenantSchedule(adminAccess.user.id, id);
 
     if (!existing) {
       return NextResponse.json(
@@ -156,7 +169,12 @@ export async function DELETE(
 
     await pgDb
       .delete(ClassScheduleSchema)
-      .where(eq(ClassScheduleSchema.id, id));
+      .where(
+        and(
+          eq(ClassScheduleSchema.id, id),
+          eq(ClassScheduleSchema.courseId, existing.courseId),
+        ),
+      );
 
     return NextResponse.json({
       success: true,

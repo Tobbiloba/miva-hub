@@ -1,5 +1,6 @@
 "use client";
 
+import { escapeHtml } from "lib/escape-html";
 import { callMcpToolByServerNameAction } from "@/app/api/mcp/actions";
 import { ContentRenderer } from "./ContentRenderer";
 
@@ -120,7 +121,8 @@ export function MIVAContentRenderer({
             <div className="prose max-w-none">
               <div
                 dangerouslySetInnerHTML={{
-                  __html: content
+                  // Escape first: the answer is model output over scraped text
+                  __html: escapeHtml(content)
                     .replace(/\n/g, "<br/>")
                     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>"),
                 }}

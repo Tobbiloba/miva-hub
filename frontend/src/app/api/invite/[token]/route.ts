@@ -1,3 +1,4 @@
+import { withSignupAssignment } from "@/lib/auth/signup-context";
 import { auth } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
@@ -72,7 +73,7 @@ export async function GET(
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       "unknown";
-    if (!checkRateLimit(`invite-view:${ip}`, 20, 60).allowed) {
+    if (!(await checkRateLimit(`invite-view:${ip}`, 20, 60)).allowed) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
@@ -122,7 +123,7 @@ export async function POST(
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       "unknown";
-    if (!checkRateLimit(`invite-accept:${ip}`, 10, 3600).allowed) {
+    if (!(await checkRateLimit(`invite-accept:${ip}`, 10, 3600)).allowed) {
       return NextResponse.json({ error: "Too many attempts" }, { status: 429 });
     }
 
@@ -139,16 +140,21 @@ export async function POST(
     }
     const { invite } = result.row;
 
-    // 1. Create the account via better-auth (signs the user in)
-    const signUpResponse = await auth.api.signUpEmail({
-      body: {
-        email: invite.email,
-        name: data.name.trim(),
-        password: data.password,
-        callbackURL: "/",
-      },
-      headers: request.headers,
-    });
+    // 1. Create the account via better-auth (signs the user in). The invite
+    // already authorized tenant + role, so they're set in the same INSERT.
+    const signUpResponse = await withSignupAssignment(
+      { universityId: invite.universityId, role: "faculty" },
+      () =>
+        auth.api.signUpEmail({
+          body: {
+            email: invite.email,
+            name: data.name.trim(),
+            password: data.password,
+            callbackURL: "/",
+          },
+          headers: request.headers,
+        }),
+    );
     if (!signUpResponse?.user) {
       return NextResponse.json(
         { error: "Failed to create account" },

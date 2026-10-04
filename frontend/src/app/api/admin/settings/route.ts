@@ -1,8 +1,38 @@
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { SystemSettingsSchema } from "@/lib/db/pg/schema.pg";
-import { and, eq } from "drizzle-orm";
+import { getAdminScope } from "@/lib/tenant";
+import { type SQL, and, eq, isNull } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * Settings tenant scope, derived from the SESSION:
+ * - university admin → only rows with universityId = their university
+ * - super_admin → platform-level rows (universityId IS NULL)
+ * Returns null for a tenant admin without a university (forbidden).
+ */
+async function settingsScope(
+  adminUserId: string,
+): Promise<{ universityId: string | null; filter: SQL } | null> {
+  const scope = await getAdminScope(adminUserId);
+  if (scope.superAdmin) {
+    return {
+      universityId: null,
+      filter: isNull(SystemSettingsSchema.universityId),
+    };
+  }
+  if (!scope.university) return null;
+  return {
+    universityId: scope.university.id,
+    filter: eq(SystemSettingsSchema.universityId, scope.university.id),
+  };
+}
+
+const forbidden = () =>
+  NextResponse.json(
+    { success: false, message: "Admin is not assigned to a university" },
+    { status: 403 },
+  );
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,14 +43,20 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
 
-    // Build query
+    const scope = await settingsScope(sessionOrError.user.id);
+    if (!scope) return forbidden();
+
+    // Build query — tenant-scoped
     const settings = await pgDb
       .select()
       .from(SystemSettingsSchema)
       .where(
-        category && category !== "all"
-          ? eq(SystemSettingsSchema.category, category)
-          : undefined,
+        and(
+          scope.filter,
+          category && category !== "all"
+            ? eq(SystemSettingsSchema.category, category)
+            : undefined,
+        ),
       )
       .orderBy(SystemSettingsSchema.category, SystemSettingsSchema.key);
 
@@ -85,12 +121,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if setting already exists
+    const scope = await settingsScope(sessionOrError.user.id);
+    if (!scope) return forbidden();
+
+    // Check if setting already exists (within this tenant's scope)
     const existingSetting = await pgDb
       .select()
       .from(SystemSettingsSchema)
       .where(
         and(
+          scope.filter,
           eq(SystemSettingsSchema.category, category),
           eq(SystemSettingsSchema.key, key),
         ),
@@ -111,6 +151,7 @@ export async function POST(request: NextRequest) {
     const newSetting = await pgDb
       .insert(SystemSettingsSchema)
       .values({
+        universityId: scope.universityId,
         category,
         key,
         value: value || null,
@@ -154,7 +195,12 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Update settings in batch
+    const scope = await settingsScope(sessionOrError.user.id);
+    if (!scope) return forbidden();
+    const isSuperAdmin = scope.universityId === null;
+
+    // Update settings in batch — each row must be in the admin's tenant
+    // (super_admin may edit any row; platform rows are super_admin only)
     const updatePromises = settings.map(({ id, value }) => {
       return pgDb
         .update(SystemSettingsSchema)
@@ -166,6 +212,7 @@ export async function PUT(request: NextRequest) {
           and(
             eq(SystemSettingsSchema.id, id),
             eq(SystemSettingsSchema.isEditable, true), // Only allow editing editable settings
+            isSuperAdmin ? undefined : scope.filter,
           ),
         )
         .returning();

@@ -43,7 +43,12 @@ export async function PUT(
     const [updated] = await pgDb
       .update(AnnouncementSchema)
       .set(updateData)
-      .where(eq(AnnouncementSchema.id, id))
+      .where(
+        and(
+          eq(AnnouncementSchema.id, id),
+          eq(AnnouncementSchema.createdById, session.user.id),
+        ),
+      )
       .returning();
 
     return NextResponse.json({
@@ -91,7 +96,14 @@ export async function DELETE(
       );
     }
 
-    await pgDb.delete(AnnouncementSchema).where(eq(AnnouncementSchema.id, id));
+    await pgDb
+      .delete(AnnouncementSchema)
+      .where(
+        and(
+          eq(AnnouncementSchema.id, id),
+          eq(AnnouncementSchema.createdById, session.user.id),
+        ),
+      );
 
     return NextResponse.json({
       success: true,

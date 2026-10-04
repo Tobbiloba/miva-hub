@@ -1,4 +1,5 @@
 import { MCPServerConfig } from "app-types/mcp";
+import { requireSuperAdmin } from "lib/auth/admin";
 import { MCP_CONFIG } from "lib/config/mcp-config";
 import { mcpRepository } from "lib/db/repository";
 import { generateUUID } from "lib/utils";
@@ -6,6 +7,9 @@ import { NextResponse } from "next/server";
 
 // This endpoint ensures the default MCP server exists in the database
 export async function POST() {
+  const access = await requireSuperAdmin();
+  if (access instanceof NextResponse) return access;
+
   try {
     // Default MCP server configuration
     const serverName = MCP_CONFIG.DEFAULT_SERVER_NAME;

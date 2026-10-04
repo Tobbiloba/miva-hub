@@ -1,5 +1,6 @@
-import { getSession } from "@/lib/auth/server";
+import { getApiSession } from "@/lib/auth/server";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { canManageMaterial } from "@/lib/material-access";
 import { NextRequest, NextResponse } from "next/server";
 
 interface RouteContext {
@@ -11,7 +12,7 @@ interface RouteContext {
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
     // Check authentication
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -21,7 +22,19 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     // Get processing job status
     const processingJob = await pgAcademicRepository.getAIProcessingJob(jobId);
 
-    if (!processingJob) {
+    // Scope: only the uploader/owner, a same-tenant admin, or a course
+    // instructor may read job status + extracted text. Foreign jobs look
+    // missing (no existence leak).
+    const material = processingJob
+      ? await pgAcademicRepository.getCourseMaterialById(
+          processingJob.courseMaterialId,
+        )
+      : null;
+    if (
+      !processingJob ||
+      !material ||
+      !(await canManageMaterial(session.user.id, material))
+    ) {
       return NextResponse.json(
         { error: "Processing job not found" },
         { status: 404 },

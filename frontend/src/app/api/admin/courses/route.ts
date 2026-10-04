@@ -1,6 +1,6 @@
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-import { getUserUniversity } from "@/lib/tenant";
+import { getAdminScope, getUserUniversity } from "@/lib/tenant";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -81,10 +81,20 @@ export async function GET(request: NextRequest) {
     const isActive = searchParams.get("isActive");
 
     // Tenant scope: admins only see their own university's courses
-    const university = await getUserUniversity(adminAccess.user.id);
+    // (super_admin → all; a tenant admin without a university → forbidden,
+    // never the unscoped list)
+    const scope = await getAdminScope(adminAccess.user.id);
+    if (!scope.superAdmin && !scope.university) {
+      return NextResponse.json(
+        { success: false, error: "No university associated with your account" },
+        { status: 403 },
+      );
+    }
 
     // Fetch courses
-    let courses = await pgAcademicRepository.getAllCourses(university?.id);
+    let courses = await pgAcademicRepository.getAllCourses(
+      scope.university?.id,
+    );
 
     // Apply filters
     if (search) {
@@ -201,6 +211,18 @@ export async function POST(request: NextRequest) {
           success: false,
           error: "University not found",
           message: "Unable to determine your university context",
+        },
+        { status: 400 },
+      );
+    }
+
+    // The department must belong to the same university
+    if (department.universityId !== university.id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Department not found",
+          message: `Department with ID "${validatedData.departmentId}" does not exist`,
         },
         { status: 400 },
       );

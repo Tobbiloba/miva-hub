@@ -10,7 +10,8 @@ import {
   calculateCumulativeGPA,
   classifyDegree,
 } from "@/lib/utils/grade-calculator";
-import { and, eq } from "drizzle-orm";
+import { getAdminScope } from "@/lib/tenant";
+import { type SQL, and, eq, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -23,6 +24,27 @@ const updateAcademicSchema = z.object({
     .optional(),
   programId: z.string().uuid().nullable().optional(),
 });
+
+/**
+ * Tenant scope for student lookups: super_admins (by role) may touch any
+ * student; university admins only their own tenant. A tenant admin without
+ * a university matches nothing — never everything. Prevents
+ * cross-university IDOR on academic records.
+ */
+async function studentTenantFilter(
+  adminUserId: string,
+  studentUserId: string,
+): Promise<SQL | undefined> {
+  const scope = await getAdminScope(adminUserId);
+  if (!scope.superAdmin && !scope.university) return sql`false`;
+  return and(
+    eq(UserSchema.id, studentUserId),
+    eq(UserSchema.role, "student"),
+    ...(scope.university
+      ? [eq(UserSchema.universityId, scope.university.id)]
+      : []),
+  );
+}
 
 export async function GET(
   _request: NextRequest,
@@ -56,7 +78,7 @@ export async function GET(
       })
       .from(UserSchema)
       .leftJoin(ProgramSchema, eq(UserSchema.programId, ProgramSchema.id))
-      .where(and(eq(UserSchema.id, id), eq(UserSchema.role, "student")))
+      .where(await studentTenantFilter(adminAccess.user.id, id))
       .limit(1);
 
     if (!student) {
@@ -158,11 +180,11 @@ export async function PUT(
     const body = await request.json();
     const validatedData = updateAcademicSchema.parse(body);
 
-    // Check student exists
+    // Check student exists — tenant-scoped (prevents cross-university IDOR)
     const [existing] = await pgDb
-      .select()
+      .select({ id: UserSchema.id, universityId: UserSchema.universityId })
       .from(UserSchema)
-      .where(and(eq(UserSchema.id, id), eq(UserSchema.role, "student")))
+      .where(await studentTenantFilter(adminAccess.user.id, id))
       .limit(1);
 
     if (!existing) {
@@ -170,6 +192,28 @@ export async function PUT(
         { success: false, error: "Student not found" },
         { status: 404 },
       );
+    }
+
+    // A program reassignment must stay inside the student's university
+    if (validatedData.programId) {
+      const [program] = await pgDb
+        .select({ id: ProgramSchema.id })
+        .from(ProgramSchema)
+        .where(
+          and(
+            eq(ProgramSchema.id, validatedData.programId),
+            existing.universityId
+              ? eq(ProgramSchema.universityId, existing.universityId)
+              : sql`false`,
+          ),
+        )
+        .limit(1);
+      if (!program) {
+        return NextResponse.json(
+          { success: false, error: "Program not found" },
+          { status: 404 },
+        );
+      }
     }
 
     const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -191,7 +235,15 @@ export async function PUT(
     const [updated] = await pgDb
       .update(UserSchema)
       .set(updates)
-      .where(eq(UserSchema.id, id))
+      .where(
+        and(
+          eq(UserSchema.id, id),
+          eq(UserSchema.role, "student"),
+          existing.universityId
+            ? eq(UserSchema.universityId, existing.universityId)
+            : sql`false`,
+        ),
+      )
       .returning({
         id: UserSchema.id,
         currentLevel: UserSchema.currentLevel,

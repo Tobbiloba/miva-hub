@@ -1,7 +1,5 @@
 import { AgentUpdateSchema } from "app-types/agent";
-import { getSession } from "auth/server";
-import { serverCache } from "lib/cache";
-import { CacheKeys } from "lib/cache/cache-keys";
+import { getApiSession } from "auth/server";
 import { agentRepository } from "lib/db/repository";
 import { z } from "zod";
 
@@ -9,7 +7,7 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await getSession();
+  const session = await getApiSession();
 
   if (!session?.user.id) {
     return new Response("Unauthorized", { status: 401 });
@@ -19,10 +17,14 @@ export async function GET(
 
   const hasAccess = await agentRepository.checkAccess(id, session.user.id);
   if (!hasAccess) {
-    return new Response("Unauthorized", { status: 401 });
+    // Foreign/missing agents look the same (no existence leak)
+    return Response.json({ error: "Agent not found" }, { status: 404 });
   }
 
   const agent = await agentRepository.selectAgentById(id, session.user.id);
+  if (!agent) {
+    return Response.json({ error: "Agent not found" }, { status: 404 });
+  }
   return Response.json(agent);
 }
 
@@ -30,7 +32,7 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await getSession();
+  const session = await getApiSession();
 
   if (!session?.user.id) {
     return new Response("Unauthorized", { status: 401 });
@@ -41,23 +43,11 @@ export async function PUT(
     const body = await request.json();
     const data = AgentUpdateSchema.parse(body);
 
-    // Check access for write operations
-    const hasAccess = await agentRepository.checkAccess(id, session.user.id);
-    if (!hasAccess) {
-      return new Response("Unauthorized", { status: 401 });
-    }
-
-    // For non-owners of public agents, preserve original visibility
-    const existingAgent = await agentRepository.selectAgentById(
-      id,
-      session.user.id,
-    );
-    if (existingAgent && existingAgent.userId !== session.user.id) {
-      data.visibility = existingAgent.visibility;
-    }
-
+    // Write access is owner-only ("public" grants use, never edit)
     const agent = await agentRepository.updateAgent(id, session.user.id, data);
-    serverCache.delete(CacheKeys.agentInstructions(agent.id));
+    if (!agent) {
+      return Response.json({ error: "Agent not found" }, { status: 404 });
+    }
 
     return Response.json(agent);
   } catch (error) {
@@ -77,7 +67,7 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await getSession();
+  const session = await getApiSession();
 
   if (!session?.user.id) {
     return new Response("Unauthorized", { status: 401 });
@@ -91,10 +81,9 @@ export async function DELETE(
       true, // destructive = true for delete operations
     );
     if (!hasAccess) {
-      return new Response("Unauthorized", { status: 401 });
+      return Response.json({ error: "Agent not found" }, { status: 404 });
     }
     await agentRepository.deleteAgent(id, session.user.id);
-    serverCache.delete(CacheKeys.agentInstructions(id));
     return Response.json({ success: true });
   } catch (error) {
     console.error("Failed to delete agent:", error);

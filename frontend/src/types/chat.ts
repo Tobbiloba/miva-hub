@@ -113,6 +113,9 @@ export type ChatRepository = {
 
   deleteChatMessage(id: string): Promise<void>;
 
+  /** userId of the thread that owns the message, or null if not found */
+  selectMessageOwnerId(messageId: string): Promise<string | null>;
+
   selectThreadDetails(id: string): Promise<
     | (ChatThread & {
         messages: ChatMessage[];

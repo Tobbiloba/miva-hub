@@ -1,7 +1,8 @@
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { StudentEnrollmentSchema } from "@/lib/db/pg/schema.pg";
-import { eq } from "drizzle-orm";
+import { CourseSchema, StudentEnrollmentSchema } from "@/lib/db/pg/schema.pg";
+import { isSameTenant } from "@/lib/tenant";
+import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -12,6 +13,28 @@ const updateEnrollmentSchema = z.object({
   finalGrade: z.string().nullable().optional(),
   gradePoints: z.string().nullable().optional(),
 });
+
+/**
+ * Enrollments inherit their tenant from the course — admins may only touch
+ * enrollments in their own university's courses (prevents cross-university
+ * IDOR). Returns null for missing AND foreign rows (404, no existence leak).
+ */
+async function findTenantEnrollment(adminUserId: string, enrollmentId: string) {
+  const [row] = await pgDb
+    .select({
+      enrollment: StudentEnrollmentSchema,
+      universityId: CourseSchema.universityId,
+    })
+    .from(StudentEnrollmentSchema)
+    .innerJoin(
+      CourseSchema,
+      eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
+    )
+    .where(eq(StudentEnrollmentSchema.id, enrollmentId))
+    .limit(1);
+  if (!row || !(await isSameTenant(adminUserId, row.universityId))) return null;
+  return row.enrollment;
+}
 
 export async function PUT(
   request: NextRequest,
@@ -25,11 +48,7 @@ export async function PUT(
     const body = await request.json();
     const validated = updateEnrollmentSchema.parse(body);
 
-    const [existing] = await pgDb
-      .select()
-      .from(StudentEnrollmentSchema)
-      .where(eq(StudentEnrollmentSchema.id, id))
-      .limit(1);
+    const existing = await findTenantEnrollment(adminAccess.user.id, id);
 
     if (!existing) {
       return NextResponse.json(
@@ -41,7 +60,12 @@ export async function PUT(
     const [updated] = await pgDb
       .update(StudentEnrollmentSchema)
       .set({ ...validated, updatedAt: new Date() })
-      .where(eq(StudentEnrollmentSchema.id, id))
+      .where(
+        and(
+          eq(StudentEnrollmentSchema.id, id),
+          eq(StudentEnrollmentSchema.courseId, existing.courseId),
+        ),
+      )
       .returning();
 
     return NextResponse.json({
@@ -77,11 +101,7 @@ export async function DELETE(
 
     const { id } = await params;
 
-    const [existing] = await pgDb
-      .select()
-      .from(StudentEnrollmentSchema)
-      .where(eq(StudentEnrollmentSchema.id, id))
-      .limit(1);
+    const existing = await findTenantEnrollment(adminAccess.user.id, id);
 
     if (!existing) {
       return NextResponse.json(
@@ -92,7 +112,12 @@ export async function DELETE(
 
     await pgDb
       .delete(StudentEnrollmentSchema)
-      .where(eq(StudentEnrollmentSchema.id, id));
+      .where(
+        and(
+          eq(StudentEnrollmentSchema.id, id),
+          eq(StudentEnrollmentSchema.courseId, existing.courseId),
+        ),
+      );
 
     return NextResponse.json({
       success: true,

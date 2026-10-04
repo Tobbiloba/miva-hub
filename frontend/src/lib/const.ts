@@ -9,7 +9,9 @@ export const PROMPT_PASTE_MAX_LENGTH = 1000;
 export const IS_VERCEL_ENV = process.env.VERCEL === "1";
 export const IS_DOCKER_ENV = process.env.DOCKER_BUILD === "1";
 
-export const IS_MCP_SERVER_REMOTE_ONLY = IS_VERCEL_ENV;
+// stdio MCP servers spawn local processes on the app host. Askly is a hosted
+// multi-tenant product, so only remote (HTTP/SSE) MCP servers are allowed.
+export const IS_MCP_SERVER_REMOTE_ONLY = true;
 export const FILE_BASED_MCP_CONFIG =
   process.env.FILE_BASED_MCP_CONFIG === "true";
 

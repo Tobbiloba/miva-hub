@@ -1,5 +1,6 @@
 import { requireFaculty } from "@/lib/auth/faculty";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { getUserUniversity } from "@/lib/tenant";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(_request: NextRequest) {
@@ -38,6 +39,10 @@ export async function GET(_request: NextRequest) {
         undefined,
         facultyRecord.departmentId,
         5,
+        // Tenant scope: the faculty member's university + platform-wide
+        {
+          universityId: (await getUserUniversity(session.user.id))?.id ?? null,
+        },
       ),
     ]);
 

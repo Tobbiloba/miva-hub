@@ -9,6 +9,11 @@ import {
   StudentEnrollmentSchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
+import {
+  manageableBy,
+  resolveContentTarget,
+  resolveContentTenant,
+} from "@/lib/tenant-content";
 import { type SQL, and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -26,8 +31,19 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "20");
     const offset = parseInt(searchParams.get("offset") || "0");
 
+    // Tenant scope from the SESSION (super_admin unscoped)
+    const tenant = await resolveContentTenant(sessionOrError.user.id);
+    if (!tenant) {
+      return NextResponse.json(
+        { success: false, message: "Admin is not assigned to a university" },
+        { status: 403 },
+      );
+    }
+
     // Apply filters
-    const conditions: (SQL | undefined)[] = [];
+    const conditions: (SQL | undefined)[] = [
+      manageableBy(AnnouncementSchema.universityId, tenant),
+    ];
 
     if (search) {
       conditions.push(
@@ -91,18 +107,25 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .offset(offset);
 
-    // Compute real audience counts for totalTargeted
+    // Compute real audience counts for totalTargeted (tenant-scoped)
+    const userTenant = tenant.superAdmin
+      ? undefined
+      : eq(UserSchema.universityId, tenant.universityId);
     const [totalUsersResult, studentCountResult, activeFacultyResult] =
       await Promise.all([
-        pgDb.select({ count: sql<number>`count(*)::int` }).from(UserSchema),
         pgDb
           .select({ count: sql<number>`count(*)::int` })
           .from(UserSchema)
-          .where(eq(UserSchema.role, "student")),
+          .where(userTenant),
+        pgDb
+          .select({ count: sql<number>`count(*)::int` })
+          .from(UserSchema)
+          .where(and(eq(UserSchema.role, "student"), userTenant)),
         pgDb
           .select({ count: sql<number>`count(*)::int` })
           .from(FacultySchema)
-          .where(eq(FacultySchema.isActive, true)),
+          .innerJoin(UserSchema, eq(FacultySchema.userId, UserSchema.id))
+          .where(and(eq(FacultySchema.isActive, true), userTenant)),
       ]);
     const totalUsers: number = totalUsersResult[0]?.count ?? 0;
     const studentCount: number = studentCountResult[0]?.count ?? 0;
@@ -173,10 +196,11 @@ export async function GET(request: NextRequest) {
       }),
     );
 
-    // Get total count
+    // Get total count (same filters as the page)
     const totalCount = await pgDb
-      .select({ count: sql<number>`count(*)` })
-      .from(AnnouncementSchema);
+      .select({ count: sql<number>`count(*)::int` })
+      .from(AnnouncementSchema)
+      .where(and(...conditions));
 
     return NextResponse.json({
       success: true,
@@ -217,7 +241,30 @@ export async function POST(request: NextRequest) {
       departmentId,
       expiresAt,
       isActive,
+      universityId: requestedUniversityId,
     } = body;
+
+    // Tenant scope from the SESSION. University admins always create in
+    // their own university; only super_admin may target another university
+    // or create a platform-wide (NULL) announcement.
+    const tenant = await resolveContentTenant(session.user.id);
+    if (!tenant) {
+      return NextResponse.json(
+        { success: false, message: "Admin is not assigned to a university" },
+        { status: 403 },
+      );
+    }
+    const target = await resolveContentTarget(tenant, {
+      requestedUniversityId,
+      courseId,
+      departmentId,
+    });
+    if ("error" in target) {
+      return NextResponse.json(
+        { success: false, message: target.error },
+        { status: 400 },
+      );
+    }
 
     // Validate required fields
     if (!title || !content || !targetAudience) {
@@ -248,6 +295,7 @@ export async function POST(request: NextRequest) {
     const newAnnouncement = await pgDb
       .insert(AnnouncementSchema)
       .values({
+        universityId: target.universityId,
         title,
         content,
         targetAudience,

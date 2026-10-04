@@ -4,6 +4,17 @@ import { generateUUID } from "lib/utils";
 import { pgDb as db } from "../db.pg";
 import { AgentSchema, BookmarkSchema, UserSchema } from "../schema.pg";
 
+/**
+ * Tenant gate for SHARED agents (public/readonly, not owned by the viewer):
+ * the owner must be in the viewer's university, or be a super_admin
+ * (platform-wide agents). Requires UserSchema joined as the agent OWNER.
+ */
+const sharedWithinTenant = (viewerId: string) =>
+  or(
+    eq(UserSchema.role, "super_admin"),
+    sql`${UserSchema.universityId} = (SELECT u.university_id FROM "user" u WHERE u.id = ${viewerId})`,
+  );
+
 export const pgAgentRepository: AgentRepository = {
   async insertAgent(agent) {
     const [result] = await db
@@ -44,6 +55,7 @@ export const pgAgentRepository: AgentRepository = {
         isBookmarked: sql<boolean>`${BookmarkSchema.id} IS NOT NULL`,
       })
       .from(AgentSchema)
+      .innerJoin(UserSchema, eq(AgentSchema.userId, UserSchema.id))
       .leftJoin(
         BookmarkSchema,
         and(
@@ -57,8 +69,14 @@ export const pgAgentRepository: AgentRepository = {
           eq(AgentSchema.id, id),
           or(
             eq(AgentSchema.userId, userId), // Own agent
-            eq(AgentSchema.visibility, "public"), // Public agent
-            eq(AgentSchema.visibility, "readonly"), // Readonly agent
+            // Shared (public/readonly) agents — same university only
+            and(
+              or(
+                eq(AgentSchema.visibility, "public"),
+                eq(AgentSchema.visibility, "readonly"),
+              ),
+              sharedWithinTenant(userId),
+            ),
           ),
         ),
       );
@@ -116,15 +134,15 @@ export const pgAgentRepository: AgentRepository = {
       })
       .where(
         and(
-          // Only allow updates to agents owned by the user or public agents
+          // Only the owner may change an agent (instructions are a prompt
+          // surface — "public" grants use, never edit)
           eq(AgentSchema.id, id),
-          or(
-            eq(AgentSchema.userId, userId),
-            eq(AgentSchema.visibility, "public"),
-          ),
+          eq(AgentSchema.userId, userId),
         ),
       )
       .returning();
+
+    if (!result) return null;
 
     return {
       ...result,
@@ -159,6 +177,7 @@ export const pgAgentRepository: AgentRepository = {
               eq(AgentSchema.visibility, "public"),
               eq(AgentSchema.visibility, "readonly"),
             ),
+            sharedWithinTenant(currentUserId),
           ),
         );
       } else if (filter === "bookmarked") {
@@ -169,6 +188,7 @@ export const pgAgentRepository: AgentRepository = {
               eq(AgentSchema.visibility, "public"),
               eq(AgentSchema.visibility, "readonly"),
             ),
+            sharedWithinTenant(currentUserId),
             sql`${BookmarkSchema.id} IS NOT NULL`,
           ),
         );
@@ -178,13 +198,14 @@ export const pgAgentRepository: AgentRepository = {
           or(
             // My agents
             eq(AgentSchema.userId, currentUserId),
-            // Shared agents
+            // Shared agents (same university, or super_admin-owned)
             and(
               ne(AgentSchema.userId, currentUserId),
               or(
                 eq(AgentSchema.visibility, "public"),
                 eq(AgentSchema.visibility, "readonly"),
               ),
+              sharedWithinTenant(currentUserId),
             ),
           ),
         ];
@@ -235,19 +256,29 @@ export const pgAgentRepository: AgentRepository = {
     }));
   },
 
+  /**
+   * Read access (destructive=false): owner, or a public/readonly agent whose
+   * owner is in the viewer's university (or is super_admin).
+   * Write access (destructive=true: update/delete): owner only.
+   */
   async checkAccess(agentId, userId, destructive = false) {
     const [agent] = await db
       .select({
         visibility: AgentSchema.visibility,
         userId: AgentSchema.userId,
+        sameTenant: sql<boolean>`${sharedWithinTenant(userId)}`,
       })
       .from(AgentSchema)
+      .innerJoin(UserSchema, eq(AgentSchema.userId, UserSchema.id))
       .where(eq(AgentSchema.id, agentId));
     if (!agent) {
       return false;
     }
     if (userId == agent.userId) return true;
-    if (agent.visibility === "public" && !destructive) return true;
-    return false;
+    if (destructive) return false;
+    return (
+      (agent.visibility === "public" || agent.visibility === "readonly") &&
+      agent.sameTenant === true
+    );
   },
 };

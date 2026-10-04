@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/auth/server";
+import { getApiSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
   CourseSchema,
@@ -13,7 +13,7 @@ export async function GET(
   { params }: { params: Promise<{ deckId: string }> },
 ) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },

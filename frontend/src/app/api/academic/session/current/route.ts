@@ -1,6 +1,12 @@
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { NextResponse } from "next/server";
 
+/**
+ * GET /api/academic/session/current — PUBLIC (no session).
+ * The sign-up page needs the current session/semester before the user has
+ * an account. Returns only non-sensitive academic-calendar fields; keep it
+ * that way (no ids, tenant data or anything user-specific).
+ */
 export async function GET() {
   try {
     const session = await pgAcademicRepository.getActiveAcademicSession();

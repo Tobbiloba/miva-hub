@@ -5,6 +5,7 @@ import {
   ClassScheduleSchema,
   CourseSchema,
 } from "@/lib/db/pg/schema.pg";
+import { getAdminScope, isSameTenant } from "@/lib/tenant";
 import { type SQL, and, desc, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -43,7 +44,19 @@ export async function GET(request: NextRequest) {
     const courseId = searchParams.get("courseId");
     const dayOfWeek = searchParams.get("dayOfWeek");
 
+    // Tenant scope from the SESSION (super_admin unscoped)
+    const scope = await getAdminScope(adminAccess.user.id);
+    if (!scope.superAdmin && !scope.university) {
+      return NextResponse.json(
+        { success: false, error: "Admin is not assigned to a university" },
+        { status: 403 },
+      );
+    }
+
     const conditions: (SQL | undefined)[] = [];
+    if (scope.university) {
+      conditions.push(eq(CourseSchema.universityId, scope.university.id));
+    }
     if (courseId) conditions.push(eq(ClassScheduleSchema.courseId, courseId));
     if (dayOfWeek)
       conditions.push(
@@ -107,12 +120,16 @@ export async function POST(request: NextRequest) {
 
     // Verify course exists
     const [course] = await pgDb
-      .select({ id: CourseSchema.id })
+      .select({ id: CourseSchema.id, universityId: CourseSchema.universityId })
       .from(CourseSchema)
       .where(eq(CourseSchema.id, validated.courseId))
       .limit(1);
 
-    if (!course) {
+    // Tenant-checked: no scheduling into another university's course
+    if (
+      !course ||
+      !(await isSameTenant(adminAccess.user.id, course.universityId))
+    ) {
       return NextResponse.json(
         { success: false, error: "Course not found" },
         { status: 404 },

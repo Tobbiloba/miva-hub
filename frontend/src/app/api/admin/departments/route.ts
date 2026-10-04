@@ -1,6 +1,6 @@
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-import { getUserUniversity } from "@/lib/tenant";
+import { getAdminScope, getUserUniversity } from "@/lib/tenant";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -31,11 +31,18 @@ export async function GET(request: NextRequest) {
     const includeStats = searchParams.get("includeStats") === "true";
 
     // Tenant scope: admins only see their own university's departments
-    const university = await getUserUniversity(adminAccess.user.id);
+    // (super_admin → all; a tenant admin without a university → forbidden)
+    const scope = await getAdminScope(adminAccess.user.id);
+    if (!scope.superAdmin && !scope.university) {
+      return NextResponse.json(
+        { success: false, error: "No university associated with your account" },
+        { status: 403 },
+      );
+    }
 
     // Fetch departments
     const departments = await pgAcademicRepository.getDepartments(
-      university?.id,
+      scope.university?.id,
     );
 
     // Filter by search if provided

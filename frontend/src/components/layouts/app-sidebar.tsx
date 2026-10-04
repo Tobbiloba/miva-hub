@@ -99,7 +99,9 @@ export function AppSidebar({
 
       <SidebarContent className="mt-2 overflow-hidden relative">
         <div className="flex flex-col overflow-y-auto">
-          <AppSidebarMenus />
+          <AppSidebarMenus
+            isSuperAdmin={(session?.user as { role?: string })?.role === "super_admin"}
+          />
           <AppSidebarAgents />
           <AppSidebarThreads />
         </div>

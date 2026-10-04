@@ -264,43 +264,22 @@ export class MCPClientsManager {
     input: unknown,
     userContext?: any,
   ) {
-    console.log(`🔧 [MCP DEBUG] Starting toolCall:`, {
-      clientId: id,
-      toolName,
-      originalInput: input,
-      userContext,
-      inputType: typeof input,
-      inputKeys:
-        input && typeof input === "object" ? Object.keys(input) : "not object",
-    });
-
     return safe(() => this.getClient(id))
       .map((client) => {
         if (!client) throw new Error(`Client ${id} not found`);
-        console.log(`🔧 [MCP DEBUG] Client found:`, {
-          clientId: id,
-          clientStatus: client.client.status,
-          toolInfo: client.client.toolInfo?.length || 0,
-        });
         return client.client;
       })
       .map((client) => {
-        // Inject user context into input if available and tool supports it
+        const toolSchema = client.toolInfo?.find(
+          (t) => t.name === toolName,
+        )?.inputSchema;
+        // Bind student-scoped tools to the caller's identity
         const enrichedInput = this.enrichInputWithUserContext(
           input,
           userContext,
           toolName,
-          id,
+          toolSchema,
         );
-
-        console.log(`🔧 [MCP DEBUG] About to call tool:`, {
-          clientId: id,
-          toolName,
-          originalInput: JSON.stringify(input, null, 2),
-          enrichedInput: JSON.stringify(enrichedInput, null, 2),
-          inputChanged: JSON.stringify(input) !== JSON.stringify(enrichedInput),
-          userContext: JSON.stringify(userContext, null, 2),
-        });
 
         return client.callTool(toolName, enrichedInput);
       })
@@ -347,102 +326,33 @@ export class MCPClientsManager {
   }
 
   /**
-   * Enrich tool input with user context for academic MCP tools
+   * Bind student-scoped tool input to the caller's identity.
+   *
+   * Academic tools take `student_id` as an argument; trusting it would let any
+   * caller (or a prompt-injected model) read another student's records. Any
+   * tool that declares or receives `student_id` gets the session's student id,
+   * and fails closed when there is no student context.
    */
   private enrichInputWithUserContext(
     input: any,
     userContext: any,
     toolName: string,
-    serverId: string,
+    toolSchema?: { properties?: Record<string, unknown> },
   ): any {
-    console.log(`🔧 [MCP Context] Starting enrichment:`, {
-      toolName,
-      serverId,
-      originalInput: JSON.stringify(input, null, 2),
-      originalInputType: typeof input,
-      originalInputKeys:
-        input && typeof input === "object" ? Object.keys(input) : "not object",
-      userContext: JSON.stringify(userContext, null, 2),
-      userContextType: typeof userContext,
-      hasStudentId: !!userContext?.studentId,
-      studentIdValue: userContext?.studentId,
-      studentIdType: typeof userContext?.studentId,
-    });
+    const needsStudentId =
+      this.toolExpectsStudentId(toolName) ||
+      !!toolSchema?.properties?.student_id ||
+      (!!input && typeof input === "object" && "student_id" in input);
 
-    // Only enrich for MIVA Academic MCP server tools
-    if (!serverId.includes("miva-academic") && !this.isAcademicTool(toolName)) {
-      console.log(`🔧 [MCP Context] Skipping enrichment - not academic tool`);
-      return input;
-    }
+    if (!needsStudentId) return input;
 
-    // Skip if no user context available
     if (!userContext?.studentId) {
-      console.log(`🔧 [MCP Context] No user context available`);
-      return input;
+      throw new Error(
+        `Tool ${toolName} is only available to signed-in students`,
+      );
     }
 
-    const enrichedInput = { ...input };
-
-    // Auto-inject/override student_id for academic tools (ALWAYS replace wrong IDs)
-    if (this.toolExpectsStudentId(toolName)) {
-      const oldStudentId = enrichedInput.student_id;
-      const newStudentId = userContext.studentId;
-      enrichedInput.student_id = newStudentId;
-
-      console.log(`🔧 [MCP Context] Student ID override:`, {
-        toolName,
-        oldStudentId: oldStudentId,
-        oldStudentIdType: typeof oldStudentId,
-        newStudentId: newStudentId,
-        newStudentIdType: typeof newStudentId,
-        changed: oldStudentId !== newStudentId,
-      });
-    }
-
-    // Auto-inject course_code for study buddy tools if not provided
-    if (this.isStudyBuddyTool(toolName) && !enrichedInput.course_code) {
-      // For study buddy tools, we might need to get the course from context
-      // For now, we'll let the tool handle missing course_code
-    }
-
-    console.log(`🔧 [MCP Context] Final enriched input:`, {
-      toolName,
-      finalInput: JSON.stringify(enrichedInput, null, 2),
-      finalInputType: typeof enrichedInput,
-      finalInputKeys:
-        enrichedInput && typeof enrichedInput === "object"
-          ? Object.keys(enrichedInput)
-          : "not object",
-      inputChanged: JSON.stringify(input) !== JSON.stringify(enrichedInput),
-    });
-
-    return enrichedInput;
-  }
-
-  /**
-   * Check if tool is an academic tool that needs context enrichment
-   */
-  private isAcademicTool(toolName: string): boolean {
-    const academicTools = [
-      "get_course_materials",
-      "get_course_info",
-      "list_enrolled_courses",
-      "get_course_videos",
-      "get_reading_materials",
-      "view_course_announcements",
-      "get_course_syllabus",
-      "get_academic_schedule",
-      "get_upcoming_assignments",
-      "get_course_schedule",
-      "get_faculty_contact",
-      "view_assignment_info",
-      "get_curriculum_guidance",
-      "get_academic_standing",
-      "ask_study_question",
-      "start_study_session",
-      "view_study_history",
-    ];
-    return academicTools.includes(toolName);
+    return { ...(input ?? {}), student_id: userContext.studentId };
   }
 
   /**
@@ -473,18 +383,6 @@ export class MCPClientsManager {
       "convert_notes_to_flashcards",
     ];
     return studentIdTools.includes(toolName);
-  }
-
-  /**
-   * Check if tool is a Study Buddy tool
-   */
-  private isStudyBuddyTool(toolName: string): boolean {
-    const studyBuddyTools = [
-      "ask_study_question",
-      "start_study_session",
-      "view_study_history",
-    ];
-    return studyBuddyTools.includes(toolName);
   }
 }
 

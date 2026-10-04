@@ -1,7 +1,9 @@
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getSession } from "@/lib/auth/server";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { getAdminScope } from "@/lib/tenant";
 import {
   Activity,
   BarChart3,
@@ -16,13 +18,27 @@ import {
 import Link from "next/link";
 
 export default async function AdminDashboard() {
-  const stats = await pgAcademicRepository.getSystemStats();
+  // Admin role is enforced by the layout; scope every number to the admin's
+  // university (super_admin sees platform-wide).
+  const session = await getSession();
+  const scope = session?.user?.id ? await getAdminScope(session.user.id) : null;
+  if (!scope || (!scope.superAdmin && !scope.university)) {
+    return (
+      <div>Access denied. Your account is not assigned to a university.</div>
+    );
+  }
+  const universityId = scope.university?.id;
+
+  const stats = await pgAcademicRepository.getSystemStats(
+    universityId ?? "all",
+  );
   const recentAnnouncements = await pgAcademicRepository.getAnnouncements(
     undefined,
     undefined,
     5,
+    universityId ? { universityId } : "all",
   );
-  const departments = await pgAcademicRepository.getDepartments();
+  const departments = await pgAcademicRepository.getDepartments(universityId);
 
   return (
     <div className="space-y-6">

@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/auth/server";
+import { getApiSession } from "@/lib/auth/server";
 import { getUserRole } from "@/lib/auth/user-utils";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
@@ -40,7 +40,7 @@ const settingsProfileSchema = z.object({
 
 export async function GET(_request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
 
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -271,7 +271,7 @@ async function getRecentActivity(userId: string, userRole: string | null) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
 
     if (!session?.user?.id) {
       return NextResponse.json(

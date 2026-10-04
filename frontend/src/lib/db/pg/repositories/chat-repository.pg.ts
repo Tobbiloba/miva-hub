@@ -29,6 +29,18 @@ export const pgChatRepository: ChatRepository = {
     await db.delete(ChatMessageSchema).where(eq(ChatMessageSchema.id, id));
   },
 
+  selectMessageOwnerId: async (messageId: string): Promise<string | null> => {
+    const [row] = await db
+      .select({ userId: ChatThreadSchema.userId })
+      .from(ChatMessageSchema)
+      .innerJoin(
+        ChatThreadSchema,
+        eq(ChatMessageSchema.threadId, ChatThreadSchema.id),
+      )
+      .where(eq(ChatMessageSchema.id, messageId));
+    return row?.userId ?? null;
+  },
+
   selectThread: async (id: string): Promise<ChatThread | null> => {
     const [result] = await db
       .select()

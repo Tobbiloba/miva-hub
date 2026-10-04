@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
+import { isSameTenant } from "@/lib/tenant";
 import {
   CourseSchema,
   DepartmentSchema,
@@ -55,6 +56,7 @@ export default async function CurriculumPage({
       code: ProgramSchema.code,
       name: ProgramSchema.name,
       departmentId: ProgramSchema.departmentId,
+      universityId: ProgramSchema.universityId,
       departmentName: DepartmentSchema.name,
     })
     .from(ProgramSchema)
@@ -65,7 +67,11 @@ export default async function CurriculumPage({
     .where(eq(ProgramSchema.id, programId))
     .limit(1);
 
-  if (!program) {
+  // Tenant-checked: a foreign program renders as "not found"
+  if (
+    !program ||
+    !(await isSameTenant(adminAccess.user.id, program.universityId))
+  ) {
     return (
       <div className="p-6">
         <h1 className="text-2xl font-bold">Program not found</h1>

@@ -81,8 +81,16 @@ export async function middleware(request: NextRequest) {
     !pathname.startsWith("/api/invite/") &&
     !pathname.startsWith("/api/university/resolve") &&
     !pathname.startsWith("/api/university/register") &&
-    // Meta webhook: authenticated by WHATSAPP_VERIFY_TOKEN handshake, not session
-    !pathname.startsWith("/api/whatsapp/webhook")
+    // Meta webhook: authenticated by X-Hub-Signature-256 (+ verify-token
+    // handshake), not session
+    !pathname.startsWith("/api/whatsapp/webhook") &&
+    // Askly Capture extension: Bearer token, no cookie. /api/extension/token
+    // is the extension login; /api/ingest/* validates token or session itself
+    !pathname.startsWith("/api/extension/token") &&
+    !pathname.startsWith("/api/ingest/") &&
+    // Sign-up page needs the current session/semester before auth
+    // (non-sensitive calendar fields only)
+    pathname !== "/api/academic/session/current"
   ) {
     // API callers get machine-readable 401 JSON — never a 307 to /sign-in
     if (pathname.startsWith("/api/")) {
@@ -94,8 +102,12 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
+// Middleware is a fast cookie-PRESENCE pre-filter only; every route still
+// validates the session itself. Exclusions here skip even that pre-filter, so
+// keep them to what must work without a session: better-auth's own endpoints,
+// the program list used by the sign-up page, and signed provider webhooks.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api/auth|api/departments|api/courses|api/content|api/programs/public|api/academic/session|api/webhooks|api/billing|sign-in|sign-up|reset-password|landing|unauthorized|privacy|terms).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api/auth|api/programs/public|api/webhooks|sign-in|sign-up|reset-password|landing|unauthorized|privacy|terms).*)",
   ],
 };

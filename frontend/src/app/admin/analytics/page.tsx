@@ -9,6 +9,7 @@ import {
   getSystemOverview,
 } from "@/lib/analytics/academic-analytics";
 import { requireAdmin } from "@/lib/auth/admin";
+import { resolveStatsScope } from "@/lib/tenant-content";
 import {
   BarChart3,
   BookOpen,
@@ -25,6 +26,14 @@ export default async function AnalyticsPage() {
     return <div>Access denied. Admin privileges required.</div>;
   }
 
+  // Tenant scope: university admins see only their own university's numbers
+  const scope = await resolveStatsScope(adminAccess.user.id);
+  if (!scope) {
+    return (
+      <div>Access denied. Your account is not assigned to a university.</div>
+    );
+  }
+
   // Fetch all analytics data
   const [
     systemOverview,
@@ -34,12 +43,12 @@ export default async function AnalyticsPage() {
     facultyAnalytics,
     realTimeStats,
   ] = await Promise.all([
-    getSystemOverview(),
-    getCourseAnalytics(),
-    getLearningInsights(),
-    getDepartmentAnalytics(),
-    getFacultyAnalytics(),
-    getRealTimeStats(),
+    getSystemOverview(scope),
+    getCourseAnalytics(scope),
+    getLearningInsights(scope),
+    getDepartmentAnalytics(scope),
+    getFacultyAnalytics(scope),
+    getRealTimeStats(scope),
   ]);
 
   // Prepare analytics data for the client component

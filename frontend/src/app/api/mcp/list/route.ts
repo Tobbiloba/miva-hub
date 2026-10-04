@@ -1,8 +1,20 @@
 import { MCPServerInfo } from "app-types/mcp";
+import { auth } from "auth/server";
+import { checkIsSuperAdmin, isSuperAdmin } from "lib/auth/admin";
 import { mcpClientsManager } from "lib/ai/mcp/mcp-manager";
 import { mcpRepository } from "lib/db/repository";
+import { headers } from "next/headers";
 
 export async function GET() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  // Server configs carry credentials (e.g. X-MCP-Secret headers): only the
+  // super_admin who manages them may see them.
+  const canSeeConfig =
+    isSuperAdmin(session.user) || (await checkIsSuperAdmin(session.user.id));
+
   const [servers, memoryClients] = await Promise.all([
     mcpRepository.selectAll(),
     mcpClientsManager.getClients(),
@@ -38,7 +50,7 @@ export async function GET() {
     const mcpInfo: MCPServerInfo & { id: string } = {
       id: server.id,
       name: server.name,
-      config: server.config,
+      config: canSeeConfig ? server.config : ({} as MCPServerInfo["config"]),
       status: info?.status ?? "loading",
       error: info?.error,
       toolInfo: info?.toolInfo ?? [],

@@ -1,37 +1,41 @@
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { AnnouncementSchema, UserSchema } from "@/lib/db/pg/schema.pg";
-import { getAdminScope } from "@/lib/tenant";
+import { AnnouncementSchema } from "@/lib/db/pg/schema.pg";
+import {
+  type ContentTenant,
+  manageableBy,
+  resolveContentTarget,
+  resolveContentTenant,
+} from "@/lib/tenant-content";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Tenant-scoped announcement lookup. Announcements carry no universityId,
- * so ownership is derived from the creator's university: super_admins (by
- * role) may touch any; university admins only announcements authored within
- * their own tenant. A tenant admin without a university matches nothing.
- * Prevents cross-university IDOR.
+ * Tenant-scoped announcement lookup by the row's own universityId:
+ * super_admins (by role) may touch any (incl. platform-wide NULL rows);
+ * university admins only their own university's. A tenant admin without a
+ * university matches nothing. Prevents cross-university IDOR.
  */
 async function findTenantAnnouncement(
   adminUserId: string,
   announcementId: string,
-) {
-  const scope = await getAdminScope(adminUserId);
-  if (!scope.superAdmin && !scope.university) return null;
-  const rows = await pgDb
-    .select({ announcement: AnnouncementSchema })
+): Promise<{
+  tenant: ContentTenant;
+  announcement: typeof AnnouncementSchema.$inferSelect;
+} | null> {
+  const tenant = await resolveContentTenant(adminUserId);
+  if (!tenant) return null;
+  const [announcement] = await pgDb
+    .select()
     .from(AnnouncementSchema)
-    .innerJoin(UserSchema, eq(AnnouncementSchema.createdById, UserSchema.id))
     .where(
       and(
         eq(AnnouncementSchema.id, announcementId),
-        ...(scope.university
-          ? [eq(UserSchema.universityId, scope.university.id)]
-          : []),
+        manageableBy(AnnouncementSchema.universityId, tenant),
       ),
     )
     .limit(1);
-  return rows[0]?.announcement ?? null;
+  return announcement ? { tenant, announcement } : null;
 }
 
 export async function GET(
@@ -46,12 +50,12 @@ export async function GET(
     const { id } = await params;
     const announcementId = id;
 
-    const announcement = await findTenantAnnouncement(
+    const found = await findTenantAnnouncement(
       sessionOrError.user.id,
       announcementId,
     );
 
-    if (!announcement) {
+    if (!found) {
       return NextResponse.json(
         { success: false, message: "Announcement not found" },
         { status: 404 },
@@ -60,7 +64,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: announcement,
+      data: found.announcement,
     });
   } catch (error) {
     console.error("Error fetching announcement:", error);
@@ -98,15 +102,29 @@ export async function PUT(
     } = body;
 
     // Check if announcement exists — tenant-scoped (prevents cross-university IDOR)
-    const existingAnnouncement = await findTenantAnnouncement(
+    const existing = await findTenantAnnouncement(
       sessionOrError.user.id,
       announcementId,
     );
 
-    if (!existingAnnouncement) {
+    if (!existing) {
       return NextResponse.json(
         { success: false, message: "Announcement not found" },
         { status: 404 },
+      );
+    }
+
+    // Course/department references must stay inside the row's university
+    // (the row's tenant never changes on update)
+    const target = await resolveContentTarget(existing.tenant, {
+      requestedUniversityId: existing.announcement.universityId,
+      courseId,
+      departmentId,
+    });
+    if ("error" in target) {
+      return NextResponse.json(
+        { success: false, message: target.error },
+        { status: 400 },
       );
     }
 
@@ -124,7 +142,12 @@ export async function PUT(
         isActive,
         updatedAt: new Date(),
       })
-      .where(eq(AnnouncementSchema.id, announcementId))
+      .where(
+        and(
+          eq(AnnouncementSchema.id, announcementId),
+          manageableBy(AnnouncementSchema.universityId, existing.tenant),
+        ),
+      )
       .returning();
 
     return NextResponse.json({
@@ -157,12 +180,12 @@ export async function DELETE(
     const announcementId = id;
 
     // Check if announcement exists — tenant-scoped (prevents cross-university IDOR)
-    const existingAnnouncement = await findTenantAnnouncement(
+    const existing = await findTenantAnnouncement(
       sessionOrError.user.id,
       announcementId,
     );
 
-    if (!existingAnnouncement) {
+    if (!existing) {
       return NextResponse.json(
         { success: false, message: "Announcement not found" },
         { status: 404 },
@@ -172,7 +195,12 @@ export async function DELETE(
     // Delete announcement
     await pgDb
       .delete(AnnouncementSchema)
-      .where(eq(AnnouncementSchema.id, announcementId));
+      .where(
+        and(
+          eq(AnnouncementSchema.id, announcementId),
+          manageableBy(AnnouncementSchema.universityId, existing.tenant),
+        ),
+      );
 
     return NextResponse.json({
       success: true,

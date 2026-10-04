@@ -1,7 +1,8 @@
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { ProgramCurriculumSchema } from "@/lib/db/pg/schema.pg";
-import { eq } from "drizzle-orm";
+import { ProgramCurriculumSchema, ProgramSchema } from "@/lib/db/pg/schema.pg";
+import { isSameTenant } from "@/lib/tenant";
+import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -9,6 +10,37 @@ const updateCurriculumSchema = z.object({
   isCompulsory: z.boolean().optional(),
   orderInSemester: z.number().int().positive().nullable().optional(),
 });
+
+/**
+ * Curriculum entries inherit their tenant from the program. The entry must
+ * belong to the program in the URL AND that program to the admin's
+ * university (prevents cross-university IDOR). Missing/foreign → null → 404.
+ */
+async function findTenantEntry(
+  adminUserId: string,
+  programId: string,
+  curriculumId: string,
+) {
+  const [row] = await pgDb
+    .select({
+      entry: ProgramCurriculumSchema,
+      universityId: ProgramSchema.universityId,
+    })
+    .from(ProgramCurriculumSchema)
+    .innerJoin(
+      ProgramSchema,
+      eq(ProgramCurriculumSchema.programId, ProgramSchema.id),
+    )
+    .where(
+      and(
+        eq(ProgramCurriculumSchema.id, curriculumId),
+        eq(ProgramCurriculumSchema.programId, programId),
+      ),
+    )
+    .limit(1);
+  if (!row || !(await isSameTenant(adminUserId, row.universityId))) return null;
+  return row.entry;
+}
 
 export async function PUT(
   request: NextRequest,
@@ -18,15 +50,15 @@ export async function PUT(
     const adminAccess = await requireAdmin();
     if (adminAccess instanceof NextResponse) return adminAccess;
 
-    const { curriculumId } = await params;
+    const { id: programId, curriculumId } = await params;
     const body = await request.json();
     const validated = updateCurriculumSchema.parse(body);
 
-    const [existing] = await pgDb
-      .select()
-      .from(ProgramCurriculumSchema)
-      .where(eq(ProgramCurriculumSchema.id, curriculumId))
-      .limit(1);
+    const existing = await findTenantEntry(
+      adminAccess.user.id,
+      programId,
+      curriculumId,
+    );
 
     if (!existing) {
       return NextResponse.json(
@@ -38,7 +70,12 @@ export async function PUT(
     const [updated] = await pgDb
       .update(ProgramCurriculumSchema)
       .set(validated)
-      .where(eq(ProgramCurriculumSchema.id, curriculumId))
+      .where(
+        and(
+          eq(ProgramCurriculumSchema.id, curriculumId),
+          eq(ProgramCurriculumSchema.programId, programId),
+        ),
+      )
       .returning();
 
     return NextResponse.json({
@@ -72,13 +109,13 @@ export async function DELETE(
     const adminAccess = await requireAdmin();
     if (adminAccess instanceof NextResponse) return adminAccess;
 
-    const { curriculumId } = await params;
+    const { id: programId, curriculumId } = await params;
 
-    const [existing] = await pgDb
-      .select()
-      .from(ProgramCurriculumSchema)
-      .where(eq(ProgramCurriculumSchema.id, curriculumId))
-      .limit(1);
+    const existing = await findTenantEntry(
+      adminAccess.user.id,
+      programId,
+      curriculumId,
+    );
 
     if (!existing) {
       return NextResponse.json(
@@ -89,7 +126,12 @@ export async function DELETE(
 
     await pgDb
       .delete(ProgramCurriculumSchema)
-      .where(eq(ProgramCurriculumSchema.id, curriculumId));
+      .where(
+        and(
+          eq(ProgramCurriculumSchema.id, curriculumId),
+          eq(ProgramCurriculumSchema.programId, programId),
+        ),
+      );
 
     return NextResponse.json({
       success: true,

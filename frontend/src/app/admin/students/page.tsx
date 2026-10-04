@@ -33,7 +33,7 @@ import {
   StudentEnrollmentSchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
-import { getUserUniversity } from "@/lib/tenant";
+import { getAdminScope } from "@/lib/tenant";
 import { and, eq, sql } from "drizzle-orm";
 import {
   BookOpen,
@@ -58,8 +58,16 @@ export default async function StudentManagementPage() {
     return <div>Access denied. Admin privileges required.</div>;
   }
 
-  // Tenant scope: admins only see their own university's students
-  const university = await getUserUniversity(adminAccess.user.id);
+  // Tenant scope: admins only see their own university's students.
+  // super_admin is platform-wide; a tenant admin without a university gets
+  // nothing (never the unscoped list).
+  const adminScope = await getAdminScope(adminAccess.user.id);
+  if (!adminScope.superAdmin && !adminScope.university) {
+    return (
+      <div>Access denied. Your account is not assigned to a university.</div>
+    );
+  }
+  const university = adminScope.university;
 
   // Fetch students and their academic data
   const [students] = await Promise.all([
@@ -88,7 +96,7 @@ export default async function StudentManagementPage() {
       .orderBy(UserSchema.createdAt),
 
     // Get system statistics
-    pgAcademicRepository.getSystemStats(),
+    pgAcademicRepository.getSystemStats(university?.id ?? "all"),
 
     // Get departments for filtering (scoped to the admin's university)
     pgAcademicRepository.getDepartments(university?.id),

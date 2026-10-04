@@ -1,4 +1,4 @@
-import { getSession } from "auth/server";
+import { getApiSession } from "auth/server";
 import { mcpMcpToolCustomizationRepository } from "lib/db/repository";
 
 import { NextResponse } from "next/server";
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ server: string }> },
 ) {
   const { server } = await params;
-  const session = await getSession();
+  const session = await getApiSession();
   if (!session) {
     return new Response("Unauthorized", { status: 401 });
   }

@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/auth/server";
+import { getApiSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { FlashcardDeckSchema, FlashcardSchema } from "@/lib/db/pg/schema.pg";
 import { recordActivity } from "@/lib/progress/record-activity";
@@ -10,7 +10,7 @@ export async function POST(
   { params }: { params: Promise<{ cardId: string }> },
 ) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },

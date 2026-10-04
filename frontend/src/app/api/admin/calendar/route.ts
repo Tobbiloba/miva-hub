@@ -8,6 +8,11 @@ import {
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
 import { type SQL, and, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
+import {
+  manageableBy,
+  resolveContentTarget,
+  resolveContentTenant,
+} from "@/lib/tenant-content";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -26,8 +31,19 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
+    // Tenant scope from the SESSION (super_admin unscoped)
+    const tenant = await resolveContentTenant(sessionOrError.user.id);
+    if (!tenant) {
+      return NextResponse.json(
+        { success: false, message: "Admin is not assigned to a university" },
+        { status: 403 },
+      );
+    }
+
     // Apply filters
-    const conditions: (SQL | undefined)[] = [];
+    const conditions: (SQL | undefined)[] = [
+      manageableBy(CalendarEventSchema.universityId, tenant),
+    ];
 
     if (search) {
       conditions.push(
@@ -125,10 +141,11 @@ export async function GET(request: NextRequest) {
       }),
     );
 
-    // Get total count
+    // Get total count (same filters as the page)
     const totalCount = await pgDb
-      .select({ count: sql<number>`count(*)` })
-      .from(CalendarEventSchema);
+      .select({ count: sql<number>`count(*)::int` })
+      .from(CalendarEventSchema)
+      .where(and(...conditions));
 
     return NextResponse.json({
       success: true,
@@ -191,6 +208,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Tenant scope from the SESSION. University admins always create in
+    // their own university; only super_admin may target another university
+    // or create a platform-wide (NULL) row.
+    const tenant = await resolveContentTenant(session.user.id);
+    if (!tenant) {
+      return NextResponse.json(
+        { success: false, message: "Admin is not assigned to a university" },
+        { status: 403 },
+      );
+    }
+    const target = await resolveContentTarget(tenant, {
+      requestedUniversityId: body.universityId,
+      courseId,
+      departmentId,
+    });
+    if ("error" in target) {
+      return NextResponse.json(
+        { success: false, message: target.error },
+        { status: 400 },
+      );
+    }
+
     // Get current user ID
     const user = await pgDb
       .select()
@@ -209,6 +248,7 @@ export async function POST(request: NextRequest) {
     const newEvent = await pgDb
       .insert(CalendarEventSchema)
       .values({
+        universityId: target.universityId,
         title,
         description,
         eventType,

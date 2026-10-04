@@ -1,7 +1,8 @@
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { AccountSchema, UserSchema } from "@/lib/db/pg/schema.pg";
-import { hashPassword } from "better-auth/crypto";
+import { createCredentialUser } from "@/lib/auth/provision-user";
+import { generateTempPassword } from "@/lib/auth/temp-password";
+import { UserSchema } from "@/lib/db/pg/schema.pg";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -166,7 +167,7 @@ export async function POST(request: NextRequest) {
     const existingUserByEmail = await pgDb
       .select()
       .from(UserSchema)
-      .where(eq(UserSchema.email, validatedData.email))
+      .where(eq(UserSchema.email, validatedData.email.toLowerCase().trim()))
       .limit(1);
 
     if (existingUserByEmail.length > 0) {
@@ -198,45 +199,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate a temporary password (student should change this on first login).
-    // Hash with better-auth's algorithm — sign-in verifies the credential
-    // account row, so a bcrypt hash on UserSchema alone can never log in.
-    const tempPassword = `student${validatedData.academicYear}${Math.random().toString(36).slice(-4)}`;
-    const hashedPassword = await hashPassword(tempPassword);
-
-    // Create the student user + credential account row atomically
-    const newStudent = await pgDb.transaction(async (tx) => {
-      const createdRows = await tx
-        .insert(UserSchema)
-        .values({
-          name: validatedData.name,
-          email: validatedData.email,
-          password: hashedPassword,
-          role: "student",
-          universityId: adminUniversity.id,
-          // Admin-created accounts are pre-verified (domain checked above);
-          // no verification-email flow exists, and false blocks sign-in.
-          emailVerified: true,
-          studentId: validatedData.studentId,
-          academicYear: validatedData.academicYear,
-          enrollmentStatus: validatedData.enrollmentStatus,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .returning();
-
-      const created = createdRows[0];
-      await tx.insert(AccountSchema).values({
-        accountId: created.id,
-        providerId: "credential",
-        userId: created.id,
-        password: hashedPassword,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-
-      return [created];
+    // Temporary password (student should change it on first login).
+    // Created through better-auth: its hasher + credential account row (what
+    // sign-in verifies) and the tenant/role/trial policy hook. Admin-created
+    // accounts are pre-verified (domain checked above); no verification-email
+    // flow exists for them, and false would block sign-in.
+    const tempPassword = generateTempPassword();
+    const created = await createCredentialUser({
+      email: validatedData.email,
+      name: validatedData.name,
+      password: tempPassword,
+      assignment: {
+        universityId: adminUniversity.id,
+        role: "student",
+        enrollmentStatus: validatedData.enrollmentStatus,
+      },
+      emailVerified: true,
+      profile: {
+        studentId: validatedData.studentId,
+        academicYear: validatedData.academicYear,
+      },
     });
+    const newStudent = [created];
 
     // Remove password from response
     const { password: _, ...studentData } = newStudent[0];

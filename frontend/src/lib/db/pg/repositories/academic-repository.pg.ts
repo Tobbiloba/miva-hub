@@ -1,4 +1,14 @@
-import { and, asc, desc, eq, getTableColumns, inArray, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+  isNull,
+  or,
+  sql,
+} from "drizzle-orm";
 import { pgDb as db } from "../db.pg";
 import {
   type AIProcessedContentEntity,
@@ -254,10 +264,22 @@ export const pgAcademicRepository = {
       );
   },
 
-  getAllCourseMaterials: async (): Promise<CourseMaterialEntity[]> => {
+  /** All materials for one university ("all" = platform-wide, super_admin only). */
+  getAllCourseMaterials: async (
+    universityId: string | "all",
+  ): Promise<CourseMaterialEntity[]> => {
     return db
-      .select()
+      .select(getTableColumns(CourseMaterialSchema))
       .from(CourseMaterialSchema)
+      .innerJoin(
+        CourseSchema,
+        eq(CourseMaterialSchema.courseId, CourseSchema.id),
+      )
+      .where(
+        universityId === "all"
+          ? undefined
+          : eq(CourseSchema.universityId, universityId),
+      )
       .orderBy(desc(CourseMaterialSchema.createdAt));
   },
 
@@ -489,12 +511,31 @@ export const pgAcademicRepository = {
   },
 
   // Announcements operations
+  /**
+   * Active announcements. `scope` is the tenant filter and is REQUIRED so
+   * no caller can forget it:
+   * - `{ universityId }` → that university's rows + platform-wide (NULL)
+   * - `{ universityId: null }` → platform-wide rows only
+   * - `"all"` → unscoped (super_admin only)
+   */
   getAnnouncements: async (
-    courseId?: string,
-    departmentId?: string,
-    limit = 10,
+    courseId: string | undefined,
+    departmentId: string | undefined,
+    limit: number,
+    scope: { universityId: string | null } | "all",
   ): Promise<AnnouncementEntity[]> => {
     const conditions = [eq(AnnouncementSchema.isActive, true)];
+
+    if (scope !== "all") {
+      conditions.push(
+        scope.universityId
+          ? (or(
+              eq(AnnouncementSchema.universityId, scope.universityId),
+              isNull(AnnouncementSchema.universityId),
+            ) ?? sql`false`)
+          : isNull(AnnouncementSchema.universityId),
+      );
+    }
 
     if (courseId) {
       conditions.push(eq(AnnouncementSchema.courseId, courseId));
@@ -612,8 +653,13 @@ export const pgAcademicRepository = {
   },
 
   // Admin dashboard statistics
-  getSystemStats: async () => {
+  /**
+   * Dashboard counts. `universityId` scopes every count to one tenant;
+   * pass "all" only for super_admin (platform-wide).
+   */
+  getSystemStats: async (universityId: string | "all") => {
     try {
+      const uni = universityId === "all" ? undefined : universityId;
       const [
         studentCount,
         courseCount,
@@ -624,17 +670,46 @@ export const pgAcademicRepository = {
         db
           .select({ count: sql`count(*)` })
           .from(UserSchema)
-          .where(eq(UserSchema.role, "student")),
+          .where(
+            and(
+              eq(UserSchema.role, "student"),
+              uni ? eq(UserSchema.universityId, uni) : undefined,
+            ),
+          ),
         db
           .select({ count: sql`count(*)` })
           .from(CourseSchema)
-          .where(eq(CourseSchema.isActive, true)),
-        db.select({ count: sql`count(*)` }).from(DepartmentSchema),
-        db.select({ count: sql`count(*)` }).from(CourseMaterialSchema),
+          .where(
+            and(
+              eq(CourseSchema.isActive, true),
+              uni ? eq(CourseSchema.universityId, uni) : undefined,
+            ),
+          ),
+        db
+          .select({ count: sql`count(*)` })
+          .from(DepartmentSchema)
+          .where(uni ? eq(DepartmentSchema.universityId, uni) : undefined),
+        db
+          .select({ count: sql`count(*)` })
+          .from(CourseMaterialSchema)
+          .innerJoin(
+            CourseSchema,
+            eq(CourseMaterialSchema.courseId, CourseSchema.id),
+          )
+          .where(uni ? eq(CourseSchema.universityId, uni) : undefined),
         db
           .select({ count: sql`count(*)` })
           .from(FacultySchema)
-          .where(eq(FacultySchema.isActive, true)),
+          .innerJoin(
+            DepartmentSchema,
+            eq(FacultySchema.departmentId, DepartmentSchema.id),
+          )
+          .where(
+            and(
+              eq(FacultySchema.isActive, true),
+              uni ? eq(DepartmentSchema.universityId, uni) : undefined,
+            ),
+          ),
       ]);
 
       return {
@@ -1056,6 +1131,8 @@ export const pgAcademicRepository = {
         .where(
           and(
             eq(AnnouncementSchema.isActive, true),
+            // Tenant scope: the student's university + platform-wide (NULL)
+            sql`(${AnnouncementSchema.universityId} IS NULL OR ${AnnouncementSchema.universityId} = (SELECT university_id FROM "user" WHERE id = ${studentId}))`,
             sql`(${AnnouncementSchema.expiresAt} IS NULL OR ${AnnouncementSchema.expiresAt} > CURRENT_TIMESTAMP)`,
             sql`(
             ${AnnouncementSchema.targetAudience} = 'all' OR
@@ -2083,6 +2160,8 @@ export const pgAcademicRepository = {
         .where(
           and(
             sql`${CalendarEventSchema.status} != 'cancelled'`,
+            // Tenant scope: the student's university + platform-wide (NULL)
+            sql`(${CalendarEventSchema.universityId} IS NULL OR ${CalendarEventSchema.universityId} = (SELECT university_id FROM "user" WHERE id = ${studentId}))`,
             sql`(
               ${CalendarEventSchema.affectedUsers} IN ('all', 'students')
               OR (

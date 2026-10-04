@@ -15,27 +15,20 @@ import {
 
 import type { ChatModel, ChatThread } from "app-types/chat";
 
-import { MCPToolInfo, McpServerCustomizationsPrompt } from "app-types/mcp";
-import { getSession } from "auth/server";
+import { MCPToolInfo } from "app-types/mcp";
+import { auth, getApiSession } from "auth/server";
 import { customModelProvider } from "lib/ai/models";
-import { serverCache } from "lib/cache";
-import { CacheKeys } from "lib/cache/cache-keys";
-import {
-  agentRepository,
-  chatRepository,
-  mcpMcpToolCustomizationRepository,
-  mcpServerCustomizationRepository,
-} from "lib/db/repository";
+import { chatRepository } from "lib/db/repository";
 import { toAny } from "lib/utils";
 import logger from "logger";
+import { headers } from "next/headers";
 
-import { Agent } from "app-types/agent";
 import { ObjectJsonSchema7 } from "app-types/util";
 import { JSONSchema7 } from "json-schema";
 import { jsonSchemaToZod } from "lib/json-schema-to-zod";
 
 export async function getUserId() {
-  const session = await getSession();
+  const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
   if (!userId) {
     throw new Error("User not found");
@@ -47,7 +40,7 @@ export async function generateTitleFromUserMessageAction({
   message,
   model,
 }: { message: UIMessage; model: LanguageModel }) {
-  await getSession();
+  await getUserId();
   const prompt = toAny(message.parts?.at(-1))?.text || "unknown";
 
   const { text: title } = await generateText({
@@ -60,7 +53,7 @@ export async function generateTitleFromUserMessageAction({
 }
 
 export async function selectThreadWithMessagesAction(threadId: string) {
-  const session = await getSession();
+  const session = await getApiSession();
   const thread = await chatRepository.selectThread(threadId);
 
   if (!thread) {
@@ -74,18 +67,35 @@ export async function selectThreadWithMessagesAction(threadId: string) {
   return { ...thread, messages: messages ?? [] };
 }
 
+// Server actions are public endpoints: every mutation verifies the caller
+// owns the thread/message it targets.
+async function assertThreadOwner(threadId: string, userId: string) {
+  const thread = await chatRepository.selectThread(threadId);
+  if (!thread || thread.userId !== userId) throw new Error("Thread not found");
+}
+
+async function assertMessageOwner(messageId: string, userId: string) {
+  const ownerId = await chatRepository.selectMessageOwnerId(messageId);
+  if (ownerId !== userId) throw new Error("Message not found");
+}
+
 export async function deleteMessageAction(messageId: string) {
+  const userId = await getUserId();
+  await assertMessageOwner(messageId, userId);
   await chatRepository.deleteChatMessage(messageId);
 }
 
 export async function deleteThreadAction(threadId: string) {
+  const userId = await getUserId();
+  await assertThreadOwner(threadId, userId);
   await chatRepository.deleteThread(threadId);
 }
 
 export async function deleteMessagesByChatIdAfterTimestampAction(
   messageId: string,
 ) {
-  "use server";
+  const userId = await getUserId();
+  await assertMessageOwner(messageId, userId);
   await chatRepository.deleteMessagesByChatIdAfterTimestamp(messageId);
 }
 
@@ -94,6 +104,7 @@ export async function updateThreadAction(
   thread: Partial<Omit<ChatThread, "createdAt" | "updatedAt" | "userId">>,
 ) {
   const userId = await getUserId();
+  await assertThreadOwner(id, userId);
   await chatRepository.updateThread(id, { ...thread, userId });
 }
 
@@ -112,6 +123,7 @@ export async function generateExampleToolSchemaAction(options: {
   toolInfo: MCPToolInfo;
   prompt?: string;
 }) {
+  await getUserId();
   const model = await customModelProvider.getModel(options.model);
 
   const schema = jsonSchema(
@@ -133,57 +145,6 @@ export async function generateExampleToolSchemaAction(options: {
   return object;
 }
 
-export async function rememberMcpServerCustomizationsAction(userId: string) {
-  const key = CacheKeys.mcpServerCustomizations(userId);
-
-  const cachedMcpServerCustomizations =
-    await serverCache.get<Record<string, McpServerCustomizationsPrompt>>(key);
-  if (cachedMcpServerCustomizations) {
-    return cachedMcpServerCustomizations;
-  }
-
-  const mcpServerCustomizations =
-    await mcpServerCustomizationRepository.selectByUserId(userId);
-  const mcpToolCustomizations =
-    await mcpMcpToolCustomizationRepository.selectByUserId(userId);
-
-  const serverIds: string[] = [
-    ...mcpServerCustomizations.map(
-      (mcpServerCustomization) => mcpServerCustomization.mcpServerId,
-    ),
-    ...mcpToolCustomizations.map(
-      (mcpToolCustomization) => mcpToolCustomization.mcpServerId,
-    ),
-  ];
-
-  const prompts = Array.from(new Set(serverIds)).reduce(
-    (acc, serverId) => {
-      const sc = mcpServerCustomizations.find((v) => v.mcpServerId == serverId);
-      const tc = mcpToolCustomizations.filter(
-        (mcpToolCustomization) => mcpToolCustomization.mcpServerId === serverId,
-      );
-      const data: McpServerCustomizationsPrompt = {
-        name: sc?.serverName || tc[0]?.serverName || "",
-        id: serverId,
-        prompt: sc?.prompt || "",
-        tools: tc.reduce(
-          (acc, v) => {
-            acc[v.toolName] = v.prompt || "";
-            return acc;
-          },
-          {} as Record<string, string>,
-        ),
-      };
-      acc[serverId] = data;
-      return acc;
-    },
-    {} as Record<string, McpServerCustomizationsPrompt>,
-  );
-
-  serverCache.set(key, prompts, 1000 * 60 * 30); // 30 minutes
-  return prompts;
-}
-
 export async function generateObjectAction({
   model,
   prompt,
@@ -196,6 +157,7 @@ export async function generateObjectAction({
   };
   schema: JSONSchema7 | ObjectJsonSchema7;
 }) {
+  await getUserId();
   const result = await generateObject({
     model: await customModelProvider.getModel(model),
     system: prompt.system,
@@ -203,18 +165,4 @@ export async function generateObjectAction({
     schema: jsonSchemaToZod(schema),
   });
   return result.object;
-}
-
-export async function rememberAgentAction(
-  agent: string | undefined,
-  userId: string,
-) {
-  if (!agent) return undefined;
-  const key = CacheKeys.agentInstructions(agent);
-  let cachedAgent = await serverCache.get<Agent | null>(key);
-  if (!cachedAgent) {
-    cachedAgent = await agentRepository.selectAgentById(agent, userId);
-    await serverCache.set(key, cachedAgent);
-  }
-  return cachedAgent as Agent | undefined;
 }

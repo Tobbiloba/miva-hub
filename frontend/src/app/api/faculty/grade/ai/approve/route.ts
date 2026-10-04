@@ -1,6 +1,6 @@
 import { reviewAIDecision } from "@/lib/ai/decision-ledger";
 import { getFacultyInfo } from "@/lib/auth/faculty";
-import { getSession } from "@/lib/auth/server";
+import { getApiSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { AIDecisionSchema } from "@/lib/db/pg/schema.pg";
@@ -17,7 +17,7 @@ const approveAiGradeSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     const facultyInfo = getFacultyInfo(session);
 
     if (!facultyInfo) {

@@ -8,6 +8,7 @@ import {
   getSystemOverview,
 } from "@/lib/analytics/academic-analytics";
 import { requireAdmin } from "@/lib/auth/admin";
+import { resolveStatsScope } from "@/lib/tenant-content";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -38,6 +39,16 @@ export async function GET(request: NextRequest) {
       return adminAccess;
     }
 
+    // Tenant scope from the SESSION: university admins see only their own
+    // university's numbers; super_admin sees platform-wide ("all").
+    const scope = await resolveStatsScope(adminAccess.user.id);
+    if (!scope) {
+      return NextResponse.json(
+        { success: false, error: "Admin is not assigned to a university" },
+        { status: 403 },
+      );
+    }
+
     // Parse query parameters
     const { searchParams } = new URL(request.url);
     const query = analyticsQuerySchema.parse({
@@ -57,27 +68,27 @@ export async function GET(request: NextRequest) {
 
     switch (query.type) {
       case "overview":
-        responseData = await getSystemOverview();
+        responseData = await getSystemOverview(scope);
         break;
 
       case "courses":
-        responseData = await getCourseAnalytics(query.departmentId);
+        responseData = await getCourseAnalytics(scope, query.departmentId);
         break;
 
       case "departments":
-        responseData = await getDepartmentAnalytics();
+        responseData = await getDepartmentAnalytics(scope);
         break;
 
       case "faculty":
-        responseData = await getFacultyAnalytics(query.departmentId);
+        responseData = await getFacultyAnalytics(scope, query.departmentId);
         break;
 
       case "insights":
-        responseData = await getLearningInsights();
+        responseData = await getLearningInsights(scope);
         break;
 
       case "realtime":
-        responseData = await getRealTimeStats();
+        responseData = await getRealTimeStats(scope);
         break;
 
       case "all":
@@ -90,12 +101,12 @@ export async function GET(request: NextRequest) {
           facultyAnalytics,
           realTimeStats,
         ] = await Promise.all([
-          getSystemOverview(),
-          getCourseAnalytics(query.departmentId),
-          getLearningInsights(),
-          getDepartmentAnalytics(),
-          getFacultyAnalytics(query.departmentId),
-          getRealTimeStats(),
+          getSystemOverview(scope),
+          getCourseAnalytics(scope, query.departmentId),
+          getLearningInsights(scope),
+          getDepartmentAnalytics(scope),
+          getFacultyAnalytics(scope, query.departmentId),
+          getRealTimeStats(scope),
         ]);
 
         responseData = {
@@ -139,6 +150,16 @@ export async function POST(request: NextRequest) {
       return adminAccess;
     }
 
+    // Tenant scope from the SESSION: university admins see only their own
+    // university's numbers; super_admin sees platform-wide ("all").
+    const scope = await resolveStatsScope(adminAccess.user.id);
+    if (!scope) {
+      return NextResponse.json(
+        { success: false, error: "Admin is not assigned to a university" },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
     const action = body.action;
 
@@ -154,11 +175,11 @@ export async function POST(request: NextRequest) {
       case "generate_report":
         // Generate comprehensive analytics report
         const reportData = await Promise.all([
-          getSystemOverview(),
-          getCourseAnalytics(),
-          getLearningInsights(),
-          getDepartmentAnalytics(),
-          getFacultyAnalytics(),
+          getSystemOverview(scope),
+          getCourseAnalytics(scope),
+          getLearningInsights(scope),
+          getDepartmentAnalytics(scope),
+          getFacultyAnalytics(scope),
         ]);
 
         return NextResponse.json({

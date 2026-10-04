@@ -1,6 +1,22 @@
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgAcademicRepository as academicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { isSameTenant } from "@/lib/tenant";
 import { NextRequest, NextResponse } from "next/server";
+
+/** Course weeks inherit their tenant from the parent course. */
+async function courseInTenant(
+  adminUserId: string,
+  courseId: string,
+): Promise<boolean> {
+  const course = await academicRepository.getCourseById(courseId);
+  return !!course && (await isSameTenant(adminUserId, course.universityId));
+}
+
+const courseNotFound = () =>
+  NextResponse.json(
+    { success: false, message: "Course not found" },
+    { status: 404 },
+  );
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,6 +55,11 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 },
       );
+    }
+
+    // Tenant-checked: no weeks on another university's course
+    if (!(await courseInTenant(sessionOrError.user.id, courseId))) {
+      return courseNotFound();
     }
 
     // Create the course week
@@ -100,6 +121,10 @@ export async function GET(request: NextRequest) {
         },
         { status: 400 },
       );
+    }
+
+    if (!(await courseInTenant(sessionOrError.user.id, courseId))) {
+      return courseNotFound();
     }
 
     // Get all weeks for the course

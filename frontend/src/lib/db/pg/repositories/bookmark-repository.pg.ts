@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { pgDb as db } from "../db.pg";
-import { AgentSchema, BookmarkSchema } from "../schema.pg";
+import { BookmarkSchema } from "../schema.pg";
+import { pgAgentRepository } from "./agent-repository.pg";
 
 export interface BookmarkRepository {
   createBookmark(
@@ -65,20 +66,9 @@ export const pgBookmarkRepository: BookmarkRepository = {
 
   async checkItemAccess(itemId, itemType, userId) {
     if (itemType === "agent") {
-      const agent = await db
-        .select()
-        .from(AgentSchema)
-        .where(eq(AgentSchema.id, itemId))
-        .limit(1);
-
-      if (!agent[0]) return false;
-
-      // Can bookmark if it's public/readonly or if it's their own agent
-      return (
-        agent[0].visibility === "public" ||
-        agent[0].visibility === "readonly" ||
-        agent[0].userId === userId
-      );
+      // Same rule as viewing: own agent, or a shared (public/readonly) agent
+      // whose owner is in the user's university (or is super_admin)
+      return pgAgentRepository.checkAccess(itemId, userId);
     }
 
     // TODO: Add workflow access check when workflows support bookmarking

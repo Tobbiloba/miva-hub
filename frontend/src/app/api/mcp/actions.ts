@@ -1,11 +1,34 @@
 "use server";
+import { auth } from "auth/server";
+import { checkIsSuperAdmin, isSuperAdmin } from "lib/auth/admin";
 import { mcpClientsManager } from "lib/ai/mcp/mcp-manager";
+import { MCP_CONFIG } from "lib/config/mcp-config";
+import { getUserAcademicContext } from "lib/user/user-context";
+import { headers } from "next/headers";
 import { z } from "zod";
 
 import { McpServerSchema } from "lib/db/pg/schema.pg";
 import { mcpOAuthRepository, mcpRepository } from "lib/db/repository";
 
+// Server actions are public HTTP endpoints: every one must authorize itself.
+// MCP servers are platform-global, so managing them is super_admin only.
+
+async function requireSessionUser() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) throw new Error("Unauthorized");
+  return session.user;
+}
+
+async function requireSuperAdminUser() {
+  const user = await requireSessionUser();
+  if (!isSuperAdmin(user) && !(await checkIsSuperAdmin(user.id))) {
+    throw new Error("Forbidden");
+  }
+  return user;
+}
+
 export async function selectMcpClientsAction() {
+  await requireSuperAdminUser();
   const list = await mcpClientsManager.getClients();
   return list.map(({ client, id }) => {
     return {
@@ -16,6 +39,7 @@ export async function selectMcpClientsAction() {
 }
 
 export async function selectMcpClientAction(id: string) {
+  await requireSuperAdminUser();
   const client = await mcpClientsManager.getClient(id);
   if (!client) {
     throw new Error("Client not found");
@@ -29,6 +53,7 @@ export async function selectMcpClientAction(id: string) {
 export async function saveMcpClientAction(
   server: typeof McpServerSchema.$inferInsert,
 ) {
+  await requireSuperAdminUser();
   if (process.env.NOT_ALLOW_ADD_MCP_SERVERS) {
     throw new Error("Not allowed to add MCP servers");
   }
@@ -49,14 +74,17 @@ export async function saveMcpClientAction(
 }
 
 export async function existMcpClientByServerNameAction(serverName: string) {
+  await requireSuperAdminUser();
   return await mcpRepository.existsByServerName(serverName);
 }
 
 export async function removeMcpClientAction(id: string) {
+  await requireSuperAdminUser();
   await mcpClientsManager.removeClient(id);
 }
 
 export async function refreshMcpClientAction(id: string) {
+  await requireSuperAdminUser();
   await mcpClientsManager.refreshClient(id);
 }
 
@@ -70,6 +98,7 @@ export async function authorizeMcpClientAction(id: string) {
 }
 
 export async function checkTokenMcpClientAction(id: string) {
+  await requireSuperAdminUser();
   const session = await mcpOAuthRepository.getAuthenticatedSession(id);
 
   // for wait connect to mcp server
@@ -83,13 +112,29 @@ export async function callMcpToolAction(
   toolName: string,
   input: unknown,
 ) {
+  await requireSuperAdminUser();
   return mcpClientsManager.toolCall(id, toolName, input);
 }
 
+/**
+ * Student-facing tool call (content renderer, voice chat). Only the default
+ * academic server is reachable, and the student identity always comes from the
+ * session — never from `input`.
+ */
 export async function callMcpToolByServerNameAction(
   serverName: string,
   toolName: string,
   input: unknown,
 ) {
-  return mcpClientsManager.toolCallByServerName(serverName, toolName, input);
+  const user = await requireSessionUser();
+  if (serverName !== MCP_CONFIG.DEFAULT_SERVER_NAME) {
+    await requireSuperAdminUser();
+  }
+  const userContext = await getUserAcademicContext(user.email);
+  return mcpClientsManager.toolCallByServerName(
+    serverName,
+    toolName,
+    input,
+    userContext,
+  );
 }

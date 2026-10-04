@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       "unknown";
-    if (!checkRateLimit(`admissions-apply:${ip}`, 10, 3600).allowed) {
+    if (!(await checkRateLimit(`admissions-apply:${ip}`, 10, 3600)).allowed) {
       return NextResponse.json(
         { error: "Too many applications from this address. Try again later." },
         { status: 429 },
@@ -254,7 +254,7 @@ export async function GET(request: NextRequest) {
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       "unknown";
-    if (!checkRateLimit(`admissions-form:${ip}`, 30, 60).allowed) {
+    if (!(await checkRateLimit(`admissions-form:${ip}`, 30, 60)).allowed) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 

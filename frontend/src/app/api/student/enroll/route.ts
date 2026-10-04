@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/auth/server";
+import { getApiSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import {
@@ -20,7 +20,7 @@ const enrollSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user || session.user.role !== "student") {
       return NextResponse.json(
         { error: "Student authentication required" },
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user || session.user.role !== "student") {
       return NextResponse.json(
         { error: "Student authentication required" },

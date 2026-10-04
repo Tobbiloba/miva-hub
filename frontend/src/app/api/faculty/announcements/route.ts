@@ -73,9 +73,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Tenant scope comes from the course (never from the request body)
+    const [course] = await pgDb
+      .select({ universityId: CourseSchema.universityId })
+      .from(CourseSchema)
+      .where(eq(CourseSchema.id, validated.courseId))
+      .limit(1);
+    if (!course) {
+      return NextResponse.json({ error: "Course not found" }, { status: 404 });
+    }
+
     const [announcement] = await pgDb
       .insert(AnnouncementSchema)
       .values({
+        universityId: course.universityId,
         title: validated.title,
         content: validated.content,
         courseId: validated.courseId,

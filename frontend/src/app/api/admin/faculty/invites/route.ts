@@ -1,8 +1,13 @@
 import { randomBytes } from "node:crypto";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
-import { FacultyInviteSchema, UserSchema } from "@/lib/db/pg/schema.pg";
+import {
+  DepartmentSchema,
+  FacultyInviteSchema,
+  UserSchema,
+} from "@/lib/db/pg/schema.pg";
 import { sendEmail } from "@/lib/email/smtp-service";
+import { escapeHtml } from "@/lib/escape-html";
 import { emailMatchesUniversity, getUserUniversity } from "@/lib/tenant";
 import { and, desc, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
@@ -80,6 +85,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // The department must belong to the inviting admin's university
+    const [department] = await pgDb
+      .select({ id: DepartmentSchema.id })
+      .from(DepartmentSchema)
+      .where(
+        and(
+          eq(DepartmentSchema.id, data.departmentId),
+          eq(DepartmentSchema.universityId, university.id),
+        ),
+      )
+      .limit(1);
+    if (!department) {
+      return NextResponse.json(
+        { success: false, error: "Department not found" },
+        { status: 404 },
+      );
+    }
+
     // No existing account with this email
     const [existingUser] = await pgDb
       .select({ id: UserSchema.id })
@@ -140,15 +163,17 @@ export async function POST(request: NextRequest) {
     const inviteUrl = `${BASE_URL}/invite/${token}`;
     let emailSent = false;
     try {
-      const greeting = data.name ? `Hi ${data.name.trim()},` : "Hello,";
+      const greeting = data.name
+        ? `Hi ${escapeHtml(data.name.trim())},`
+        : "Hello,";
       await sendEmail({
         to: email,
         subject: `You're invited to join ${university.name} on Askly`,
         html: `
           <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
-            <h2>Join ${university.name} on Askly</h2>
+            <h2>Join ${escapeHtml(university.name)} on Askly</h2>
             <p>${greeting}</p>
-            <p>You've been invited to join <strong>${university.name}</strong> on Askly as faculty. Click the button below to set up your account.</p>
+            <p>You've been invited to join <strong>${escapeHtml(university.name)}</strong> on Askly as faculty. Click the button below to set up your account.</p>
             <p style="margin: 24px 0;">
               <a href="${inviteUrl}" style="background: #2563eb; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none;">Accept invitation</a>
             </p>

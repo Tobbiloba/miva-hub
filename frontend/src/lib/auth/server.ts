@@ -2,6 +2,7 @@ import "server-only";
 import { sendEmail } from "@/lib/email/smtp-service";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { pgDb } from "lib/db/pg/db.pg";
 import {
@@ -13,6 +14,8 @@ import {
 import { headers } from "next/headers";
 import { toast } from "sonner";
 import { getAuthConfig } from "./config";
+import { sendResetPasswordEmail } from "./reset-email";
+import { enforceSignupPolicy } from "./signup-hook";
 
 import logger from "logger";
 import { redirect } from "next/navigation";
@@ -23,10 +26,20 @@ const {
   socialAuthenticationProviders,
 } = getAuthConfig();
 
+/**
+ * Browser-extension origins allowed to call /api/auth/* with cookies.
+ * Explicit allowlist (EXTENSION_ORIGINS, comma-separated
+ * `chrome-extension://<id>`); empty by default — never a wildcard.
+ */
+const extensionOrigins = (process.env.EXTENSION_ORIGINS ?? "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter((origin) => /^chrome-extension:\/\/[a-p]{32}$/.test(origin));
+
 export const auth = betterAuth({
   plugins: [nextCookies()],
   baseURL: process.env.NEXT_PUBLIC_BASE_URL,
-  trustedOrigins: ["chrome-extension://*"],
+  trustedOrigins: extensionOrigins,
   database: drizzleAdapter(pgDb, {
     provider: "pg",
     schema: {
@@ -40,6 +53,37 @@ export const auth = betterAuth({
     enabled: emailAndPasswordEnabled,
     disableSignUp: !signUpEnabled,
     requireEmailVerification: true,
+    // Built-in reset: token lives in the `verification` table (survives
+    // restarts, works across instances) and the new password is hashed with
+    // better-auth's own hasher — the one sign-in verifies against.
+    sendResetPassword: async ({ user, token }) => {
+      await sendResetPasswordEmail({ user, token });
+    },
+    resetPasswordTokenExpiresIn: 60 * 60, // 1 hour
+    revokeSessionsOnPasswordReset: true,
+  },
+  // Every user row better-auth creates (email sign-up, OAuth, server-side
+  // provisioning) passes the tenant gate: unknown email domains are rejected
+  // and tenant/role/trial are assigned in the same INSERT.
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user, context) => enforceSignupPolicy(user, context),
+      },
+    },
+  },
+  hooks: {
+    // Public email sign-up goes through /api/auth/register (program, level,
+    // terms consent, auto-enrolment). It calls auth.api.signUpEmail
+    // server-side; direct HTTP calls to this endpoint are refused.
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === "/sign-up/email" && ctx.request) {
+        throw new APIError("FORBIDDEN", {
+          message: "Sign up at /sign-up",
+          code: "USE_REGISTER_ENDPOINT",
+        });
+      }
+    }),
   },
   rateLimit: {
     enabled: true,
@@ -130,6 +174,9 @@ export const auth = betterAuth({
         defaultValue: null,
         input: false,
       },
+      // Student trial — set by the signup policy hook in the create INSERT.
+      trialStartedAt: { type: "date", required: false, input: false },
+      trialEndsAt: { type: "date", required: false, input: false },
     },
   },
   session: {
@@ -169,6 +216,22 @@ export const auth = betterAuth({
   },
   socialProviders: socialAuthenticationProviders,
 });
+
+/**
+ * Session for API route handlers and server actions: null when the request
+ * is unauthenticated. Never redirects, so APIs can answer 401 JSON instead of
+ * a 307 to the sign-in page. Pages should keep using getSession().
+ */
+export const getApiSession = async () => {
+  return auth.api
+    .getSession({
+      headers: await headers(),
+    })
+    .catch((e) => {
+      logger.error(e);
+      return null;
+    });
+};
 
 export const getSession = async () => {
   "use server";

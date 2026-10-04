@@ -5,6 +5,7 @@ import {
   ProgramCurriculumSchema,
   ProgramSchema,
 } from "@/lib/db/pg/schema.pg";
+import { isSameTenant } from "@/lib/tenant";
 import { and, asc, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -32,14 +33,20 @@ export async function GET(
 
     const { id: programId } = await params;
 
-    // Verify program exists
+    // Verify program exists — tenant-checked (prevents cross-university IDOR)
     const [program] = await pgDb
-      .select({ id: ProgramSchema.id })
+      .select({
+        id: ProgramSchema.id,
+        universityId: ProgramSchema.universityId,
+      })
       .from(ProgramSchema)
       .where(eq(ProgramSchema.id, programId))
       .limit(1);
 
-    if (!program) {
+    if (
+      !program ||
+      !(await isSameTenant(adminAccess.user.id, program.universityId))
+    ) {
       return NextResponse.json(
         { success: false, error: "Program not found" },
         { status: 404 },
@@ -95,25 +102,36 @@ export async function POST(
     const body = await request.json();
     const validated = createCurriculumSchema.parse(body);
 
-    // Verify program exists
+    // Verify program exists — tenant-checked (prevents cross-university IDOR)
     const [program] = await pgDb
-      .select({ id: ProgramSchema.id })
+      .select({
+        id: ProgramSchema.id,
+        universityId: ProgramSchema.universityId,
+      })
       .from(ProgramSchema)
       .where(eq(ProgramSchema.id, programId))
       .limit(1);
 
-    if (!program) {
+    if (
+      !program ||
+      !(await isSameTenant(adminAccess.user.id, program.universityId))
+    ) {
       return NextResponse.json(
         { success: false, error: "Program not found" },
         { status: 404 },
       );
     }
 
-    // Verify course exists
+    // Verify course exists in the program's university
     const [course] = await pgDb
       .select({ id: CourseSchema.id, courseCode: CourseSchema.courseCode })
       .from(CourseSchema)
-      .where(eq(CourseSchema.id, validated.courseId))
+      .where(
+        and(
+          eq(CourseSchema.id, validated.courseId),
+          eq(CourseSchema.universityId, program.universityId),
+        ),
+      )
       .limit(1);
 
     if (!course) {

@@ -1,5 +1,5 @@
 import { McpServerCustomizationZodSchema } from "app-types/mcp";
-import { getSession } from "auth/server";
+import { getApiSession } from "auth/server";
 import { serverCache } from "lib/cache";
 import { CacheKeys } from "lib/cache/cache-keys";
 import { mcpServerCustomizationRepository } from "lib/db/repository";
@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ server: string }> },
 ) {
   const { server } = await params;
-  const session = await getSession();
+  const session = await getApiSession();
   if (!session) {
     return new Response("Unauthorized", { status: 401 });
   }
@@ -29,7 +29,7 @@ export async function POST(
   { params }: { params: Promise<{ server: string }> },
 ) {
   const { server } = await params;
-  const session = await getSession();
+  const session = await getApiSession();
   if (!session) {
     return new Response("Unauthorized", { status: 401 });
   }
@@ -57,7 +57,7 @@ export async function DELETE(
   { params }: { params: Promise<{ server: string }> },
 ) {
   const { server } = await params;
-  const session = await getSession();
+  const session = await getApiSession();
   if (!session) {
     return new Response("Unauthorized", { status: 401 });
   }

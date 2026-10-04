@@ -1,12 +1,13 @@
-import { getSession } from "@/lib/auth/server";
+import { getApiSession } from "@/lib/auth/server";
 import { s3Service } from "lib/aws/s3-service";
+import { authorizeStorageUrl } from "lib/material-access";
 import { NextRequest, NextResponse } from "next/server";
 
 const ALLOWED_BUCKET = process.env.AWS_S3_BUCKET || "miva-university-content";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getApiSession();
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Authentication required" },
@@ -24,20 +25,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const urlMatch = s3Url.match(/s3:\/\/([^\/]+)\/(.+)/);
-    if (!urlMatch) {
+    // Resolve the object to its course_material row and apply the same
+    // access rule as /api/files/[materialId] (enrollment / instructor /
+    // same-tenant admin). Unknown objects are never signed.
+    const access = await authorizeStorageUrl(
+      session.user.id,
+      s3Url,
+      ALLOWED_BUCKET,
+    );
+    if (!access.ok) {
       return NextResponse.json(
-        { error: "Invalid S3 URL format" },
-        { status: 400 },
+        { error: access.error },
+        { status: access.status },
       );
     }
-
-    const [, bucket, key] = urlMatch;
-
-    // Only sign URLs for the app's own content bucket
-    if (bucket !== ALLOWED_BUCKET) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
-    }
+    const { bucket, key } = access;
 
     try {
       const signedUrl = await s3Service.getSignedUrl(bucket, key, 7200);

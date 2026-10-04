@@ -83,7 +83,7 @@ export type AgentRepository = {
     id: string,
     userId: string,
     agent: z.infer<typeof AgentUpdateSchema>,
-  ): Promise<Agent>;
+  ): Promise<Agent | null>; // null = not found or caller is not the owner
 
   deleteAgent(id: string, userId: string): Promise<void>;
 
