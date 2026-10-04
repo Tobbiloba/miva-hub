@@ -27,6 +27,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'core'))
 from ai_integration import MIVAAIStack
 from grading_engine import GradingOrchestrator
+from shared_secret import SharedSecretMiddleware
 
 # Logging Configuration
 logging.basicConfig(
@@ -464,6 +465,18 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+# Internal auth: only the Next.js server proxy and the MCP server may call
+# this API. Added last so it is the outermost middleware. Constant-time
+# compare; rejects with 401 when STUDY_BUDDY_SHARED_SECRET is set.
+app.add_middleware(
+    SharedSecretMiddleware,
+    secret=os.getenv("STUDY_BUDDY_SHARED_SECRET"),
+    header_name="X-Internal-Secret",
+    env_var_name="STUDY_BUDDY_SHARED_SECRET",
+    service_name="Study Buddy API",
+    exempt_paths={"/health"},
 )
 
 # Global study buddy engine
@@ -2019,7 +2032,8 @@ if __name__ == "__main__":
     uvicorn.run(
         "study_buddy_api:app",
         host="0.0.0.0",
-        port=8083,
-        reload=True,
+        port=int(os.getenv("PORT", "8083")),
+        # Auto-reload is a dev convenience; deploys set STUDY_BUDDY_RELOAD=false.
+        reload=os.getenv("STUDY_BUDDY_RELOAD", "true").lower() == "true",
         log_level="info"
     )

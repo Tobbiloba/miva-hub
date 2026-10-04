@@ -159,11 +159,10 @@ export default function ContentUploadPage() {
   // Function to check job status directly (fallback when SSE fails)
   const checkJobStatus = async (fileId: string, processingJobId: string) => {
     try {
-      const CONTENT_PROCESSOR_URL =
-        process.env.NEXT_PUBLIC_CONTENT_PROCESSOR_URL ||
-        "http://localhost:8082";
+      // Authenticated same-origin route; the browser never calls the
+      // content processor directly.
       const response = await fetch(
-        `${CONTENT_PROCESSOR_URL}/processing-status/${processingJobId}`,
+        `/api/content/processing-status/${encodeURIComponent(processingJobId)}`,
       );
 
       if (response.ok) {
@@ -186,7 +185,7 @@ export default function ContentUploadPage() {
                 return {
                   ...f,
                   status: "error",
-                  error: data.error_message || "Processing failed",
+                  error: data.errorMessage || "Processing failed",
                 };
               } else if (data.status === "processing") {
                 return {

@@ -54,13 +54,11 @@ export function useExamProgress({
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/exam/save`,
+        `/api/study-buddy/progress/exam/${encodeURIComponent(examId)}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            exam_id: examId,
-            student_id: studentId,
             answers: dataRef.current.answers,
             time_remaining_seconds: dataRef.current.timeRemaining,
             current_question: dataRef.current.currentQuestion,
@@ -146,10 +144,10 @@ export function useLoadExamProgress(examId?: string, studentId?: string) {
       if (examId && studentId) {
         try {
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 500);
+          const timeout = setTimeout(() => controller.abort(), 3000);
 
           const response = await fetch(
-            `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/exam/load/${examId}/${studentId}`,
+            `/api/study-buddy/progress/exam/${encodeURIComponent(examId)}`,
             {
               signal: controller.signal,
             },
@@ -211,7 +209,7 @@ export async function clearExamProgress(examId?: string, studentId?: string) {
   if (examId && studentId) {
     try {
       await fetch(
-        `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/exam/clear/${examId}/${studentId}`,
+        `/api/study-buddy/progress/exam/${encodeURIComponent(examId)}`,
         {
           method: "DELETE",
         },

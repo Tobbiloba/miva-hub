@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+venv/
+.venv/
+**/__pycache__/
+*.py[cod]
+*.log
+uploads/
+.git
+.claude/
+.cursor/
+.DS_Store

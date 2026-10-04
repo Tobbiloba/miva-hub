@@ -9,8 +9,9 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+# pnpm is the package manager (Dockerfile runs `pnpm install --frozen-lockfile`),
+# so pnpm-lock.yaml must be committed; stray npm lockfiles must not.
 package-lock.json
-pnpm-lock.yaml
 
 # Dependencies - Python
 **/.venv/
@@ -63,6 +64,8 @@ Thumbs.db
 
 # Logs
 *.log
+# Dev-server output piped to log.md
+log.md
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -183,3 +186,8 @@ venv.bak/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# Local artefacts
+mcp-server/uploads/
+.playwright-mcp/
+/*.zip

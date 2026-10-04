@@ -1,22 +1,14 @@
-import { IS_VERCEL_ENV } from "lib/const";
+import * as Sentry from "@sentry/nextjs";
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
-    const { checkEnv } = await import("./lib/env-check");
-    checkEnv();
-
-    if (!IS_VERCEL_ENV) {
-      // Migrations disabled - using db:push for schema synchronization
-      console.log("🔧 Migrations disabled - using db:push for schema sync");
-
-      // Initialize MCP Manager only
-      const initMCPManager = await import("./lib/ai/mcp/mcp-manager").then(
-        (m) => m.initMCPManager,
-      );
-      await initMCPManager().catch((e) => {
-        console.warn("⚠️ MCP Manager initialization failed:", e.message);
-        // Don't exit on MCP failure - continue with app startup
-      });
-    }
+    await import("../sentry.server.config");
+  }
+  if (process.env.NEXT_RUNTIME === "edge") {
+    await import("../sentry.edge.config");
   }
 }
+
+// Reports errors thrown in server components, route handlers and middleware.
+// Safe when Sentry was never initialised: capture is a no-op without a client.
+export const onRequestError = Sentry.captureRequestError;

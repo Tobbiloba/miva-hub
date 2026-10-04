@@ -11,7 +11,9 @@ from core.database import academic_repo
 # Import usage tracking
 from core.usage_tracker import usage_tracker, create_usage_error_response
 
-STUDY_BUDDY_API_BASE = "http://localhost:8083"
+# Base URL comes from STUDY_BUDDY_API_URL (localhost only as a dev default);
+# every request must carry the shared-secret header.
+from core.study_buddy_client import STUDY_BUDDY_API_BASE, study_buddy_headers
 
 
 def register_notes_conversion_tools(mcp):
@@ -41,7 +43,7 @@ def register_notes_conversion_tools(mcp):
             
             card_count = max(5, min(50, card_count))
             
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(headers=study_buddy_headers()) as client:
                 payload = {
                     "notes_text": notes_text,
                     "student_id": student_id,
@@ -94,7 +96,7 @@ def register_notes_conversion_tools(mcp):
         format: str = "json"
     ) -> str:
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(headers=study_buddy_headers()) as client:
                 response = await client.get(
                     f"{STUDY_BUDDY_API_BASE}/flashcards/export/{flashcards_id}",
                     params={"format": format},

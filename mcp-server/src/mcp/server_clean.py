@@ -62,11 +62,20 @@ if __name__ == "__main__":
     print("🎯 Total: 13 learning-optimized tools")
     print(f"🚀 Server mode: {args.transport}")
 
-    # Configure FastMCP settings for SSE mode
     if args.transport == 'sse':
-        mcp.settings.host = args.host
-        mcp.settings.port = args.port
+        # Serve FastMCP's SSE app ourselves so the shared-secret check wraps
+        # both /sse and /messages/ (mcp.run() would serve it unauthenticated).
+        import uvicorn
+        from core.shared_secret import SharedSecretMiddleware
+
+        app = SharedSecretMiddleware(
+            mcp.sse_app(),
+            secret=os.environ.get("MCP_SHARED_SECRET"),
+            header_name="X-MCP-Secret",
+            env_var_name="MCP_SHARED_SECRET",
+            service_name="MCP server",
+        )
         print(f"🌐 Server starting on http://{args.host}:{args.port}")
-    
-    # Use FastMCP's built-in run method - it handles everything!
-    mcp.run(transport=args.transport)
+        uvicorn.run(app, host=args.host, port=args.port)
+    else:
+        mcp.run(transport=args.transport)

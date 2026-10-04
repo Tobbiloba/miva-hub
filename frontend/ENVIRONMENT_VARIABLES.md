@@ -9,15 +9,22 @@ This document lists all the environment variables used in the MIVA Hub frontend 
 - `NEXT_PUBLIC_BASE_URL` - Base URL for the application (default: `http://localhost:4001`)
 
 ### API Service URLs
-- `NEXT_PUBLIC_PROGRESS_API_URL` - Progress API for saving/loading student progress (default: `http://localhost:8083`)
-- `NEXT_PUBLIC_CONTENT_PROCESSOR_URL` - Content Processor API for file processing (default: `http://localhost:8082`)
-- `CONTENT_PROCESSOR_URL` - Server-side content processor URL (default: `http://localhost:8082`)
+- `STUDY_BUDDY_API_URL` - Server-only Study Buddy API base URL (quiz/exam/assignment progress). Browsers reach it only through the authenticated `/api/study-buddy/*` proxy. Localhost fallback in development only.
+- `CONTENT_PROCESSOR_URL` - Server-side content processor URL. **Required in production** (jobs fail without it); `http://localhost:8082` fallback in development only.
 - `MCP_SERVER_URL` - MCP Server URL for Model Context Protocol (default: `http://localhost:8080/sse`)
 - `NEXT_PUBLIC_MCP_SERVER_URL` - Public MCP Server URL (default: `http://localhost:8080/sse`)
 
+### Internal service secrets (set the same value on both sides)
+- `MCP_SHARED_SECRET` - `X-MCP-Secret` header between the app and the MCP server. Unset = MCP server is open (logs a warning).
+- `STUDY_BUDDY_SHARED_SECRET` - `X-Internal-Secret` header between the app/MCP server and Study Buddy. Unset = open (logs a warning).
+- `CONTENT_PROCESSOR_SHARED_SECRET` - `X-Internal-Secret` header between the app and the content processor. Unset = open (logs a warning).
+- `INTERNAL_API_SECRET` - Secret for `/api/internal/*` callers. Required — the endpoint returns 401 when unset.
+
 ### Payment Configuration
-- `PAYSTACK_SECRET_KEY` - Paystack secret key (required)
+- `PAYSTACK_SECRET_KEY` - Paystack secret key (required). Production startup **fails** on an `sk_test_` key.
+- `PAYSTACK_ALLOW_TEST_KEY` - Set `true` only on a staging deploy that intentionally runs a Paystack test key.
 - `PAYSTACK_API_URL` - Paystack API URL (default: `https://api.paystack.co`)
+- Plans and prices live in `src/lib/billing/plans.ts` (single source of truth); `pnpm db:seed:plans` upserts them.
 
 ### Database
 - `POSTGRES_URL` - PostgreSQL connection string (required)
@@ -73,9 +80,21 @@ This document lists all the environment variables used in the MIVA Hub frontend 
 - `NODE_ENV` - Node environment (default: `development`)
 - `NEXT_STANDALONE_OUTPUT` - Next.js standalone output (default: `true`)
 
-### Plan Codes
-- `PRO_PLAN_CODE` - Pro plan code (set after creating plans)
-- `MAX_PLAN_CODE` - Max plan code (set after creating plans)
+### Askly Capture extension & RAG
+- `EXTENSION_ORIGINS` - Optional comma-separated `chrome-extension://<id>` origins trusted by better-auth. Empty by default — the extension authenticates with a bearer token (`/api/extension/token`), not cookies.
+- `INGEST_ALLOWED_PDF_HOSTS` - Optional comma-separated hosts the server may download captured PDFs from (default: `lms-assets.miva.university,lms.miva.university`).
+- `OPENAI_API_KEY` is required for RAG embeddings (`text-embedding-3-small`).
+
+### Cost controls
+- `CHAT_MODEL_ALLOWLIST` - Optional comma-separated `provider/model` list clients may select (e.g. `google/gemini-2.5-flash`). Unset = every model whose provider key is configured.
+
+### WhatsApp
+- `WHATSAPP_APP_SECRET` - Meta app secret used to verify `X-Hub-Signature-256` on the webhook. **Required in production** (the webhook returns 503 without it).
+
+### Error monitoring (Sentry) — all optional; unset = Sentry fully disabled
+- `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` - Server / browser DSN.
+- `SENTRY_ENVIRONMENT`, `SENTRY_TRACES_SAMPLE_RATE` (and `NEXT_PUBLIC_` variants) - Default sample rate 0.1.
+- `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` - Build-time source-map upload (only when the token is set).
 
 ### MCP Configuration
 - `MCP_MAX_TOTAL_TIMEOUT` - MCP timeout in milliseconds (default: `120000`)
@@ -86,8 +105,7 @@ This document lists all the environment variables used in the MIVA Hub frontend 
 ```bash
 NEXT_PUBLIC_APP_URL=http://localhost:4001
 NEXT_PUBLIC_BASE_URL=http://localhost:4001
-NEXT_PUBLIC_PROGRESS_API_URL=http://localhost:8083
-NEXT_PUBLIC_CONTENT_PROCESSOR_URL=http://localhost:8082
+STUDY_BUDDY_API_URL=http://localhost:8083
 CONTENT_PROCESSOR_URL=http://localhost:8082
 MCP_SERVER_URL=http://localhost:8080/sse
 NEXT_PUBLIC_MCP_SERVER_URL=http://localhost:8080/sse
@@ -99,9 +117,13 @@ OLLAMA_BASE_URL=http://localhost:11434/api
 ```bash
 NEXT_PUBLIC_APP_URL=https://your-domain.com
 NEXT_PUBLIC_BASE_URL=https://your-domain.com
-NEXT_PUBLIC_PROGRESS_API_URL=https://your-progress-api.com
-NEXT_PUBLIC_CONTENT_PROCESSOR_URL=https://your-content-processor.com
+STUDY_BUDDY_API_URL=https://your-study-buddy-api.com
 CONTENT_PROCESSOR_URL=https://your-content-processor.com
+MCP_SHARED_SECRET=<random 32+ chars>
+STUDY_BUDDY_SHARED_SECRET=<random 32+ chars>
+CONTENT_PROCESSOR_SHARED_SECRET=<random 32+ chars>
+INTERNAL_API_SECRET=<random 32+ chars>
+WHATSAPP_APP_SECRET=<meta app secret>
 MCP_SERVER_URL=https://your-mcp-server.com/sse
 NEXT_PUBLIC_MCP_SERVER_URL=https://your-mcp-server.com/sse
 PAYSTACK_API_URL=https://api.paystack.co

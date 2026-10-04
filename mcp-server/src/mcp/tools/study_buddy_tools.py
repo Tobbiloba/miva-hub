@@ -16,7 +16,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from core.usage_tracker import usage_tracker, create_usage_error_response
 from core.database import academic_repo
 
-STUDY_BUDDY_API_BASE = "http://localhost:8083"
+# Base URL comes from STUDY_BUDDY_API_URL (localhost only as a dev default);
+# every request must carry the shared-secret header.
+from core.study_buddy_client import STUDY_BUDDY_API_BASE, study_buddy_headers
 
 def register_study_buddy_tools(mcp):
     """Register all study buddy tools with the MCP server"""
@@ -61,7 +63,7 @@ def register_study_buddy_tools(mcp):
             if course_id:
                 logger.info(f"📝 Starting study session for course {course_id}...")
                 try:
-                    async with httpx.AsyncClient() as client:
+                    async with httpx.AsyncClient(headers=study_buddy_headers()) as client:
                         session_url = f"{STUDY_BUDDY_API_BASE}/chat/session/start"
                         session_payload = {
                             "course_id": course_id,
@@ -91,7 +93,7 @@ def register_study_buddy_tools(mcp):
             
             # Ask the question
             logger.info(f"💬 Sending question to Study Buddy API...")
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(headers=study_buddy_headers()) as client:
                 payload = {
                     "question": question,
                     "difficulty_preference": difficulty_level
@@ -222,7 +224,7 @@ def register_study_buddy_tools(mcp):
                 except ValueError:
                     pass
             
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(headers=study_buddy_headers()) as client:
                 payload = {
                     "course_id": course_id,
                     "topics": topics_list,
@@ -325,7 +327,7 @@ def register_study_buddy_tools(mcp):
             # Validate count
             count = max(5, min(50, count))
             
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(headers=study_buddy_headers()) as client:
                 payload = {
                     "course_id": course_id,
                     "topic": topic,
@@ -419,7 +421,7 @@ def register_study_buddy_tools(mcp):
             topics_list = [t.strip() for t in topics.split(",") if t.strip()] if topics else []
             types_list = [t.strip() for t in question_types.split(",") if t.strip()] if question_types else ["multiple_choice"]
             
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(headers=study_buddy_headers()) as client:
                 payload = {
                     "course_id": course_id,
                     "topics": topics_list,

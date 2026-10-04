@@ -12,7 +12,9 @@ from tools.exam_config import get_exam_template, get_exam_instructions, generate
 # Import usage tracking
 from core.usage_tracker import usage_tracker, create_usage_error_response
 
-STUDY_BUDDY_API_BASE = "http://localhost:8083"
+# Base URL comes from STUDY_BUDDY_API_URL (localhost only as a dev default);
+# every request must carry the shared-secret header.
+from core.study_buddy_client import STUDY_BUDDY_API_BASE, study_buddy_headers
 
 
 def register_exam_tools(mcp):
@@ -49,7 +51,7 @@ def register_exam_tools(mcp):
             
             template = get_exam_template(exam_type)
             
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(headers=study_buddy_headers()) as client:
                 payload = {
                     "course_id": str(course_id),
                     "exam_type": exam_type,
@@ -119,7 +121,7 @@ def register_exam_tools(mcp):
                 return create_usage_error_response(usage_info, "submit_exam_answers")
         
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(headers=study_buddy_headers()) as client:
                 payload = {
                     "exam_id": exam_id,
                     "student_id": student_id,

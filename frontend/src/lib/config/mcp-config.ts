@@ -11,8 +11,18 @@ export const getMCPServerURL = (): string => {
     return process.env.MCP_SERVER_URL;
   }
 
+  // Legacy name; prefer the server-only MCP_SERVER_URL.
+  if (process.env.NEXT_PUBLIC_MCP_SERVER_URL) {
+    return process.env.NEXT_PUBLIC_MCP_SERVER_URL;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    console.error(
+      "[mcp-config] MCP_SERVER_URL is not set; falling back to localhost. MCP tools will be unavailable.",
+    );
+  }
   // Default to localhost for development (MCP server runs on port 8080)
-  return process.env.NEXT_PUBLIC_MCP_SERVER_URL || "http://localhost:8080/sse";
+  return "http://localhost:8080/sse";
 };
 
 /**
@@ -38,12 +48,10 @@ export const MCP_CONFIG = {
  * Environment-specific MCP server URLs:
  *
  * Local Development:
- *   NEXT_PUBLIC_MCP_SERVER_URL=http://localhost:8080/sse
- *   (or set MCP_SERVER_URL for server-side usage)
+ *   (unset) -> http://localhost:8080/sse
  *
- * Production:
- *   NEXT_PUBLIC_MCP_SERVER_URL=https://your-mcp-server-domain.com/sse
- *
- * Example:
- *   NEXT_PUBLIC_MCP_SERVER_URL=https://miva-hub-mcp-production.up.railway.app/sse
+ * Production (server-only; NEXT_PUBLIC_MCP_SERVER_URL is still honoured as a
+ * legacy fallback):
+ *   MCP_SERVER_URL=https://your-mcp-server-domain.com/sse
+ *   MCP_SHARED_SECRET=<same value as the MCP server's MCP_SHARED_SECRET>
  */

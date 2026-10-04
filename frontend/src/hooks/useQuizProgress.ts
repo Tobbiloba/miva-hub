@@ -53,13 +53,11 @@ export function useQuizProgress({
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/quiz/save`,
+        `/api/study-buddy/progress/quiz/${encodeURIComponent(quizId)}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            quiz_id: quizId,
-            student_id: studentId,
             answers: dataRef.current.answers,
             current_question: dataRef.current.currentQuestion,
             mode: dataRef.current.mode,
@@ -145,10 +143,10 @@ export function useLoadQuizProgress(quizId?: string, studentId?: string) {
       if (quizId && studentId) {
         try {
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 500);
+          const timeout = setTimeout(() => controller.abort(), 3000);
 
           const response = await fetch(
-            `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/quiz/load/${quizId}/${studentId}`,
+            `/api/study-buddy/progress/quiz/${encodeURIComponent(quizId)}`,
             {
               signal: controller.signal,
             },
@@ -208,7 +206,7 @@ export async function clearQuizProgress(quizId?: string, studentId?: string) {
   if (quizId && studentId) {
     try {
       await fetch(
-        `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/quiz/clear/${quizId}/${studentId}`,
+        `/api/study-buddy/progress/quiz/${encodeURIComponent(quizId)}`,
         {
           method: "DELETE",
         },

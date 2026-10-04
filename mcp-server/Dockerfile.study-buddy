@@ -13,7 +13,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code
 COPY src/ ./src/
-COPY .env* ./
+# Configuration comes from the platform environment; never bake .env into the image.
+
+ENV STUDY_BUDDY_RELOAD=false
 
 # Expose Study Buddy API port
 EXPOSE 8083

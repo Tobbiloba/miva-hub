@@ -1,9 +1,44 @@
+import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
 const BUILD_OUTPUT = process.env.NEXT_STANDALONE_OUTPUT
   ? "standalone"
   : undefined;
+
+// HSTS only makes sense when the app is actually served over HTTPS.
+// NO_HTTPS=1 is the existing escape hatch for plain-HTTP self-hosting.
+const ENABLE_HSTS =
+  process.env.NODE_ENV === "production" && process.env.NO_HTTPS !== "1";
+
+// Sentry is opt-in: without a DSN the build is not wrapped at all, and the
+// runtime init files skip Sentry.init (see sentry.*.config.ts).
+const SENTRY_ENABLED = Boolean(
+  process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN,
+);
+const SENTRY_CAN_UPLOAD_SOURCEMAPS = Boolean(process.env.SENTRY_AUTH_TOKEN);
+
+const SECURITY_HEADERS = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  // SAMEORIGIN (not DENY): PDF viewers may iframe same-origin file URLs.
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  // frame-ancestors only — a script-src CSP would break Next's inline scripts.
+  { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+  // Voice chat / viva / office hours need the mic on our own origin.
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(self), geolocation=(), browsing-topics=()",
+  },
+  ...(ENABLE_HSTS
+    ? [
+        {
+          key: "Strict-Transport-Security",
+          value: "max-age=63072000; includeSubDomains",
+        },
+      ]
+    : []),
+];
 
 export default () => {
   const nextConfig: NextConfig = {
@@ -22,6 +57,9 @@ export default () => {
     },
     experimental: {
       taint: true,
+    },
+    async headers() {
+      return [{ source: "/:path*", headers: SECURITY_HEADERS }];
     },
     webpack: (config, { isServer }) => {
       if (!isServer) {
@@ -78,5 +116,20 @@ export default () => {
     },
   };
   const withNextIntl = createNextIntlPlugin();
-  return withNextIntl(nextConfig);
+  const config = withNextIntl(nextConfig);
+  if (!SENTRY_ENABLED) return config;
+  return withSentryConfig(config, {
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    silent: !process.env.CI,
+    telemetry: false,
+    widenClientFileUpload: true,
+    // Builds must never require SENTRY_AUTH_TOKEN: upload only when present.
+    sourcemaps: { disable: !SENTRY_CAN_UPLOAD_SOURCEMAPS },
+    release: {
+      create: SENTRY_CAN_UPLOAD_SOURCEMAPS,
+      finalize: SENTRY_CAN_UPLOAD_SOURCEMAPS,
+    },
+  });
 };

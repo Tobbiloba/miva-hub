@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 
 export default function Error({
@@ -11,7 +12,8 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service
+    // No-op when Sentry is not initialised (no NEXT_PUBLIC_SENTRY_DSN).
+    Sentry.captureException(error);
     console.error(error);
   }, [error]);
 

@@ -5,10 +5,8 @@ import logging
 from mcp.server.fastmcp import FastMCP
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
-from starlette.middleware.base import BaseHTTPMiddleware
 from mcp.server.sse import SseServerTransport
 from starlette.requests import Request
-from starlette.responses import JSONResponse
 from starlette.routing import Mount, Route
 from mcp.server import Server
 import uvicorn
@@ -18,6 +16,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.database import academic_repo
+from core.shared_secret import SharedSecretMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -599,16 +598,7 @@ async def list_flashcard_decks(
 # ---------------------------------------------------------------------------
 # Shared-secret authentication middleware
 # ---------------------------------------------------------------------------
-class SharedSecretMiddleware(BaseHTTPMiddleware):
-    """Validates X-MCP-Secret header on all requests when MCP_SHARED_SECRET is set."""
-
-    async def dispatch(self, request: Request, call_next):
-        if _MCP_SHARED_SECRET:
-            provided = request.headers.get("X-MCP-Secret", "")
-            if provided != _MCP_SHARED_SECRET:
-                logger.warning("Rejected MCP request: invalid or missing X-MCP-Secret header")
-                return JSONResponse({"error": "Unauthorized"}, status_code=401)
-        return await call_next(request)
+# Implementation lives in core.shared_secret (pure ASGI, constant-time compare).
 
 
 def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlette:
@@ -649,7 +639,15 @@ def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlett
             )
 
     # Build middleware stack — auth is applied when MCP_SHARED_SECRET is set
-    middleware = [Middleware(SharedSecretMiddleware)]
+    middleware = [
+        Middleware(
+            SharedSecretMiddleware,
+            secret=_MCP_SHARED_SECRET,
+            header_name="X-MCP-Secret",
+            env_var_name="MCP_SHARED_SECRET",
+            service_name="MCP server",
+        )
+    ]
 
     # Create and return the Starlette application with routes
     return Starlette(

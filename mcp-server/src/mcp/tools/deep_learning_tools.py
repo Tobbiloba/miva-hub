@@ -8,7 +8,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from core.database import academic_repo
 from core.usage_tracker import usage_tracker, create_usage_error_response
 
-STUDY_BUDDY_API_BASE = "http://localhost:8083"
+# Base URL comes from STUDY_BUDDY_API_URL (localhost only as a dev default);
+# every request must carry the shared-secret header.
+from core.study_buddy_client import STUDY_BUDDY_API_BASE, study_buddy_headers
 
 
 def register_deep_learning_tools(mcp):
@@ -86,7 +88,7 @@ def register_deep_learning_tools(mcp):
             prompt = style_prompts[selected_style]
             
             # Call Study Buddy API
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(headers=study_buddy_headers()) as client:
                 payload = {
                     "question": prompt,
                     "course_id": str(course_id),

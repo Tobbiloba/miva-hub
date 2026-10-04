@@ -15,11 +15,18 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-      - key: STUDY_BUDDY_API_BASE
+      # Shared with the frontend's MCP_SHARED_SECRET (X-MCP-Secret header)
+      - key: MCP_SHARED_SECRET
+        sync: false
+      # Read by src/core/study_buddy_client.py (scheme added if missing)
+      - key: STUDY_BUDDY_API_URL
         fromService:
           type: web
           name: miva-study-buddy-api
-          property: host
+          property: hostport
+      # Must match the Study Buddy API's STUDY_BUDDY_SHARED_SECRET
+      - key: STUDY_BUDDY_SHARED_SECRET
+        sync: false
       - key: CONTENT_PROCESSOR_API_BASE
         fromService:
           type: web
@@ -35,6 +42,11 @@ services:
     envVars:
       - key: PORT
         value: 8083
+      - key: STUDY_BUDDY_RELOAD
+        value: "false"
+      # Required: X-Internal-Secret expected from the frontend proxy + MCP server
+      - key: STUDY_BUDDY_SHARED_SECRET
+        sync: false
       - key: POSTGRES_URL
         sync: false
       - key: OPENAI_API_KEY
@@ -49,6 +61,8 @@ services:
     envVars:
       - key: PORT
         value: 8082
+      - key: CONTENT_PROCESSOR_SHARED_SECRET
+        sync: false
       - key: POSTGRES_URL
         sync: false
       - key: OPENAI_API_KEY

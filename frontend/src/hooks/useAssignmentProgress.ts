@@ -58,13 +58,11 @@ export function useAssignmentProgress({
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/assignment/save`,
+        `/api/study-buddy/progress/assignment/${encodeURIComponent(assignmentId)}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            assignment_id: assignmentId,
-            student_id: studentId,
             submission_text: dataRef.current.submissionText,
             submission_files: dataRef.current.submissionFiles || [],
             submission_link: dataRef.current.submissionLink,
@@ -155,10 +153,10 @@ export function useLoadAssignmentProgress(
       if (assignmentId && studentId) {
         try {
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 500);
+          const timeout = setTimeout(() => controller.abort(), 3000);
 
           const response = await fetch(
-            `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/assignment/load/${assignmentId}/${studentId}`,
+            `/api/study-buddy/progress/assignment/${encodeURIComponent(assignmentId)}`,
             {
               signal: controller.signal,
             },
@@ -225,7 +223,7 @@ export async function clearAssignmentProgress(
   if (assignmentId && studentId) {
     try {
       await fetch(
-        `${process.env.NEXT_PUBLIC_PROGRESS_API_URL || "http://localhost:8083"}/progress/assignment/clear/${assignmentId}/${studentId}`,
+        `/api/study-buddy/progress/assignment/${encodeURIComponent(assignmentId)}`,
         {
           method: "DELETE",
         },

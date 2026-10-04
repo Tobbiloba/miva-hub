@@ -1065,13 +1065,28 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# CORS configuration
+# CORS configuration. Only the Next.js server calls this API (browsers no
+# longer poll it), so no wildcard origin.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "*"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+# Internal auth: only the Next.js server may call this API. Added last so it
+# is the outermost middleware. Constant-time compare; 401 when
+# CONTENT_PROCESSOR_SHARED_SECRET is set and the header is missing/wrong.
+from core.shared_secret import SharedSecretMiddleware  # noqa: E402
+
+app.add_middleware(
+    SharedSecretMiddleware,
+    secret=os.getenv("CONTENT_PROCESSOR_SHARED_SECRET"),
+    header_name="X-Internal-Secret",
+    env_var_name="CONTENT_PROCESSOR_SHARED_SECRET",
+    service_name="Content Processor API",
+    exempt_paths={"/health"},
 )
 
 # Global AI stack instance
@@ -3449,6 +3464,6 @@ if __name__ == "__main__":
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=8082,
+        port=int(os.getenv("PORT", "8082")),
         log_level="info"
     )
