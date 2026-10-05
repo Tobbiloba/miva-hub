@@ -85,6 +85,9 @@ This document lists all the environment variables used in the MIVA Hub frontend 
 - `INGEST_ALLOWED_PDF_HOSTS` - Optional comma-separated hosts the server may download captured PDFs from (default: `lms-assets.miva.university,lms.miva.university`).
 - `OPENAI_API_KEY` is required for RAG embeddings (`text-embedding-3-small`).
 
+### Trials
+- `STUDENT_TRIAL_DAYS` - Free-trial length for new students in days (1–365, default `7`). Set `30` during a free beta; remove at paid launch.
+
 ### Cost controls
 - `CHAT_MODEL_ALLOWLIST` - Optional comma-separated `provider/model` list clients may select (e.g. `google/gemini-2.5-flash`). Unset = every model whose provider key is configured.
 

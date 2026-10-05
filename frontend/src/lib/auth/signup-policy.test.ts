@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   STUDENT_TRIAL_DAYS,
+  parseTrialDays,
   decideSignupAssignment,
   needsDomainResolution,
 } from "./signup-policy";
@@ -138,5 +139,16 @@ describe("decideSignupAssignment", () => {
     expect(decideSignupAssignment({ source: "server", now })).toEqual({
       kind: "passthrough",
     });
+  });
+});
+
+describe("parseTrialDays", () => {
+  it("uses a valid override and falls back to 7 otherwise", () => {
+    expect(parseTrialDays("30")).toBe(30);
+    expect(parseTrialDays(undefined)).toBe(7);
+    expect(parseTrialDays("")).toBe(7);
+    expect(parseTrialDays("0")).toBe(7);
+    expect(parseTrialDays("2.5")).toBe(7);
+    expect(parseTrialDays("1000")).toBe(7);
   });
 });

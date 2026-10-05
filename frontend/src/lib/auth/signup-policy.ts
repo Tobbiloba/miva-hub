@@ -5,7 +5,21 @@
  * OAuth, server-side provisioning) goes through the same rules.
  */
 
-export const STUDENT_TRIAL_DAYS = 7;
+const DEFAULT_TRIAL_DAYS = 7;
+
+/** STUDENT_TRIAL_DAYS env value → whole days in 1..365, else the default. */
+export function parseTrialDays(raw: string | undefined): number {
+  const days = Number(raw);
+  return Number.isInteger(days) && days >= 1 && days <= 365
+    ? days
+    : DEFAULT_TRIAL_DAYS;
+}
+
+// Free-trial length for new students. Set STUDENT_TRIAL_DAYS (e.g. 30 for a
+// free beta) to override; unset = 7 days.
+export const STUDENT_TRIAL_DAYS = parseTrialDays(
+  process.env.STUDENT_TRIAL_DAYS,
+);
 
 export type SignupRole = "student" | "faculty" | "admin" | "super_admin";
 
