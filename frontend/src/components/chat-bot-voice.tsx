@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { safe } from "ts-safe";
 import { Alert, AlertDescription, AlertTitle } from "ui/alert";
 import { Button } from "ui/button";
+import Link from "next/link";
 
 import { Drawer, DrawerContent, DrawerPortal, DrawerTitle } from "ui/drawer";
 import {
@@ -327,9 +328,15 @@ export function ChatBotVoice() {
                     <AlertDescription>{error.message}</AlertDescription>
 
                     <AlertDescription className="my-4 ">
-                      <p className="text-muted-foreground ">
-                        {t("VoiceChat.pleaseCloseTheVoiceChatAndTryAgain")}
-                      </p>
+                      {error.name === "PaymentRequired" ? (
+                        <Button asChild size="sm">
+                          <Link href="/billing">View plans</Link>
+                        </Button>
+                      ) : (
+                        <p className="text-muted-foreground ">
+                          {t("VoiceChat.pleaseCloseTheVoiceChatAndTryAgain")}
+                        </p>
+                      )}
                     </AlertDescription>
                   </Alert>
                 </div>

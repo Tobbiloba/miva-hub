@@ -8,7 +8,8 @@ const RECOMMENDED: Record<string, string> = {
   NEXT_PUBLIC_APP_URL:
     "links in invite/reset emails and Paystack callbacks will point to localhost",
   PAYSTACK_SECRET_KEY: "billing checkout and webhooks will fail",
-  RESEND_API_KEY: "invite, receipt, and password-reset emails will not send",
+  RESEND_API_KEY:
+    "verification, invite, receipt and password-reset emails will not send — new sign-ups cannot verify and so cannot sign in",
   OPENAI_API_KEY: "default AI provider unavailable",
 };
 

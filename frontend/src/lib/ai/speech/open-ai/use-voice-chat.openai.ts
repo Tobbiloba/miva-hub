@@ -165,6 +165,15 @@ export function useOpenAIVoiceChat(
           }),
         },
       );
+      if (response.status === 402) {
+        // Trial/subscription ended — surfaced with a link to /billing
+        const body = await response.json().catch(() => ({}));
+        const error = new Error(
+          body.error ?? "Your Askly access has ended. Subscribe to keep going.",
+        );
+        error.name = "PaymentRequired";
+        throw error;
+      }
       if (response.status !== 200) {
         throw new Error(await response.text());
       }
