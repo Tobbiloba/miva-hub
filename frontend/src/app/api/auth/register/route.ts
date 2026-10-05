@@ -98,7 +98,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Get active academic session for semester/year context
-    const activeSession = await pgAcademicRepository.getActiveAcademicSession();
+    const activeSession = await pgAcademicRepository.getActiveAcademicSession(
+      university.id,
+    );
     if (!activeSession) {
       return NextResponse.json(
         { error: "No active academic session. Contact admin." },

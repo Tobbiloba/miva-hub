@@ -2206,7 +2206,7 @@ export const pgAcademicRepository = {
 
   // ── Self-service signup helpers ──────────────────────────────────────────
 
-  getActivePrograms: async () => {
+  getActivePrograms: async (universityId: string) => {
     return db
       .select({
         id: ProgramSchema.id,
@@ -2215,15 +2215,26 @@ export const pgAcademicRepository = {
         durationYears: ProgramSchema.durationYears,
       })
       .from(ProgramSchema)
-      .where(eq(ProgramSchema.isActive, true))
+      .where(
+        and(
+          eq(ProgramSchema.universityId, universityId),
+          eq(ProgramSchema.isActive, true),
+        ),
+      )
       .orderBy(asc(ProgramSchema.name));
   },
 
-  getActiveAcademicSession: async () => {
+  // Each university runs its own calendar: the "current" session is per tenant.
+  getActiveAcademicSession: async (universityId: string) => {
     const [session] = await db
       .select()
       .from(AcademicSessionSchema)
-      .where(eq(AcademicSessionSchema.isCurrent, true))
+      .where(
+        and(
+          eq(AcademicSessionSchema.universityId, universityId),
+          eq(AcademicSessionSchema.isCurrent, true),
+        ),
+      )
       .limit(1);
     return session ?? null;
   },

@@ -68,29 +68,38 @@ export default function SignUpPage() {
   // Validation state
   const [emailWarning, setEmailWarning] = useState("");
   const [universityName, setUniversityName] = useState<string | null>(null);
+  const [universitySlug, setUniversitySlug] = useState<string | null>(null);
   const [matricError, setMatricError] = useState("");
 
-  // Fetch programs and session on mount
+  // Programs and the academic session belong to a university, so load them
+  // once the email domain has resolved to one.
   useEffect(() => {
-    fetch("/api/programs/public")
+    setPrograms([]);
+    setProgramId("");
+    setSession(null);
+    if (!universitySlug) return;
+    const query = `university=${encodeURIComponent(universitySlug)}`;
+
+    fetch(`/api/programs/public?${query}`)
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) setPrograms(data);
       })
       .catch(() => toast.error("Failed to load programs"));
 
-    fetch("/api/academic/session/current")
+    fetch(`/api/academic/session/current?${query}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.sessionName) setSession(data);
       })
       .catch(() => {});
-  }, []);
+  }, [universitySlug]);
 
   // Resolve the university from the email domain (debounced).
   // Signup is only allowed for domains registered to a university.
   useEffect(() => {
     setUniversityName(null);
+    setUniversitySlug(null);
     setEmailWarning("");
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
 
@@ -100,6 +109,7 @@ export default function SignUpPage() {
         .then((data) => {
           if (data.found) {
             setUniversityName(data.university.name);
+            setUniversitySlug(data.university.slug);
             setEmailWarning("");
           } else {
             setEmailWarning(
@@ -379,9 +389,19 @@ export default function SignUpPage() {
               <>
                 <div className="flex flex-col gap-2">
                   <Label>Program</Label>
-                  <Select value={programId} onValueChange={setProgramId}>
+                  <Select
+                    value={programId}
+                    onValueChange={setProgramId}
+                    disabled={!universitySlug}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select your program" />
+                      <SelectValue
+                        placeholder={
+                          universitySlug
+                            ? "Select your program"
+                            : "Enter your school email first"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {programs.map((p) => (

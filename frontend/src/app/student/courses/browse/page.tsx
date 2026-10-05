@@ -36,7 +36,9 @@ export default async function BrowseCoursesPage() {
     );
   }
 
-  const activeSession = await pgAcademicRepository.getActiveAcademicSession();
+  const activeSession = await pgAcademicRepository.getActiveAcademicSession(
+    userRow.universityId,
+  );
 
   // Tenant-scoped course catalog (the shared getActiveCourses helper is
   // platform-wide, so query directly with the university filter)

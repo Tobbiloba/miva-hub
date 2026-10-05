@@ -69,7 +69,9 @@ export async function POST(request: NextRequest) {
 
     // Current term comes from the academic_session table (the platform's
     // live source — academic_calendar is legacy and unpopulated)
-    const activeSession = await pgAcademicRepository.getActiveAcademicSession();
+    const activeSession = await pgAcademicRepository.getActiveAcademicSession(
+      userRow.universityId,
+    );
     if (!activeSession) {
       return NextResponse.json(
         { error: "No active academic session — enrollment is closed" },
@@ -160,7 +162,21 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const activeSession = await pgAcademicRepository.getActiveAcademicSession();
+    const [dropper] = await pgDb
+      .select({ universityId: UserSchema.universityId })
+      .from(UserSchema)
+      .where(eq(UserSchema.id, session.user.id))
+      .limit(1);
+    if (!dropper?.universityId) {
+      return NextResponse.json(
+        { error: "Your account is not linked to a university" },
+        { status: 403 },
+      );
+    }
+
+    const activeSession = await pgAcademicRepository.getActiveAcademicSession(
+      dropper.universityId,
+    );
     if (!activeSession) {
       return NextResponse.json(
         { error: "No active academic session" },
