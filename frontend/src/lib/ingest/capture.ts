@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 /**
@@ -56,6 +57,24 @@ export function slugify(text: string): string {
   );
 }
 
+// The LMS asset CDN refuses server-side downloads (403), so the extension
+// fetches PDFs with the student's own LMS session and uploads them straight
+// to S3 under a key bound to that user.
+export const MAX_CAPTURE_PDF_BYTES = 50 * 1024 * 1024;
+const UPLOAD_PREFIX = "uploads/capture";
+
+export function newCaptureUploadKey(userId: string, filename: string): string {
+  return `${UPLOAD_PREFIX}/${userId}/${randomUUID()}/${sanitizePdfFilename(filename, "document")}`;
+}
+
+/** Does this upload key belong to `userId` (and match the issued shape)? */
+export function isOwnCaptureUploadKey(key: string, userId: string): boolean {
+  const escaped = userId.replace(/[^0-9a-f-]/gi, "");
+  return new RegExp(
+    `^${UPLOAD_PREFIX}/${escaped}/[0-9a-f-]{36}/[A-Za-z0-9._-]{1,104}\\.pdf$`,
+  ).test(key);
+}
+
 /** Escape LIKE wildcards so user text matches literally. */
 export function escapeLike(text: string): string {
   return text.replace(/[\\%_]/g, (c) => `\\${c}`);
@@ -85,6 +104,7 @@ export const LessonCaptureSchema = z
       .regex(/^[a-f0-9]{1,40}$/i)
       .nullish(),
     pdf_url: z.string().max(2000).nullish(),
+    upload_key: z.string().max(300).nullish(),
     pdf_filename: shortText(255).nullish(),
     quiz_questions: z
       .array(
@@ -110,11 +130,11 @@ export const LessonCaptureSchema = z
         message: "vimeo_video_id is required for video content",
       });
     }
-    if (v.content_type === "pdf") {
+    if (v.content_type === "pdf" && !v.upload_key) {
       if (!v.pdf_url) {
         ctx.addIssue({
           code: "custom",
-          message: "pdf_url is required for PDF content",
+          message: "upload_key or pdf_url is required for PDF content",
         });
       } else if (!isAllowedPdfUrl(v.pdf_url)) {
         ctx.addIssue({

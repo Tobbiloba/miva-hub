@@ -11,6 +11,7 @@ import { getIngestUserId } from "@/lib/extension/token";
 import {
   LessonCaptureSchema,
   escapeLike,
+  isOwnCaptureUploadKey,
   isShareableCapture,
 } from "@/lib/ingest/capture";
 import { claimQueuedJobs, processIngestionJob } from "@/lib/ingest/process-job";
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
       vimeo_video_id,
       vimeo_hash,
       pdf_url,
+      upload_key,
       pdf_filename,
       quiz_questions,
       quiz_instructions,
@@ -100,6 +102,14 @@ export async function POST(request: NextRequest) {
       assignment_requirements,
       assignment_metadata,
     } = parsed.data;
+
+    // An uploaded PDF must be one this user uploaded via /api/ingest/upload-url
+    if (upload_key && !isOwnCaptureUploadKey(upload_key, userId)) {
+      return NextResponse.json(
+        { error: "Invalid upload_key" },
+        { status: 400 },
+      );
+    }
 
     // 3. Look up course by course_code — scoped to the caller's university
     // (course codes like COS201 are only unique per tenant)
@@ -160,7 +170,9 @@ export async function POST(request: NextRequest) {
     const payload =
       content_type === "video"
         ? { vimeo_video_id, vimeo_hash: vimeo_hash || null }
-        : { pdf_url, pdf_filename: pdf_filename || null };
+        : upload_key
+          ? { upload_key, pdf_filename: pdf_filename || null }
+          : { pdf_url, pdf_filename: pdf_filename || null };
 
     // 6. Duplicate detection
     const weekMatch =

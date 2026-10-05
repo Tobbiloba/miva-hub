@@ -425,6 +425,47 @@ class S3Service {
   }
 
   /**
+   * Presigned PUT for a client-side upload of an exact-size PDF (the Askly
+   * Capture extension uploads LMS files the server can't fetch itself).
+   * Content-Type, Content-Length and SSE are all signed, so the client must
+   * send `Content-Type: application/pdf` and
+   * `x-amz-server-side-encryption: AES256` with exactly `contentLength` bytes.
+   */
+  async generatePdfUploadUrl(
+    s3Key: string,
+    contentLength: number,
+    expiresIn = 600,
+  ): Promise<string> {
+    const command = new PutObjectCommand({
+      Bucket: this.bucketName,
+      Key: s3Key,
+      ContentType: "application/pdf",
+      ContentLength: contentLength,
+      ServerSideEncryption: FERPA_CONFIG.ENCRYPTION.serverSide,
+    });
+    return getSignedUrl(this.s3Client, command, {
+      expiresIn,
+      unhoistableHeaders: new Set(["x-amz-server-side-encryption"]),
+    });
+  }
+
+  /** Read an object fully into memory, refusing anything over `maxBytes`. */
+  async getObjectBytes(s3Key: string, maxBytes: number): Promise<Buffer> {
+    const response = await this.s3Client.send(
+      new GetObjectCommand({ Bucket: this.bucketName, Key: s3Key }),
+    );
+    if ((response.ContentLength ?? 0) > maxBytes) {
+      throw new Error(`Object exceeds ${maxBytes} bytes`);
+    }
+    const bytes = await response.Body?.transformToByteArray();
+    if (!bytes) throw new Error("Object has no body");
+    if (bytes.byteLength > maxBytes) {
+      throw new Error(`Object exceeds ${maxBytes} bytes`);
+    }
+    return Buffer.from(bytes);
+  }
+
+  /**
    * Simple method to get signed URL for file access
    * Used by the file streaming API
    */

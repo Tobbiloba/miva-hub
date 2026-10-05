@@ -50,6 +50,59 @@ async function readError(res) {
   return err.error || err.message || `HTTP ${res.status}`;
 }
 
+// ── PDF upload ──────────────────────────────────────────────────
+
+const MAX_PDF_BYTES = 50 * 1024 * 1024;
+
+/**
+ * The LMS asset CDN only serves files to a logged-in student, so Askly's
+ * server can't download them. Fetch the PDF here with the student's own LMS
+ * session, upload it straight to S3 via a presigned URL, and return the
+ * upload_key for the capture.
+ */
+async function uploadLmsPdf(metadata, apiUrl, headers) {
+  const source = new URL(metadata.pdf_url);
+  if (source.protocol !== "https:" || source.hostname !== "lms-assets.miva.university") {
+    throw new Error("Only LMS-hosted PDFs can be captured");
+  }
+
+  const pdfRes = await fetch(source.toString(), { credentials: "include" });
+  if (!pdfRes.ok) {
+    throw new Error(
+      `Couldn't download the PDF from the LMS (HTTP ${pdfRes.status}). Make sure you're logged in to the LMS.`
+    );
+  }
+  const blob = await pdfRes.blob();
+  if (blob.size === 0) throw new Error("The PDF is empty");
+  if (blob.size > MAX_PDF_BYTES) throw new Error("PDF is larger than 50 MB");
+  const signature = new Uint8Array(await blob.slice(0, 5).arrayBuffer());
+  if (String.fromCharCode(...signature) !== "%PDF-") {
+    throw new Error("The LMS didn't return a PDF file");
+  }
+
+  const urlRes = await fetch(`${apiUrl}/api/ingest/upload-url`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      course_code: metadata.course_code,
+      filename: metadata.pdf_filename || "document.pdf",
+      size: blob.size,
+    }),
+  });
+  if (!urlRes.ok) throw new Error(await readError(urlRes));
+  const { upload_url, upload_key, headers: uploadHeaders } = await urlRes.json();
+
+  const putRes = await fetch(upload_url, {
+    method: "PUT",
+    headers: uploadHeaders,
+    body: blob,
+  });
+  if (!putRes.ok) {
+    throw new Error(`Upload to Askly storage failed (HTTP ${putRes.status})`);
+  }
+  return upload_key;
+}
+
 // ── API methods ─────────────────────────────────────────────────
 
 async function submitLesson(metadata) {
@@ -69,7 +122,7 @@ async function submitLesson(metadata) {
     body.vimeo_video_id = metadata.vimeo_video_id;
     body.vimeo_hash = metadata.vimeo_hash;
   } else if (metadata.page_type === "pdf") {
-    body.pdf_url = metadata.pdf_url;
+    body.upload_key = await uploadLmsPdf(metadata, apiUrl, headers);
     body.pdf_filename = metadata.pdf_filename;
   } else if (metadata.page_type === "quiz") {
     body.quiz_questions = metadata.quiz_questions;

@@ -3,6 +3,8 @@ import {
   LessonCaptureSchema,
   escapeLike,
   isAllowedPdfUrl,
+  isOwnCaptureUploadKey,
+  newCaptureUploadKey,
   isShareableCapture,
   sanitizePdfFilename,
 } from "./capture";
@@ -127,5 +129,40 @@ describe("LessonCaptureSchema", () => {
       quiz_questions: Array.from({ length: 201 }, () => ({ text: "q" })),
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("capture upload keys", () => {
+  const me = "24ab77e5-2536-4a48-865e-5f4c1aeb6717";
+  const other = "11111111-2222-4333-8444-555555555555";
+
+  it("issues keys bound to the user with a sanitized filename", () => {
+    const key = newCaptureUploadKey(me, "../Week 1 Notes.PDF");
+    expect(key.startsWith(`uploads/capture/${me}/`)).toBe(true);
+    expect(key.endsWith("/Week-1-Notes.pdf")).toBe(true);
+    expect(isOwnCaptureUploadKey(key, me)).toBe(true);
+  });
+
+  it("rejects another user's key and arbitrary bucket paths", () => {
+    const key = newCaptureUploadKey(other, "notes.pdf");
+    expect(isOwnCaptureUploadKey(key, me)).toBe(false);
+    expect(isOwnCaptureUploadKey("materials/private/x/secret.pdf", me)).toBe(
+      false,
+    );
+    expect(
+      isOwnCaptureUploadKey(`uploads/capture/${me}/../../materials/a.pdf`, me),
+    ).toBe(false);
+  });
+
+  it("allows a PDF capture with an upload_key and no pdf_url", () => {
+    expect(
+      LessonCaptureSchema.safeParse({
+        source_url: "https://lms.miva.university/mod/resource/view.php?id=1",
+        course_code: "COS101",
+        lesson_title: "Notes",
+        content_type: "pdf",
+        upload_key: newCaptureUploadKey(me, "notes.pdf"),
+      }).success,
+    ).toBe(true);
   });
 });

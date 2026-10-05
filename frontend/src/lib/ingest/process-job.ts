@@ -9,9 +9,15 @@ import {
 import { extractTranscriptForMaterial } from "@/lib/extraction/transcript-extractor";
 import { eq, inArray, sql } from "drizzle-orm";
 import logger from "logger";
-import { isAllowedPdfUrl, sanitizePdfFilename, slugify } from "./capture";
+import {
+  MAX_CAPTURE_PDF_BYTES,
+  isAllowedPdfUrl,
+  isOwnCaptureUploadKey,
+  sanitizePdfFilename,
+  slugify,
+} from "./capture";
 
-const MAX_PDF_BYTES = 50 * 1024 * 1024;
+const MAX_PDF_BYTES = MAX_CAPTURE_PDF_BYTES;
 const DOWNLOAD_TIMEOUT_MS = 30_000;
 const MAX_REDIRECTS = 3;
 
@@ -104,13 +110,35 @@ export async function downloadCapturePdf(rawUrl: string): Promise<Buffer> {
       parts.push(value);
     }
 
-    const buffer = Buffer.concat(parts);
-    if (buffer.subarray(0, 5).toString("latin1") !== "%PDF-") {
-      throw new Error("Downloaded file is not a PDF");
-    }
-    return buffer;
+    return assertPdf(Buffer.concat(parts));
   }
   throw new Error("Too many redirects downloading PDF");
+}
+
+function assertPdf(buffer: Buffer): Buffer {
+  if (buffer.subarray(0, 5).toString("latin1") !== "%PDF-") {
+    throw new Error("File is not a PDF");
+  }
+  return buffer;
+}
+
+/**
+ * Bytes of a captured PDF: uploaded by the extension to S3 (the LMS CDN
+ * refuses server-side downloads), or fetched from an allowlisted URL.
+ */
+async function loadCapturePdf(
+  job: IngestionJob,
+  payload: Record<string, any>,
+): Promise<Buffer> {
+  if (payload.upload_key) {
+    if (!isOwnCaptureUploadKey(payload.upload_key, job.volunteerId)) {
+      throw new Error("Upload key does not belong to this capture");
+    }
+    return assertPdf(
+      await s3Service.getObjectBytes(payload.upload_key, MAX_PDF_BYTES),
+    );
+  }
+  return downloadCapturePdf(payload.pdf_url);
 }
 
 /** Process one claimed job end to end. Failures are recorded on the job row. */
@@ -146,7 +174,7 @@ export async function processIngestionJob(job: IngestionJob): Promise<{
 
     let materialId: string;
     if (job.contentType === "pdf") {
-      const pdfBuffer = await downloadCapturePdf(payload.pdf_url);
+      const pdfBuffer = await loadCapturePdf(job, payload);
       const pdfFilename = sanitizePdfFilename(payload.pdf_filename, slug);
       const s3Key = `${keyPrefix}/${pdfFilename}`;
 
@@ -159,6 +187,13 @@ export async function processIngestionJob(job: IngestionJob): Promise<{
       );
       if (!s3Result.success) {
         throw new Error(`S3 upload failed: ${s3Result.error}`);
+      }
+      if (payload.upload_key) {
+        // The temporary upload has been filed under the material's key
+        await s3Service.deleteFile(payload.upload_key, {
+          userId: job.volunteerId,
+          userRole: "student",
+        });
       }
 
       const [material] = await pgDb

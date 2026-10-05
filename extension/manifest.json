@@ -8,6 +8,7 @@
     "https://lms.miva.university/*",
     "https://player.vimeo.com/*",
     "https://lms-assets.miva.university/*",
+    "https://*.amazonaws.com/*",
     "http://localhost:4001/*",
     "https://askly-miva.vercel.app/*"
   ],
