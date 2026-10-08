@@ -20,6 +20,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   varchar,
   vector,
@@ -626,8 +627,11 @@ export const AcademicSessionSchema = pgTable(
     ),
     index("academic_session_status_idx").on(table.status),
     index("academic_session_university_idx").on(table.universityId),
-    // Note: partial unique index on is_current WHERE is_current = true
-    // must be added via raw SQL in migration (drizzle doesn't support partial unique indexes natively)
+    // Each university runs its own calendar: at most one current session per
+    // tenant (not platform-wide).
+    uniqueIndex("academic_session_one_current_per_university_idx")
+      .on(table.universityId)
+      .where(sql`${table.isCurrent} = true`),
   ],
 );
 
