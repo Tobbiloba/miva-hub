@@ -298,6 +298,7 @@ export class MCPClient {
       );
       this.client = client;
       this.isConnected = true;
+      this.watchForDeadSession(client);
 
       this.scheduleAutoDisconnect();
     } catch (error) {
@@ -313,6 +314,33 @@ export class MCPClient {
     await this.updateToolInfo();
 
     return this.client;
+  }
+
+  /**
+   * A remote session dies when the MCP server restarts or the SSE stream
+   * drops. The transport only reports it via onclose/onerror, so without
+   * this the client stays "connected" to a session the server no longer
+   * knows and every tool call fails with "Could not find session". Mark it
+   * disconnected so the next call opens and initializes a fresh session.
+   */
+  private watchForDeadSession(client: Client) {
+    const invalidate = (reason: string) => {
+      if (this.client !== client) return;
+      this.logger.warn(`MCP session lost (${reason}); will reconnect`);
+      this.isConnected = false;
+      this.client = undefined;
+      this.transport = undefined;
+      void client.close().catch(() => {});
+    };
+    client.onclose = () => invalidate("transport closed");
+    client.onerror = (error) => {
+      if (
+        isDeadSessionError(error) ||
+        this.transport instanceof SSEClientTransport
+      ) {
+        invalidate(errorToString(error));
+      }
+    };
   }
 
   /**
@@ -365,8 +393,8 @@ export class MCPClient {
       .ifOk(() => this.scheduleAutoDisconnect()) // disconnect if autoDisconnectSeconds is set
       .map(() => execute())
       .ifFail(async (err) => {
-        if (err?.message?.includes("Transport is closed")) {
-          this.logger.info("Transport is closed, reconnecting...");
+        if (isDeadSessionError(err)) {
+          this.logger.info("MCP session is gone, reconnecting...");
           await this.disconnect();
           return execute();
         }
@@ -434,6 +462,17 @@ function isUnauthorized(error: any): boolean {
     error?.message?.includes("Unauthorized") ||
     error?.message?.includes("invalid_token") ||
     error?.message?.includes("HTTP 401")
+  );
+}
+
+function isDeadSessionError(error: any): boolean {
+  const message: string = error?.message ?? "";
+  return (
+    message.includes("Transport is closed") ||
+    message.includes("Not connected") ||
+    // Raised for the in-flight request when watchForDeadSession closes it.
+    message.includes("Connection closed") ||
+    message.includes("Could not find session")
   );
 }
 
