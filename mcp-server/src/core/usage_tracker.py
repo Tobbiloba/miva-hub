@@ -200,24 +200,25 @@ class UsageTracker:
         period_type: str = "daily"
     ) -> Tuple[bool, Dict[str, Any]]:
         """
-        Check usage limit and return whether the operation is allowed.
-        This is the main method to be called before executing tools.
-        
-        Args:
-            student_id: Student ID
-            usage_type: Type of usage
-            period_type: Period type
-            
+        Gate called before executing usage-tracked tools.
+
+        Access is decided by the Askly app, not here: every path to an MCP
+        tool (chat, content renderer, voice) runs the app's checkPaidAccess
+        first (trial, individual subscription, or university seat). The old
+        per-plan limits in check_usage_limit() predate that model and grant 0
+        to anyone without a legacy user_subscription row, which blocked every
+        trial student. Usage is still counted (record_usage_after_success) for
+        analytics; this gate no longer re-decides access.
+
         Returns:
             Tuple of (allowed: bool, usage_info: dict)
         """
-        usage_info = await self.check_usage_limit(student_id, usage_type, period_type)
-        allowed = usage_info.get("allowed", False)
-        
-        if not allowed:
-            logger.warning(f"Usage limit exceeded for {student_id}: {usage_type}")
-            
-        return allowed, usage_info
+        return True, {
+            "allowed": True,
+            "usage_type": usage_type,
+            "period_type": period_type,
+            "enforced_by": "askly-app",
+        }
 
     async def record_usage_after_success(
         self, 

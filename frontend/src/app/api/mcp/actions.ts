@@ -1,6 +1,7 @@
 "use server";
 import { auth } from "auth/server";
 import { checkIsSuperAdmin, isSuperAdmin } from "lib/auth/admin";
+import { checkPaidAccess } from "lib/billing/access";
 import { mcpClientsManager } from "lib/ai/mcp/mcp-manager";
 import { MCP_CONFIG } from "lib/config/mcp-config";
 import { getUserAcademicContext } from "lib/user/user-context";
@@ -130,6 +131,10 @@ export async function callMcpToolByServerNameAction(
   if (serverName !== MCP_CONFIG.DEFAULT_SERVER_NAME) {
     await requireSuperAdminUser();
   }
+  // Same paywall as /api/chat: the app is the single source of truth for
+  // access (the MCP server no longer re-checks plans).
+  const access = await checkPaidAccess(user.id);
+  if (!access.allowed) throw new Error(`PAYMENT_REQUIRED: ${access.reason}`);
   const userContext = await getUserAcademicContext(user.email);
   return mcpClientsManager.toolCallByServerName(
     serverName,
