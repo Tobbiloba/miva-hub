@@ -16,26 +16,18 @@ import { createQuizTool } from "./visualization/create-quiz";
 import { createScheduleTool } from "./visualization/create-schedule";
 import { createTableTool } from "./visualization/create-table";
 import { exaContentsTool, exaSearchTool } from "./web/web-search";
-// Academic tools imported dynamically to avoid client-side bundling
+import type { AcademicToolUser } from "./academic/index";
 
 /**
- * Dynamically loads academic tools server-side only
- * This prevents client-side PostgreSQL bundling issues
+ * Academic tools for one signed-in student (server-side only — dynamic import
+ * keeps the DB client out of client bundles).
  */
-async function loadAcademicTools(): Promise<Record<string, Tool>> {
-  try {
-    if (typeof window !== "undefined") {
-      // Client-side: return empty object to prevent bundling issues
-      return {};
-    }
-
-    // Server-side: dynamically import academic tools
-    const { academicTools } = await import("./academic/index");
-    return academicTools;
-  } catch (error) {
-    console.warn("[Academic Tools] Failed to load academic tools:", error);
-    return {};
-  }
+async function loadAcademicTools(
+  user: AcademicToolUser,
+): Promise<Record<string, Tool>> {
+  if (typeof window !== "undefined") return {};
+  const { createAcademicTools } = await import("./academic/index");
+  return createAcademicTools(user);
 }
 
 export const APP_DEFAULT_TOOL_KIT: Record<
@@ -73,16 +65,13 @@ export const APP_DEFAULT_TOOL_KIT: Record<
 };
 
 /**
- * Loads all default tools including dynamic academic tools (server-side only)
- * Use this instead of APP_DEFAULT_TOOL_KIT when academic tools are needed
+ * Default tools plus the academic tools bound to `user` (server-side only).
  */
-export async function loadAppDefaultToolKitWithAcademic(): Promise<
-  Record<AppDefaultToolkit, Record<string, Tool>>
-> {
-  const academicTools = await loadAcademicTools();
-
+export async function loadAppDefaultToolKitWithAcademic(
+  user: AcademicToolUser,
+): Promise<Record<AppDefaultToolkit, Record<string, Tool>>> {
   return {
     ...APP_DEFAULT_TOOL_KIT,
-    [AppDefaultToolkit.Academic]: academicTools,
+    [AppDefaultToolkit.Academic]: await loadAcademicTools(user),
   };
 }

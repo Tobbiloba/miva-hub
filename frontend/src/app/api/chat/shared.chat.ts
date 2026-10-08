@@ -244,19 +244,21 @@ export const loadMcpTools = (opt?: {
 export const loadAppDefaultTools = async (opt?: {
   mentions?: ChatMention[];
   allowedAppDefaultToolkit?: string[];
+  /** Signed-in student; academic tools are only bound when present */
+  academicUser?: { userId: string; universityId: string };
 }) => {
   try {
     const allowedAppDefaultToolkit =
       opt?.allowedAppDefaultToolkit ?? Object.values(AppDefaultToolkit);
 
     // Check if academic tools are needed
-    const needsAcademicTools = allowedAppDefaultToolkit.includes(
-      AppDefaultToolkit.Academic,
-    );
+    const needsAcademicTools =
+      !!opt?.academicUser &&
+      allowedAppDefaultToolkit.includes(AppDefaultToolkit.Academic);
 
     // Load appropriate tool kit
     const tools = needsAcademicTools
-      ? await loadAppDefaultToolKitWithAcademic()
+      ? await loadAppDefaultToolKitWithAcademic(opt!.academicUser!)
       : APP_DEFAULT_TOOL_KIT;
 
     if (opt?.mentions?.length) {

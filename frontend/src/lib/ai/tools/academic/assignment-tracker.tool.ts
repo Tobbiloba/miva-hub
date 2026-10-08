@@ -16,7 +16,6 @@ import {
  */
 
 const assignmentTrackerSchema = z.object({
-  userId: z.string().describe("Student user ID"),
   daysAhead: z
     .number()
     .optional()
@@ -32,33 +31,19 @@ const assignmentTrackerSchema = z.object({
 
 type AssignmentUrgency = "overdue" | "urgent" | "soon" | "later";
 
-export const assignmentTrackerTool = createTool({
-  description:
-    "Get upcoming assignments and deadlines across enrolled courses with urgency prioritization",
-  inputSchema: assignmentTrackerSchema,
-  execute: async ({ userId, daysAhead, courseCode, includeCompleted }) => {
-    return safe(async () => {
-      // Get user's enrolled courses
-      let enrollmentsQuery = pgDb
-        .select({
-          course: CourseSchema,
-          enrollment: StudentEnrollmentSchema,
-        })
-        .from(StudentEnrollmentSchema)
-        .innerJoin(
-          CourseSchema,
-          eq(CourseSchema.id, StudentEnrollmentSchema.courseId),
-        )
-        .where(
-          and(
-            eq(StudentEnrollmentSchema.studentId, userId),
-            eq(StudentEnrollmentSchema.status, "enrolled"),
-          ),
-        );
-
-      // Filter by specific course if requested
-      if (courseCode) {
-        enrollmentsQuery = pgDb
+/**
+ * Bound to the signed-in student: the user id comes from the session, never
+ * from model input (a prompt-injected id would read another student's data).
+ */
+export const createAssignmentTrackerTool = (userId: string) =>
+  createTool({
+    description:
+      "Get upcoming assignments and deadlines across enrolled courses with urgency prioritization",
+    inputSchema: assignmentTrackerSchema,
+    execute: async ({ daysAhead, courseCode, includeCompleted }) => {
+      return safe(async () => {
+        // Get user's enrolled courses
+        let enrollmentsQuery = pgDb
           .select({
             course: CourseSchema,
             enrollment: StudentEnrollmentSchema,
@@ -72,51 +57,54 @@ export const assignmentTrackerTool = createTool({
             and(
               eq(StudentEnrollmentSchema.studentId, userId),
               eq(StudentEnrollmentSchema.status, "enrolled"),
-              eq(CourseSchema.courseCode, courseCode.toUpperCase()),
             ),
           );
-      }
 
-      const enrollments = await enrollmentsQuery;
+        // Filter by specific course if requested
+        if (courseCode) {
+          enrollmentsQuery = pgDb
+            .select({
+              course: CourseSchema,
+              enrollment: StudentEnrollmentSchema,
+            })
+            .from(StudentEnrollmentSchema)
+            .innerJoin(
+              CourseSchema,
+              eq(CourseSchema.id, StudentEnrollmentSchema.courseId),
+            )
+            .where(
+              and(
+                eq(StudentEnrollmentSchema.studentId, userId),
+                eq(StudentEnrollmentSchema.status, "enrolled"),
+                eq(CourseSchema.courseCode, courseCode.toUpperCase()),
+              ),
+            );
+        }
 
-      if (enrollments.length === 0) {
-        return {
-          message: courseCode
-            ? `You are not enrolled in ${courseCode}`
-            : "You are not enrolled in any courses",
-          assignments: [],
-          summary: "No assignments found",
-          totalAssignments: 0,
-          timeRange: `Next ${daysAhead} days`,
-          courseFilter: courseCode || "All enrolled courses",
-        };
-      }
+        const enrollments = await enrollmentsQuery;
 
-      // Calculate date range
-      const now = new Date();
-      const cutoffDate = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000);
-      const courseIds = enrollments.map((e) => e.course.id);
+        if (enrollments.length === 0) {
+          return {
+            message: courseCode
+              ? `You are not enrolled in ${courseCode}`
+              : "You are not enrolled in any courses",
+            assignments: [],
+            summary: "No assignments found",
+            totalAssignments: 0,
+            timeRange: `Next ${daysAhead} days`,
+            courseFilter: courseCode || "All enrolled courses",
+          };
+        }
 
-      // Get assignments from enrolled courses
-      let assignmentsQuery = pgDb
-        .select({
-          assignment: AssignmentSchema,
-          course: CourseSchema,
-        })
-        .from(AssignmentSchema)
-        .innerJoin(CourseSchema, eq(CourseSchema.id, AssignmentSchema.courseId))
-        .where(
-          and(
-            inArray(AssignmentSchema.courseId, courseIds),
-            eq(AssignmentSchema.isPublished, true),
-            lte(AssignmentSchema.dueDate, cutoffDate),
-          ),
-        )
-        .orderBy(AssignmentSchema.dueDate);
+        // Calculate date range
+        const now = new Date();
+        const cutoffDate = new Date(
+          Date.now() + daysAhead * 24 * 60 * 60 * 1000,
+        );
+        const courseIds = enrollments.map((e) => e.course.id);
 
-      // Include future assignments only unless includeCompleted is true
-      if (!includeCompleted) {
-        assignmentsQuery = pgDb
+        // Get assignments from enrolled courses
+        let assignmentsQuery = pgDb
           .select({
             assignment: AssignmentSchema,
             course: CourseSchema,
@@ -130,118 +118,139 @@ export const assignmentTrackerTool = createTool({
             and(
               inArray(AssignmentSchema.courseId, courseIds),
               eq(AssignmentSchema.isPublished, true),
-              gte(AssignmentSchema.dueDate, now),
               lte(AssignmentSchema.dueDate, cutoffDate),
             ),
           )
           .orderBy(AssignmentSchema.dueDate);
-      }
 
-      const assignments = await assignmentsQuery;
+        // Include future assignments only unless includeCompleted is true
+        if (!includeCompleted) {
+          assignmentsQuery = pgDb
+            .select({
+              assignment: AssignmentSchema,
+              course: CourseSchema,
+            })
+            .from(AssignmentSchema)
+            .innerJoin(
+              CourseSchema,
+              eq(CourseSchema.id, AssignmentSchema.courseId),
+            )
+            .where(
+              and(
+                inArray(AssignmentSchema.courseId, courseIds),
+                eq(AssignmentSchema.isPublished, true),
+                gte(AssignmentSchema.dueDate, now),
+                lte(AssignmentSchema.dueDate, cutoffDate),
+              ),
+            )
+            .orderBy(AssignmentSchema.dueDate);
+        }
 
-      // Format assignments with urgency classification
-      const formattedAssignments = assignments.map((item) => {
-        const assignment = item.assignment;
-        const course = item.course;
-        const dueDate = new Date(assignment.dueDate!);
-        const daysUntilDue = Math.ceil(
-          (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-        );
+        const assignments = await assignmentsQuery;
 
-        // Classify urgency
-        let urgency: AssignmentUrgency = "later";
-        if (daysUntilDue < 0) urgency = "overdue";
-        else if (daysUntilDue <= 1) urgency = "urgent";
-        else if (daysUntilDue <= 3) urgency = "soon";
+        // Format assignments with urgency classification
+        const formattedAssignments = assignments.map((item) => {
+          const assignment = item.assignment;
+          const course = item.course;
+          const dueDate = new Date(assignment.dueDate!);
+          const daysUntilDue = Math.ceil(
+            (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+          );
 
-        return {
-          id: assignment.id,
-          course: {
-            code: course.courseCode,
-            title: course.title,
-            credits: course.credits,
+          // Classify urgency
+          let urgency: AssignmentUrgency = "later";
+          if (daysUntilDue < 0) urgency = "overdue";
+          else if (daysUntilDue <= 1) urgency = "urgent";
+          else if (daysUntilDue <= 3) urgency = "soon";
+
+          return {
+            id: assignment.id,
+            course: {
+              code: course.courseCode,
+              title: course.title,
+              credits: course.credits,
+            },
+            title: assignment.title,
+            description: assignment.description,
+            instructions: assignment.instructions,
+            dueDate: assignment.dueDate,
+            dueDateFormatted: dueDate.toLocaleDateString("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            daysUntilDue,
+            urgency,
+            totalPoints: assignment.totalPoints,
+            assignmentType: assignment.assignmentType,
+            submissionType: assignment.submissionType,
+            allowLateSubmission: assignment.allowLateSubmission,
+            lateSubmissionPenalty: assignment.lateSubmissionPenalty,
+            week: assignment.weekNumber,
+            isPublished: assignment.isPublished,
+          };
+        });
+
+        // Group by urgency for better presentation
+        const groupedByUrgency = formattedAssignments.reduce(
+          (acc, assignment) => {
+            if (!acc[assignment.urgency]) {
+              acc[assignment.urgency] = [];
+            }
+            acc[assignment.urgency].push(assignment);
+            return acc;
           },
-          title: assignment.title,
-          description: assignment.description,
-          instructions: assignment.instructions,
-          dueDate: assignment.dueDate,
-          dueDateFormatted: dueDate.toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          daysUntilDue,
-          urgency,
-          totalPoints: assignment.totalPoints,
-          assignmentType: assignment.assignmentType,
-          submissionType: assignment.submissionType,
-          allowLateSubmission: assignment.allowLateSubmission,
-          lateSubmissionPenalty: assignment.lateSubmissionPenalty,
-          week: assignment.weekNumber,
-          isPublished: assignment.isPublished,
-        };
-      });
-
-      // Group by urgency for better presentation
-      const groupedByUrgency = formattedAssignments.reduce(
-        (acc, assignment) => {
-          if (!acc[assignment.urgency]) {
-            acc[assignment.urgency] = [];
-          }
-          acc[assignment.urgency].push(assignment);
-          return acc;
-        },
-        {} as Record<AssignmentUrgency, typeof formattedAssignments>,
-      );
-
-      // Sort each urgency group by due date
-      Object.keys(groupedByUrgency).forEach((urgency) => {
-        groupedByUrgency[urgency as AssignmentUrgency].sort(
-          (a, b) =>
-            new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime(),
+          {} as Record<AssignmentUrgency, typeof formattedAssignments>,
         );
-      });
 
-      const summary = generateAssignmentsSummary(
-        formattedAssignments,
-        daysAhead,
-        courseCode,
-      );
+        // Sort each urgency group by due date
+        Object.keys(groupedByUrgency).forEach((urgency) => {
+          groupedByUrgency[urgency as AssignmentUrgency].sort(
+            (a, b) =>
+              new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime(),
+          );
+        });
 
-      return {
-        totalAssignments: formattedAssignments.length,
-        timeRange: `Next ${daysAhead} days`,
-        courseFilter: courseCode || "All enrolled courses",
-        assignments: formattedAssignments,
-        groupedByUrgency,
-        summary,
-        urgencyBreakdown: {
-          overdue: groupedByUrgency.overdue?.length || 0,
-          urgent: groupedByUrgency.urgent?.length || 0,
-          soon: groupedByUrgency.soon?.length || 0,
-          later: groupedByUrgency.later?.length || 0,
-        },
-        enrolledCourses: enrollments.map((e) => ({
-          code: e.course.courseCode,
-          title: e.course.title,
-          credits: e.course.credits,
-        })),
-      };
-    })
-      .ifFail((error) => {
-        console.error("Assignment tracker tool error:", error);
+        const summary = generateAssignmentsSummary(
+          formattedAssignments,
+          daysAhead,
+          courseCode,
+        );
+
         return {
-          isError: true,
-          error: error.message,
-          solution:
-            "There was a problem accessing assignment data. Please try again or contact IT support if the issue persists.",
+          totalAssignments: formattedAssignments.length,
+          timeRange: `Next ${daysAhead} days`,
+          courseFilter: courseCode || "All enrolled courses",
+          assignments: formattedAssignments,
+          groupedByUrgency,
+          summary,
+          urgencyBreakdown: {
+            overdue: groupedByUrgency.overdue?.length || 0,
+            urgent: groupedByUrgency.urgent?.length || 0,
+            soon: groupedByUrgency.soon?.length || 0,
+            later: groupedByUrgency.later?.length || 0,
+          },
+          enrolledCourses: enrollments.map((e) => ({
+            code: e.course.courseCode,
+            title: e.course.title,
+            credits: e.course.credits,
+          })),
         };
       })
-      .unwrap();
-  },
-});
+        .ifFail((error) => {
+          console.error("Assignment tracker tool error:", error);
+          return {
+            isError: true,
+            error: error.message,
+            solution:
+              "There was a problem accessing assignment data. Please try again or contact IT support if the issue persists.",
+          };
+        })
+        .unwrap();
+    },
+  });
 
 /**
  * Generate a human-readable summary of assignments

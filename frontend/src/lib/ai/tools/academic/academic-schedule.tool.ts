@@ -18,7 +18,6 @@ import {
  */
 
 const academicScheduleSchema = z.object({
-  userId: z.string().describe("Student user ID"),
   date: z
     .string()
     .optional()
@@ -53,132 +52,140 @@ interface ScheduleEvent {
   dueDate?: Date;
 }
 
-export const academicScheduleTool = createTool({
-  description:
-    "Get class schedule, academic calendar events, and important dates with flexible filtering",
-  inputSchema: academicScheduleSchema,
-  execute: async ({ userId, date, courseCode, eventType, daysAhead }) => {
-    return safe(async () => {
-      // Parse date parameter to get date range
-      const { startDate, endDate, dateLabel } = parseDateRange(date, daysAhead);
-
-      // Get user's enrolled courses
-      const enrollmentsQuery = pgDb
-        .select({
-          course: CourseSchema,
-          enrollment: StudentEnrollmentSchema,
-        })
-        .from(StudentEnrollmentSchema)
-        .innerJoin(
-          CourseSchema,
-          eq(CourseSchema.id, StudentEnrollmentSchema.courseId),
-        )
-        .where(
-          and(
-            eq(StudentEnrollmentSchema.studentId, userId),
-            eq(StudentEnrollmentSchema.status, "enrolled"),
-          ),
+/**
+ * Bound to the signed-in student: the user id comes from the session, never
+ * from model input (a prompt-injected id would read another student's data).
+ */
+export const createAcademicScheduleTool = (userId: string) =>
+  createTool({
+    description:
+      "Get class schedule, academic calendar events, and important dates with flexible filtering",
+    inputSchema: academicScheduleSchema,
+    execute: async ({ date, courseCode, eventType, daysAhead }) => {
+      return safe(async () => {
+        // Parse date parameter to get date range
+        const { startDate, endDate, dateLabel } = parseDateRange(
+          date,
+          daysAhead,
         );
 
-      const enrollments = await enrollmentsQuery;
-
-      if (enrollments.length === 0) {
-        return {
-          message: "You are not enrolled in any courses",
-          schedule: [],
-          summary: "No schedule to display",
-          dateRange: dateLabel,
-        };
-      }
-
-      const enrolledCourses = enrollments.map((e) => e.course);
-
-      // Filter by specific course if requested
-      const coursesToShow = courseCode
-        ? enrolledCourses.filter(
-            (c) => c.courseCode.toLowerCase() === courseCode.toLowerCase(),
+        // Get user's enrolled courses
+        const enrollmentsQuery = pgDb
+          .select({
+            course: CourseSchema,
+            enrollment: StudentEnrollmentSchema,
+          })
+          .from(StudentEnrollmentSchema)
+          .innerJoin(
+            CourseSchema,
+            eq(CourseSchema.id, StudentEnrollmentSchema.courseId),
           )
-        : enrolledCourses;
+          .where(
+            and(
+              eq(StudentEnrollmentSchema.studentId, userId),
+              eq(StudentEnrollmentSchema.status, "enrolled"),
+            ),
+          );
 
-      if (courseCode && coursesToShow.length === 0) {
+        const enrollments = await enrollmentsQuery;
+
+        if (enrollments.length === 0) {
+          return {
+            message: "You are not enrolled in any courses",
+            schedule: [],
+            summary: "No schedule to display",
+            dateRange: dateLabel,
+          };
+        }
+
+        const enrolledCourses = enrollments.map((e) => e.course);
+
+        // Filter by specific course if requested
+        const coursesToShow = courseCode
+          ? enrolledCourses.filter(
+              (c) => c.courseCode.toLowerCase() === courseCode.toLowerCase(),
+            )
+          : enrolledCourses;
+
+        if (courseCode && coursesToShow.length === 0) {
+          return {
+            error: `You are not enrolled in ${courseCode}`,
+            enrolledCourses: enrolledCourses.map((c) => c.courseCode),
+          };
+        }
+
+        const scheduleEvents: ScheduleEvent[] = [];
+
+        // Add class sessions if requested
+        if (eventType === "all" || eventType === "class") {
+          const classEvents = await generateClassSessions(
+            coursesToShow,
+            startDate,
+            endDate,
+          );
+          scheduleEvents.push(...classEvents);
+        }
+
+        // Add assignment due dates if requested
+        if (eventType === "all" || eventType === "assignment") {
+          const assignmentEvents = await getAssignmentEvents(
+            coursesToShow,
+            startDate,
+            endDate,
+          );
+          scheduleEvents.push(...assignmentEvents);
+        }
+
+        // Add announcements if requested
+        if (eventType === "all" || eventType === "announcement") {
+          const announcementEvents = await getAnnouncementEvents(
+            coursesToShow,
+            startDate,
+            endDate,
+          );
+          scheduleEvents.push(...announcementEvents);
+        }
+
+        // Sort events by date and time
+        scheduleEvents.sort(
+          (a, b) => a.startTime.getTime() - b.startTime.getTime(),
+        );
+
+        // Group events by date for better presentation
+        const eventsByDate = groupEventsByDate(scheduleEvents);
+        const summary = generateScheduleSummary(
+          scheduleEvents,
+          dateLabel,
+          courseCode,
+        );
+
         return {
-          error: `You are not enrolled in ${courseCode}`,
-          enrolledCourses: enrolledCourses.map((c) => c.courseCode),
-        };
-      }
-
-      const scheduleEvents: ScheduleEvent[] = [];
-
-      // Add class sessions if requested
-      if (eventType === "all" || eventType === "class") {
-        const classEvents = await generateClassSessions(
-          coursesToShow,
-          startDate,
-          endDate,
-        );
-        scheduleEvents.push(...classEvents);
-      }
-
-      // Add assignment due dates if requested
-      if (eventType === "all" || eventType === "assignment") {
-        const assignmentEvents = await getAssignmentEvents(
-          coursesToShow,
-          startDate,
-          endDate,
-        );
-        scheduleEvents.push(...assignmentEvents);
-      }
-
-      // Add announcements if requested
-      if (eventType === "all" || eventType === "announcement") {
-        const announcementEvents = await getAnnouncementEvents(
-          coursesToShow,
-          startDate,
-          endDate,
-        );
-        scheduleEvents.push(...announcementEvents);
-      }
-
-      // Sort events by date and time
-      scheduleEvents.sort(
-        (a, b) => a.startTime.getTime() - b.startTime.getTime(),
-      );
-
-      // Group events by date for better presentation
-      const eventsByDate = groupEventsByDate(scheduleEvents);
-      const summary = generateScheduleSummary(
-        scheduleEvents,
-        dateLabel,
-        courseCode,
-      );
-
-      return {
-        dateRange: dateLabel,
-        courseFilter: courseCode || "All enrolled courses",
-        eventType,
-        totalEvents: scheduleEvents.length,
-        events: scheduleEvents,
-        eventsByDate,
-        summary,
-        enrolledCourses: coursesToShow.map((c) => ({
-          code: c.courseCode,
-          title: c.title,
-          credits: c.credits,
-        })),
-      };
-    })
-      .ifFail((error) => {
-        console.error("Academic schedule tool error:", error);
-        return {
-          isError: true,
-          error: error.message,
-          solution:
-            "There was a problem accessing your academic schedule. Please try again or contact IT support if the issue persists.",
+          dateRange: dateLabel,
+          courseFilter: courseCode || "All enrolled courses",
+          eventType,
+          totalEvents: scheduleEvents.length,
+          events: scheduleEvents,
+          eventsByDate,
+          summary,
+          enrolledCourses: coursesToShow.map((c) => ({
+            code: c.courseCode,
+            title: c.title,
+            credits: c.credits,
+          })),
         };
       })
-      .unwrap();
-  },
-});
+        .ifFail((error) => {
+          console.error("Academic schedule tool error:", error);
+          return {
+            isError: true,
+            error: error.message,
+            solution:
+              "There was a problem accessing your academic schedule. Please try again or contact IT support if the issue persists.",
+          };
+        })
+        .unwrap();
+    },
+  });
 
 /**
  * Parse date parameter into start and end dates

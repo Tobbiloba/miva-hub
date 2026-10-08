@@ -1,3 +1,6 @@
+import { pgDb } from "lib/db/pg/db.pg";
+import { UserSchema } from "lib/db/pg/schema.pg";
+import { eq } from "drizzle-orm";
 import {
   UIMessage,
   convertToModelMessages,
@@ -139,6 +142,18 @@ export async function POST(request: Request) {
       chatModel: chatModel,
     };
 
+    // Built-in academic tools are bound to the signed-in student (and their
+    // university) server-side — never to an id the model supplies.
+    const [viewer] = await pgDb
+      .select({ role: UserSchema.role, universityId: UserSchema.universityId })
+      .from(UserSchema)
+      .where(eq(UserSchema.id, session.user.id))
+      .limit(1);
+    const academicUser =
+      (viewer?.role ?? "student") === "student" && viewer?.universityId
+        ? { userId: session.user.id, universityId: viewer.universityId }
+        : undefined;
+
     // Get user academic context for all tool operations (moved outside to fix scope)
     const userAcademicContext = session?.user?.email
       ? await getUserAcademicContext(session.user.email)
@@ -231,6 +246,7 @@ export async function POST(request: Request) {
             APP_DEFAULT_TOOLS = await loadAppDefaultTools({
               mentions,
               allowedAppDefaultToolkit,
+              academicUser,
             });
           } catch (error) {
             console.error("Failed to load app default tools:", error);
@@ -268,8 +284,8 @@ export async function POST(request: Request) {
           .map((v) => filterMcpServerCustomizations(MCP_TOOLS!, v))
           .orElse({});
 
-        // Use academic system prompt for MIVA students, otherwise use regular prompt
-        const baseSystemPrompt = userAcademicContext?.studentId
+        // Students get the academic prompt (matric number optional)
+        const baseSystemPrompt = academicUser
           ? buildAcademicSystemPrompt(
               session.user,
               userPreferences,
