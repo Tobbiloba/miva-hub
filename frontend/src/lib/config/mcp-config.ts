@@ -64,10 +64,10 @@ export const MCP_CONFIG = {
  * serve them yet (ask_study_question, generate_study_guide, create_flashcards,
  * generate_quiz, explain_concept_deeply, generate_exam_simulator,
  * submit_exam_answers, convert_notes_to_flashcards, export_flashcards), and
- * summarize_material needs AI summaries that mostly don't exist. Offering
- * them made the model pick broken tools over working ones. Re-add a tool
- * here once it works end to end.
+ * summarize_material needs AI summaries that mostly don't exist.
+ * get_my_progress is replaced by the app's get-my-activity: its coverage_pct
+ * (share of materials opened) read to the model as "no content". Offering
+ * these made the model pick broken or misleading tools over working ones.
+ * Re-add a tool here once it works end to end.
  */
-export const STUDENT_MCP_TOOLS: ReadonlySet<string> = new Set([
-  "get_my_progress",
-]);
+export const STUDENT_MCP_TOOLS: ReadonlySet<string> = new Set<string>([]);

@@ -28,6 +28,7 @@ export enum DefaultToolName {
   CourseMaterials = "get-course-materials",
   UpcomingAssignments = "get-upcoming-assignments",
   ManageDeadlines = "manage-deadlines",
+  MyActivity = "get-my-activity",
   FindFaculty = "find-faculty",
   AcademicSchedule = "get-academic-schedule",
 }

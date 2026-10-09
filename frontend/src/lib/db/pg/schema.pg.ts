@@ -2235,6 +2235,11 @@ export const studyActivityTypeEnum = pgEnum("study_activity_type", [
   "practice_questions_generated",
   "quiz_viewed",
   "assignment_viewed",
+  // The assistant's memory of what the student did (lib/memory)
+  "capture_added",
+  "quiz_completed",
+  "deadline_completed",
+  "course_question_asked",
 ]);
 
 export const StudyActivitySchema = pgTable(

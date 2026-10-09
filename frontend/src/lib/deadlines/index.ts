@@ -23,6 +23,7 @@ import {
   StudentDeadlineSchema,
   StudentEnrollmentSchema,
 } from "lib/db/pg/schema.pg";
+import { recordActivity } from "lib/progress/record-activity";
 
 /**
  * One deadline list per student, merged from three sources:
@@ -307,8 +308,14 @@ export async function setDeadlineDone(
           eq(StudentDeadlineSchema.source, "manual"),
         ),
       )
-      .returning({ id: StudentDeadlineSchema.id });
+      .returning({
+        id: StudentDeadlineSchema.id,
+        title: StudentDeadlineSchema.title,
+        courseId: StudentDeadlineSchema.courseId,
+        dueAt: StudentDeadlineSchema.dueAt,
+      });
     if (updated.length === 0) throw new DeadlineError("Unknown deadline", 404);
+    if (done) await rememberCompleted(studentId, key, updated[0]);
     return;
   }
 
@@ -355,6 +362,25 @@ export async function setDeadlineDone(
       ],
       set: { completedAt, updatedAt: new Date() },
     });
+  if (done) await rememberCompleted(studentId, key, material);
+}
+
+/** The assistant remembers finished work, and whether it was on time. */
+async function rememberCompleted(
+  studentId: string,
+  key: string,
+  deadline: { title: string; courseId: string | null; dueAt: Date | null },
+) {
+  await recordActivity({
+    studentId,
+    activityType: "deadline_completed",
+    courseId: deadline.courseId,
+    entityMetadata: {
+      key,
+      title: deadline.title,
+      onTime: deadline.dueAt ? deadline.dueAt.getTime() >= Date.now() : null,
+    },
+  }).catch(() => {});
 }
 
 /** Delete a deadline the student added. Captured and lecturer ones can't be. */

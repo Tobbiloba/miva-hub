@@ -351,6 +351,17 @@ export const TOOLS_INFO_DATA: ToolInfo[] = [
     usage: "Tell Askly about something due, or that you've finished it",
   },
   {
+    id: "myActivity",
+    name: "get-my-activity",
+    displayName: "My Activity",
+    description: "What you captured, quiz scores, finished work and questions asked",
+    category: ToolCategory.Academic,
+    icon: "🧭",
+    demoVideoUrl: "",
+    keywords: ["activity", "progress", "studied", "revise", "weak", "history"],
+    usage: "Ask what you studied recently or what to revise",
+  },
+  {
     id: "academicSchedule",
     name: "get-academic-schedule",
     displayName: "Get Academic Schedule",

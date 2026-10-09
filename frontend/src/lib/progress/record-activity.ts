@@ -2,13 +2,8 @@ import { pgDb } from "@/lib/db/pg/db.pg";
 import { StudyActivitySchema } from "@/lib/db/pg/schema.pg";
 import { and, eq, gte, sql } from "drizzle-orm";
 
-type ActivityType =
-  | "material_viewed"
-  | "flashcard_reviewed"
-  | "study_guide_generated"
-  | "practice_questions_generated"
-  | "quiz_viewed"
-  | "assignment_viewed";
+export type ActivityType =
+  (typeof StudyActivitySchema.$inferInsert)["activityType"];
 
 interface RecordActivityParams {
   studentId: string;

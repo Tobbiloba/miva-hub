@@ -24,6 +24,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { reportQuizResult } from "./report-result";
 
 type QuizProps = {
   quiz_id?: string;
@@ -118,15 +119,24 @@ export function Quiz(props: QuizProps) {
   const handleSubmit = async () => {
     await clearQuizProgress(props.quiz_id, studentId || undefined);
     setMode("results");
+    reportQuizResult({
+      kind: "quiz",
+      title: props.title,
+      courseCode: props.course_code,
+      questions: props.questions,
+      ...calculateScore(),
+    });
   };
 
   const calculateScore = () => {
     let correct = 0;
     let totalPoints = 0;
     let earnedPoints = 0;
+    const missedIndexes: number[] = [];
 
     props.questions.forEach((q, i) => {
       totalPoints += q.points;
+      const correctBefore = correct;
 
       if (q.correct_answer && answers[i]) {
         if (answers[i] === q.correct_answer) {
@@ -145,9 +155,10 @@ export function Quiz(props: QuizProps) {
           }
         }
       }
+      if (q.correct_answer && correct === correctBefore) missedIndexes.push(i);
     });
 
-    return { correct, totalPoints, earnedPoints };
+    return { correct, totalPoints, earnedPoints, missedIndexes };
   };
 
   const calculateStringSimilarity = (str1: string, str2: string): number => {

@@ -1,16 +1,19 @@
-import { STUDENT_MCP_TOOLS } from "lib/config/mcp-config";
-import { pgDb } from "lib/db/pg/db.pg";
-import { UserSchema } from "lib/db/pg/schema.pg";
-import { eq } from "drizzle-orm";
 import {
+  type ToolUIPart,
   UIMessage,
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  getToolName,
+  isToolUIPart,
   smoothStream,
   stepCountIs,
   streamText,
 } from "ai";
+import { eq } from "drizzle-orm";
+import { STUDENT_MCP_TOOLS } from "lib/config/mcp-config";
+import { pgDb } from "lib/db/pg/db.pg";
+import { UserSchema } from "lib/db/pg/schema.pg";
 
 import { customModelProvider, isToolCallUnsupportedModel } from "lib/ai/models";
 
@@ -29,18 +32,17 @@ import globalLogger from "logger";
 import { errorIf, safe } from "ts-safe";
 
 import { auth } from "auth/server";
-import { checkPaidAccess, paymentRequiredResponse } from "lib/billing/access";
-import { headers } from "next/headers";
 import { colorize } from "consola/utils";
-import {
-  getAcademicConversationContext,
-  recordAcademicConversation,
-} from "lib/ai/academic-conversation-memory";
+import { SEARCH_TOOL_NAME } from "lib/ai/citations";
 import { buildCourseTutorContext } from "lib/ai/course-tutor-context";
 import { retrieveCourseContext } from "lib/ai/rag/retrieve";
+import { checkPaidAccess, paymentRequiredResponse } from "lib/billing/access";
+import { buildStudentMemory } from "lib/memory/student-memory";
+import { recordActivity } from "lib/progress/record-activity";
 import { checkRateLimit, rateLimitResponse } from "lib/rate-limit";
 import { getUserAcademicContext } from "lib/user/user-context";
 import { generateUUID } from "lib/utils";
+import { headers } from "next/headers";
 import {
   rememberAgentAction,
   rememberMcpServerCustomizationsAction,
@@ -296,16 +298,17 @@ export async function POST(request: Request) {
             )
           : buildUserSystemPrompt(session.user, userPreferences, agent);
 
-        // Add conversation context for academic students
-        let conversationContext = "";
-        if (userAcademicContext?.studentId) {
-          conversationContext = getAcademicConversationContext(
-            userAcademicContext.studentId,
-          );
-          if (conversationContext) {
-            conversationContext = `\n\n<conversation_context>\n${conversationContext}\n</conversation_context>`;
-          }
-        }
+        // What the assistant knows about this student (lib/memory), fresh
+        // from the database every turn so it works alongside them
+        const studentMemory = academicUser
+          ? await buildStudentMemory(session.user.id).catch((error) => {
+              logger.error("student memory failed", error);
+              return null;
+            })
+          : null;
+        const conversationContext = studentMemory
+          ? `\n\n<student_memory>\nWhat you know about this student (their own Askly data, current as of now):\n${studentMemory}\n</student_memory>\nUse this like a study partner who remembers: bring up an urgent deadline, a weak quiz topic or due flashcards when it's relevant to what they're asking, offer to help with them, and don't recite the whole list. Never claim to remember things that aren't here.`
+          : "";
 
         // When a course context is selected, ground answers in its materials.
         // The materials are scraped/uploaded text, so they're fenced in tags and
@@ -402,54 +405,15 @@ export async function POST(request: Request) {
           });
         }
 
-        // Record academic conversation for memory and context building
-        if (userAcademicContext?.studentId) {
-          try {
-            // Extract conversation details for memory
-            const userText =
-              message.parts.find((p) => p.type === "text")?.text || "";
-            const assistantText =
-              responseMessage.parts.find((p) => p.type === "text")?.text || "";
-
-            // Extract topic from user message (simple heuristic)
-            const topic = extractTopicFromMessage(userText);
-
-            // Extract concepts mentioned (simple keyword matching)
-            const concepts = extractConceptsFromText(
-              userText + " " + assistantText,
-            );
-
-            // Extract questions asked
-            const questionsAsked = extractQuestionsFromText(userText);
-
-            // Extract tools used from metadata
-            const toolsUsed = responseMessage.parts
-              .filter((p) => p.type === "tool-call")
-              .map((p) => (p as any).toolName)
-              .filter(Boolean);
-
-            // Determine confidence based on response quality (simple heuristic)
-            const confidence =
-              assistantText.includes("I don't know") ||
-              assistantText.includes("unclear")
-                ? 0.5
-                : 0.8;
-
-            recordAcademicConversation(
-              userAcademicContext.studentId,
-              topic,
-              concepts,
-              questionsAsked,
-              toolsUsed,
-              undefined, // courseCode - could be extracted from context
-              confidence,
-            );
-          } catch (error) {
-            console.error(
-              "[Chat] Failed to record academic conversation:",
-              error,
-            );
-          }
+        // Remember course questions (the ones that searched their materials)
+        if (academicUser) {
+          await rememberCourseQuestion(
+            session.user.id,
+            message,
+            responseMessage,
+          ).catch((error) =>
+            logger.warn("course question not recorded", error),
+          );
         }
 
         if (agent) {
@@ -471,116 +435,36 @@ export async function POST(request: Request) {
   }
 }
 
-// Utility functions for conversation analysis
-function extractTopicFromMessage(text: string): string {
-  const lowercaseText = text.toLowerCase();
-
-  // Academic topics - expand as needed
-  const topicKeywords = {
-    algorithms: ["algorithm", "sorting", "search", "complexity"],
-    programming: ["code", "programming", "function", "variable", "syntax"],
-    mathematics: ["math", "calculus", "algebra", "equation", "formula"],
-    "data structures": ["array", "list", "tree", "graph", "stack", "queue"],
-    database: ["sql", "database", "query", "table", "schema"],
-    networking: ["network", "protocol", "tcp", "ip", "internet"],
-    "web development": [
-      "html",
-      "css",
-      "javascript",
-      "web",
-      "frontend",
-      "backend",
-    ],
-    "artificial intelligence": [
-      "ai",
-      "machine learning",
-      "neural",
-      "model",
-      "training",
-    ],
-  };
-
-  for (const [topic, keywords] of Object.entries(topicKeywords)) {
-    if (keywords.some((keyword) => lowercaseText.includes(keyword))) {
-      return topic;
-    }
-  }
-
-  // Default topic extraction - first few words
-  const words = text.split(" ").slice(0, 3).join(" ");
-  return words || "General Discussion";
-}
-
-function extractConceptsFromText(text: string): string[] {
-  const lowercaseText = text.toLowerCase();
-  const concepts: string[] = [];
-
-  // Common academic concepts - expand as needed
-  const conceptPatterns = [
-    "algorithm",
-    "function",
-    "variable",
-    "loop",
-    "condition",
-    "recursion",
-    "database",
-    "query",
-    "table",
-    "index",
-    "relationship",
-    "network",
-    "protocol",
-    "packet",
-    "router",
-    "switch",
-    "class",
-    "object",
-    "inheritance",
-    "polymorphism",
-    "encapsulation",
-    "array",
-    "list",
-    "tree",
-    "graph",
-    "hash",
-    "sorting",
-    "complexity",
-    "big o",
-    "time",
-    "space",
-    "efficiency",
-    "web",
-    "html",
-    "css",
-    "javascript",
-    "api",
-    "rest",
-  ];
-
-  conceptPatterns.forEach((concept) => {
-    if (lowercaseText.includes(concept)) {
-      concepts.push(concept);
-    }
-  });
-
-  return [...new Set(concepts)]; // Remove duplicates
-}
-
-function extractQuestionsFromText(text: string): string[] {
-  // Split by sentence endings and filter for questions
-  const sentences = text
-    .split(/[.!?]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return sentences.filter(
-    (sentence) =>
-      sentence.includes("?") ||
-      sentence.toLowerCase().startsWith("how") ||
-      sentence.toLowerCase().startsWith("what") ||
-      sentence.toLowerCase().startsWith("why") ||
-      sentence.toLowerCase().startsWith("where") ||
-      sentence.toLowerCase().startsWith("when") ||
-      sentence.toLowerCase().startsWith("can you") ||
-      sentence.toLowerCase().startsWith("could you"),
+/**
+ * Record a question the student asked about their courses: the user text, the
+ * courses the material search hit, and whether anything was found.
+ */
+async function rememberCourseQuestion(
+  studentId: string,
+  message: UIMessage,
+  responseMessage: UIMessage,
+) {
+  const searches = responseMessage.parts.filter(
+    (p) => isToolUIPart(p) && getToolName(p) === SEARCH_TOOL_NAME,
+  ) as ToolUIPart[];
+  if (searches.length === 0) return;
+  const passages = searches.flatMap(
+    (p) => ((p.output as any)?.passages ?? []) as { course?: string }[],
   );
+  const courses = [
+    ...new Set(passages.map((p) => p.course).filter(Boolean)),
+  ] as string[];
+  const question =
+    (message.parts.find((p) => p.type === "text") as { text?: string })?.text ??
+    "";
+  if (!question.trim()) return;
+  await recordActivity({
+    studentId,
+    activityType: "course_question_asked",
+    entityMetadata: {
+      question: question.trim().slice(0, 300),
+      courses,
+      found: passages.length > 0,
+    },
+  });
 }

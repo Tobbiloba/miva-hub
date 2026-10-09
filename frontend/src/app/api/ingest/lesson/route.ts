@@ -20,6 +20,7 @@ import {
 } from "@/lib/ingest/capture";
 import { listStudentCaptures, retryCapture } from "@/lib/ingest/captures";
 import { claimQueuedJobs, processIngestionJob } from "@/lib/ingest/process-job";
+import { recordActivity } from "@/lib/progress/record-activity";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { and, eq, ilike, isNull, sql } from "drizzle-orm";
 import logger from "logger";
@@ -384,6 +385,17 @@ export async function POST(request: NextRequest) {
         })
         .returning({ id: CourseMaterialSchema.id });
 
+      after(() =>
+        recordCapture({
+          studentId: userId,
+          courseId: course.id,
+          weekNumber: week_number ?? null,
+          entityId: material.id,
+          title: lesson_title,
+          contentType: content_type,
+        }),
+      );
+
       // Private captures ground the student's chat right away
       if (ownerUserId) {
         after(() => indexCourseMaterial(material.id).catch(() => {}));
@@ -422,6 +434,14 @@ export async function POST(request: NextRequest) {
       });
 
     after(async () => {
+      await recordCapture({
+        studentId: userId,
+        courseId: course.id,
+        weekNumber: week_number ?? null,
+        entityId: job.id,
+        title: lesson_title,
+        contentType: content_type,
+      });
       const [claimed] = await claimQueuedJobs({ jobId: job.id }, 1);
       if (claimed) await processIngestionJob(claimed);
     });
@@ -442,6 +462,25 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+/** The assistant remembers what the student captured (lib/memory). */
+async function recordCapture(capture: {
+  studentId: string;
+  courseId: string;
+  weekNumber: number | null;
+  entityId: string;
+  title: string;
+  contentType: string;
+}) {
+  await recordActivity({
+    studentId: capture.studentId,
+    activityType: "capture_added",
+    courseId: capture.courseId,
+    weekNumber: capture.weekNumber,
+    entityId: capture.entityId,
+    entityMetadata: { title: capture.title, contentType: capture.contentType },
+  }).catch((error) => logger.warn("[ingest] activity not recorded", error));
 }
 
 // ── Transcript formatting helpers ────────────────────────────────

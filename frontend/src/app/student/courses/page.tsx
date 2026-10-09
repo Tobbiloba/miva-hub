@@ -1,3 +1,4 @@
+import { ActivityTimeline } from "@/components/activity/activity-timeline";
 import { CapturesPanel } from "@/components/captures/captures-panel";
 import { getSession } from "@/lib/auth/server";
 import { CHAT_FIRST } from "@/lib/config/product";
@@ -75,7 +76,10 @@ export default async function StudentCoursesPage() {
         </div>
       </div>
 
-      <CapturesPanel />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <CapturesPanel />
+        <ActivityTimeline />
+      </div>
 
       {/* Courses Grid */}
       {courses.length > 0 ? (
