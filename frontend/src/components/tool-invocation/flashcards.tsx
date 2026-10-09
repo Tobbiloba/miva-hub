@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,7 +8,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Check, Loader2, Save } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
+import { toast } from "sonner";
 
 type FlashcardsProps = {
   flashcards_id?: string;
@@ -21,10 +25,46 @@ type FlashcardsProps = {
     back: string;
   }>;
   sources_used?: string[];
+  /** "<messageId>:<toolCallId>", set once the set is complete; enables saving */
+  chatSource?: string;
 };
 
 export function Flashcards(props: FlashcardsProps) {
   const [flippedCards, setFlippedCards] = useState<Record<number, boolean>>({});
+
+  const [saving, setSaving] = useState(false);
+  const [savedDeckId, setSavedDeckId] = useState<string | null>(null);
+
+  async function saveDeck() {
+    if (!props.chatSource) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/flashcards/decks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: props.topic,
+          courseCode: props.course_code ?? null,
+          chatSource: props.chatSource,
+          cards: props.cards,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.deckId) {
+        throw new Error(body.message ?? "Couldn't save this deck");
+      }
+      setSavedDeckId(body.deckId);
+      toast.success(
+        body.alreadySaved
+          ? "Already in your flashcards"
+          : "Saved. Askly will bring these back when they're due.",
+      );
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const toggleCard = (index: number) => {
     setFlippedCards((prev) => ({
@@ -51,19 +91,45 @@ export function Flashcards(props: FlashcardsProps) {
             )}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
             Click on any card to flip it
           </p>
+          {props.chatSource &&
+            props.cards.length > 0 &&
+            (savedDeckId ? (
+              <Button asChild size="sm" variant="outline">
+                <Link href={`/student/flashcards/${savedDeckId}`}>
+                  <Check className="size-4" />
+                  Saved · Review
+                </Link>
+              </Button>
+            ) : (
+              <Button size="sm" onClick={saveDeck} disabled={saving}>
+                {saving ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Save className="size-4" />
+                )}
+                Save deck
+              </Button>
+            ))}
         </CardContent>
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {props.cards.map((card, index) => (
-          <div
+          <button
+            type="button"
             key={index}
-            className="h-48 cursor-pointer perspective-1000"
+            className="h-48 w-full cursor-pointer text-left perspective-1000 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onClick={() => toggleCard(index)}
+            aria-pressed={!!flippedCards[index]}
+            aria-label={
+              flippedCards[index]
+                ? `Answer: ${card.back}`
+                : `Card ${index + 1}: ${card.front}. Press to show the answer`
+            }
           >
             <div
               className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${
@@ -90,7 +156,7 @@ export function Flashcards(props: FlashcardsProps) {
                 </CardContent>
               </Card>
             </div>
-          </div>
+          </button>
         ))}
       </div>
 

@@ -19,8 +19,8 @@ interface FlashcardCard {
 interface DeckInfo {
   id: string;
   title: string;
-  courseCode: string;
-  courseTitle: string;
+  courseCode: string | null;
+  courseTitle: string | null;
   cardCount: number;
 }
 
@@ -144,7 +144,8 @@ export default function ReviewSessionPage() {
           </Button>
         </Link>
         <div className="text-sm text-muted-foreground">
-          {deck?.courseCode} · {deck?.title}
+          {deck?.courseCode ? `${deck.courseCode} · ` : ""}
+          {deck?.title}
         </div>
       </div>
 

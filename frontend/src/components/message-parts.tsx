@@ -955,6 +955,10 @@ export const ToolMessagePart = memo(
               <Flashcards
                 key={`${toolCallId}-${toolName}`}
                 {...(input as any)}
+                // Saving needs the finished set and a stable id for it
+                chatSource={
+                  isCompleted ? `${messageId}:${toolCallId}` : undefined
+                }
               />
             );
           case DefaultToolName.CreateQuiz:

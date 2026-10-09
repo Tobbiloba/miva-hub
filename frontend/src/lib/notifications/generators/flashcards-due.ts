@@ -8,7 +8,7 @@ export async function generateFlashcardsDueNotifications(): Promise<number> {
     student_id: string;
     deck_id: string;
     deck_title: string;
-    course_code: string;
+    course_code: string | null;
     due_count: string;
   }>(sql`
     SELECT
@@ -19,8 +19,10 @@ export async function generateFlashcardsDueNotifications(): Promise<number> {
       COUNT(f.id)::text AS due_count
     FROM flashcard_deck fd
     JOIN flashcard f ON f.deck_id = fd.id
-    JOIN course c ON fd.course_id = c.id
-    WHERE f.next_due_at <= CURRENT_TIMESTAMP
+    -- decks saved from a general chat have no course
+    LEFT JOIN course c ON fd.course_id = c.id
+    -- never-reviewed cards (next_due_at NULL) are due, as on the decks page
+    WHERE (f.next_due_at IS NULL OR f.next_due_at <= CURRENT_TIMESTAMP)
       AND NOT EXISTS (
         SELECT 1 FROM study_activity sa
         WHERE sa.student_id = fd.student_id

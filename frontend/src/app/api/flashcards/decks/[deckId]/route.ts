@@ -35,10 +35,8 @@ export async function GET(
         createdAt: FlashcardDeckSchema.createdAt,
       })
       .from(FlashcardDeckSchema)
-      .innerJoin(
-        CourseSchema,
-        eq(FlashcardDeckSchema.courseId, CourseSchema.id),
-      )
+      // Decks saved from a general chat have no course
+      .leftJoin(CourseSchema, eq(FlashcardDeckSchema.courseId, CourseSchema.id))
       .where(
         and(
           eq(FlashcardDeckSchema.id, deckId),
@@ -69,4 +67,41 @@ export async function GET(
       { status: 500 },
     );
   }
+}
+
+/** DELETE /api/flashcards/decks/:deckId — delete one of your decks. */
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ deckId: string }> },
+) {
+  const session = await getApiSession();
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { success: false, message: "Unauthorized" },
+      { status: 401 },
+    );
+  }
+  const { deckId } = await params;
+  if (!/^[0-9a-f-]{36}$/i.test(deckId)) {
+    return NextResponse.json(
+      { success: false, message: "Deck not found" },
+      { status: 404 },
+    );
+  }
+  const deleted = await pgDb
+    .delete(FlashcardDeckSchema)
+    .where(
+      and(
+        eq(FlashcardDeckSchema.id, deckId),
+        eq(FlashcardDeckSchema.studentId, session.user.id),
+      ),
+    )
+    .returning({ id: FlashcardDeckSchema.id });
+  if (deleted.length === 0) {
+    return NextResponse.json(
+      { success: false, message: "Deck not found" },
+      { status: 404 },
+    );
+  }
+  return NextResponse.json({ success: true });
 }

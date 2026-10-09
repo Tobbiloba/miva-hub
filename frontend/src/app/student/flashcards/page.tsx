@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Clock, Layers } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface Deck {
   id: string;
   title: string;
-  courseCode: string;
-  courseTitle: string;
+  courseCode: string | null;
+  courseTitle: string | null;
   weekNumber: number | null;
   cardCount: number;
   dueCount: number;
@@ -21,16 +21,22 @@ interface Deck {
 export default function FlashcardsPage() {
   const [decks, setDecks] = useState<Deck[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(false);
     fetch("/api/flashcards/decks")
       .then((res) => res.json())
       .then((data) => {
-        if (data.success) setDecks(data.data);
+        if (!data.success) throw new Error(data.message);
+        setDecks(data.data);
       })
-      .catch(console.error)
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(load, [load]);
 
   return (
     <div className="space-y-6">
@@ -48,14 +54,25 @@ export default function FlashcardsPage() {
         <div className="text-center py-12 text-muted-foreground">
           Loading decks...
         </div>
+      ) : error ? (
+        <Card role="alert">
+          <CardContent className="text-center py-12">
+            <p className="text-lg font-medium mb-3">
+              Couldn&apos;t load your decks
+            </p>
+            <Button variant="outline" onClick={load}>
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
       ) : decks.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
             <Layers className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
             <p className="text-lg font-medium mb-2">No flashcard decks yet</p>
             <p className="text-muted-foreground max-w-md mx-auto">
-              Ask Askly to make some — try &quot;make flashcards for COS201 week
-              3&quot; in the chat.
+              Ask Askly to make some, e.g. &quot;make flashcards on my COS101
+              week 3 notes&quot;, then press Save deck under the cards.
             </p>
           </CardContent>
         </Card>
@@ -76,7 +93,7 @@ export default function FlashcardsPage() {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                   <BookOpen className="h-3.5 w-3.5" />
-                  <span>{deck.courseCode}</span>
+                  <span>{deck.courseCode ?? "General"}</span>
                   {deck.weekNumber && (
                     <span className="text-xs">· Week {deck.weekNumber}</span>
                   )}

@@ -1970,11 +1970,15 @@ export const FlashcardDeckSchema = pgTable(
     studentId: uuid("student_id")
       .notNull()
       .references(() => UserSchema.id, { onDelete: "cascade" }),
-    courseId: uuid("course_id")
-      .notNull()
-      .references(() => CourseSchema.id, { onDelete: "cascade" }),
+    // NULL for decks not tied to a course (e.g. saved from a general chat)
+    courseId: uuid("course_id").references(() => CourseSchema.id, {
+      onDelete: "cascade",
+    }),
     weekNumber: integer("week_number"),
     title: text("title").notNull(),
+    // "<messageId>:<toolCallId>" of the chat flashcards this deck was saved
+    // from; makes saving the same chat deck twice return the first save
+    chatSource: text("chat_source"),
     sourceMaterialIds: jsonb("source_material_ids")
       .notNull()
       .default([])
@@ -1993,6 +1997,10 @@ export const FlashcardDeckSchema = pgTable(
     index("flashcard_deck_student_course_idx").on(
       table.studentId,
       table.courseId,
+    ),
+    uniqueIndex("flashcard_deck_student_chat_source_idx").on(
+      table.studentId,
+      table.chatSource,
     ),
   ],
 );

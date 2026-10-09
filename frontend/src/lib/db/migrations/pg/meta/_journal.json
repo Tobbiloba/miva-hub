@@ -309,6 +309,13 @@
       "when": 1791545226562,
       "tag": "0043_student_deadlines",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1791546551561,
+      "tag": "0044_flashcard_decks_from_chat",
+      "breakpoints": true
     }
   ]
 }
