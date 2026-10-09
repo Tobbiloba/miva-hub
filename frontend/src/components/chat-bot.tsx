@@ -28,10 +28,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Shortcuts, isShortcutEvent } from "lib/keyboard-shortcuts";
 import {
   ArrowDown,
-  Camera,
+  CalendarClock,
   FileQuestion,
+  Layers,
   Loader,
-  NotebookPen,
   PanelRightClose,
   PanelRightOpen,
 } from "lucide-react";
@@ -59,27 +59,29 @@ type Props = {
   onboarding?: React.ReactNode;
 };
 
+// Starters for the student launch features (docs/PRODUCT-FOCUS.md):
+// deadlines, practice from their own materials, flashcards to keep
 const CHAT_SUGGESTIONS = [
   {
-    id: "snap",
-    icon: <Camera />,
-    title: "Grade my handwriting",
+    id: "due",
+    icon: <CalendarClock />,
+    title: "What's due?",
     prompt:
-      "I want to snap a photo of my worked problem set and have it graded against this week's rubric. How do I start?",
+      "What do I have due in the next two weeks, and what should I start first?",
   },
   {
     id: "quiz",
     icon: <FileQuestion />,
     title: "Quiz me before the test",
     prompt:
-      "Give me a 10-question practice quiz on this week's topic with instant feedback after each answer.",
+      "Give me a 10-question practice quiz from my course materials, with feedback after each answer.",
   },
   {
-    id: "plan",
-    icon: <NotebookPen />,
-    title: "Plan my study week",
+    id: "flashcards",
+    icon: <Layers />,
+    title: "Flashcards from my notes",
     prompt:
-      "Help me build a study plan for my upcoming deadlines around my class timetable.",
+      "Make flashcards from my latest lecture notes so I can save them for review.",
   },
 ];
 

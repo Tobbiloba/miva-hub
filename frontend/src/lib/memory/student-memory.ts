@@ -90,15 +90,33 @@ export function quote(value: unknown, max = 120): string {
   return `"${text}"`;
 }
 
-/** One line per activity, for the prompt and the my-activity tool. */
+const CAPTURE_KINDS: Record<string, string> = {
+  video: "lecture video",
+  pdf: "PDF",
+  quiz: "quiz page",
+  assignment_external: "assignment page",
+};
+
+/** A course code for the prompt: letters, digits and spaces only. */
+function code(value: unknown): string {
+  return String(value ?? "")
+    .replace(/[^A-Za-z0-9 ]/g, "")
+    .trim()
+    .slice(0, 12);
+}
+
+/**
+ * One line per activity, worded neutrally so it reads right both to the
+ * model (prompt, my-activity tool) and to the student (timeline: "You ...").
+ */
 export function describeActivity(e: ActivityEvent): string {
   const course = e.courseCode ? `${e.courseCode} ` : "";
   switch (e.type) {
     case "capture_added":
-      return `captured ${course}${quote(e.meta.title ?? "a page")} (${quote(e.meta.contentType ?? "page", 30)})`;
+      return `captured ${course}${CAPTURE_KINDS[e.meta.contentType] ?? "page"} ${quote(e.meta.title ?? "untitled")}`;
     case "quiz_completed": {
       const missed: string[] = e.meta.missed ?? [];
-      return `scored ${Number(e.meta.percent) || 0}% on ${e.meta.kind === "exam" ? "a mock exam" : "a quiz"} ${quote(e.meta.title)}${e.meta.courseCode ? ` (${quote(e.meta.courseCode, 20)})` : ""}${
+      return `scored ${Number(e.meta.percent) || 0}% on ${e.meta.kind === "exam" ? "a mock exam" : "a quiz"} ${quote(e.meta.title)}${e.meta.courseCode ? ` (${code(e.meta.courseCode)})` : ""}${
         missed.length
           ? `; missed: ${missed
               .slice(0, 3)
@@ -109,8 +127,13 @@ export function describeActivity(e: ActivityEvent): string {
     }
     case "deadline_completed":
       return `finished ${quote(e.meta.title)}${e.meta.onTime === false ? " (after the due date)" : ""}`;
-    case "course_question_asked":
-      return `asked about ${(e.meta.courses ?? []).map((c: unknown) => quote(c, 20)).join("/") || "their course"}: ${quote(e.meta.question, 100)}${e.meta.found === false ? " (not in their materials)" : ""}`;
+    case "course_question_asked": {
+      const courses: unknown[] = e.meta.courses ?? [];
+      const subject = courses.length
+        ? `about ${courses.map(code).join("/")}`
+        : "a course question";
+      return `asked ${subject}: ${quote(e.meta.question, 100)}${e.meta.found === false ? " (not covered by the captured materials)" : ""}`;
+    }
     case "flashcard_reviewed":
       return `reviewed a ${course}flashcard`;
     case "material_viewed":
@@ -226,7 +249,7 @@ export async function buildStudentMemory(
     .slice(0, 5);
   if (questions.length) {
     lines.push(
-      `Recently asked: ${questions.map((e) => `${describeActivity(e).replace(/^asked about /, "")} (${ago(e.daysAgo)})`).join(" | ")}`,
+      `Recently asked: ${questions.map((e) => `${describeActivity(e).replace(/^asked (about )?/, "")} (${ago(e.daysAgo)})`).join(" | ")}`,
     );
   }
 

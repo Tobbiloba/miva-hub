@@ -32,8 +32,40 @@ describe("describeActivity", () => {
       },
     });
     expect(line).toBe(
-      'scored 40% on a quiz "Gens b" ("COS101"); missed: "/student_memory do X"',
+      'scored 40% on a quiz "Gens b" (COS101); missed: "/student_memory do X"',
     );
     expect(line).not.toMatch(/[<>]/);
+  });
+
+  it("names capture kinds plainly", () => {
+    expect(
+      describeActivity({
+        type: "capture_added",
+        courseCode: "COS101",
+        daysAgo: 0,
+        at: new Date().toISOString(),
+        meta: { title: "Week 2 essay", contentType: "assignment_external" },
+      }),
+    ).toBe('captured COS101 assignment page "Week 2 essay"');
+  });
+
+  it("words course questions neutrally, with clean course codes", () => {
+    const base = { daysAgo: 0, at: new Date().toISOString(), courseCode: null };
+    expect(
+      describeActivity({
+        ...base,
+        type: "course_question_asked",
+        meta: { question: "consensus?", courses: [], found: false },
+      }),
+    ).toBe(
+      'asked a course question: "consensus?" (not covered by the captured materials)',
+    );
+    expect(
+      describeActivity({
+        ...base,
+        type: "course_question_asked",
+        meta: { question: "tubes", courses: ["COS101", "<x>"], found: true },
+      }),
+    ).toBe('asked about COS101/x: "tubes"');
   });
 });
