@@ -58,6 +58,10 @@ import {
 } from "lib/keyboard-shortcuts";
 import { Avatar, AvatarFallback, AvatarImage } from "ui/avatar";
 import { TextShimmer } from "ui/text-shimmer";
+import {
+  AcademicToolStatus,
+  isAcademicStatusTool,
+} from "./tool-invocation/academic-tool-status";
 
 import { appStore } from "@/app/store";
 import { BACKGROUND_COLORS, EMOJI_DATA } from "lib/const";
@@ -930,6 +934,11 @@ export const ToolMessagePart = memo(
     }, [isCompleted, output, state, errorText]);
 
     const CustomToolComponent = useMemo(() => {
+      // Our academic tools read as one plain status line for students
+      if (isAcademicStatusTool(toolName) && !isManualToolInvocation) {
+        return <AcademicToolStatus part={part} />;
+      }
+
       if (
         toolName === DefaultToolName.WebSearch ||
         toolName === DefaultToolName.WebContent
@@ -1037,7 +1046,15 @@ export const ToolMessagePart = memo(
         }
       }
       return null;
-    }, [toolName, state, onToolCallDirect, result, input]);
+    }, [
+      toolName,
+      state,
+      onToolCallDirect,
+      result,
+      input,
+      part,
+      isManualToolInvocation,
+    ]);
 
     const { serverName: mcpServerName, toolName: mcpToolName } = useMemo(() => {
       return extractMCPToolId(toolName);
