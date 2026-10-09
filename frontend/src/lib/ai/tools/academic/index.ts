@@ -11,6 +11,7 @@ import { createAssignmentTrackerTool } from "./assignment-tracker.tool";
 import { createCourseContentTool } from "./course-content.tool";
 import { createFacultyDirectoryTool } from "./faculty-directory.tool";
 import { createMyCoursesTool } from "./my-courses.tool";
+import { createSearchMaterialsTool } from "./search-materials.tool";
 
 export interface AcademicToolUser {
   userId: string;
@@ -23,6 +24,7 @@ export function createAcademicTools(
   return {
     "get-my-courses": createMyCoursesTool(user.userId),
     "get-course-materials": createCourseContentTool(user.userId),
+    "search-course-materials": createSearchMaterialsTool(user.userId),
     "get-upcoming-assignments": createAssignmentTrackerTool(user.userId),
     "find-faculty": createFacultyDirectoryTool(user.universityId),
     "get-academic-schedule": createAcademicScheduleTool(user.userId),

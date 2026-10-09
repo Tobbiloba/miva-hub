@@ -111,3 +111,64 @@ export async function retrieveCourseContext(
 
   return { course, sources, contextText, totalCharacters: used };
 }
+
+export interface MaterialPassage {
+  courseCode: string;
+  materialId: string;
+  title: string;
+  materialType: string | null;
+  weekNumber: number | null;
+  isOwnCapture: boolean;
+  content: string;
+}
+
+/**
+ * Semantic search across every course the student is actively enrolled in
+ * (or one of them, by id) — same visibility rule as retrieveCourseContext:
+ * published shared material or the student's own captures, never deleted.
+ * Used by the chat's search tool so content questions are answerable without
+ * first picking a course.
+ */
+export async function searchEnrolledMaterials(
+  studentId: string,
+  query: string,
+  opts: { courseId?: string; k?: number; maxCharsPerPassage?: number } = {},
+): Promise<MaterialPassage[]> {
+  const queryText = query.trim();
+  if (!queryText) return [];
+  const k = opts.k ?? 8;
+  const maxChars = opts.maxCharsPerPassage ?? 1500;
+
+  const qvec = toVectorLiteral(await embedQuery(queryText));
+  const result = await pgDb.execute(
+    sql`SELECT c.material_id, c.title, c.material_type, c.week_number,
+               c.content, c.owner_user_id, co.course_code
+        FROM material_chunk c
+        JOIN course_material m ON m.id = c.material_id
+        JOIN course co ON co.id = c.course_id
+        JOIN student_enrollment se
+          ON se.course_id = c.course_id
+         AND se.student_id = ${studentId}
+         AND se.status = 'enrolled'
+        WHERE m.deleted_at IS NULL
+          AND (${opts.courseId ?? null}::uuid IS NULL OR c.course_id = ${opts.courseId ?? null}::uuid)
+          AND (
+            (c.owner_user_id IS NULL AND m.owner_user_id IS NULL AND m.is_published)
+            OR (c.owner_user_id = ${studentId} AND m.owner_user_id = ${studentId})
+          )
+        ORDER BY c.embedding <=> ${qvec}::vector
+        LIMIT ${k}`,
+  );
+  const rows = ((result as any).rows ?? result) as (ChunkRow & {
+    course_code: string;
+  })[];
+  return rows.map((row) => ({
+    courseCode: row.course_code,
+    materialId: row.material_id,
+    title: row.title ?? "Course material",
+    materialType: row.material_type,
+    weekNumber: row.week_number,
+    isOwnCapture: !!row.owner_user_id,
+    content: neutralizeMaterialText(row.content).slice(0, maxChars),
+  }));
+}

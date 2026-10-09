@@ -1,3 +1,4 @@
+import { STUDENT_MCP_TOOLS } from "lib/config/mcp-config";
 import { pgDb } from "lib/db/pg/db.pg";
 import { UserSchema } from "lib/db/pg/schema.pg";
 import { eq } from "drizzle-orm";
@@ -208,15 +209,16 @@ export async function POST(request: Request) {
                 (client) => client.client.getInfo().name === "miva-academic",
               );
               if (mivaAcademicServer) {
-                const allTools =
-                  mivaAcademicServer.client.toolInfo?.map((t) => t.name) || [];
+                const studentTools = (
+                  mivaAcademicServer.client.toolInfo?.map((t) => t.name) || []
+                ).filter((name) => STUDENT_MCP_TOOLS.has(name));
                 logger.info(
-                  `Found MIVA Academic server with ${allTools.length} tools: ${allTools.join(", ")}`,
+                  `MIVA Academic server: exposing ${studentTools.length} tools: ${studentTools.join(", ")}`,
                 );
                 effectiveAllowedMcpServers = {
                   ...effectiveAllowedMcpServers,
                   [mivaAcademicServer.id]: {
-                    tools: allTools,
+                    tools: studentTools,
                   },
                 };
               } else {

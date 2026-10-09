@@ -13,23 +13,22 @@ def register_course_tools(mcp):
     """Register all course-related tools with the MCP server"""
     
     @mcp.tool()
-    async def list_enrolled_courses(student_id: str, semester: Optional[str] = None) -> str:
-        """List all courses a student is enrolled in.
-        
-        Retrieves all courses the student is currently enrolled in with course details,
-        credits, and enrollment status.
-        
+    async def list_enrolled_courses(student_id: str) -> str:
+        """List the courses the student is currently enrolled in.
+
+        Returns course codes, titles, credits, instructors and enrollment
+        status for the current term. Takes no term argument: "enrolled"
+        already means this term (past courses are completed/dropped).
+
         Args:
-            student_id: Student ID to get enrollments for
-            semester: Optional semester filter (e.g., "2024-fall", "2025-spring")
-            
+            student_id: Student ID (injected from the signed-in session)
+
         Returns:
             Formatted JSON string with enrolled courses or error message
         """
         try:
             result = await academic_repo.get_student_enrollments(
-                student_id=student_id,
-                semester=semester
+                student_id=student_id
             )
             return json.dumps(result, indent=2)
         except Exception as e:

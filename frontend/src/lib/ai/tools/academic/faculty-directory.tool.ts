@@ -225,10 +225,19 @@ async function formatFacultyInfo(
   allCourses?: any[],
   department?: any,
 ) {
+  // Name and email live on the user row; without them the model could only
+  // say "taught by an Associate Professor".
+  const [person] = faculty.userId
+    ? await pgDb
+        .select({ name: UserSchema.name, email: UserSchema.email })
+        .from(UserSchema)
+        .where(eq(UserSchema.id, faculty.userId))
+        .limit(1)
+    : [];
   return {
     id: faculty.id,
-    employeeId: faculty.employeeId,
-    userId: faculty.userId,
+    name: person?.name ?? "Name not available",
+    email: person?.email ?? null,
     position: faculty.position,
     specializations: faculty.specializations || [],
     department: department

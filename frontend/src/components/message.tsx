@@ -2,7 +2,7 @@
 
 import { type UIMessage, isToolUIPart } from "ai";
 import equal from "lib/equal";
-import { memo, useMemo, useState } from "react";
+import { Fragment, memo, useMemo, useState } from "react";
 
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { ChatMetadata } from "app-types/chat";
@@ -124,14 +124,8 @@ const PurePreviewMessage = ({
                 : [];
               const hasMaterials = richMaterials.length > 0;
 
-              console.log("🔍 Tool Part Material Check:", {
-                toolCallId: part.toolCallId,
-                hasMaterials,
-                materialCount: richMaterials.length,
-              });
-
               return (
-                <>
+                <Fragment key={key}>
                   <ToolMessagePart
                     isLast={isLast}
                     messageId={message.id}
@@ -140,18 +134,16 @@ const PurePreviewMessage = ({
                       isLastMessage ? isLastPart && !isLoading : isLastPart
                     }
                     addToolResult={addToolResult}
-                    key={key}
                     part={part}
                     setMessages={setMessages}
                   />
                   {hasMaterials && (
                     <MaterialsMessagePart
-                      key={`materials-${part.toolCallId}`}
                       materials={richMaterials}
                       toolCallId={part.toolCallId}
                     />
                   )}
-                </>
+                </Fragment>
               );
             } else if (part.type === "step-start") {
               return null;

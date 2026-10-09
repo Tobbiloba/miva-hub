@@ -55,3 +55,19 @@ export const MCP_CONFIG = {
  *   MCP_SERVER_URL=https://your-mcp-server-domain.com/sse
  *   MCP_SHARED_SECRET=<same value as the MCP server's MCP_SHARED_SECRET>
  */
+
+/**
+ * MCP tools the student chat exposes. The academic server's other tools are
+ * either duplicates of the app's own session-bound academic tools
+ * (list_enrolled_courses, get_course_materials, get_upcoming_assignments,
+ * get_academic_schedule) or depend on the Study Buddy service, which can't
+ * serve them yet (ask_study_question, generate_study_guide, create_flashcards,
+ * generate_quiz, explain_concept_deeply, generate_exam_simulator,
+ * submit_exam_answers, convert_notes_to_flashcards, export_flashcards), and
+ * summarize_material needs AI summaries that mostly don't exist. Offering
+ * them made the model pick broken tools over working ones. Re-add a tool
+ * here once it works end to end.
+ */
+export const STUDENT_MCP_TOOLS: ReadonlySet<string> = new Set([
+  "get_my_progress",
+]);

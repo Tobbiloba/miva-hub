@@ -248,13 +248,18 @@ export const loadAppDefaultTools = async (opt?: {
   academicUser?: { userId: string; universityId: string };
 }) => {
   try {
-    const allowedAppDefaultToolkit =
+    const requestedToolkits =
       opt?.allowedAppDefaultToolkit ?? Object.values(AppDefaultToolkit);
 
-    // Check if academic tools are needed
-    const needsAcademicTools =
-      !!opt?.academicUser &&
-      allowedAppDefaultToolkit.includes(AppDefaultToolkit.Academic);
+    // For a student the academic toolkit is the product, not an optional
+    // toggle: the client's default selection (code + visualization) left it
+    // off, so students only reached the duplicate MCP tools. Always bind it.
+    const needsAcademicTools = !!opt?.academicUser;
+    const allowedAppDefaultToolkit =
+      needsAcademicTools &&
+      !requestedToolkits.includes(AppDefaultToolkit.Academic)
+        ? [...requestedToolkits, AppDefaultToolkit.Academic]
+        : requestedToolkits;
 
     // Load appropriate tool kit
     const tools = needsAcademicTools

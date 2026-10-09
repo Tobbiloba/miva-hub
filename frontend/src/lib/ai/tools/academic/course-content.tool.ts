@@ -32,7 +32,7 @@ const courseContentSchema = z.object({
 export const createCourseContentTool = (userId: string) =>
   createTool({
     description:
-      "Fetch course materials for specific week, topic, or material type. Only accessible for enrolled courses.",
+      "List the materials (titles, weeks, types) of one enrolled course. Use it to show what exists. To explain a topic, quiz the student or answer what the notes say, use search-course-materials instead — this tool returns titles, not the text. Don't guess a week number; omit it unless the student named one.",
     inputSchema: courseContentSchema,
     execute: async ({ courseCode, weekNumber, materialType }) => {
       return safe(async () => {
@@ -80,6 +80,14 @@ export const createCourseContentTool = (userId: string) =>
             asc(CourseMaterialSchema.weekNumber),
             asc(CourseMaterialSchema.createdAt),
           );
+
+        const availableWeeks = [
+          ...new Set(
+            materials
+              .map((m) => m.weekNumber)
+              .filter((w): w is number => w != null),
+          ),
+        ].sort((a, b) => a - b);
 
         // Apply week filter if specified
         if (weekNumber) {
@@ -130,6 +138,7 @@ export const createCourseContentTool = (userId: string) =>
             totalMaterials: formattedMaterials.length,
           },
           materials: formattedMaterials,
+          availableWeeks,
           summary,
           enrollment: {
             status: enrollment.status,

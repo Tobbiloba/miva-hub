@@ -1228,10 +1228,17 @@ class AcademicRepository:
                 
                 params = [student_id]
                 
-                # Add semester filter if specified
+                # Term: the given key, else the university's current term
+                # ("<session>-<first|second>", as stored on class_schedule)
                 if semester:
                     query += " AND cs.semester = %s"
                     params.append(semester)
+                else:
+                    query += """ AND cs.semester = (
+                        SELECT s.session_name || '-' || s.current_semester
+                        FROM academic_session s
+                        WHERE s.university_id = c.university_id AND s.is_current
+                    )"""
                 
                 query += """
                     ORDER BY 
