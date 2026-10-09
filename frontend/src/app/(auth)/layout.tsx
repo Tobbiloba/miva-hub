@@ -8,27 +8,32 @@ export default function AuthLayout({
   return (
     <main className="flex min-h-screen w-full bg-background">
       {/* Showcase panel in the landing's black style, with the real app */}
-      <div className="dark relative hidden overflow-hidden bg-black text-white lg:m-3 lg:flex lg:w-1/2 lg:flex-col lg:rounded">
+      <div className="dark relative hidden overflow-hidden bg-background text-foreground lg:m-3 lg:flex lg:w-1/2 lg:flex-col lg:rounded-[20px] lg:border lg:border-white/10">
         <div className="relative z-10 flex flex-col p-10">
           <Link href="/landing" className="w-fit">
             <AsklyLogo markClassName="bg-white text-black" />
           </Link>
-          <h2 className="mt-16 max-w-md text-4xl leading-tight font-normal tracking-[-0.025em]">
-            Your course, answered.
+          <h2 className="mt-16 max-w-md text-4xl leading-tight font-semibold tracking-[-0.035em]">
+            Your course, <span className="text-white/45">answered.</span>
           </h2>
-          <p className="mt-3 max-w-md text-base text-neutral-400">
+          <p className="mt-3 max-w-md text-base text-muted-foreground">
             Askly answers from your own course materials, keeps track of your
             deadlines, and turns your notes into quizzes and flashcards.
           </p>
         </div>
-        <div className="relative mt-auto ml-10 h-[45%] overflow-hidden rounded-tl border-t border-l border-neutral-800">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-32 left-1/3 size-[420px] rounded-full bg-brand/20 blur-[110px]"
+        />
+        <div className="relative mt-auto ml-10 overflow-hidden rounded-tl-xl border-t border-l border-white/10">
           <Image
-            src="/landing/screens/answer-dark.webp"
+            src="/landing/screens/answer.webp"
             alt="Askly answering a question with sources from course notes"
-            fill
+            width={1696}
+            height={1384}
             priority
-            sizes="50vw"
-            className="object-cover object-left-top"
+            sizes="45vw"
+            className="h-auto w-full"
           />
         </div>
       </div>

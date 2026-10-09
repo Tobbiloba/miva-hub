@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 // translucent panels and white type read the way they were drawn.
 const Page = () => {
   return (
-    <div className="dark min-h-screen bg-black text-white">
+    <div className="dark min-h-screen bg-background font-sans text-foreground antialiased">
       <Hero />
       <Features />
       <HowItWorks />

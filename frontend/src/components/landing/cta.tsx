@@ -1,51 +1,58 @@
-import Image from "next/image";
+import { cn } from "lib/utils";
+import { Shot } from "./shot";
+import { eyebrow, heading } from "./styles";
 import { ScrollVelocityContainer, ScrollVelocityRow } from "./ui/text-scroll";
 import { WaitlistForm } from "./waitlist-form";
+
 const Cta = () => {
   return (
-    <div
+    <section
       id="waitlist"
-      className="grid grid-cols-1 md:grid-cols-3 gap-4 px-4 sm:px-6 md:px-8 scroll-mt-6"
+      className="mx-auto max-w-6xl scroll-mt-6 px-5 py-12 sm:px-8"
     >
-      <div className="relative h-[280px] sm:h-[350px] md:h-[35rem] border overflow-hidden rounded">
-        <Image
-          src="/landing/screens/flashcards-dark.webp"
-          alt="A flashcard deck in Askly"
-          fill
-          sizes="(min-width: 768px) 33vw, 100vw"
-          className="object-cover object-[62%_45%]"
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-card">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-40 -right-40 size-[520px] rounded-full bg-brand/20 blur-[120px]"
         />
-        {/* <div className='absolute inset-0 bg-black/50' /> */}
-      </div>
-      <div className="md:col-span-2">
-        <div className="bg-white/[0.06] p-6 sm:p-8 md:p-12 py-10 sm:py-12 md:py-16 rounded flex flex-col">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-normal leading-tight">
-            Study smarter with Askly — answers, quizzes and flashcards from your
-            own lectures
-          </h1>
-          <p className="text-neutral-200 font-[400] max-w-xl my-3 sm:my-4 text-sm sm:text-base md:text-lg">
-            Capture your lessons, ask anything about them, practise with quizzes
-            and flashcards, and never lose track of a deadline. Join the
-            waitlist and be among the first students in.
-          </p>
-          <div className="mt-6 sm:mt-8 md:mt-10">
-            <WaitlistForm source="landing" />
+        <div className="relative grid grid-cols-1 items-center gap-10 p-7 sm:p-12 lg:grid-cols-2 lg:gap-12">
+          <div>
+            <p className={eyebrow}>Early access</p>
+            <h2
+              className={cn(
+                heading,
+                "mt-3 text-4xl sm:text-5xl leading-[1.05]",
+              )}
+            >
+              Study smarter. Stress less.
+            </h2>
+            <p className="mt-4 max-w-md text-lg leading-relaxed text-muted-foreground">
+              Answers, quizzes and flashcards from your own lectures, and every
+              deadline in one list. Join the waitlist and be among the first
+              students in.
+            </p>
+            <div className="mt-8">
+              <WaitlistForm source="landing" />
+            </div>
           </div>
-        </div>
-        <div className="relative flex w-full flex-col items-center justify-center overflow-hidden mt-4 sm:mt-6">
-          <ScrollVelocityContainer className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-[-0.02em] lg:text-6xl xl:text-7xl md:leading-[5rem]">
-            <ScrollVelocityRow baseVelocity={10} direction={1}>
-              Askly answers from what you were actually taught.
-            </ScrollVelocityRow>
-            {/* <ScrollVelocityRow baseVelocity={20} direction={-1}>
-          Velocity Scroll
-        </ScrollVelocityRow> */}
-          </ScrollVelocityContainer>
-          <div className="from-black pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r"></div>
-          <div className="from-black pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l"></div>
+          <Shot
+            name="flashcards"
+            alt="A COS101 flashcard deck in Askly"
+            className="hidden lg:block"
+          />
         </div>
       </div>
-    </div>
+
+      <div className="relative mt-10 flex w-full flex-col items-center justify-center overflow-hidden">
+        <ScrollVelocityContainer className="text-4xl font-semibold tracking-[-0.04em] text-white/15 md:text-6xl lg:text-7xl md:leading-[5rem]">
+          <ScrollVelocityRow baseVelocity={6} direction={1}>
+            Askly answers from what you were actually taught.
+          </ScrollVelocityRow>
+        </ScrollVelocityContainer>
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-background" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-background" />
+      </div>
+    </section>
   );
 };
 

@@ -1,348 +1,223 @@
 "use client";
 
+import { cn } from "lib/utils";
 import {
-  ArrowRight,
   BookOpen,
-  Brain,
   CalendarClock,
+  ChevronLeft,
+  ChevronRight,
   Layers,
-  Lightbulb,
-  MousePointerClick,
   PenTool,
   Quote,
+  Sparkles,
 } from "lucide-react";
-import Image from "next/image";
-import React from "react";
-import { Autoplay, Navigation, Pagination } from "swiper/modules";
+import { createElement } from "react";
+import {
+  A11y,
+  Autoplay,
+  Keyboard,
+  Navigation,
+  Pagination,
+} from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Button } from "../ui/button";
+import { Shot, type ShotName } from "./shot";
+import { eyebrow, heading } from "./styles";
 
-// Import Swiper styles
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
-const carouselItems = [
+const slides: {
+  icon: typeof Quote;
+  title: string;
+  description: string;
+  points: string[];
+  shot: ShotName;
+  alt: string;
+}[] = [
   {
-    id: 1,
     icon: Quote,
     title: "Answers with sources",
     description:
-      "Every answer comes from your own course notes and shows the source",
-    bgGradient: "from-neutral-900 to-neutral-800",
-    mediaType: "image",
-    mediaSrc: "/landing/screens/answer-dark.webp",
-    layout: "bottom-right",
-    hasButton: true,
+      "Every answer comes from your own course notes, with numbered sources you can open.",
+    points: [
+      "Cites the exact lecture or reading",
+      "Says so when your notes don't cover it",
+    ],
+    shot: "answer",
+    alt: "An Askly answer citing COS101 week 2 sources",
   },
   {
-    id: 2,
-    icon: MousePointerClick,
-    title: "One-click capture",
-    description:
-      "Save lessons from the MIVA LMS with the Askly Capture extension",
-    bgGradient: "from-neutral-900 to-neutral-800",
-    mediaType: "video",
-    mediaSrc:
-      "https://cdn.dribbble.com/userupload/12213795/file/original-b1d851b100c529464d02f999bf75d858.mp4",
-    layout: "top-left",
-    hasButton: false,
-  },
-  {
-    id: 3,
     icon: PenTool,
     title: "Practice quizzes",
-    description: "A quiz from any lesson, marked as you go",
-    bgGradient: "from-neutral-900 to-neutral-800",
-    mediaType: "image",
-    mediaSrc: "/landing/screens/quiz-dark.webp",
-    layout: "bottom-left",
-    hasButton: true,
+    description:
+      "A quiz from any lesson in seconds. Pick an answer, move on, and see your score at the end.",
+    points: ["Questions from your own materials", "Marked as you go"],
+    shot: "quiz",
+    alt: "A COS101 practice quiz question in Askly",
   },
   {
-    id: 4,
     icon: Layers,
     title: "Flashcard decks",
     description:
-      "Save any set to a deck and review each card just before you'd forget it",
-    bgGradient: "from-neutral-900 to-neutral-800",
-    mediaType: "video",
-    mediaSrc:
-      "https://cdn.dribbble.com/userupload/17865107/file/original-9f8b53156579274b19ba602ecbf8a949.mp4",
-    layout: "top-right",
-    hasButton: false,
+      "Flip through cards in chat, then save the set as a deck for spaced review.",
+    points: [
+      "Shuffle, or see every card at once",
+      "Cards you miss come back sooner",
+    ],
+    shot: "flashcards",
+    alt: "A COS101 flashcard deck in Askly",
   },
   {
-    id: 5,
     icon: CalendarClock,
-    title: "Every deadline in one list",
+    title: "Deadlines",
     description:
-      "Due dates come in with your captures. Add your own, or just ask Askly",
-    bgGradient: "from-neutral-900 to-neutral-800",
-    mediaType: "none",
-    layout: "center",
-    hasButton: true,
+      "Assignments and quizzes you capture land here with their due dates. Add anything else yourself.",
+    points: ["Grouped into this week and later", "Ask Askly what's due"],
+    shot: "deadlines",
+    alt: "Askly's deadlines list",
   },
   {
-    id: 6,
     icon: BookOpen,
     title: "My Courses",
     description:
-      "Your courses, timetable and what's coming up, with one tap to ask",
-    bgGradient: "from-neutral-900 to-neutral-800",
-    mediaType: "image",
-    mediaSrc: "/landing/screens/courses-dark.webp",
-    layout: "bottom-right",
-    hasButton: true,
+      "Your courses, credits and timetable in one place, with one tap to ask about any of them.",
+    points: ["Ask about a course in one tap", "See what's coming up"],
+    shot: "courses",
+    alt: "Askly's My Courses page with four enrolled courses",
   },
   {
-    id: 7,
-    icon: Lightbulb,
-    title: "Explain my last lecture",
-    description: "The key ideas from your latest lesson, in plain language",
-    bgGradient: "from-neutral-900 to-neutral-800",
-    mediaType: "none",
-    layout: "center",
-    hasButton: false,
-  },
-  {
-    id: 8,
-    icon: Brain,
-    title: "Remembers your progress",
+    icon: Sparkles,
+    title: "Start from a prompt",
     description:
-      "Askly keeps track of what you asked and studied, so it can help you revise",
-    bgGradient: "from-neutral-900 to-neutral-800",
-    mediaType: "image",
-    mediaSrc: "/landing/screens/flashcards-dark.webp",
-    layout: "top-left",
-    hasButton: true,
+      "Not sure where to begin? Start from what's due, a quiz before the test, or your last lecture.",
+    points: ["Picks up your setup progress", "One tap to your next step"],
+    shot: "home",
+    alt: "Askly's home screen with study starters",
   },
 ];
 
+const navButton =
+  "grid size-11 place-items-center rounded-full border border-white/15 bg-white/[0.04] text-white transition-colors hover:bg-white/10 disabled:opacity-40";
+
 const FeaturesCarousel = () => {
   return (
-    <div className="mx-auto my-16 sm:my-24 md:my-32 px-4 sm:px-6">
-      <div className="text-center mb-8 sm:mb-12 md:mb-16 flex flex-col md:flex-row justify-between gap-4 md:gap-0 max-w-7xl mx-auto">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-normal mb-4 max-w-md text-start">
-          Everything Askly does for your course
-        </h2>
-        <p className="text-base sm:text-lg text-neutral-500 mx-auto md:mx-0 max-w-lg text-left md:text-right">
-          From the first lecture to exam week — answers, practice and reminders,
-          all from what you were actually taught.
-        </p>
+    <section className="py-24 sm:py-32">
+      <div className="mx-auto flex max-w-6xl flex-col justify-between gap-6 px-5 sm:px-8 md:flex-row md:items-end">
+        <div>
+          <p className={eyebrow}>Inside Askly</p>
+          <h2
+            className={cn(
+              heading,
+              "mt-3 max-w-xl text-4xl sm:text-5xl leading-[1.05]",
+            )}
+          >
+            Everything you need, from lecture to exam.
+          </h2>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className={cn(navButton, "landing-prev")}
+            aria-label="Previous slide"
+          >
+            <ChevronLeft className="size-5" />
+          </button>
+          <button
+            type="button"
+            className={cn(navButton, "landing-next")}
+            aria-label="Next slide"
+          >
+            <ChevronRight className="size-5" />
+          </button>
+        </div>
       </div>
 
-      <div className="relative">
+      <div className="mt-12">
         <Swiper
-          centeredSlides={true}
-          slidesPerView={1.4}
-          spaceBetween={30}
-          loop={true}
-          speed={800}
+          centeredSlides
+          loop
+          speed={700}
+          spaceBetween={20}
+          slidesPerView={1.08}
           autoplay={{
-            delay: 8000,
+            delay: 7000,
             disableOnInteraction: false,
             pauseOnMouseEnter: true,
           }}
-          navigation={{
-            nextEl: ".custom-next",
-            prevEl: ".custom-prev",
-          }}
-          pagination={{
-            clickable: true,
-            el: ".custom-pagination",
-          }}
-          modules={[Navigation, Pagination, Autoplay]}
-          className="mySwiper"
-          breakpoints={{
-            320: {
-              slidesPerView: 1,
-            },
-            768: {
-              slidesPerView: 1.4,
-            },
-          }}
+          keyboard={{ enabled: true }}
+          navigation={{ nextEl: ".landing-next", prevEl: ".landing-prev" }}
+          pagination={{ clickable: true, el: ".landing-pagination" }}
+          modules={[Navigation, Pagination, Autoplay, Keyboard, A11y]}
+          breakpoints={{ 768: { slidesPerView: 1.25, spaceBetween: 28 } }}
+          className="!px-5 sm:!px-0"
         >
-          {carouselItems.map((item) => (
-            <SwiperSlide key={item.id}>
-              {({ isActive, isNext }) => {
-                const getLayoutClasses = () => {
-                  switch (item.layout) {
-                    case "top-left":
-                      return "justify-start items-start";
-                    case "top-right":
-                      return "justify-start items-end";
-                    case "bottom-left":
-                      return "justify-end items-start";
-                    case "bottom-right":
-                      return "justify-end items-end";
-                    default:
-                      return "justify-center items-center";
-                  }
-                };
-
-                return (
-                  <div
-                    className={`relative rounded bg-gradient-to-br ${item.bgGradient} border border-neutral-700 flex flex-col ${getLayoutClasses()} overflow-hidden transition-all duration-500 ${
-                      isActive
-                        ? "h-[40rem] opacity-100"
-                        : "h-[30rem] opacity-40"
-                    } ${isNext ? "mt-[10rem]" : ""}`}
-                  >
-                    {/* Background Image or Video */}
-                    {item.mediaType === "image" && item.mediaSrc && (
-                      <>
-                        <Image
-                          src={item.mediaSrc}
-                          alt={item.title}
-                          fill
-                          sizes="70vw"
-                          className="object-cover object-left-top"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/70" />
-                      </>
-                    )}
-
-                    {item.mediaType === "video" && item.mediaSrc && (
-                      <>
-                        <video
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
-                          className="absolute inset-0 w-full h-full object-cover"
-                        >
-                          <source src={item.mediaSrc} type="video/mp4" />
-                        </video>
-                        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-black/20 to-black/70" />
-                      </>
-                    )}
-
-                    {/* Decorative blurred circle for non-media slides */}
-                    {item.mediaType === "none" && (
-                      <div className="absolute -top-20 -right-20 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
-                    )}
-
-                    {/* Content Container */}
-                    <div
-                      className={`relative z-10 p-8 flex flex-col ${item.layout === "center" ? "items-center text-center" : "items-start"} max-w-xl transition-all duration-500`}
-                    >
-                      {/* Icon container */}
-                      <div
-                        className={`rounded flex items-center justify-center mb-4 bg-white/10 backdrop-blur-sm border border-white/20 transition-all duration-500 ${
-                          isActive ? "w-16 h-16" : "w-14 h-14"
-                        }`}
-                      >
-                        {React.createElement(item.icon, {
-                          className: `text-white transition-all duration-500 ${isActive ? "w-8 h-8" : "w-7 h-7"}`,
-                        })}
-                      </div>
-
-                      {/* Title */}
-                      <h3
-                        className={`font-normal text-white transition-all duration-500 mb-3 ${
-                          isActive ? "text-5xl" : "text-3xl"
-                        }`}
-                      >
-                        {item.title}
-                      </h3>
-
-                      {/* Description */}
-                      <p
-                        className={`leading-relaxed text-neutral-400 transition-all duration-500 mb-4 ${
-                          isActive ? "text-base" : "text-sm"
-                        }`}
-                      >
-                        {item.description}
-                      </p>
-
-                      {/* Button */}
-                      {item.hasButton && isActive && (
-                        <Button
-                          asChild
-                          className="rounded gap-2 p-1.5 pl-6 h-fit bg-white text-black hover:bg-neutral-100"
-                        >
-                          <a href="#waitlist">
-                            Join the waitlist
-                            <span className="p-2.5 bg-black text-white rounded">
-                              <ArrowRight className="w-4 h-4" />
-                            </span>
-                          </a>
-                        </Button>
-                      )}
-                    </div>
+          {slides.map((slide) => (
+            <SwiperSlide key={slide.title} className="!h-auto">
+              {({ isActive }) => (
+                <div
+                  className={cn(
+                    "grid h-full grid-cols-1 overflow-hidden rounded-3xl border border-border bg-card transition-opacity duration-500 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]",
+                    isActive ? "opacity-100" : "opacity-40",
+                  )}
+                >
+                  <div className="flex flex-col p-7 sm:p-10">
+                    <span className="grid size-11 place-items-center rounded-xl border border-white/10 bg-white/[0.04]">
+                      {createElement(slide.icon, {
+                        className: "size-5 text-brand",
+                      })}
+                    </span>
+                    <h3 className={cn(heading, "mt-6 text-3xl sm:text-4xl")}>
+                      {slide.title}
+                    </h3>
+                    <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+                      {slide.description}
+                    </p>
+                    <ul className="mt-6 space-y-2 text-sm text-white/80">
+                      {slide.points.map((p) => (
+                        <li key={p} className="flex items-center gap-2.5">
+                          <span className="size-1.5 rounded-full bg-brand" />
+                          {p}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                );
-              }}
+                  <div className="relative flex items-end bg-gradient-to-br from-[#16233a] via-card to-card px-6 pt-8 sm:px-10 sm:pt-12">
+                    <Shot
+                      name={slide.shot}
+                      alt={slide.alt}
+                      bleed
+                      sizes="(min-width: 768px) 640px, 100vw"
+                      className={cn(
+                        "w-full",
+                        slide.shot === "courses" && "max-w-none",
+                      )}
+                    />
+                  </div>
+                </div>
+              )}
             </SwiperSlide>
           ))}
         </Swiper>
-
-        {/* Custom Navigation Buttons - Asymmetric Design */}
-        {/* Previous Button - Bottom Left */}
-        <button className="custom-prev absolute left-36 bottom-24 z-20 group">
-          <div className="relative w-12 h-12 rounded bg-white border border-neutral-200 flex items-center justify-center transition-all duration-300 hover:bg-neutral-50 hover:scale-110">
-            <svg
-              className="w-7 h-7 text-neutral-900 transition-transform duration-300 group-hover:-translate-x-1"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-          </div>
-        </button>
-
-        {/* Next Button - Top Right */}
-        <button className="custom-next absolute right-36 top-0 z-20 group">
-          <div className="relative w-12 h-12 rounded bg-neutral-900 border border-neutral-700 flex items-center justify-center transition-all duration-300 hover:bg-neutral-800 hover:scale-110">
-            <svg
-              className="w-7 h-7 text-white transition-transform duration-300 group-hover:translate-x-1"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </div>
-        </button>
-
-        {/* Custom Pagination - Below carousel */}
-        <div className="custom-pagination flex justify-center gap-3 mt-16"></div>
+        <div className="landing-pagination mt-8 flex justify-center gap-2" />
       </div>
 
-      {/* Custom Pagination Styles */}
       <style jsx global>{`
-        .custom-pagination .swiper-pagination-bullet {
-          width: 12px;
-          height: 12px;
-          background: #d4d4d4;
+        .landing-pagination .swiper-pagination-bullet {
+          width: 6px;
+          height: 6px;
+          margin: 0 !important;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.25);
           opacity: 1;
-          transition: all 0.3s ease;
-          border-radius: 2%;
-          cursor: pointer;
+          transition: width 0.3s ease, background 0.3s ease;
         }
-        .custom-pagination .swiper-pagination-bullet-active {
-          width: 40px;
-          background: #525252;
-          border-radius: 1px;
-        }
-        .custom-pagination .swiper-pagination-bullet:hover {
-          background: #a3a3a3;
-          transform: scale(1.1);
+        .landing-pagination .swiper-pagination-bullet-active {
+          width: 22px;
+          background: var(--brand);
         }
       `}</style>
-    </div>
+    </section>
   );
 };
 

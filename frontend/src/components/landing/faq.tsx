@@ -1,3 +1,6 @@
+import { cn } from "lib/utils";
+import { card, eyebrow, heading } from "./styles";
+
 const faqs = [
   {
     q: "Where do Askly's answers come from?",
@@ -27,37 +30,30 @@ const faqs = [
 
 const Faq = () => {
   return (
-    <div
+    <section
       id="faq"
-      className="container mx-auto my-16 sm:my-20 md:my-24 px-4 sm:px-6"
+      className="mx-auto max-w-6xl scroll-mt-6 px-5 py-24 sm:px-8 sm:py-32"
     >
-      <div className="bg-black/20 rounded p-6 sm:p-8 md:p-12 border">
-        <div className="mb-6 sm:mb-8">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-normal">
-            Frequently asked questions
-          </h2>
-          <p className="text-sm sm:text-base text-neutral-500 mt-3 max-w-2xl">
-            Quick answers about how Askly works, the Chrome extension, and who
-            can see your notes.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          {faqs.map((item) => (
-            <div
-              key={item.q}
-              className="rounded border border-neutral-800 p-4 sm:p-5 bg-neutral-900/40"
-            >
-              <div className="text-sm sm:text-base md:text-lg font-medium mb-2">
-                {item.q}
-              </div>
-              <div className="text-xs sm:text-sm md:text-base text-neutral-300">
-                {item.a}
-              </div>
-            </div>
-          ))}
-        </div>
+      <p className={eyebrow}>FAQ</p>
+      <h2 className={cn(heading, "mt-3 text-4xl sm:text-5xl leading-[1.05]")}>
+        Questions, answered.
+      </h2>
+      <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
+        How Askly works, the Chrome extension, and who can see your notes.
+      </p>
+      <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2">
+        {faqs.map((item) => (
+          <div key={item.q} className={cn(card, "p-6 sm:p-7")}>
+            <h3 className="text-[17px] font-semibold tracking-[-0.015em]">
+              {item.q}
+            </h3>
+            <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
+              {item.a}
+            </p>
+          </div>
+        ))}
       </div>
-    </div>
+    </section>
   );
 };
 

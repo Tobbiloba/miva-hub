@@ -1,7 +1,9 @@
 "use client";
 
+import { cn } from "lib/utils";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { useId, useState } from "react";
+import { btnPrimary } from "./styles";
 
 type State =
   | { kind: "idle" }
@@ -52,11 +54,11 @@ export function WaitlistForm({ source }: { source: string }) {
   if (state.kind === "done") {
     return (
       <div
-        className="flex items-center gap-3 rounded border border-white/10 bg-white/5 p-4 text-sm sm:text-base"
+        className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm sm:text-base"
         role="status"
         aria-live="polite"
       >
-        <span className="grid size-8 shrink-0 place-items-center rounded bg-lime-400 text-black">
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand text-white">
           <Check className="size-4" />
         </span>
         <span>
@@ -69,7 +71,7 @@ export function WaitlistForm({ source }: { source: string }) {
   const loading = state.kind === "loading";
   return (
     <form onSubmit={submit} noValidate className="w-full max-w-xl">
-      <div className="flex flex-col gap-2 rounded bg-white p-1.5 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-2 rounded-[28px] border border-white/10 bg-white/[0.06] p-1.5 transition-colors focus-within:border-brand/60 sm:flex-row sm:items-center sm:rounded-full">
         <label htmlFor={`${id}-email`} className="sr-only">
           Email address
         </label>
@@ -88,7 +90,7 @@ export function WaitlistForm({ source }: { source: string }) {
           aria-invalid={state.kind === "error"}
           aria-describedby={state.kind === "error" ? `${id}-err` : undefined}
           disabled={loading}
-          className="h-11 min-w-0 flex-1 bg-transparent px-3 text-base text-black outline-none placeholder:text-neutral-500"
+          className="h-11 min-w-0 flex-1 bg-transparent px-4 text-base text-foreground outline-none placeholder:text-muted-foreground"
         />
         <input
           type="text"
@@ -102,24 +104,26 @@ export function WaitlistForm({ source }: { source: string }) {
           type="submit"
           disabled={loading}
           aria-busy={loading}
-          className="flex h-11 items-center justify-center gap-2 rounded bg-black pr-1.5 pl-5 text-sm font-medium text-white transition-all hover:gap-3 disabled:opacity-60 sm:text-base"
+          className={cn(btnPrimary, "disabled:opacity-60")}
         >
           {loading ? "Joining…" : "Join the waitlist"}
-          <span className="rounded bg-lime-400 p-2 text-black">
-            {loading ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <ArrowRight className="size-4" />
-            )}
-          </span>
+          {loading ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <ArrowRight className="size-4" />
+          )}
         </button>
       </div>
       {state.kind === "error" ? (
-        <p id={`${id}-err`} role="alert" className="mt-2 text-sm text-red-400">
+        <p
+          id={`${id}-err`}
+          role="alert"
+          className="mt-3 px-4 text-sm text-destructive"
+        >
           {state.message}
         </p>
       ) : (
-        <p className="mt-2 text-sm text-neutral-400">
+        <p className="mt-3 px-4 text-sm text-muted-foreground">
           Early access for students. One email when it&apos;s your turn.
         </p>
       )}
