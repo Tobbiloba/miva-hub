@@ -101,6 +101,21 @@ export interface AssignmentAnalytics {
   status: "upcoming" | "active" | "closed" | "grading";
 }
 
+/**
+ * Current-term resolver memoized per university for one analytics run —
+ * "all" scope spans universities, each with its own current term.
+ */
+function termResolver() {
+  const memo = new Map<string, Promise<string | null>>();
+  return (universityId: string | null | undefined) => {
+    if (!universityId) return Promise.resolve(null);
+    if (!memo.has(universityId)) {
+      memo.set(universityId, getCurrentSemester(universityId));
+    }
+    return memo.get(universityId)!;
+  };
+}
+
 class AcademicAnalyticsService {
   private cache = new Map<string, { data: any; timestamp: number }>();
   private cacheTTL = 10 * 60 * 1000; // 10 minutes
@@ -112,7 +127,7 @@ class AcademicAnalyticsService {
     return this.cached(`${scope}:system-overview`, async () => {
       const [systemStats, currentSemester] = await Promise.all([
         pgAcademicRepository.getSystemStats(scope),
-        getCurrentSemester(),
+        scope === "all" ? null : getCurrentSemester(scope),
       ]);
 
       return {
@@ -121,7 +136,7 @@ class AcademicAnalyticsService {
         totalFaculty: systemStats.faculty,
         totalDepartments: systemStats.departments,
         totalMaterials: systemStats.materials,
-        activeSemester: currentSemester,
+        activeSemester: currentSemester ?? "N/A",
       };
     });
   }
@@ -137,7 +152,7 @@ class AcademicAnalyticsService {
 
     return this.cached(cacheKey, async () => {
       try {
-        const currentSemester = await getCurrentSemester();
+        const termFor = termResolver();
 
         // Get all active courses (tenant-scoped — departmentId comes from
         // the query string, so foreign departments simply yield nothing)
@@ -149,6 +164,7 @@ class AcademicAnalyticsService {
 
         const courseAnalytics = await Promise.all(
           courses.map(async (course) => {
+            const currentSemester = await termFor(course.universityId);
             const [stats, instructors] = await Promise.all([
               pgAcademicRepository.getCourseStatistics(
                 course.id,
@@ -278,10 +294,11 @@ class AcademicAnalyticsService {
         const departments = await pgAcademicRepository.getDepartments(
           scope === "all" ? undefined : scope,
         );
-        const currentSemester = await getCurrentSemester();
+        const termFor = termResolver();
 
         const departmentAnalytics = await Promise.all(
           departments.map(async (dept) => {
+            const currentSemester = await termFor(dept.universityId);
             const [courses, faculty] = await Promise.all([
               pgAcademicRepository.getCoursesByDepartment(dept.id),
               pgAcademicRepository.getFacultyByDepartment(dept.id),
@@ -335,7 +352,7 @@ class AcademicAnalyticsService {
   async getLearningInsights(scope: AnalyticsScope): Promise<LearningInsights> {
     return this.cached(`${scope}:learning-insights`, async () => {
       try {
-        const currentSemester = await getCurrentSemester();
+        const termFor = termResolver();
         const courses = (await pgAcademicRepository.getActiveCourses()).filter(
           (course) => inScope(scope, course.universityId),
         );
@@ -345,7 +362,7 @@ class AcademicAnalyticsService {
           courses.map(async (course) => {
             const stats = await pgAcademicRepository.getCourseStatistics(
               course.id,
-              currentSemester,
+              await termFor(course.universityId),
             );
             return {
               courseCode: course.courseCode,
@@ -456,7 +473,7 @@ class AcademicAnalyticsService {
       try {
         const [systemStats, currentSemester] = await Promise.all([
           pgAcademicRepository.getSystemStats(scope),
-          getCurrentSemester(),
+          scope === "all" ? null : getCurrentSemester(scope),
         ]);
 
         // Get today's activity (placeholder - would track actual activity)

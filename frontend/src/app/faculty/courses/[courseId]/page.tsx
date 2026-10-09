@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { NextResponse } from "next/server";
 
 interface CoursePageProps {
   params: Promise<{
@@ -58,16 +59,24 @@ export default async function CourseManagementPage({
     return <div>Error: Invalid faculty session</div>;
   }
 
-  // Verify faculty can access this course
-  const sessionOrError = await requireCourseInstructor(courseId, semesterParam);
-  if (!sessionOrError || typeof sessionOrError !== "object") {
+  // Verify faculty teaches this course (in their own university). The
+  // helper answers with a NextResponse on denial — check for it explicitly.
+  const sessionOrError = await requireCourseInstructor(courseId);
+  if (sessionOrError instanceof NextResponse) {
     return <div>Error: Access denied to this course</div>;
   }
 
-  // Get current semester dynamically for fallback
-  const { getCurrentSemester } = await import("@/lib/utils/semester");
-  const currentSemester = await getCurrentSemester();
-  const semester = semesterParam || currentSemester;
+  // Term to show: an explicit ?semester= term key, else the university's
+  // current term
+  const { formatSemester, getCurrentSemester, isTermKey } = await import(
+    "@/lib/utils/semester"
+  );
+  const { getUserUniversity } = await import("@/lib/tenant");
+  const university = await getUserUniversity(facultyInfo.id);
+  const semester =
+    semesterParam && isTermKey(semesterParam)
+      ? semesterParam
+      : await getCurrentSemester(university?.id);
 
   // Get course details
   const [
@@ -112,8 +121,8 @@ export default async function CourseManagementPage({
             <div className="flex flex-wrap items-center gap-2 mt-1">
               <Badge variant="outline">{department.name}</Badge>
               <Badge variant="secondary">{course.credits} credits</Badge>
-              <Badge variant="outline" className="capitalize">
-                {semester.replace("-", " ")}
+              <Badge variant="outline">
+                {semester ? formatSemester(semester) : "No active term"}
               </Badge>
             </div>
           </div>

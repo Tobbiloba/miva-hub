@@ -1,6 +1,9 @@
 import "server-only";
+import { pgDb } from "@/lib/db/pg/db.pg";
+import { UserSchema } from "@/lib/db/pg/schema.pg";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { getSession } from "./server";
+import { getApiSession, getSession } from "./server";
 
 /**
  * Check if the current session belongs to an active student.
@@ -23,40 +26,44 @@ export async function isStudent(): Promise<boolean> {
  * Returns session if active student, NextResponse error otherwise.
  */
 export async function requireStudent() {
-  try {
-    const session = await getSession();
+  const session = await getApiSession();
 
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 },
-      );
-    }
-
-    if (session.user.role !== "student") {
-      return NextResponse.json(
-        { error: "Student access required" },
-        { status: 403 },
-      );
-    }
-
-    if (session.user.enrollmentStatus !== "active") {
-      return NextResponse.json(
-        {
-          error: "Active enrollment required",
-          enrollmentStatus: session.user.enrollmentStatus,
-        },
-        { status: 403 },
-      );
-    }
-
-    return session;
-  } catch {
+  if (!session?.user) {
     return NextResponse.json(
       { error: "Authentication required" },
       { status: 401 },
     );
   }
+
+  // Role and enrollment status from the DB, not the cached session payload,
+  // so a suspension or role change applies immediately.
+  const [userRow] = await pgDb
+    .select({
+      role: UserSchema.role,
+      enrollmentStatus: UserSchema.enrollmentStatus,
+    })
+    .from(UserSchema)
+    .where(eq(UserSchema.id, session.user.id))
+    .limit(1);
+
+  if (userRow?.role !== "student") {
+    return NextResponse.json(
+      { error: "Student access required" },
+      { status: 403 },
+    );
+  }
+
+  if (userRow.enrollmentStatus !== "active") {
+    return NextResponse.json(
+      {
+        error: "Active enrollment required",
+        enrollmentStatus: userRow.enrollmentStatus,
+      },
+      { status: 403 },
+    );
+  }
+
+  return session;
 }
 
 /**

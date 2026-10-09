@@ -1,3 +1,4 @@
+import { termKey } from "@/lib/utils/semester";
 import {
   type BrowsableCourse,
   CourseBrowser,
@@ -75,7 +76,10 @@ export default async function BrowseCoursesPage() {
         .where(
           and(
             eq(StudentEnrollmentSchema.studentId, session.user.id),
-            eq(StudentEnrollmentSchema.semester, activeSession.currentSemester),
+            eq(
+              StudentEnrollmentSchema.semester,
+              termKey(activeSession.sessionName, activeSession.currentSemester),
+            ),
           ),
         )
     : [];

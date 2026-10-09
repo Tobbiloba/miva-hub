@@ -1,3 +1,4 @@
+import { termKey } from "@/lib/utils/semester";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { sendEmail } from "@/lib/email/smtp-service";
 import { buildWelcomeEmail } from "@/lib/email/templates/welcome";
@@ -111,10 +112,11 @@ export async function POST(request: NextRequest) {
     const academicYear = activeSession.sessionName.replace("/", "-");
     const currentSemester = activeSession.currentSemester; // "first" | "second"
 
-    // Build enrollment semester string: "first" + "2025/2026" → "2025-fall"
-    const [startYear, endYear] = activeSession.sessionName.split("/");
-    const enrollmentSemester =
-      currentSemester === "first" ? `${startYear}-fall` : `${endYear}-spring`;
+    // Canonical term key stored on enrollments, e.g. "2025/2026-first"
+    const enrollmentSemester = termKey(
+      activeSession.sessionName,
+      currentSemester,
+    );
 
     // 1. Create user via Better Auth. Its user-create hook is the tenant
     // gate: it resolves the university from the email domain (rejecting

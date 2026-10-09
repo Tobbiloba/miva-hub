@@ -67,15 +67,9 @@ export const createFacultyDirectoryTool = (universityId: string) =>
             };
           }
 
-          // Get current semester course instructor info
-          const currentSemester =
-            await pgAcademicRepository.getActiveAcademicCalendar();
-          let semesterCode = currentSemester?.semester;
-
-          if (!semesterCode) {
-            const { getCurrentSemester } = await import("@/lib/utils/semester");
-            semesterCode = await getCurrentSemester();
-          }
+          // Instructor for the university's current term
+          const { getCurrentSemester } = await import("@/lib/utils/semester");
+          const semesterCode = await getCurrentSemester(universityId);
 
           const courseWithInstructor =
             await pgAcademicRepository.getCourseWithInstructor(

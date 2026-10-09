@@ -1,6 +1,14 @@
+import { pgDb } from "@/lib/db/pg/db.pg";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import {
+  CourseInstructorSchema,
+  CourseSchema,
+  FacultySchema,
+  UserSchema,
+} from "@/lib/db/pg/schema.pg";
+import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { getSession } from "./server";
+import { getApiSession } from "./server";
 
 /**
  * Faculty Authentication and Authorization Helper Functions
@@ -12,7 +20,9 @@ import { getSession } from "./server";
  * @returns Session object or NextResponse error
  */
 export async function requireFaculty() {
-  const session = await getSession();
+  // getApiSession returns null instead of redirecting: a redirect thrown
+  // inside an API route's try/catch surfaced as a 500.
+  const session = await getApiSession();
 
   if (!session?.user) {
     return NextResponse.json(
@@ -21,8 +31,14 @@ export async function requireFaculty() {
     );
   }
 
-  // Check if user has faculty role (from DB enum column)
-  if (session.user.role !== "faculty") {
+  // Role from the DB, not the cached session payload (cached for up to an
+  // hour, so a demotion would otherwise keep faculty access).
+  const [userRow] = await pgDb
+    .select({ role: UserSchema.role })
+    .from(UserSchema)
+    .where(eq(UserSchema.id, session.user.id))
+    .limit(1);
+  if (userRow?.role !== "faculty") {
     return NextResponse.json(
       { error: "Faculty access required" },
       { status: 403 },
@@ -77,35 +93,37 @@ export function getFacultyInfo(session?: any) {
 }
 
 /**
- * Verifies that a faculty member is authorized to teach a specific course
- * @param facultyId - Faculty user ID
- * @param courseId - Course ID to check
- * @param semester - Optional semester (defaults to current)
- * @returns Boolean indicating authorization
+ * Is this faculty member assigned to teach this course, within their own
+ * university? Assignment in any term is the access signal (same rule as
+ * material access and lecture studio) — access must not hinge on matching a
+ * semester string.
  */
 export async function checkCourseInstructorAccess(
-  facultyId: string,
+  facultyUserId: string,
   courseId: string,
-  semester?: string,
 ): Promise<boolean> {
   try {
-    // Get current semester if not provided
-    const currentSemester = semester || (await getCurrentSemester());
-
-    const courseInstructors = await pgAcademicRepository.getCourseInstructors(
-      courseId,
-      currentSemester,
-    );
-
-    // Check if faculty is assigned to this course
-    const facultyRecord =
-      await pgAcademicRepository.getFacultyByUserId(facultyId);
-    if (!facultyRecord) return false;
-
-    return courseInstructors.some(
-      (instructor) =>
-        instructor.courseInstructor.facultyId === facultyRecord.id,
-    );
+    const [row] = await pgDb
+      .select({ id: CourseInstructorSchema.id })
+      .from(CourseInstructorSchema)
+      .innerJoin(
+        FacultySchema,
+        eq(CourseInstructorSchema.facultyId, FacultySchema.id),
+      )
+      .innerJoin(UserSchema, eq(FacultySchema.userId, UserSchema.id))
+      .innerJoin(
+        CourseSchema,
+        eq(CourseInstructorSchema.courseId, CourseSchema.id),
+      )
+      .where(
+        and(
+          eq(FacultySchema.userId, facultyUserId),
+          eq(CourseInstructorSchema.courseId, courseId),
+          eq(CourseSchema.universityId, UserSchema.universityId),
+        ),
+      )
+      .limit(1);
+    return !!row;
   } catch (error) {
     console.error("Error checking course instructor access:", error);
     return false;
@@ -118,10 +136,7 @@ export async function checkCourseInstructorAccess(
  * @param semester - Optional semester
  * @returns Session object or NextResponse error
  */
-export async function requireCourseInstructor(
-  courseId: string,
-  semester?: string,
-) {
+export async function requireCourseInstructor(courseId: string) {
   const sessionOrError = await requireFaculty();
 
   // If requireFaculty returned an error, pass it through
@@ -135,7 +150,6 @@ export async function requireCourseInstructor(
   const hasAccess = await checkCourseInstructorAccess(
     session.user.id,
     courseId,
-    semester,
   );
 
   if (!hasAccess) {
@@ -196,66 +210,6 @@ export async function checkFacultyPermissions(
     return positionPermissions.includes(permission);
   } catch (error) {
     console.error("Error checking faculty permissions:", error);
-    return false;
-  }
-}
-
-/**
- * Gets the current active semester
- * @returns Current semester string (e.g., "2025-spring")
- * @deprecated Use getCurrentSemester from @/lib/utils/semester instead
- */
-async function getCurrentSemester(): Promise<string> {
-  // Import here to avoid circular dependency
-  const { getCurrentSemester: getCurrentSemesterUtil } = await import(
-    "@/lib/utils/semester"
-  );
-  return getCurrentSemesterUtil();
-}
-
-/**
- * Validates that faculty can access student data (must be enrolled in faculty's course)
- * @param facultyId - Faculty user ID
- * @param studentId - Student user ID
- * @param semester - Optional semester
- * @returns Boolean indicating access permission
- */
-export async function checkStudentAccess(
-  facultyId: string,
-  studentId: string,
-  semester?: string,
-): Promise<boolean> {
-  try {
-    const currentSemester = semester || (await getCurrentSemester());
-
-    // Get faculty record
-    const facultyRecord =
-      await pgAcademicRepository.getFacultyByUserId(facultyId);
-    if (!facultyRecord) return false;
-
-    // Get faculty's courses
-    const facultyCourses = await pgAcademicRepository.getFacultyCourses(
-      facultyRecord.id,
-      currentSemester,
-    );
-
-    // Check if student is enrolled in any of faculty's courses
-    for (const course of facultyCourses) {
-      const enrollments = await pgAcademicRepository.getCourseEnrollments(
-        course.course.id,
-        currentSemester,
-      );
-
-      const isEnrolled = enrollments.some(
-        (enrollment) => enrollment.studentId === studentId,
-      );
-
-      if (isEnrolled) return true;
-    }
-
-    return false;
-  } catch (error) {
-    console.error("Error checking student access:", error);
     return false;
   }
 }

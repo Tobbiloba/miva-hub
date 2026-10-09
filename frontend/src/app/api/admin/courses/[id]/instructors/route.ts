@@ -1,3 +1,4 @@
+import { resolveTermKey } from "@/lib/utils/semester";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
@@ -139,6 +140,20 @@ export async function POST(
       );
     }
 
+    const semester = await resolveTermKey(validated.semester, {
+      universityId: courseUniversityId,
+    });
+    if (!semester) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Semester must be "first", "second" or a term like "2025/2026-first"',
+        },
+        { status: 400 },
+      );
+    }
+
     // Check for duplicate assignment (unique: courseId + facultyId + semester)
     const [existing] = await pgDb
       .select({ id: CourseInstructorSchema.id })
@@ -147,7 +162,7 @@ export async function POST(
         and(
           eq(CourseInstructorSchema.courseId, courseId),
           eq(CourseInstructorSchema.facultyId, validated.facultyId),
-          eq(CourseInstructorSchema.semester, validated.semester),
+          eq(CourseInstructorSchema.semester, semester),
         ),
       )
       .limit(1);
@@ -168,7 +183,7 @@ export async function POST(
       .values({
         courseId,
         facultyId: validated.facultyId,
-        semester: validated.semester,
+        semester,
         role: validated.role,
         createdAt: new Date(),
       })

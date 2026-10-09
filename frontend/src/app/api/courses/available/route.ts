@@ -1,6 +1,7 @@
 import { getApiSession } from "@/lib/auth/server";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { getMemberScope } from "@/lib/tenant";
+import { formatSemester, getCurrentSemester } from "@/lib/utils/semester";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -42,28 +43,22 @@ export async function GET(request: NextRequest) {
           })
     ).filter((course) => !universityId || course.universityId === universityId);
 
-    // Get current semester info
-    const currentSemester =
-      await pgAcademicRepository.getActiveAcademicCalendar();
+    // Current term per university (super_admin requests can span several)
+    const termCache = new Map<string, Promise<string | null>>();
+    const termFor = (id: string) => {
+      if (!termCache.has(id)) termCache.set(id, getCurrentSemester(id));
+      return termCache.get(id)!;
+    };
+    const currentTerm = universityId ? await termFor(universityId) : null;
 
     // Format for course selection consumption
     const formattedCourses = await Promise.all(
       courses.map(async (course) => {
-        // Get course schedule if available
-        const schedule = currentSemester
-          ? await pgAcademicRepository.getCourseSchedule(
-              course.id,
-              currentSemester.semester,
-            )
-          : [];
-
-        // Get course instructor info
-        const instructorInfo = currentSemester
-          ? await pgAcademicRepository.getCourseWithInstructor(
-              course.id,
-              currentSemester.semester,
-            )
-          : [];
+        const term = await termFor(course.universityId);
+        const [schedule, instructorInfo] = await Promise.all([
+          pgAcademicRepository.getCourseSchedule(course.id, term),
+          pgAcademicRepository.getCourseWithInstructor(course.id, term),
+        ]);
 
         const instructor = instructorInfo[0];
 
@@ -93,7 +88,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       courses: formattedCourses,
-      semester: currentSemester?.semesterName || "Current Semester",
+      semester: currentTerm ? formatSemester(currentTerm) : "Current Semester",
     });
   } catch (error) {
     console.error("Error fetching available courses:", error);

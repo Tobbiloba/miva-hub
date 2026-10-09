@@ -1,3 +1,4 @@
+import { resolveTermKey } from "@/lib/utils/semester";
 import { requireAdmin } from "@/lib/auth/admin";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
@@ -136,11 +137,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const semester = await resolveTermKey(validated.semester, {
+      universityId: course.universityId,
+    });
+    if (!semester) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Semester must be "first", "second" or a term like "2025/2026-first"',
+        },
+        { status: 400 },
+      );
+    }
+
     const [schedule] = await pgDb
       .insert(ClassScheduleSchema)
       .values({
         courseId: validated.courseId,
-        semester: validated.semester,
+        semester,
         dayOfWeek: validated.dayOfWeek,
         startTime: validated.startTime,
         endTime: validated.endTime,

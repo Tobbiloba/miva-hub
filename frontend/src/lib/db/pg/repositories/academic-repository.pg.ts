@@ -1,4 +1,5 @@
 import {
+  type SQL,
   and,
   asc,
   desc,
@@ -9,7 +10,16 @@ import {
   or,
   sql,
 } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { pgDb as db } from "../db.pg";
+
+/**
+ * Filter a semester column by a term key. `null` means the university has no
+ * current term, so term-scoped rows match nothing (never "all terms").
+ */
+function termEq(column: AnyPgColumn, term: string | null): SQL {
+  return term ? eq(column, term) : sql`false`;
+}
 import {
   type AIProcessedContentEntity,
   AIProcessedContentSchema,
@@ -482,7 +492,7 @@ export const pgAcademicRepository = {
 
   getCourseEnrollments: async (
     courseId: string,
-    semester: string,
+    semester: string | null,
   ): Promise<StudentEnrollmentEntity[]> => {
     return db
       .select()
@@ -490,7 +500,7 @@ export const pgAcademicRepository = {
       .where(
         and(
           eq(StudentEnrollmentSchema.courseId, courseId),
-          eq(StudentEnrollmentSchema.semester, semester),
+          termEq(StudentEnrollmentSchema.semester, semester),
         ),
       )
       .orderBy(asc(StudentEnrollmentSchema.enrollmentDate));
@@ -567,16 +577,9 @@ export const pgAcademicRepository = {
       .limit(limit);
   },
 
-  // Academic calendar operations
-  getActiveAcademicCalendar:
-    async (): Promise<AcademicCalendarEntity | null> => {
-      const [result] = await db
-        .select()
-        .from(AcademicCalendarSchema)
-        .where(eq(AcademicCalendarSchema.isActive, true));
-      return result ?? null;
-    },
-
+  // Academic calendar operations. The current term is per university and
+  // comes from academic_session (see lib/utils/semester.ts) — there is no
+  // platform-wide "active calendar".
   getAcademicCalendarBySemester: async (
     semester: string,
   ): Promise<AcademicCalendarEntity | null> => {
@@ -590,7 +593,7 @@ export const pgAcademicRepository = {
   // Class schedule operations
   getCourseSchedule: async (
     courseId: string,
-    semester: string,
+    semester: string | null,
   ): Promise<ClassScheduleEntity[]> => {
     return db
       .select()
@@ -598,7 +601,7 @@ export const pgAcademicRepository = {
       .where(
         and(
           eq(ClassScheduleSchema.courseId, courseId),
-          eq(ClassScheduleSchema.semester, semester),
+          termEq(ClassScheduleSchema.semester, semester),
         ),
       )
       .orderBy(
@@ -638,7 +641,10 @@ export const pgAcademicRepository = {
     return enrollmentsWithCourses;
   },
 
-  getCourseWithInstructor: async (courseId: string, semester: string) => {
+  getCourseWithInstructor: async (
+    courseId: string,
+    semester: string | null,
+  ) => {
     const courseWithInstructor = await db
       .select({
         course: CourseSchema,
@@ -655,7 +661,7 @@ export const pgAcademicRepository = {
         CourseInstructorSchema,
         and(
           eq(CourseInstructorSchema.courseId, CourseSchema.id),
-          eq(CourseInstructorSchema.semester, semester),
+          termEq(CourseInstructorSchema.semester, semester),
         ),
       )
       .leftJoin(
@@ -1171,11 +1177,12 @@ export const pgAcademicRepository = {
   },
 
   // Faculty-specific operations for Phase 3
-  getFacultyCourses: async (facultyId: string, semester?: string) => {
+  /** `semester` undefined → all terms; a term key or null → that term only. */
+  getFacultyCourses: async (facultyId: string, semester?: string | null) => {
     try {
       const conditions = [eq(CourseInstructorSchema.facultyId, facultyId)];
-      if (semester) {
-        conditions.push(eq(CourseInstructorSchema.semester, semester));
+      if (semester !== undefined) {
+        conditions.push(termEq(CourseInstructorSchema.semester, semester));
       }
 
       const facultyCourses = await db
@@ -1203,7 +1210,7 @@ export const pgAcademicRepository = {
     }
   },
 
-  getCourseInstructors: async (courseId: string, semester: string) => {
+  getCourseInstructors: async (courseId: string, semester: string | null) => {
     try {
       const instructors = await db
         .select({
@@ -1220,7 +1227,7 @@ export const pgAcademicRepository = {
         .where(
           and(
             eq(CourseInstructorSchema.courseId, courseId),
-            eq(CourseInstructorSchema.semester, semester),
+            termEq(CourseInstructorSchema.semester, semester),
           ),
         )
         .orderBy(asc(CourseInstructorSchema.role));
@@ -1479,7 +1486,7 @@ export const pgAcademicRepository = {
     }
   },
 
-  getCourseStatistics: async (courseId: string, semester: string) => {
+  getCourseStatistics: async (courseId: string, semester: string | null) => {
     try {
       const [enrollmentCount, assignmentCount, averageGrade] =
         await Promise.all([
@@ -1490,7 +1497,7 @@ export const pgAcademicRepository = {
             .where(
               and(
                 eq(StudentEnrollmentSchema.courseId, courseId),
-                eq(StudentEnrollmentSchema.semester, semester),
+                termEq(StudentEnrollmentSchema.semester, semester),
                 eq(StudentEnrollmentSchema.status, "enrolled"),
               ),
             ),
@@ -2294,7 +2301,7 @@ export const pgAcademicRepository = {
     level: number,
     semester: "first" | "second",
     academicYear: string,
-    enrollmentSemester: string, // e.g. "2025-fall"
+    enrollmentSemester: string, // term key, e.g. "2025/2026-first"
   ): Promise<number> => {
     const curriculum = await db
       .select({ courseId: ProgramCurriculumSchema.courseId })

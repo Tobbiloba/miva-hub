@@ -1,3 +1,4 @@
+import { termKey } from "@/lib/utils/semester";
 import { getApiSession } from "@/lib/auth/server";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { pgUniversityRepository } from "@/lib/db/pg/repositories/university-repository.pg";
@@ -52,14 +53,11 @@ export async function GET(request: NextRequest) {
     // Convert session name format "2025/2026" to academic year "2025-2026"
     const academicYear = session.sessionName.replace("/", "-");
 
-    // Map semester enum to enrollment semester string
-    // "first" + "2025/2026" → "2025-fall", "second" + "2025/2026" → "2026-spring"
-    const startYear = session.sessionName.split("/")[0];
-    const endYear = session.sessionName.split("/")[1];
-    const enrollmentSemester =
-      session.currentSemester === "first"
-        ? `${startYear}-fall`
-        : `${endYear}-spring`;
+    // Canonical term key stored on enrollments, e.g. "2025/2026-first"
+    const enrollmentSemester = termKey(
+      session.sessionName,
+      session.currentSemester,
+    );
 
     return NextResponse.json({
       sessionName: session.sessionName,

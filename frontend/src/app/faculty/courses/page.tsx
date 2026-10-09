@@ -21,6 +21,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import { formatSemester } from "@/lib/utils/semester";
 
 export default async function FacultyCoursesPage() {
   const session = await getSession();
@@ -39,9 +40,11 @@ export default async function FacultyCoursesPage() {
     return <div>Error: Faculty record not found</div>;
   }
 
-  // Get current semester dynamically
+  // Current term of the faculty member's own university
   const { getCurrentSemester } = await import("@/lib/utils/semester");
-  const currentSemester = await getCurrentSemester();
+  const { getUserUniversity } = await import("@/lib/tenant");
+  const university = await getUserUniversity(facultyInfo.id);
+  const currentSemester = await getCurrentSemester(university?.id);
 
   // Fetch course data
   const [facultyCourses, currentSemesterCourses] = await Promise.all([
@@ -339,9 +342,8 @@ function AllCoursesList({ courses }: { courses: any[] }) {
         .sort(([a], [b]) => b.localeCompare(a)) // Sort semesters in reverse order (newest first)
         .map(([semester, semesterCourses]) => (
           <div key={semester}>
-            <h3 className="text-lg font-semibold mb-4 capitalize">
-              {semester.replace("-", " ")} Semester ({semesterCourses.length}{" "}
-              courses)
+            <h3 className="text-lg font-semibold mb-4">
+              {formatSemester(semester)} ({semesterCourses.length} courses)
             </h3>
             <div className="grid gap-4 md:grid-cols-3">
               {semesterCourses.map(

@@ -1,3 +1,4 @@
+import { termKey } from "@/lib/utils/semester";
 import { getApiSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
@@ -78,7 +79,11 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       );
     }
-    const semester = activeSession.currentSemester;
+    // Canonical term key, e.g. "2025/2026-first" (same as registration)
+    const semester = termKey(
+      activeSession.sessionName,
+      activeSession.currentSemester,
+    );
     const academicYear = activeSession.sessionName.replace("/", "-");
 
     const [existing] = await pgDb
@@ -191,7 +196,10 @@ export async function DELETE(request: NextRequest) {
         and(
           eq(StudentEnrollmentSchema.studentId, session.user.id),
           eq(StudentEnrollmentSchema.courseId, courseId),
-          eq(StudentEnrollmentSchema.semester, activeSession.currentSemester),
+          eq(
+            StudentEnrollmentSchema.semester,
+            termKey(activeSession.sessionName, activeSession.currentSemester),
+          ),
           eq(StudentEnrollmentSchema.status, "enrolled"),
         ),
       )

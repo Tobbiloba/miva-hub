@@ -255,7 +255,7 @@ export function CourseInstructors({ courseId }: { courseId: string }) {
                   <Input
                     value={semester}
                     onChange={(e) => setSemester(e.target.value)}
-                    placeholder="e.g., first, second"
+                    placeholder="first, second, or 2025/2026-first"
                   />
                 </div>
               </div>

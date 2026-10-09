@@ -10,6 +10,10 @@ import { and, eq, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+// Non-UUID ids would reach Postgres as an invalid uuid cast (500).
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function noUniversityResponse() {
   return NextResponse.json(
     {
@@ -43,6 +47,12 @@ export async function GET(
     }
 
     const { id } = await params;
+    if (!UUID_RE.test(id)) {
+      return NextResponse.json(
+        { success: false, error: "Session not found" },
+        { status: 404 },
+      );
+    }
 
     const university = await getUserUniversity(adminAccess.user.id);
     if (!university) {
@@ -91,6 +101,12 @@ export async function PUT(
     }
 
     const { id } = await params;
+    if (!UUID_RE.test(id)) {
+      return NextResponse.json(
+        { success: false, error: "Session not found" },
+        { status: 404 },
+      );
+    }
     const body = await request.json();
     const validatedData = updateSessionSchema.parse(body);
 
@@ -195,6 +211,12 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    if (!UUID_RE.test(id)) {
+      return NextResponse.json(
+        { success: false, error: "Session not found" },
+        { status: 404 },
+      );
+    }
 
     const university = await getUserUniversity(adminAccess.user.id);
     if (!university) {

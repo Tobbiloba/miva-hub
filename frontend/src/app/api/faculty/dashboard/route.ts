@@ -50,6 +50,7 @@ export async function GET(_request: NextRequest) {
     const upcomingDeadlines = await getUpcomingDeadlines(facultyRecord.id);
     const coursePerformance = await getCoursePerformanceMetrics(
       facultyRecord.id,
+      (await getUserUniversity(session.user.id))?.id ?? null,
     );
 
     return NextResponse.json({
@@ -109,13 +110,16 @@ async function getUpcomingDeadlines(facultyId: string) {
 }
 
 // Helper function to get course performance metrics
-async function getCoursePerformanceMetrics(facultyId: string) {
+async function getCoursePerformanceMetrics(
+  facultyId: string,
+  universityId: string | null,
+) {
   try {
     const facultyCourses =
       await pgAcademicRepository.getFacultyCourses(facultyId);
 
     const { getCurrentSemester } = await import("@/lib/utils/semester");
-    const currentSemester = await getCurrentSemester();
+    const currentSemester = await getCurrentSemester(universityId);
 
     const courseMetrics = await Promise.all(
       facultyCourses.map(async ({ course }) => {

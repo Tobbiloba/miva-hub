@@ -146,12 +146,15 @@ async function main() {
     const facultyId = crypto.randomUUID();
     const employeeId = `FAC-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(-4).toUpperCase()}`;
 
+    // Faculty belong to the department's university — without it they're
+    // invisible to their admin and denied every tenant-scoped resource.
+    // The password lives only on the credential account row below.
     await db.insert(UserSchema).values({
       id: userId,
       name: fd.name,
       email: fd.email,
-      password: hashedPassword,
       role: "faculty",
+      universityId: csDept.universityId,
       emailVerified: true,
     });
 
