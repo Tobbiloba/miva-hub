@@ -76,27 +76,41 @@ function ago(days: number): string {
   return `${days} days ago`;
 }
 
+/**
+ * Text the student or an LMS page wrote (titles, quiz questions, chat
+ * questions) quoted for the prompt: one line, no angle brackets (it can't
+ * open or close the prompt's tags), bounded length.
+ */
+export function quote(value: unknown, max = 120): string {
+  const text = String(value ?? "")
+    .replace(/[<>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
+  return `"${text}"`;
+}
+
 /** One line per activity, for the prompt and the my-activity tool. */
 export function describeActivity(e: ActivityEvent): string {
   const course = e.courseCode ? `${e.courseCode} ` : "";
   switch (e.type) {
     case "capture_added":
-      return `captured ${course}"${e.meta.title ?? "a page"}" (${e.meta.contentType ?? "page"})`;
+      return `captured ${course}${quote(e.meta.title ?? "a page")} (${quote(e.meta.contentType ?? "page", 30)})`;
     case "quiz_completed": {
       const missed: string[] = e.meta.missed ?? [];
-      return `scored ${e.meta.percent}% on ${e.meta.kind === "exam" ? "a mock exam" : "a quiz"} "${e.meta.title}"${e.meta.courseCode ? ` (${e.meta.courseCode})` : ""}${
+      return `scored ${Number(e.meta.percent) || 0}% on ${e.meta.kind === "exam" ? "a mock exam" : "a quiz"} ${quote(e.meta.title)}${e.meta.courseCode ? ` (${quote(e.meta.courseCode, 20)})` : ""}${
         missed.length
           ? `; missed: ${missed
               .slice(0, 3)
-              .map((q) => `"${q.slice(0, 90)}"`)
+              .map((q) => quote(q, 90))
               .join("; ")}`
           : ""
       }`;
     }
     case "deadline_completed":
-      return `finished "${e.meta.title}"${e.meta.onTime === false ? " (after the due date)" : ""}`;
+      return `finished ${quote(e.meta.title)}${e.meta.onTime === false ? " (after the due date)" : ""}`;
     case "course_question_asked":
-      return `asked about ${(e.meta.courses ?? []).join("/") || "their course"}: "${String(e.meta.question ?? "").slice(0, 100)}"${e.meta.found === false ? " (not in their materials)" : ""}`;
+      return `asked about ${(e.meta.courses ?? []).map((c: unknown) => quote(c, 20)).join("/") || "their course"}: ${quote(e.meta.question, 100)}${e.meta.found === false ? " (not in their materials)" : ""}`;
     case "flashcard_reviewed":
       return `reviewed a ${course}flashcard`;
     case "material_viewed":
@@ -121,9 +135,13 @@ export async function buildStudentMemory(
         (SELECT count(*) FROM course_material m
           WHERE m.course_id = c.id AND m.deleted_at IS NULL
             AND m.owner_user_id = ${studentId})::int AS own_captures
-      FROM student_enrollment se
-      JOIN course c ON c.id = se.course_id
-      WHERE se.student_id = ${studentId} AND se.status = 'enrolled'
+      FROM course c
+      -- EXISTS: a carryover can leave two "enrolled" rows for one course
+      WHERE EXISTS (
+        SELECT 1 FROM student_enrollment se
+        WHERE se.course_id = c.id AND se.student_id = ${studentId}
+          AND se.status = 'enrolled'
+      )
       ORDER BY c.course_code
     `),
     listDeadlines(studentId, {
@@ -154,7 +172,7 @@ export async function buildStudentMemory(
       `Courses: ${courseRows
         .map(
           (c) =>
-            `${c.course_code} ${c.title} (${c.materials} material${c.materials === 1 ? "" : "s"} Askly can read${c.own_captures ? `, ${c.own_captures} captured by them` : ""})`,
+            `${c.course_code} ${quote(c.title)} (${c.materials} material${c.materials === 1 ? "" : "s"} Askly can read${c.own_captures ? `, ${c.own_captures} captured by them` : ""})`,
         )
         .join("; ")}`,
     );
@@ -174,7 +192,7 @@ export async function buildStudentMemory(
         .slice(0, 5)
         .map(
           (d) =>
-            `"${d.title}"${d.course ? ` (${d.course.code})` : ""}, was due ${shortDate(d.dueAt)}`,
+            `${quote(d.title)}${d.course ? ` (${d.course.code})` : ""}, was due ${shortDate(d.dueAt)}`,
         )
         .join("; ")}`,
     );
@@ -185,7 +203,7 @@ export async function buildStudentMemory(
           .slice(0, 6)
           .map(
             (d) =>
-              `"${d.title}"${d.course ? ` (${d.course.code})` : ""} ${shortDate(d.dueAt)}`,
+              `${quote(d.title)}${d.course ? ` (${d.course.code})` : ""} ${shortDate(d.dueAt)}`,
           )
           .join("; ")}`
       : "Nothing due in the next 2 weeks that Askly knows of.",

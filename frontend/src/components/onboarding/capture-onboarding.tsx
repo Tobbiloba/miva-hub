@@ -40,7 +40,7 @@ export function CaptureOnboarding({
       >
         <CheckCircle2 className="size-5 shrink-0 text-green-600" aria-hidden />
         <p className="flex-1">
-          You're set up.{" "}
+          You&apos;re set up.{" "}
           {status.capturedCount > 0
             ? `${status.capturedCount} item${status.capturedCount === 1 ? "" : "s"} captured`
             : "Your first capture is processing"}

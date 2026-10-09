@@ -146,11 +146,15 @@ export async function searchEnrolledMaterials(
         FROM material_chunk c
         JOIN course_material m ON m.id = c.material_id
         JOIN course co ON co.id = c.course_id
-        JOIN student_enrollment se
-          ON se.course_id = c.course_id
-         AND se.student_id = ${studentId}
-         AND se.status = 'enrolled'
         WHERE m.deleted_at IS NULL
+          -- EXISTS, not a join: a carryover can leave two "enrolled" rows for
+          -- one course, which a join would turn into duplicate passages
+          AND EXISTS (
+            SELECT 1 FROM student_enrollment se
+            WHERE se.course_id = c.course_id
+              AND se.student_id = ${studentId}
+              AND se.status = 'enrolled'
+          )
           AND (${opts.courseId ?? null}::uuid IS NULL OR c.course_id = ${opts.courseId ?? null}::uuid)
           AND (
             (c.owner_user_id IS NULL AND m.owner_user_id IS NULL AND m.is_published)

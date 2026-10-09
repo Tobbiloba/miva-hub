@@ -35,8 +35,9 @@ export const createSearchMaterialsTool = (userId: string) =>
       // The course filter is optional and models often guess it ("CS101"
       // for COS101). An unknown code must not empty the search: search all
       // of the student's courses and say which codes are real.
+      // distinct: a carryover can leave two "enrolled" rows for one course
       const enrolled = await pgDb
-        .select({ id: CourseSchema.id, code: CourseSchema.courseCode })
+        .selectDistinct({ id: CourseSchema.id, code: CourseSchema.courseCode })
         .from(StudentEnrollmentSchema)
         .innerJoin(
           CourseSchema,

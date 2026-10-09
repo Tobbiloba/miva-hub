@@ -81,7 +81,7 @@ export function ActivityTimeline() {
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
         Askly keeps track of this so it can help you revise what you missed and
-        stay on top of what's due.
+        stay on top of what&apos;s due.
       </p>
 
       {error ? (

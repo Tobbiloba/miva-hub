@@ -4,11 +4,13 @@ import {
   type SQL,
   and,
   eq,
+  exists,
   gte,
   inArray,
   isNotNull,
   isNull,
   lte,
+  sql,
 } from "drizzle-orm";
 import {
   getEnrolledCourse,
@@ -73,11 +75,21 @@ export async function listDeadlines(
   query: DeadlineQuery = {},
 ): Promise<Deadline[]> {
   const { from, to, includeDone = false, courseId } = query;
-  const enrolled = and(
-    eq(StudentEnrollmentSchema.studentId, studentId),
-    eq(StudentEnrollmentSchema.status, "enrolled"),
-    courseId ? eq(StudentEnrollmentSchema.courseId, courseId) : undefined,
-  );
+  // EXISTS, not a join: a student can hold more than one "enrolled" row for a
+  // course (e.g. a carryover in a later term), which a join would duplicate
+  const enrolledIn = (courseColumn: typeof CourseSchema.id) =>
+    exists(
+      pgDb
+        .select({ one: sql`1` })
+        .from(StudentEnrollmentSchema)
+        .where(
+          and(
+            eq(StudentEnrollmentSchema.courseId, courseColumn),
+            eq(StudentEnrollmentSchema.studentId, studentId),
+            eq(StudentEnrollmentSchema.status, "enrolled"),
+          ),
+        ),
+    );
   const course = {
     id: CourseSchema.id,
     code: CourseSchema.courseCode,
@@ -95,10 +107,6 @@ export async function listDeadlines(
       })
       .from(AssignmentSchema)
       .innerJoin(CourseSchema, eq(CourseSchema.id, AssignmentSchema.courseId))
-      .innerJoin(
-        StudentEnrollmentSchema,
-        eq(StudentEnrollmentSchema.courseId, AssignmentSchema.courseId),
-      )
       .leftJoin(
         AssignmentSubmissionSchema,
         and(
@@ -108,7 +116,8 @@ export async function listDeadlines(
       )
       .where(
         and(
-          enrolled,
+          enrolledIn(CourseSchema.id),
+          courseId ? eq(CourseSchema.id, courseId) : undefined,
           eq(AssignmentSchema.isPublished, true),
           ...rangeFilter(AssignmentSchema.dueDate, from, to),
           includeDone ? undefined : isNull(AssignmentSubmissionSchema.id),
@@ -127,10 +136,6 @@ export async function listDeadlines(
         CourseSchema,
         eq(CourseSchema.id, CourseMaterialSchema.courseId),
       )
-      .innerJoin(
-        StudentEnrollmentSchema,
-        eq(StudentEnrollmentSchema.courseId, CourseMaterialSchema.courseId),
-      )
       .leftJoin(
         StudentDeadlineSchema,
         and(
@@ -140,7 +145,8 @@ export async function listDeadlines(
       )
       .where(
         and(
-          enrolled,
+          enrolledIn(CourseSchema.id),
+          courseId ? eq(CourseSchema.id, courseId) : undefined,
           groundableMaterialFilter(studentId),
           inArray(CourseMaterialSchema.materialType, [...LMS_DEADLINE_TYPES]),
           isNotNull(CourseMaterialSchema.dueAt),
