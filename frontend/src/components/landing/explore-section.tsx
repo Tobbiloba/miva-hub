@@ -16,7 +16,9 @@ const ROWS = [
     color: "bg-[#7a5a40]",
     mock: (
       <div className="w-[78%] rounded-2xl border border-white/15 bg-[#2b221c] p-4 shadow-2xl">
-        <p className="text-sm text-white/50">Explain recursion like I'm new…</p>
+        <p className="text-sm text-white/50">
+          Explain recursion like I&apos;m new…
+        </p>
         <div className="mt-6 flex items-center justify-end gap-3 text-white/60">
           <Paperclip className="size-4" />
           <span className="grid size-9 place-items-center rounded-xl bg-[#6b93ff] text-white">
