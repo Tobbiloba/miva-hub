@@ -245,11 +245,20 @@ export const pgAcademicRepository = {
   },
 
   // Course materials operations
+  /**
+   * The course's own catalogue: shared, non-deleted material. Students'
+   * private extension captures (ownerUserId set) never appear here — they
+   * are only reachable by their owner (see groundableMaterialFilter).
+   */
   getCourseMaterials: async (
     courseId: string,
     weekNumber?: number,
   ): Promise<CourseMaterialEntity[]> => {
-    const conditions = [eq(CourseMaterialSchema.courseId, courseId)];
+    const conditions = [
+      eq(CourseMaterialSchema.courseId, courseId),
+      isNull(CourseMaterialSchema.ownerUserId),
+      isNull(CourseMaterialSchema.deletedAt),
+    ];
     if (weekNumber) {
       conditions.push(eq(CourseMaterialSchema.weekNumber, weekNumber));
     }
@@ -276,9 +285,13 @@ export const pgAcademicRepository = {
         eq(CourseMaterialSchema.courseId, CourseSchema.id),
       )
       .where(
-        universityId === "all"
-          ? undefined
-          : eq(CourseSchema.universityId, universityId),
+        and(
+          isNull(CourseMaterialSchema.ownerUserId),
+          isNull(CourseMaterialSchema.deletedAt),
+          universityId === "all"
+            ? undefined
+            : eq(CourseSchema.universityId, universityId),
+        ),
       )
       .orderBy(desc(CourseMaterialSchema.createdAt));
   },
@@ -357,6 +370,8 @@ export const pgAcademicRepository = {
         and(
           eq(CourseMaterialSchema.courseId, courseId),
           eq(CourseMaterialSchema.weekNumber, weekNumber),
+          isNull(CourseMaterialSchema.ownerUserId),
+          isNull(CourseMaterialSchema.deletedAt),
         ),
       )
       .orderBy(desc(CourseMaterialSchema.createdAt));

@@ -82,6 +82,7 @@ export async function isSameTenant(
 ): Promise<boolean> {
   const row = await fetchRoleAndUniversity(adminUserId);
   if (row?.role === "super_admin") return true;
+  if (row?.role !== "admin") return false;
   return !!row?.universityId && entityUniversityId === row.universityId;
 }
 
@@ -96,6 +97,27 @@ export type AdminScope =
  * "skip the tenant filter".
  */
 export async function getAdminScope(userId: string): Promise<AdminScope> {
+  const row = await fetchRoleAndUniversity(userId);
+  if (row?.role === "super_admin") {
+    return { superAdmin: true, university: undefined };
+  }
+  // Only admins get a tenant scope. A layout redirect doesn't stop a page's
+  // own data loading (layouts and pages render in parallel), so a student
+  // or faculty member reaching an admin loader must get nothing.
+  if (row?.role !== "admin") {
+    return { superAdmin: false, university: undefined };
+  }
+  return {
+    superAdmin: false,
+    university: await getUniversityById(row?.universityId),
+  };
+}
+
+/**
+ * Tenant scope for any signed-in member (student, faculty, admin): their own
+ * university. Use getAdminScope for anything admin-only.
+ */
+export async function getMemberScope(userId: string): Promise<AdminScope> {
   const row = await fetchRoleAndUniversity(userId);
   if (row?.role === "super_admin") {
     return { superAdmin: true, university: undefined };

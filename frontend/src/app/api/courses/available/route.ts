@@ -1,6 +1,6 @@
 import { getApiSession } from "@/lib/auth/server";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-import { getAdminScope } from "@/lib/tenant";
+import { getMemberScope } from "@/lib/tenant";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         { status: 401 },
       );
     }
-    const scope = await getAdminScope(session.user.id);
+    const scope = await getMemberScope(session.user.id);
     if (!scope.superAdmin && !scope.university) {
       return NextResponse.json(
         { error: "No university associated with your account" },

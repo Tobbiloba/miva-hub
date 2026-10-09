@@ -24,6 +24,13 @@ import numpy as np
 # Import our existing AI integration
 import sys
 import os
+
+from dotenv import load_dotenv
+
+# Load mcp-server/.env before anything reads configuration (DB_CONFIG and the
+# shared secret are read at import time). Without it the API silently fell
+# back to an empty localhost/miva_hub database.
+load_dotenv()
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'core'))
 from ai_integration import MIVAAIStack
 from grading_engine import GradingOrchestrator

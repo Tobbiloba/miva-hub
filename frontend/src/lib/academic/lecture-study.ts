@@ -3,13 +3,13 @@ import "server-only";
 import { and, eq } from "drizzle-orm";
 
 import { pgDb } from "lib/db/pg/db.pg";
+import { canAccessMaterial } from "lib/material-access";
 import {
   AIProcessedContentSchema,
   CourseInstructorSchema,
   CourseMaterialSchema,
   CourseSchema,
   FacultySchema,
-  StudentEnrollmentSchema,
 } from "lib/db/pg/schema.pg";
 
 /**
@@ -80,6 +80,9 @@ export async function loadLectureStudy(
       weekNumber: CourseMaterialSchema.weekNumber,
       courseId: CourseMaterialSchema.courseId,
       uploadedById: CourseMaterialSchema.uploadedById,
+      ownerUserId: CourseMaterialSchema.ownerUserId,
+      isPublished: CourseMaterialSchema.isPublished,
+      deletedAt: CourseMaterialSchema.deletedAt,
       transcriptStatus: CourseMaterialSchema.transcriptStatus,
       courseCode: CourseSchema.courseCode,
       courseTitle: CourseSchema.title,
@@ -91,24 +94,9 @@ export async function loadLectureStudy(
 
   if (!row) return { allowed: false, status: 404 };
 
-  let allowed = row.uploadedById === userId;
-  if (!allowed) {
-    const [enrollment] = await pgDb
-      .select({ id: StudentEnrollmentSchema.id })
-      .from(StudentEnrollmentSchema)
-      .where(
-        and(
-          eq(StudentEnrollmentSchema.studentId, userId),
-          eq(StudentEnrollmentSchema.courseId, row.courseId),
-          eq(StudentEnrollmentSchema.status, "enrolled"),
-        ),
-      )
-      .limit(1);
-    allowed = !!enrollment;
-  }
-  if (!allowed) {
-    allowed = await isCourseInstructor(userId, row.courseId);
-  }
+  // Same rule as file downloads: a classmate's private capture, an
+  // unmoderated item or a deleted one is never reachable by id.
+  const allowed = await canAccessMaterial(userId, row);
   if (!allowed) return { allowed: false, status: 403 };
 
   const [processed] = await pgDb

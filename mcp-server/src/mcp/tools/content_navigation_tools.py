@@ -42,8 +42,11 @@ def register_content_navigation_tools(mcp):
                 return create_usage_error_response(usage_info, "summarize_material")
 
         try:
-            # Fetch material
-            material = await academic_repo.get_material_by_id(material_id)
+            if not student_id:
+                return json.dumps({"error": "Student context required"})
+
+            # Fetch material (enrollment + visibility checked in the query)
+            material = await academic_repo.get_material_by_id(material_id, student_id)
             
             if material.get('error'):
                 return json.dumps({"error": f"Material not found: {material.get('error')}"})

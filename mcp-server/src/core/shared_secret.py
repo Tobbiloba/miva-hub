@@ -6,8 +6,10 @@ streaming responses such as MCP's SSE transport.
 Behaviour:
   * secret configured  -> every request (except exempt paths) must carry the
     header with a matching value, compared in constant time; otherwise 401.
-  * secret unset       -> requests pass through, and a loud warning is logged
-    once at startup. Set the secret in every deployed environment.
+  * secret unset       -> fail closed: every non-exempt request gets 503.
+    These services trust the student id they are given, so running them
+    open would expose every student's records. Set the secret everywhere,
+    local development included.
 """
 
 import hmac
@@ -43,10 +45,12 @@ class SharedSecretMiddleware:
         self.exempt_paths = frozenset(exempt_paths)
         self.service_name = service_name
 
+        self.env_var_name = env_var_name
+
         if not self.secret:
-            logger.warning(
-                "!!! %s: %s is NOT set -- internal endpoints are UNAUTHENTICATED. "
-                "Set %s in every deployed environment. !!!",
+            logger.error(
+                "!!! %s: %s is NOT set -- refusing all requests (503). "
+                "Set %s (same value in the calling service). !!!",
                 service_name,
                 env_var_name,
                 env_var_name,
@@ -54,11 +58,14 @@ class SharedSecretMiddleware:
 
     async def __call__(self, scope, receive, send):
         if (
-            not self.secret
-            or scope["type"] not in ("http", "websocket")
+            scope["type"] not in ("http", "websocket")
             or scope.get("path") in self.exempt_paths
         ):
             await self.app(scope, receive, send)
+            return
+
+        if not self.secret:
+            await self._reject(scope, send, 503, "Service not configured")
             return
 
         provided = None
@@ -78,15 +85,18 @@ class SharedSecretMiddleware:
             scope.get("path"),
             self.display_header,
         )
+        await self._reject(scope, send, 401, "Unauthorized")
+
+    async def _reject(self, scope, send, status: int, error: str):
         if scope["type"] == "websocket":
             await send({"type": "websocket.close", "code": 1008})
             return
 
-        body = json.dumps({"error": "Unauthorized"}).encode("utf-8")
+        body = json.dumps({"error": error}).encode("utf-8")
         await send(
             {
                 "type": "http.response.start",
-                "status": 401,
+                "status": status,
                 "headers": [
                     (b"content-type", b"application/json"),
                     (b"content-length", str(len(body)).encode("latin-1")),

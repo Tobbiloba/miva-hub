@@ -8,7 +8,11 @@ import {
   StudentEnrollmentSchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
-import { getAdminScope } from "@/lib/tenant";
+import {
+  emailMatchesUniversity,
+  getAdminScope,
+  getUniversityById,
+} from "@/lib/tenant";
 import { type SQL, and, eq, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -173,6 +177,15 @@ export async function PUT(
       );
     }
 
+    // Privileged accounts are managed by the platform, not by peer admins:
+    // demoting one here would also bypass the "cannot delete admins" guard.
+    if (["admin", "super_admin"].includes(existingUser[0].role ?? "")) {
+      return NextResponse.json(
+        { success: false, message: "Admin accounts can't be edited here" },
+        { status: 403 },
+      );
+    }
+
     // Admins may only assign non-privileged roles — no escalation via this route
     if (role !== undefined && !["student", "faculty"].includes(role)) {
       return NextResponse.json(
@@ -185,7 +198,33 @@ export async function PUT(
     // Build the update payload — only include fields that were sent
     const updateData: Record<string, any> = { updatedAt: new Date() };
     if (name !== undefined) updateData.name = name;
-    if (email !== undefined) updateData.email = email;
+    if (email !== undefined) {
+      // An email change is an account handover (password reset goes there),
+      // so it must stay on the tenant's domains and be re-verified.
+      const normalizedEmail = String(email).toLowerCase().trim();
+      if (normalizedEmail !== existingUser[0].email) {
+        const scope = await getAdminScope(sessionOrError.user.id);
+        const university =
+          scope.university ??
+          (existingUser[0].universityId
+            ? await getUniversityById(existingUser[0].universityId)
+            : undefined);
+        if (
+          !university ||
+          !emailMatchesUniversity(normalizedEmail, university)
+        ) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: "Email must use one of the university's domains",
+            },
+            { status: 400 },
+          );
+        }
+        updateData.email = normalizedEmail;
+        updateData.emailVerified = false;
+      }
+    }
     if (role !== undefined) updateData.role = role;
     if (role === "student") {
       if (studentId !== undefined) updateData.studentId = studentId;
@@ -199,16 +238,28 @@ export async function PUT(
     }
     if (typeof isVerified === "boolean") updateData.isVerified = isVerified;
 
-    const updatedUser = await pgDb
+    // Return named columns only — never the whole row (it carries the
+    // legacy password hash column).
+    const [updatedUser] = await pgDb
       .update(UserSchema)
       .set(updateData)
       .where(eq(UserSchema.id, userId))
-      .returning();
+      .returning({
+        id: UserSchema.id,
+        name: UserSchema.name,
+        email: UserSchema.email,
+        emailVerified: UserSchema.emailVerified,
+        role: UserSchema.role,
+        studentId: UserSchema.studentId,
+        enrollmentStatus: UserSchema.enrollmentStatus,
+        universityId: UserSchema.universityId,
+        updatedAt: UserSchema.updatedAt,
+      });
 
     return NextResponse.json({
       success: true,
       message: "User updated successfully",
-      data: updatedUser[0],
+      data: updatedUser,
     });
   } catch (error) {
     console.error("Error updating user:", error);

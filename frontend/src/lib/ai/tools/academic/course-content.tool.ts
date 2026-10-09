@@ -1,10 +1,14 @@
 import { tool as createTool } from "ai";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { safe } from "ts-safe";
 import { z } from "zod";
 import { pgDb } from "../../../db/pg/db.pg";
-import { pgAcademicRepository } from "../../../db/pg/repositories/academic-repository.pg";
-import { StudentEnrollmentSchema } from "../../../db/pg/schema.pg";
+import {
+  CourseMaterialSchema,
+  CourseSchema,
+  StudentEnrollmentSchema,
+} from "../../../db/pg/schema.pg";
+import { groundableMaterialFilter } from "../../course-tutor-context";
 
 /**
  * Course Content Tool - Fetches course materials with enrollment verification
@@ -32,58 +36,50 @@ export const createCourseContentTool = (userId: string) =>
     inputSchema: courseContentSchema,
     execute: async ({ courseCode, weekNumber, materialType }) => {
       return safe(async () => {
-        // First, get the course by code
-        const course = await pgAcademicRepository.getCourseByCode(
-          courseCode.toUpperCase(),
-        );
-
-        if (!course) {
-          return {
-            error: `Course ${courseCode} not found`,
-            suggestions: [
-              "Check the course code spelling (e.g., CS101, MATH201)",
-              "Make sure the course exists this semester",
-              "Try searching available courses first",
-            ],
-          };
-        }
-
-        // Verify the user is enrolled in this course
-        const enrollment = await pgDb
-          .select()
+        // Resolve the course through the student's own enrollments: course
+        // codes are only unique per university, and this doubles as the
+        // access check.
+        const code = courseCode.trim().toUpperCase();
+        const [enrolled] = await pgDb
+          .select({ course: CourseSchema, enrollment: StudentEnrollmentSchema })
           .from(StudentEnrollmentSchema)
+          .innerJoin(
+            CourseSchema,
+            eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
+          )
           .where(
             and(
               eq(StudentEnrollmentSchema.studentId, userId),
-              eq(StudentEnrollmentSchema.courseId, course.id),
               eq(StudentEnrollmentSchema.status, "enrolled"),
+              eq(CourseSchema.courseCode, code),
             ),
           )
           .limit(1);
 
-        if (enrollment.length === 0) {
+        if (!enrolled) {
           return {
-            error: `You are not enrolled in ${courseCode}`,
+            error: `You are not enrolled in ${code}`,
             message:
-              "You can only access materials for courses you're enrolled in",
-            courseInfo: {
-              code: course.courseCode,
-              title: course.title,
-              credits: course.credits,
-              department: course.description,
-            },
-            suggestions: [
-              "Contact your advisor to enroll in this course",
-              "Check your enrolled courses list",
-              "Visit the registrar's office for enrollment assistance",
-            ],
+              "You can only access materials for courses you're enrolled in. Use get-my-courses to see your courses.",
           };
         }
+        const { course, enrollment } = enrolled;
 
-        // Get course materials with optional filters
-        let materials = await pgAcademicRepository.getCourseMaterials(
-          course.id,
-        );
+        // Published shared material plus the student's own private captures
+        // — never a classmate's private capture, unmoderated or deleted rows.
+        let materials = await pgDb
+          .select()
+          .from(CourseMaterialSchema)
+          .where(
+            and(
+              eq(CourseMaterialSchema.courseId, course.id),
+              groundableMaterialFilter(userId),
+            ),
+          )
+          .orderBy(
+            asc(CourseMaterialSchema.weekNumber),
+            asc(CourseMaterialSchema.createdAt),
+          );
 
         // Apply week filter if specified
         if (weekNumber) {
@@ -102,12 +98,11 @@ export const createCourseContentTool = (userId: string) =>
           title: material.title,
           type: material.materialType,
           description: material.description,
-          contentUrl: material.contentUrl,
           fileName: material.fileName,
           fileSize: material.fileSize,
           mimeType: material.mimeType,
           moduleNumber: material.moduleNumber,
-          isPublic: material.isPublic,
+          isMine: material.ownerUserId === userId,
           createdAt: material.createdAt,
           updatedAt: material.updatedAt,
         }));
@@ -137,9 +132,9 @@ export const createCourseContentTool = (userId: string) =>
           materials: formattedMaterials,
           summary,
           enrollment: {
-            status: enrollment[0].status,
-            enrolledDate: enrollment[0].enrollmentDate,
-            semester: enrollment[0].semester,
+            status: enrollment.status,
+            enrolledDate: enrollment.enrollmentDate,
+            semester: enrollment.semester,
           },
         };
       })

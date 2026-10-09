@@ -23,7 +23,7 @@ import {
   FacultySchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
-import { getUserUniversity } from "@/lib/tenant";
+import { getAdminScope } from "@/lib/tenant";
 import { and, eq, sql } from "drizzle-orm";
 import {
   BookOpen,
@@ -44,8 +44,10 @@ export default async function FacultyManagementPage() {
     return <div>Access denied. Admin privileges required.</div>;
   }
 
-  // Tenant scope: admins only see their own university's faculty
-  const university = await getUserUniversity(adminAccess.user.id);
+  // Tenant scope: admins only see their own university's faculty. A
+  // non-super admin without a university sees nothing, never everyone.
+  const scope = await getAdminScope(adminAccess.user.id);
+  const university = scope.university;
 
   // Fetch faculty and their data
   const facultyData = await pgDb
@@ -73,7 +75,9 @@ export default async function FacultyManagementPage() {
             eq(UserSchema.role, "faculty"),
             eq(UserSchema.universityId, university.id),
           )
-        : eq(UserSchema.role, "faculty"),
+        : scope.superAdmin
+          ? eq(UserSchema.role, "faculty")
+          : sql`false`,
     )
     .groupBy(UserSchema.id, FacultySchema.id, DepartmentSchema.id)
     .orderBy(UserSchema.createdAt);

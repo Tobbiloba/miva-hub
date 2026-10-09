@@ -7,6 +7,7 @@ import {
   VercelAIMcpToolTag,
 } from "app-types/mcp";
 import { colorize } from "consola/utils";
+import { MCP_CONFIG } from "lib/config/mcp-config";
 import { McpServerSchema } from "lib/db/pg/schema.pg";
 import {
   Locker,
@@ -156,7 +157,14 @@ export class MCPClientsManager {
       const prevClient = this.clients.get(id)!;
       void prevClient.client.disconnect();
     }
-    const client = createMCPClient(id, name, serverConfig, {
+    // The built-in academic server is configured by env (URL + shared
+    // secret), never by its stored row: the secret must not live in the DB,
+    // and a changed MCP_SERVER_URL must take effect without a DB edit.
+    const effectiveConfig: MCPServerConfig =
+      name === MCP_CONFIG.DEFAULT_SERVER_NAME
+        ? { url: MCP_CONFIG.SERVER_URL, headers: { ...MCP_CONFIG.HEADERS } }
+        : serverConfig;
+    const client = createMCPClient(id, name, effectiveConfig, {
       autoDisconnectSeconds: this.autoDisconnectSeconds,
     });
     this.clients.set(id, { client, name });

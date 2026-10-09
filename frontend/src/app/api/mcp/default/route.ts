@@ -13,12 +13,9 @@ export async function POST() {
   try {
     // Default MCP server configuration
     const serverName = MCP_CONFIG.DEFAULT_SERVER_NAME;
-    const serverConfig: MCPServerConfig = {
-      url: MCP_CONFIG.SERVER_URL,
-      ...(Object.keys(MCP_CONFIG.HEADERS).length > 0 && {
-        headers: MCP_CONFIG.HEADERS,
-      }),
-    };
+    // Headers (the shared secret) are applied from env at connect time by
+    // the clients manager — never persisted.
+    const serverConfig: MCPServerConfig = { url: MCP_CONFIG.SERVER_URL };
 
     // Clean up old server name if it exists
     const oldServer = await mcpRepository.selectByServerName("my-local-mcp");

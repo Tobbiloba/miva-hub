@@ -35,7 +35,7 @@ def register_notes_conversion_tools(mcp):
                 return create_usage_error_response(usage_info, "convert_notes_to_flashcards")
         
         try:
-            course_info = await academic_repo.get_course_info(course_code.upper())
+            course_info = await academic_repo.get_course_info(course_code.upper(), student_id=student_id)
             if course_info.get('error'):
                 return json.dumps({"error": f"Course {course_code} not found"})
             

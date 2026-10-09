@@ -9,6 +9,18 @@ from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
+
+def visible_material_sql(owner_expr: str = "%s") -> str:
+    """SQL condition on alias `cm` mirroring the app's groundableMaterialFilter:
+    published shared material, or the student's own private capture; never
+    deleted rows. `owner_expr` is the student's user id (a placeholder by
+    default, or a column such as "u.id")."""
+    return (
+        "cm.deleted_at IS NULL AND ("
+        "(cm.owner_user_id IS NULL AND cm.is_published = true)"
+        f" OR cm.owner_user_id = {owner_expr})"
+    )
+
 # Load environment variables
 load_dotenv()
 
@@ -73,43 +85,45 @@ class AcademicRepository:
         week_number: Optional[int] = None,
         material_type: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Get course materials for a student - real database implementation."""
+        """Get course materials for a student - real database implementation.
+
+        The course is resolved through the student's own enrollments (course
+        codes are only unique per university), and materials follow the app's
+        visibility rule: published shared material plus the student's own
+        private captures, never deleted rows.
+        """
+        enrolled = await self._resolve_enrolled_course(student_id, course_code)
+        if not enrolled:
+            return {
+                "error": "Access denied: Student not enrolled in this course",
+                "course_code": course_code,
+            }
+
         conn = self.get_connection()
         if not conn:
             return {"error": "Database connection failed"}
-        
+
         try:
-            # Verify student enrollment
-            is_enrolled = await self._check_enrollment(student_id, course_code)
-            if not is_enrolled:
-                return {
-                    "error": "Access denied: Student not enrolled in this course",
-                    "course_code": course_code,
-                    "student_id": student_id
-                }
-            
-            # Build query with optional filters
-            query = """
-                SELECT cm.id, cm.title, cm.material_type, cm.week_number, 
+            query = f"""
+                SELECT cm.id, cm.title, cm.material_type, cm.week_number,
                        cm.description, cm.content_url, cm.created_at,
                        apc.ai_summary, apc.key_concepts
                 FROM course_material cm
                 LEFT JOIN ai_processed_content apc ON cm.id = apc.course_material_id
-                JOIN course c ON cm.course_id = c.id
-                WHERE c.course_code = %s AND cm.is_public = true
+                WHERE cm.course_id = %s AND {visible_material_sql()}
             """
-            params = [course_code.upper()]
-            
+            params = [enrolled["course_id"], enrolled["user_id"]]
+
             if week_number:
                 query += " AND cm.week_number = %s"
                 params.append(week_number)
-            
+
             if material_type:
                 query += " AND cm.material_type = %s"
                 params.append(material_type)
-            
+
             query += " ORDER BY cm.week_number, cm.created_at"
-            
+
             # Run database operations in thread to avoid blocking event loop
             def run_query():
                 cursor = conn.cursor()
@@ -242,8 +256,17 @@ class AcademicRepository:
             logger.error("Error getting upcoming assignments: %s", e, exc_info=True)
             return {"error": "Could not retrieve upcoming assignments. Please try again."}
     
-    async def get_course_info(self, course_code: str, include_materials: bool = False) -> Dict[str, Any]:
-        """Get detailed course information - real database implementation."""
+    async def get_course_info(
+        self,
+        course_code: str,
+        include_materials: bool = False,
+        student_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get detailed course information - real database implementation.
+
+        With student_id, only a course that student is enrolled in can match:
+        course codes are unique per university, not platform-wide.
+        """
         conn = self.get_connection()
         if not conn:
             return {"error": "Database connection failed"}
@@ -261,8 +284,12 @@ class AcademicRepository:
                     LEFT JOIN faculty f ON ci.faculty_id = f.id
                     LEFT JOIN "user" u ON f.user_id = u.id
                     WHERE c.course_code = %s AND c.is_active = true
+                      AND (%s::text IS NULL OR c.id IN (
+                            SELECT se.course_id FROM student_enrollment se
+                            JOIN "user" su ON su.id = se.student_id
+                            WHERE su.student_id = %s AND se.status = 'enrolled'))
                     LIMIT 1
-                """, (course_code.upper(),))
+                """, (course_code.upper(), student_id, student_id))
                 
                 result = cursor.fetchone()
                 
@@ -287,7 +314,8 @@ class AcademicRepository:
                     cursor.execute("""
                         SELECT COUNT(*) as material_count
                         FROM course_material cm
-                        WHERE cm.course_id = %s AND cm.is_public = true
+                        WHERE cm.course_id = %s AND cm.deleted_at IS NULL
+                          AND cm.owner_user_id IS NULL AND cm.is_published
                     """, (result["id"],))
                     material_result = cursor.fetchone()
                     material_count = material_result["material_count"] if material_result else 0
@@ -352,6 +380,45 @@ class AcademicRepository:
             }
         except Exception as e:
             logger.error("Error fetching student context: %s", e, exc_info=True)
+            return None
+
+    async def _resolve_enrolled_course(
+        self, student_id: str, course_code: str
+    ) -> Optional[Dict[str, str]]:
+        """The course with this code that the student is actively enrolled in.
+
+        Returns {"user_id", "course_id"} or None. This is both the access check
+        and the tenant scope: a code that exists at another university can
+        never resolve here.
+        """
+        conn = self.get_connection()
+        if not conn:
+            return None
+        try:
+            def run_query():
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT u.id AS user_id, c.id AS course_id
+                    FROM "user" u
+                    JOIN student_enrollment se ON u.id = se.student_id
+                    JOIN course c ON se.course_id = c.id
+                    WHERE u.student_id = %s AND c.course_code = %s
+                          AND se.status = 'enrolled'
+                    LIMIT 1
+                """, (student_id, course_code.upper()))
+                row = cursor.fetchone()
+                cursor.close()
+                return row
+
+            try:
+                row = await asyncio.to_thread(run_query)
+            finally:
+                conn.close()
+            if not row:
+                return None
+            return {"user_id": str(row["user_id"]), "course_id": str(row["course_id"])}
+        except Exception as e:
+            logger.error("Error resolving enrolled course: %s", e, exc_info=True)
             return None
 
     async def _verify_student_enrollment(self, student_id: str, course_code: str) -> bool:
@@ -720,8 +787,12 @@ class AcademicRepository:
                            c.credits, c.total_weeks, c.level
                     FROM course c
                     WHERE c.course_code = %s AND c.is_active = true
+                      AND (%s::text IS NULL OR c.id IN (
+                            SELECT se.course_id FROM student_enrollment se
+                            JOIN "user" su ON su.id = se.student_id
+                            WHERE su.student_id = %s AND se.status = 'enrolled'))
                     LIMIT 1
-                """, (course_code.upper(),))
+                """, (course_code.upper(), student_id, student_id))
                 course_row = cursor.fetchone()
                 if not course_row:
                     cursor.close()
@@ -1316,8 +1387,13 @@ class AcademicRepository:
             conn.close()
             return {"error": "Search failed. Please try again."}
     
-    async def get_material_by_id(self, material_id: str) -> Dict[str, Any]:
-        """Get a single material by ID with full details."""
+    async def get_material_by_id(self, material_id: str, student_id: str) -> Dict[str, Any]:
+        """Get a single material by ID, if this student may see it.
+
+        Same rule as the app: enrolled in the material's course, and the
+        material is published shared content or the student's own capture.
+        Unknown and forbidden both answer "Material not found".
+        """
         conn = self.get_connection()
         if not conn:
             return {"error": "Database connection failed"}
@@ -1325,18 +1401,21 @@ class AcademicRepository:
         try:
             cursor = conn.cursor()
             
-            query = """
+            query = f"""
                 SELECT cm.id, cm.title, cm.material_type, cm.week_number,
                        cm.description, cm.content_url, cm.created_at,
                        c.course_code, c.title as course_name,
                        apc.ai_summary, apc.key_concepts
                 FROM course_material cm
                 JOIN course c ON cm.course_id = c.id
+                JOIN student_enrollment se
+                  ON se.course_id = c.id AND se.status = 'enrolled'
+                JOIN "user" u ON u.id = se.student_id AND u.student_id = %s
                 LEFT JOIN ai_processed_content apc ON cm.id = apc.course_material_id
-                WHERE cm.id = %s
+                WHERE cm.id = %s AND {visible_material_sql("u.id")}
             """
             
-            cursor.execute(query, [material_id])
+            cursor.execute(query, [student_id, material_id])
             result = cursor.fetchone()
             
             cursor.close()

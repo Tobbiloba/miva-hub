@@ -39,7 +39,7 @@ def register_exam_tools(mcp):
             if enrollments.get('error'):
                 return json.dumps({"error": "Unable to verify enrollment"})
             
-            course_info = await academic_repo.get_course_info(course_code.upper())
+            course_info = await academic_repo.get_course_info(course_code.upper(), student_id=student_id)
             if course_info.get('error'):
                 return json.dumps({"error": f"Course {course_code} not found"})
             
