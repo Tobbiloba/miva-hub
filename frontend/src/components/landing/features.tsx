@@ -2,7 +2,7 @@ import { cn } from "lib/utils";
 import { CalendarClock, Layers, MousePointerClick, Quote } from "lucide-react";
 import type { ReactNode } from "react";
 import { Shot, type ShotName } from "./shot";
-import { card, eyebrow, heading } from "./styles";
+import { card, eyebrow, heading, reveal } from "./styles";
 
 function Feature({
   icon,
@@ -13,7 +13,9 @@ function Feature({
   alt,
   className,
   shotClassName,
+  delay = 0,
 }: {
+  delay?: number;
   icon: ReactNode;
   label: string;
   title: string;
@@ -25,7 +27,10 @@ function Feature({
 }) {
   return (
     <article
+      data-reveal
+      style={{ transitionDelay: `${delay}ms` }}
       className={cn(
+        reveal,
         card,
         "group flex flex-col md:min-h-[520px] overflow-hidden transition-colors hover:border-white/20",
         className,
@@ -66,19 +71,21 @@ const Features = () => {
       id="features"
       className="mx-auto max-w-6xl scroll-mt-6 px-5 py-24 sm:px-8 sm:py-32"
     >
-      <p className={eyebrow}>What Askly does</p>
-      <h2
-        className={cn(
-          heading,
-          "mt-3 max-w-3xl text-4xl sm:text-5xl md:text-6xl leading-[1.05]",
-        )}
-      >
-        Built around your own lectures.
-      </h2>
-      <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        Answers with sources from your course notes, one-click lesson capture,
-        practice from any lesson, and every deadline in one list.
-      </p>
+      <div data-reveal className={reveal}>
+        <p className={eyebrow}>What Askly does</p>
+        <h2
+          className={cn(
+            heading,
+            "mt-3 max-w-3xl text-4xl sm:text-5xl md:text-6xl leading-[1.05]",
+          )}
+        >
+          Built around your own lectures.
+        </h2>
+        <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+          Answers with sources from your course notes, one-click lesson capture,
+          practice from any lesson, and every deadline in one list.
+        </p>
+      </div>
 
       <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-2">
         <Feature
@@ -97,6 +104,7 @@ const Features = () => {
           shot="popup"
           alt="The Askly Capture extension with a COS101 week 2 video lesson ready to capture"
           shotClassName="mx-auto max-w-[300px]"
+          delay={100}
         />
         <Feature
           icon={<Layers />}
@@ -105,6 +113,7 @@ const Features = () => {
           body="Turn any lesson into a deck. Askly brings each card back just before you'd forget it."
           shot="flashcards"
           alt="A COS101 flashcard deck in Askly"
+          delay={50}
         />
         <Feature
           icon={<CalendarClock />}
@@ -113,6 +122,7 @@ const Features = () => {
           body="Assignment and quiz dates come in with your captures. Add your own, or just ask Askly what's due."
           shot="deadlines"
           alt="Askly's deadlines list with assignments, a quiz, an essay and a lab report"
+          delay={150}
         />
       </div>
     </section>

@@ -58,7 +58,7 @@ export function WaitlistForm({ source }: { source: string }) {
         role="status"
         aria-live="polite"
       >
-        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand text-white">
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white text-black">
           <Check className="size-4" />
         </span>
         <span>
@@ -71,7 +71,7 @@ export function WaitlistForm({ source }: { source: string }) {
   const loading = state.kind === "loading";
   return (
     <form onSubmit={submit} noValidate className="w-full max-w-xl">
-      <div className="flex flex-col gap-2 rounded-[28px] border border-white/10 bg-white/[0.06] p-1.5 transition-colors focus-within:border-brand/60 sm:flex-row sm:items-center sm:rounded-full">
+      <div className="flex flex-col gap-2 rounded-[28px] border border-white/10 bg-white/[0.06] p-1.5 transition-colors focus-within:border-white/30 sm:flex-row sm:items-center sm:rounded-full">
         <label htmlFor={`${id}-email`} className="sr-only">
           Email address
         </label>

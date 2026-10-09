@@ -21,7 +21,7 @@ import {
 } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Shot, type ShotName } from "./shot";
-import { eyebrow, heading } from "./styles";
+import { card, eyebrow, heading, reveal } from "./styles";
 
 import "swiper/css";
 import "swiper/css/navigation";
@@ -103,7 +103,13 @@ const navButton =
 const FeaturesCarousel = () => {
   return (
     <section className="py-24 sm:py-32">
-      <div className="mx-auto flex max-w-6xl flex-col justify-between gap-6 px-5 sm:px-8 md:flex-row md:items-end">
+      <div
+        data-reveal
+        className={cn(
+          reveal,
+          "mx-auto flex max-w-6xl flex-col justify-between gap-6 px-5 sm:px-8 md:flex-row md:items-end",
+        )}
+      >
         <div>
           <p className={eyebrow}>Inside Askly</p>
           <h2
@@ -157,14 +163,15 @@ const FeaturesCarousel = () => {
               {({ isActive }) => (
                 <div
                   className={cn(
-                    "grid h-full grid-cols-1 overflow-hidden rounded-3xl border border-border bg-card transition-opacity duration-500 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]",
+                    card,
+                    "grid h-full grid-cols-1 overflow-hidden rounded-3xl transition-opacity duration-500 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]",
                     isActive ? "opacity-100" : "opacity-40",
                   )}
                 >
                   <div className="flex flex-col p-7 sm:p-10">
                     <span className="grid size-11 place-items-center rounded-xl border border-white/10 bg-white/[0.04]">
                       {createElement(slide.icon, {
-                        className: "size-5 text-brand",
+                        className: "size-5 text-white",
                       })}
                     </span>
                     <h3 className={cn(heading, "mt-6 text-3xl sm:text-4xl")}>
@@ -176,13 +183,13 @@ const FeaturesCarousel = () => {
                     <ul className="mt-6 space-y-2 text-sm text-white/80">
                       {slide.points.map((p) => (
                         <li key={p} className="flex items-center gap-2.5">
-                          <span className="size-1.5 rounded-full bg-brand" />
+                          <span className="size-1 rounded-full bg-white/60" />
                           {p}
                         </li>
                       ))}
                     </ul>
                   </div>
-                  <div className="relative flex items-end bg-gradient-to-br from-[#16233a] via-card to-card px-6 pt-8 sm:px-10 sm:pt-12">
+                  <div className="relative flex items-end bg-gradient-to-br from-white/[0.06] via-transparent to-transparent px-6 pt-8 sm:px-10 sm:pt-12">
                     <Shot
                       name={slide.shot}
                       alt={slide.alt}
@@ -214,7 +221,7 @@ const FeaturesCarousel = () => {
         }
         .landing-pagination .swiper-pagination-bullet-active {
           width: 22px;
-          background: var(--brand);
+          background: #fff;
         }
       `}</style>
     </section>

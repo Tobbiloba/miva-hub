@@ -23,7 +23,7 @@ export default function AuthLayout({
         </div>
         <div
           aria-hidden
-          className="pointer-events-none absolute -bottom-32 left-1/3 size-[420px] rounded-full bg-brand/20 blur-[110px]"
+          className="pointer-events-none absolute -bottom-32 left-1/3 size-[420px] rounded-full bg-white/[0.07] blur-[110px]"
         />
         <div className="relative mt-auto ml-10 overflow-hidden rounded-tl-xl border-t border-l border-white/10">
           <Image

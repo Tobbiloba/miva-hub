@@ -3,7 +3,7 @@ import { cn } from "lib/utils";
 import { ArrowRight } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
-import { btnSecondary, card, eyebrow, heading } from "./styles";
+import { btnSecondary, card, eyebrow, heading, reveal } from "./styles";
 
 interface Example {
   id: number;
@@ -52,7 +52,7 @@ const Testimonials: React.FC = () => {
   return (
     <section className="mx-auto max-w-6xl px-5 py-24 sm:px-8 sm:py-32">
       <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-16">
-        <div>
+        <div data-reveal className={reveal}>
           <p className={eyebrow}>In your own words</p>
           <h2
             className={cn(heading, "mt-3 text-4xl sm:text-5xl leading-[1.05]")}
@@ -69,7 +69,11 @@ const Testimonials: React.FC = () => {
           </a>
         </div>
 
-        <div className={cn(card, "p-6 sm:p-8")}>
+        <div
+          data-reveal
+          style={{ transitionDelay: "120ms" }}
+          className={cn(reveal, card, "p-6 sm:p-8")}
+        >
           {/* The question, as a chat bubble */}
           <div className="flex justify-end">
             <p className="max-w-[85%] rounded-[18px] bg-secondary px-4 py-2.5 text-[15px] sm:text-base">
@@ -85,7 +89,7 @@ const Testimonials: React.FC = () => {
             </p>
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-border pt-5">
-            <span className="rounded-md bg-tint-blue px-2 py-1 text-xs font-semibold text-brand">
+            <span className="rounded-md bg-white/10 px-2 py-1 text-xs font-semibold text-white">
               {active.course}
             </span>
             <span className="text-sm text-muted-foreground">
@@ -117,7 +121,7 @@ const Testimonials: React.FC = () => {
                   className={cn(
                     "block h-1.5 rounded-full transition-all",
                     index === activeIndex
-                      ? "w-6 bg-brand"
+                      ? "w-6 bg-white"
                       : "w-1.5 bg-white/25 hover:bg-white/50",
                   )}
                 />

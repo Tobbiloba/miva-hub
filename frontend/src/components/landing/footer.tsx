@@ -33,7 +33,7 @@ const Footer = () => {
             and your revision and deadlines in one place.
           </p>
           <span className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
-            <span className="size-1.5 rounded-full bg-brand" />
+            <span className="size-1.5 rounded-full bg-white/70" />
             Built for MIVA students
           </span>
         </div>

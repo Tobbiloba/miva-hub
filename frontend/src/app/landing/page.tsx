@@ -5,6 +5,7 @@ import FeaturesCarousel from "@/components/landing/features-carousel";
 import Footer from "@/components/landing/footer";
 import Hero from "@/components/landing/hero";
 import HowItWorks from "@/components/landing/how-it-works";
+import { Reveal } from "@/components/landing/reveal";
 import Testimonials from "@/components/landing/testimonials";
 import type { Metadata } from "next";
 
@@ -27,6 +28,7 @@ const Page = () => {
       <Testimonials />
       <Cta />
       <Footer />
+      <Reveal />
     </div>
   );
 };

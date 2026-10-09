@@ -1,6 +1,6 @@
 import { cn } from "lib/utils";
 import { Shot } from "./shot";
-import { eyebrow, heading } from "./styles";
+import { card, eyebrow, heading, reveal } from "./styles";
 import { ScrollVelocityContainer, ScrollVelocityRow } from "./ui/text-scroll";
 import { WaitlistForm } from "./waitlist-form";
 
@@ -10,10 +10,13 @@ const Cta = () => {
       id="waitlist"
       className="mx-auto max-w-6xl scroll-mt-6 px-5 py-12 sm:px-8"
     >
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-card">
+      <div
+        data-reveal
+        className={cn(reveal, card, "relative overflow-hidden rounded-3xl")}
+      >
         <div
           aria-hidden
-          className="pointer-events-none absolute -top-40 -right-40 size-[520px] rounded-full bg-brand/20 blur-[120px]"
+          className="pointer-events-none absolute -top-40 -right-40 size-[520px] rounded-full bg-white/[0.07] blur-[120px]"
         />
         <div className="relative grid grid-cols-1 items-center gap-10 p-7 sm:p-12 lg:grid-cols-2 lg:gap-12">
           <div>

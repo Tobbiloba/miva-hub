@@ -38,7 +38,7 @@ export function Shot({
     <div className={cn("relative", className)}>
       <div
         aria-hidden
-        className="pointer-events-none absolute -inset-x-8 -top-6 bottom-0 rounded-full bg-brand/15 blur-3xl"
+        className="pointer-events-none absolute -inset-x-8 -top-6 bottom-0 rounded-full bg-white/[0.06] blur-3xl"
       />
       <div
         className={cn(

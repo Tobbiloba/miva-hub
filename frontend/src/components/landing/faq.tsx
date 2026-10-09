@@ -1,5 +1,5 @@
 import { cn } from "lib/utils";
-import { card, eyebrow, heading } from "./styles";
+import { card, eyebrow, heading, reveal } from "./styles";
 
 const faqs = [
   {
@@ -34,16 +34,23 @@ const Faq = () => {
       id="faq"
       className="mx-auto max-w-6xl scroll-mt-6 px-5 py-24 sm:px-8 sm:py-32"
     >
-      <p className={eyebrow}>FAQ</p>
-      <h2 className={cn(heading, "mt-3 text-4xl sm:text-5xl leading-[1.05]")}>
-        Questions, answered.
-      </h2>
-      <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-        How Askly works, the Chrome extension, and who can see your notes.
-      </p>
+      <div data-reveal className={reveal}>
+        <p className={eyebrow}>FAQ</p>
+        <h2 className={cn(heading, "mt-3 text-4xl sm:text-5xl leading-[1.05]")}>
+          Questions, answered.
+        </h2>
+        <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
+          How Askly works, the Chrome extension, and who can see your notes.
+        </p>
+      </div>
       <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2">
-        {faqs.map((item) => (
-          <div key={item.q} className={cn(card, "p-6 sm:p-7")}>
+        {faqs.map((item, i) => (
+          <div
+            key={item.q}
+            data-reveal
+            style={{ transitionDelay: `${(i % 2) * 80}ms` }}
+            className={cn(reveal, card, "p-6 sm:p-7")}
+          >
             <h3 className="text-[17px] font-semibold tracking-[-0.015em]">
               {item.q}
             </h3>

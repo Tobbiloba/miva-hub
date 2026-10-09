@@ -1,7 +1,7 @@
 import { cn } from "lib/utils";
 import { Check } from "lucide-react";
 import { Shot, type ShotName } from "./shot";
-import { card, eyebrow, heading } from "./styles";
+import { card, eyebrow, heading, reveal } from "./styles";
 
 const steps: {
   tag: string;
@@ -19,8 +19,8 @@ const steps: {
       "Pin it to your toolbar and sign in with your Askly account",
       "Add your courses in Askly",
     ],
-    shot: "home",
-    alt: "Askly's home screen with the setup checklist and study starters",
+    shot: "courses",
+    alt: "Askly's My Courses page with four enrolled courses",
   },
   {
     tag: "Step 2",
@@ -60,25 +60,31 @@ const HowItWorks = () => {
       className="scroll-mt-6 border-y border-border bg-[#0b0b0c] py-24 sm:py-32"
     >
       <div className="mx-auto max-w-6xl px-5 sm:px-8">
-        <p className={eyebrow}>How it works</p>
-        <h2
-          className={cn(
-            heading,
-            "mt-3 max-w-3xl text-4xl sm:text-5xl md:text-6xl leading-[1.05]",
-          )}
-        >
-          From the LMS to your answers in three steps.
-        </h2>
+        <div data-reveal className={reveal}>
+          <p className={eyebrow}>How it works</p>
+          <h2
+            className={cn(
+              heading,
+              "mt-3 max-w-3xl text-4xl sm:text-5xl md:text-6xl leading-[1.05]",
+            )}
+          >
+            From the LMS to your answers in three steps.
+          </h2>
+        </div>
 
         <div className="mt-16 space-y-20 sm:space-y-28">
           {steps.map((step, index) => (
             <div
               key={step.tag}
-              className="grid grid-cols-1 items-center gap-10 md:grid-cols-2 md:gap-16"
+              data-reveal
+              className={cn(
+                reveal,
+                "grid grid-cols-1 items-center gap-10 md:grid-cols-2 md:gap-16",
+              )}
             >
               <div className={index % 2 === 1 ? "md:order-2" : ""}>
                 <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium text-white/70">
-                  <span className="grid size-4 place-items-center rounded-full bg-brand text-[10px] font-semibold text-white">
+                  <span className="grid size-4 place-items-center rounded-full bg-white text-[10px] font-semibold text-black">
                     {index + 1}
                   </span>
                   {step.tag}
@@ -97,7 +103,7 @@ const HowItWorks = () => {
                       key={item}
                       className="flex items-start gap-3 text-[15px] leading-relaxed text-muted-foreground sm:text-base"
                     >
-                      <Check className="mt-1 size-4 shrink-0 text-brand" />
+                      <Check className="mt-1 size-4 shrink-0 text-white/70" />
                       {item}
                     </li>
                   ))}
@@ -122,7 +128,9 @@ const HowItWorks = () => {
         </div>
 
         <div
+          data-reveal
           className={cn(
+            reveal,
             card,
             "mt-24 grid grid-cols-1 divide-y divide-border md:grid-cols-3 md:divide-x md:divide-y-0",
           )}
