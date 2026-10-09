@@ -26,21 +26,21 @@ export function QuoteSlider() {
   const go = (d: number) =>
     setI((v) => (v + d + QUOTES.length) % QUOTES.length);
   return (
-    <div className="flex h-full flex-col rounded-[22px] bg-[#edf3d3] p-8 text-[#23332b] sm:p-10">
-      <span className="font-[family-name:var(--font-serif)] text-5xl leading-none text-[#23332b]/70">
-        &ldquo;
+    <div className="flex h-full flex-col rounded-[22px] bg-[#eef3d2] px-7 pt-10 pb-10 text-[#1d2a23] sm:px-10 sm:pt-12">
+      <span className="text-[44px] leading-[0.6] italic text-[#1d2a23]">
+        &rdquo;
       </span>
       <p
         key={i}
-        className="mt-4 text-2xl leading-snug tracking-[-0.02em] animate-in fade-in-0 duration-500 sm:text-[34px] sm:leading-[1.2]"
+        className="mt-12 max-w-[820px] text-2xl leading-[1.22] tracking-[-0.01em] animate-in fade-in-0 duration-500 sm:text-[32px] lg:text-[40px]"
       >
         {q.text}
       </p>
-      <p className="mt-6 text-xs font-medium tracking-[0.14em] text-[#23332b]/70 uppercase">
+      <p className="mt-10 text-xs tracking-[0.14em] text-[#3d4741] uppercase">
         {q.by}
       </p>
-      <div className="mt-auto flex items-center justify-between pt-10">
-        <span className="text-xs tabular-nums text-[#23332b]/70">
+      <div className="mt-auto flex items-center justify-between pt-12">
+        <span className="text-[13px] tabular-nums text-[#3d4741]">
           {String(i + 1).padStart(2, "0")} /{" "}
           {String(QUOTES.length).padStart(2, "0")}
         </span>
@@ -49,17 +49,17 @@ export function QuoteSlider() {
             type="button"
             onClick={() => go(-1)}
             aria-label="Previous quote"
-            className="grid size-12 place-items-center rounded-2xl bg-[#263f35] text-white transition-colors hover:bg-[#1f342b]"
+            className="grid size-[52px] place-items-center rounded-[18px] bg-[#263c32] text-white transition-colors hover:bg-[#1f342b]"
           >
-            <ArrowLeft className="size-5" />
+            <ArrowLeft className="size-5" strokeWidth={1.75} />
           </button>
           <button
             type="button"
             onClick={() => go(1)}
             aria-label="Next quote"
-            className="grid size-12 place-items-center rounded-2xl bg-[#263f35] text-white transition-colors hover:bg-[#1f342b]"
+            className="grid size-[52px] place-items-center rounded-[18px] bg-[#263c32] text-white transition-colors hover:bg-[#1f342b]"
           >
-            <ArrowRight className="size-5" />
+            <ArrowRight className="size-5" strokeWidth={1.75} />
           </button>
         </div>
       </div>
@@ -94,24 +94,30 @@ const FAQS = [
 export function Faq() {
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <div className="border-t border-[#dcdcd6]">
+    <div>
       {FAQS.map((f, i) => {
         const isOpen = open === i;
         return (
-          <div key={f.q} className="border-b border-[#dcdcd6]">
+          <div key={f.q} className="border-b border-[#e2e2dd]">
             <button
               type="button"
               onClick={() => setOpen(isOpen ? null : i)}
               aria-expanded={isOpen}
-              className="flex w-full items-center justify-between gap-6 py-7 text-left"
+              className="flex w-full items-center justify-between gap-6 py-[30px] text-left lg:pr-[30px]"
             >
-              <span className="text-2xl tracking-[-0.02em] text-[#3d4741] sm:text-[28px]">
+              <span className="text-2xl tracking-[-0.01em] text-[#4a524c] sm:text-[30px]">
                 {f.q}
               </span>
               {isOpen ? (
-                <Minus className="size-5 shrink-0 text-[#23332b]" />
+                <Minus
+                  className="size-5 shrink-0 text-[#1d2a23]"
+                  strokeWidth={1.5}
+                />
               ) : (
-                <Plus className="size-5 shrink-0 text-[#23332b]" />
+                <Plus
+                  className="size-5 shrink-0 text-[#1d2a23]"
+                  strokeWidth={1.5}
+                />
               )}
             </button>
             <div
@@ -120,7 +126,7 @@ export function Faq() {
                 isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
               )}
             >
-              <p className="overflow-hidden pr-10 text-lg leading-relaxed text-[#6f7570]">
+              <p className="overflow-hidden pr-10 text-lg leading-[1.5] text-[#6f7570] lg:text-[19px]">
                 <span className="block pb-7">{f.a}</span>
               </p>
             </div>
