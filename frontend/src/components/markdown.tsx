@@ -30,13 +30,18 @@ WordByWordFadeIn.displayName = "WordByWordFadeIn";
 const components: Partial<Components> = {
   table: ({ node, children, ...props }) => {
     return (
-      <div className="my-4">
+      // A bordered frame that scrolls sideways on its own, never the page
+      <div className="my-5 overflow-hidden rounded-xl border border-border">
         <Table {...props}>{children}</Table>
       </div>
     );
   },
   thead: ({ node, children, ...props }) => {
-    return <TableHeader {...props}>{children}</TableHeader>;
+    return (
+      <TableHeader className="bg-secondary/60" {...props}>
+        {children}
+      </TableHeader>
+    );
   },
   tbody: ({ node, children, ...props }) => {
     return <TableBody {...props}>{children}</TableBody>;
@@ -46,14 +51,17 @@ const components: Partial<Components> = {
   },
   th: ({ node, children, ...props }) => {
     return (
-      <TableHead {...props}>
+      <TableHead className="first:pl-4 last:pr-4" {...props}>
         <WordByWordFadeIn>{children}</WordByWordFadeIn>
       </TableHead>
     );
   },
   td: ({ node, children, ...props }) => {
     return (
-      <TableCell {...props}>
+      <TableCell
+        className="min-w-[8rem] align-top leading-relaxed whitespace-normal first:pl-4 last:pr-4"
+        {...props}
+      >
         <WordByWordFadeIn>{children}</WordByWordFadeIn>
       </TableCell>
     );

@@ -403,7 +403,7 @@ export default function ChatBot({
               <div aria-hidden className="flex-1 md:hidden" />
               <ChatGreeting />
               {onboarding && (
-                <div className="mx-auto w-full max-w-3xl px-6 pb-4">
+                <div className="mx-auto w-full max-w-[52rem] px-6 pb-4">
                   {onboarding}
                 </div>
               )}
@@ -411,7 +411,7 @@ export default function ChatBot({
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="mx-auto w-full max-w-3xl px-6 pb-6"
+                className="mx-auto w-full max-w-[52rem] px-6 pb-6"
               >
                 <SuggestionCards
                   items={CHAT_SUGGESTIONS}
@@ -460,7 +460,7 @@ export default function ChatBot({
               })}
               {space && (
                 <>
-                  <div className="w-full mx-auto max-w-3xl px-6 relative">
+                  <div className="w-full mx-auto max-w-[52rem] px-6 relative">
                     <div className={space == "space" ? "opacity-0" : ""}>
                       <Think />
                     </div>
@@ -481,7 +481,7 @@ export default function ChatBot({
             "w-full z-10",
           )}
         >
-          <div className="max-w-3xl mx-auto relative flex justify-center items-center -top-2">
+          <div className="max-w-[52rem] mx-auto relative flex justify-center items-center -top-2">
             <ScrollToBottomButton
               show={!isAtBottom && messages.length > 0}
               onClick={scrollToBottom}
@@ -496,7 +496,7 @@ export default function ChatBot({
             isLoading={isLoading || isPendingToolCall}
             onStop={stop}
           />
-          <p className="mx-auto mt-2 max-w-3xl px-4 text-center text-xs text-muted-foreground">
+          <p className="mx-auto mt-2 max-w-[52rem] px-4 text-center text-xs text-muted-foreground">
             Askly can make mistakes. Check important details against your course
             materials.
           </p>

@@ -232,8 +232,8 @@ export default function PromptInput({
   }, [editorRef.current]);
 
   return (
-    <div className="max-w-3xl mx-auto fade-in animate-in">
-      <div className="z-10 mx-auto w-full max-w-3xl relative">
+    <div className="max-w-[52rem] mx-auto fade-in animate-in">
+      <div className="z-10 mx-auto w-full max-w-[52rem] relative">
         <fieldset className="flex w-full min-w-0 max-w-full flex-col px-4">
           <div className="relative z-10 flex w-full cursor-text flex-col items-stretch overflow-hidden rounded-[20px] border border-border bg-card shadow-[var(--shadow-float)] transition-[border-color,box-shadow] duration-200 focus-within:border-input">
             {mentions.length > 0 && (

@@ -39,6 +39,16 @@ function dueIn(days?: number) {
   return `In ${days} days`;
 }
 
+/** "12" + "Oct" for the little calendar tile; null when the date won't parse. */
+function dateTile(value: string) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return {
+    day: d.getDate(),
+    month: d.toLocaleString("en", { month: "short" }),
+  };
+}
+
 export function AssignmentList(props: AssignmentListProps) {
   const totalCount = props.total_count || props.assignments.length;
 
@@ -66,7 +76,20 @@ export function AssignmentList(props: AssignmentListProps) {
             ? URGENCY[assignment.urgency]
             : undefined;
           return (
-            <li key={index} className="flex items-start gap-4 px-5 py-3">
+            <li key={index} className="flex items-start gap-4 px-5 py-3.5">
+              {(() => {
+                const tile = dateTile(assignment.due_date);
+                return tile ? (
+                  <span className="flex w-11 shrink-0 flex-col items-center overflow-hidden rounded-lg border border-border text-center">
+                    <span className="w-full bg-secondary py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                      {tile.month}
+                    </span>
+                    <span className="py-1 text-base leading-none font-semibold tabular-nums">
+                      {tile.day}
+                    </span>
+                  </span>
+                ) : null;
+              })()}
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium leading-snug">
                   {assignment.title}

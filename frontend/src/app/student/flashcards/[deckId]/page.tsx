@@ -1,7 +1,8 @@
 "use client";
 
+import { CardProgress, FlipCard } from "@/components/flashcards/flip-card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { stripCitationMarkers } from "lib/ai/citations";
 import {
   ArrowLeft,
   Check,
@@ -12,6 +13,7 @@ import {
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface FlashcardCard {
   id: string;
@@ -41,6 +43,7 @@ export default function ReviewSessionPage() {
   const [loading, setLoading] = useState(true);
   const [reviewing, setReviewing] = useState(false);
   const [reviewed, setReviewed] = useState(0);
+  const [knew, setKnew] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch deck info + due cards
@@ -80,17 +83,23 @@ export default function ReviewSessionPage() {
       setReviewing(true);
 
       try {
-        await fetch(`/api/flashcards/cards/${currentCard.id}/review`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rating }),
-        });
+        const res = await fetch(
+          `/api/flashcards/cards/${currentCard.id}/review`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ rating }),
+          },
+        );
+        if (!res.ok) throw new Error("review failed");
 
         setReviewed((r) => r + 1);
+        if (rating === "good") setKnew((k) => k + 1);
         setFlipped(false);
         setCurrentIndex((i) => i + 1);
       } catch {
-        // silently continue — card stays in queue
+        // The card stays put so the rating can be tried again
+        toast.error("Couldn't save that rating. Try again.");
       } finally {
         setReviewing(false);
       }
@@ -131,156 +140,156 @@ export default function ReviewSessionPage() {
     return (
       <div className="text-center py-12">
         <p className="text-destructive mb-4">{error}</p>
-        <Link href="/student/flashcards">
-          <Button variant="outline">
-            <ArrowLeft className="h-4 w-4 mr-2" /> Back to decks
-          </Button>
-        </Link>
+        <Button asChild variant="outline">
+          <Link href="/student/flashcards">
+            <ArrowLeft /> Back to decks
+          </Link>
+        </Button>
       </div>
     );
   }
 
+  const restart = () => {
+    setCurrentIndex(0);
+    setReviewed(0);
+    setKnew(0);
+    setFlipped(false);
+    fetch(`/api/flashcards/decks/${deckId}/due`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) setQueue(data.data);
+      });
+  };
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="mx-auto max-w-2xl">
       {/* Header */}
-      <div>
-        <Link
-          href="/student/flashcards"
-          className="mb-3 inline-flex items-center gap-1 text-[13px] text-brand hover:underline"
-        >
-          <ChevronLeft className="size-4" />
-          Flashcards
-        </Link>
-        <p className="text-xs font-medium text-muted-foreground">
-          {deck?.courseCode ?? "General"}
-        </p>
-        <h1 className="mt-0.5 text-[22px] leading-tight font-semibold tracking-[-0.022em]">
-          {deck?.title}
-        </h1>
+      <Link
+        href="/student/flashcards"
+        className="mb-4 inline-flex items-center gap-0.5 text-[13px] text-brand hover:underline"
+      >
+        <ChevronLeft className="size-4" />
+        Flashcards
+      </Link>
+      <div className="flex items-end justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-muted-foreground">
+            {deck?.courseCode ?? "General"}
+            {deck ? ` · ${deck.cardCount} cards` : ""}
+          </p>
+          <h1 className="mt-0.5 truncate text-[22px] leading-tight font-semibold tracking-[-0.022em]">
+            {deck?.title}
+          </h1>
+        </div>
+        {queue.length > 0 && !isComplete && (
+          <p className="shrink-0 pb-0.5 text-sm text-muted-foreground tabular-nums">
+            {currentIndex + 1} / {queue.length}
+          </p>
+        )}
       </div>
 
       {queue.length === 0 ? (
-        /* No cards due */
-        <Card>
-          <CardContent className="text-center py-12">
-            <Check className="h-12 w-12 mx-auto text-emerald-500 mb-3" />
-            <p className="text-lg font-medium mb-2">All caught up!</p>
-            <p className="text-muted-foreground">
-              No cards are due for review right now. Check back later.
-            </p>
-            <Link href="/student/flashcards" className="mt-4 inline-block">
-              <Button variant="outline">Back to decks</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <Finished
+          title="All caught up"
+          body="No cards are due right now. Askly will bring this deck back when it's time."
+        >
+          <Button asChild variant="outline">
+            <Link href="/student/flashcards">Back to decks</Link>
+          </Button>
+        </Finished>
       ) : isComplete ? (
-        /* Session complete */
-        <Card>
-          <CardContent className="text-center py-12">
-            <Check className="h-12 w-12 mx-auto text-emerald-500 mb-3" />
-            <p className="text-lg font-medium mb-2">Session complete!</p>
-            <p className="text-muted-foreground mb-4">
-              You reviewed {reviewed} card{reviewed !== 1 ? "s" : ""}.
-            </p>
-            <div className="flex gap-3 justify-center">
-              <Button
-                variant="outline"
-                onClick={() => router.push("/student/flashcards")}
-              >
-                Back to decks
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setCurrentIndex(0);
-                  setReviewed(0);
-                  setFlipped(false);
-                  // Re-fetch due cards
-                  fetch(`/api/flashcards/decks/${deckId}/due`)
-                    .then((r) => r.json())
-                    .then((data) => {
-                      if (data.success) setQueue(data.data);
-                    });
-                }}
-              >
-                <RotateCcw className="h-4 w-4 mr-1" /> Review again
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          {/* Progress */}
-          <div className="text-center text-sm text-muted-foreground">
-            Card {currentIndex + 1} of {queue.length}
-          </div>
-
-          {/* Flip card */}
-          <div
-            className="cursor-pointer select-none"
-            onClick={handleFlip}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => e.key === "Enter" && handleFlip()}
+        <Finished
+          title="Session complete"
+          body={`You reviewed ${reviewed} card${reviewed !== 1 ? "s" : ""}. You knew ${knew}, and ${reviewed - knew} will come back sooner.`}
+        >
+          <Button
+            variant="outline"
+            onClick={() => router.push("/student/flashcards")}
           >
-            <Card className="flex min-h-[300px] items-center justify-center transition-colors">
-              <CardContent className="p-8 text-center w-full">
-                {!flipped ? (
-                  <>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-4">
-                      Question
-                    </p>
-                    <p className="text-2xl leading-snug font-semibold tracking-[-0.02em]">
-                      {currentCard?.front}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-6">
-                      Click to reveal · Space
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-4">
-                      Answer
-                    </p>
-                    <p className="text-2xl leading-snug font-semibold tracking-[-0.02em]">
-                      {currentCard?.back}
-                    </p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+            Back to decks
+          </Button>
+          <Button onClick={restart}>
+            <RotateCcw />
+            Review again
+          </Button>
+        </Finished>
+      ) : (
+        <div className="mt-6">
+          <CardProgress total={queue.length} current={currentIndex} />
 
-          {/* Rating buttons — only visible after flip */}
-          {flipped && (
-            <div className="flex gap-4 justify-center">
-              <Button
-                variant="outline"
-                size="lg"
-                className="max-w-[200px] flex-1"
-                onClick={() => handleRate("again")}
-                disabled={reviewing}
-              >
-                Again
-                <kbd className="ml-1 rounded border px-1.5 font-sans text-[11px] text-muted-foreground">
-                  1
-                </kbd>
-              </Button>
-              <Button
-                size="lg"
-                className="max-w-[200px] flex-1"
-                onClick={() => handleRate("good")}
-                disabled={reviewing}
-              >
-                Got it
-                <kbd className="ml-1 rounded border border-white/25 px-1.5 font-sans text-[11px] opacity-70">
-                  2
-                </kbd>
-              </Button>
-            </div>
+          {currentCard && (
+            <FlipCard
+              key={currentCard.id}
+              front={stripCitationMarkers(currentCard.front)}
+              back={stripCitationMarkers(currentCard.back)}
+              flipped={flipped}
+              onFlip={handleFlip}
+              stacked={queue.length - currentIndex > 1}
+              className="mt-6 min-h-[320px] animate-in fade-in-0 slide-in-from-bottom-2 duration-300 sm:min-h-[360px]"
+            />
           )}
-        </>
+
+          {/* Rating: appears once the answer is showing */}
+          <div className="mt-6 h-12">
+            {flipped ? (
+              <div className="grid grid-cols-2 gap-3 animate-in fade-in-0 slide-in-from-bottom-1 duration-200">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-12 rounded-xl"
+                  onClick={() => handleRate("again")}
+                  disabled={reviewing}
+                >
+                  Again
+                </Button>
+                <Button
+                  size="lg"
+                  className="h-12 rounded-xl"
+                  onClick={() => handleRate("good")}
+                  disabled={reviewing}
+                >
+                  Got it
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="secondary"
+                size="lg"
+                className="h-12 w-full rounded-xl"
+                onClick={handleFlip}
+              >
+                Show answer
+              </Button>
+            )}
+          </div>
+          <p className="mt-3 hidden text-center text-xs text-muted-foreground md:block">
+            Space flips the card · 1 for Again · 2 for Got it
+          </p>
+        </div>
       )}
+    </div>
+  );
+}
+
+function Finished({
+  title,
+  body,
+  children,
+}: {
+  title: string;
+  body: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mt-8 flex flex-col items-center rounded-2xl border border-border bg-card px-6 py-14 text-center">
+      <span className="grid size-12 place-items-center rounded-full bg-success/12 text-success">
+        <Check className="size-6" strokeWidth={2.5} />
+      </span>
+      <h2 className="mt-4 text-lg font-semibold tracking-[-0.015em]">
+        {title}
+      </h2>
+      <p className="mt-1 max-w-sm text-sm text-muted-foreground">{body}</p>
+      <div className="mt-6 flex gap-2.5">{children}</div>
     </div>
   );
 }

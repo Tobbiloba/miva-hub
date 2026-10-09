@@ -17,10 +17,14 @@ export const createFlashcardsTool = tool({
       z.object({
         front: z
           .string()
-          .describe("Front side of the flashcard (question/term)"),
+          .describe(
+            "Front side of the flashcard (question/term). Plain text: no [S1]-style citation markers",
+          ),
         back: z
           .string()
-          .describe("Back side of the flashcard (answer/definition)"),
+          .describe(
+            "Back side of the flashcard (answer/definition). Plain text: no [S1]-style citation markers; list sources in sources_used instead",
+          ),
       }),
     ),
     sources_used: z

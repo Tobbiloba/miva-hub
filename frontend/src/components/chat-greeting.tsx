@@ -24,7 +24,7 @@ export const ChatGreeting = () => {
   return (
     <motion.div
       key="welcome"
-      className="mx-auto w-full max-w-3xl px-6"
+      className="mx-auto w-full max-w-[52rem] px-6"
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}

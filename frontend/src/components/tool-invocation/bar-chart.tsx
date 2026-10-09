@@ -1,5 +1,6 @@
 "use client";
 
+import { BarChart3 } from "lucide-react";
 import * as React from "react";
 import {
   Bar,
@@ -11,13 +12,6 @@ import {
 } from "recharts";
 
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
@@ -27,6 +21,7 @@ import {
 import { generateUniqueKey } from "lib/utils";
 import { JsonViewPopup } from "../json-view-popup";
 import { sanitizeCssVariableName } from "./shared.tool-invocation";
+import { ToolCard } from "./tool-card";
 
 // BarChart component props interface
 export interface BarChartProps {
@@ -127,66 +122,56 @@ export function BarChart(props: BarChartProps) {
   }, [deduplicateData]);
 
   return (
-    <Card>
-      <CardHeader className="flex flex-col gap-2 relative">
-        <CardTitle className="flex items-center">
-          Bar Chart - {title}
-          <div className="absolute right-4 top-0">
-            <JsonViewPopup
-              data={{
-                ...props,
-                data: deduplicateData,
-              }}
-            />
-          </div>
-        </CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
-      </CardHeader>
-      <CardContent>
-        <div>
-          <ChartContainer config={chartConfig}>
-            <ResponsiveContainer width="100%" height="400px">
-              <RechartsBarChart data={chartData}>
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="name"
-                  tickLine={false}
-                  tickMargin={10}
-                  axisLine={false}
-                />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={10}
-                  label={
-                    yAxisLabel
-                      ? {
-                          value: yAxisLabel,
-                          angle: -90,
-                          position: "insideLeft",
-                        }
-                      : undefined
-                  }
-                />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent indicator="dashed" />}
-                />
-                {seriesNames.map((seriesName, index) => {
-                  return (
-                    <Bar
-                      key={index}
-                      dataKey={sanitizeCssVariableName(seriesName)}
-                      fill={`var(--color-${sanitizeCssVariableName(seriesName)})`}
-                      radius={4}
-                    />
-                  );
-                })}
-              </RechartsBarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <ToolCard
+      icon={<BarChart3 />}
+      eyebrow="Bar chart"
+      title={title}
+      meta={description}
+      action={<JsonViewPopup data={{ ...props, data: deduplicateData }} />}
+    >
+      <div>
+        <ChartContainer config={chartConfig}>
+          <ResponsiveContainer width="100%" height={300}>
+            <RechartsBarChart data={chartData}>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" />
+              <XAxis
+                dataKey="name"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={10}
+                label={
+                  yAxisLabel
+                    ? {
+                        value: yAxisLabel,
+                        angle: -90,
+                        position: "insideLeft",
+                      }
+                    : undefined
+                }
+              />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent indicator="dashed" />}
+              />
+              {seriesNames.map((seriesName, index) => {
+                return (
+                  <Bar
+                    key={index}
+                    dataKey={sanitizeCssVariableName(seriesName)}
+                    fill={`var(--color-${sanitizeCssVariableName(seriesName)})`}
+                    radius={4}
+                  />
+                );
+              })}
+            </RechartsBarChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+      </div>
+    </ToolCard>
   );
 }

@@ -57,7 +57,7 @@ export function AppSidebar({
   }, [currentPath, isMobile]);
 
   return (
-    <Sidebar collapsible="offcanvas" className="border-r-0">
+    <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
       <SidebarHeader className="px-3 pt-3.5 pb-1">
         <SidebarMenu>
           <SidebarMenuItem className="flex h-9 items-center justify-between pl-1.5">

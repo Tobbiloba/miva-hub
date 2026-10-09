@@ -1,15 +1,9 @@
 "use client";
 
+import { PieChart as PieChartIcon } from "lucide-react";
 import * as React from "react";
 import { Label, Pie, PieChart as RechartsPieChart } from "recharts";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   ChartConfig,
   ChartContainer,
@@ -19,6 +13,7 @@ import {
 
 import { JsonViewPopup } from "../json-view-popup";
 import { sanitizeCssVariableName } from "./shared.tool-invocation";
+import { ToolCard } from "./tool-card";
 
 // PieChart component props interface
 export interface PieChartProps {
@@ -87,68 +82,63 @@ export function PieChart(props: PieChartProps) {
   }, [data]);
 
   return (
-    <Card className="flex flex-col bg-card">
-      <CardHeader className="items-center pb-0 flex flex-col gap-2 relative">
-        <CardTitle className="flex items-center">
-          Pie Chart - {title}
-          <div className="absolute right-4 top-">
-            <JsonViewPopup data={props} />
-          </div>
-        </CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
-      </CardHeader>
-      <CardContent className="flex-1 pb-0">
-        <ChartContainer
-          config={chartConfig}
-          className="mx-auto aspect-square max-h-[300px]"
-        >
-          <RechartsPieChart>
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent hideLabel />}
-            />
-            <Pie
-              data={chartData}
-              dataKey="value"
-              nameKey="name"
-              innerRadius={60}
-              strokeWidth={5}
-            >
-              <Label
-                content={({ viewBox }) => {
-                  if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                    return (
-                      <text
+    <ToolCard
+      icon={<PieChartIcon />}
+      eyebrow="Pie chart"
+      title={title}
+      meta={description}
+      action={<JsonViewPopup data={props} />}
+    >
+      <ChartContainer
+        config={chartConfig}
+        className="mx-auto aspect-square max-h-[300px]"
+      >
+        <RechartsPieChart>
+          <ChartTooltip
+            cursor={false}
+            content={<ChartTooltipContent hideLabel />}
+          />
+          <Pie
+            data={chartData}
+            dataKey="value"
+            nameKey="name"
+            innerRadius={60}
+            strokeWidth={5}
+          >
+            <Label
+              content={({ viewBox }) => {
+                if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                  return (
+                    <text
+                      x={viewBox.cx}
+                      y={viewBox.cy}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                    >
+                      <tspan
                         x={viewBox.cx}
                         y={viewBox.cy}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
+                        className="fill-foreground text-3xl font-bold"
                       >
+                        {total.toLocaleString()}
+                      </tspan>
+                      {unit && (
                         <tspan
                           x={viewBox.cx}
-                          y={viewBox.cy}
-                          className="fill-foreground text-3xl font-bold"
+                          y={(viewBox.cy || 0) + 24}
+                          className="fill-muted-foreground"
                         >
-                          {total.toLocaleString()}
+                          {unit}
                         </tspan>
-                        {unit && (
-                          <tspan
-                            x={viewBox.cx}
-                            y={(viewBox.cy || 0) + 24}
-                            className="fill-muted-foreground"
-                          >
-                            {unit}
-                          </tspan>
-                        )}
-                      </text>
-                    );
-                  }
-                }}
-              />
-            </Pie>
-          </RechartsPieChart>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+                      )}
+                    </text>
+                  );
+                }
+              }}
+            />
+          </Pie>
+        </RechartsPieChart>
+      </ChartContainer>
+    </ToolCard>
   );
 }

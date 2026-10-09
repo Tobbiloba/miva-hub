@@ -3,6 +3,7 @@ import {
   type CitationSource,
   citationSourcesBefore,
   linkCitations,
+  stripCitationMarkers,
 } from "./citations";
 
 const s1: CitationSource = {
@@ -62,5 +63,19 @@ describe("citationSourcesBefore", () => {
       s1.materialId,
     );
     expect(citationSourcesBefore(parts, 0).size).toBe(0);
+  });
+});
+
+describe("stripCitationMarkers", () => {
+  it("drops single and grouped markers and tidies the spacing", () => {
+    expect(
+      stripCitationMarkers(
+        "Hardware and software (system and application). [S1]",
+      ),
+    ).toBe("Hardware and software (system and application).");
+    expect(
+      stripCitationMarkers("Transistors [S1, S2] replaced tubes [S3]."),
+    ).toBe("Transistors replaced tubes.");
+    expect(stripCitationMarkers("No markers here")).toBe("No markers here");
   });
 });

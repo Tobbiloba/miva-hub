@@ -63,6 +63,18 @@ export function citationLabel(source: CitationSource): string {
 const CITATION_GROUP = /\[(S\d+(?:\s*[,;]\s*S\d+)*)\](?!\()/g;
 
 /**
+ * Drop [S#] markers from text that isn't rendered as markdown (flashcard
+ * faces), where they can't become links and would show up raw.
+ */
+export function stripCitationMarkers(text: string): string {
+  return text
+    .replace(CITATION_GROUP, "")
+    .replace(/\s+([.,;:!?])/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+/**
  * Turn [S#] markers into markdown links to the cited material, leaving any
  * marker without a known source as plain text. Returns the S#s it linked.
  */

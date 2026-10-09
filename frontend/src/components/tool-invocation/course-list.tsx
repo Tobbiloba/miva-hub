@@ -32,16 +32,15 @@ export function CourseList(props: CourseListProps) {
     >
       <ul className="divide-y divide-border border-t border-border">
         {props.courses.map((course, index) => (
-          <li key={index} className="flex items-start gap-4 px-5 py-3">
+          <li key={index} className="flex items-center gap-4 px-5 py-3.5">
+            <span className="w-[4.5rem] shrink-0 rounded-md bg-secondary px-2 py-1 text-center text-xs font-semibold tracking-wide tabular-nums">
+              {course.course_code}
+            </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm">
-                <span className="font-semibold">{course.course_code}</span>
-                <span className="text-muted-foreground">
-                  {" "}
-                  · {course.course_name}
-                </span>
+              <p className="truncate text-sm font-medium">
+                {course.course_name}
               </p>
-              <p className="mt-0.5 text-[13px] text-muted-foreground">
+              <p className="mt-0.5 truncate text-[13px] text-muted-foreground">
                 {joinMeta(
                   course.instructor,
                   course.status &&
@@ -51,8 +50,11 @@ export function CourseList(props: CourseListProps) {
                 )}
               </p>
             </div>
-            <span className="shrink-0 text-[13px] tabular-nums text-muted-foreground">
-              {course.credits} {course.credits === 1 ? "credit" : "credits"}
+            <span className="shrink-0 text-right text-[13px] tabular-nums text-muted-foreground">
+              <span className="font-medium text-foreground">
+                {course.credits}
+              </span>{" "}
+              {course.credits === 1 ? "credit" : "credits"}
             </span>
           </li>
         ))}

@@ -1,24 +1,21 @@
 "use client";
 
 import {
+  ArrowDown,
   ArrowDownUp,
+  ArrowUp,
   ChevronLeft,
   ChevronRight,
   Download,
   Eye,
   FileSpreadsheet,
+  Search,
+  Table2,
 } from "lucide-react";
 import * as React from "react";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -35,8 +32,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "lib/utils";
 import { Checkbox } from "ui/checkbox";
 import { JsonViewPopup } from "../json-view-popup";
+import { ToolCard, joinMeta } from "./tool-card";
 
 // Column configuration interface
 interface Column {
@@ -131,7 +130,7 @@ export function InteractiveTable(props: InteractiveTableProps) {
 
     return parts.map((part, index) =>
       regex.test(part) ? (
-        <mark key={index} className="bg-amber-500/30 text-foreground">
+        <mark key={index} className="rounded-sm bg-brand/15 text-foreground">
           {part}
         </mark>
       ) : (
@@ -308,220 +307,215 @@ export function InteractiveTable(props: InteractiveTableProps) {
     visibleColumns.has(col.key),
   );
 
-  return (
-    <div>
-      <Card className="w-full overflow-hidden px-0">
-        <CardHeader>
-          <div className="flex flex-col">
-            <CardTitle className="w-full flex items-center gap-2 justify-between">
-              Interactive Table - {title}
-              <JsonViewPopup data={props} />
-            </CardTitle>
-            {description && (
-              <CardDescription className="mt-2 ">{description}</CardDescription>
-            )}
-          </div>
+  const isCentered = (type?: Column["type"]) =>
+    type === "number" || type === "date" || type === "boolean";
 
-          {/* Search and Export */}
-          <div className="flex items-center gap-2 mt-4">
-            {searchable && (
-              <div className="flex-1">
-                <Input
-                  placeholder="Search across all columns..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="h-9"
-                />
-              </div>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="data-[state=open]:bg-accent">
-                  <Eye className="size-3.5" />
-                  Columns
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                {columns.map((column) => (
-                  <DropdownMenuCheckboxItem
-                    key={column.key}
-                    checked={visibleColumns.has(column.key)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      const newVisible = new Set(visibleColumns);
-                      const checked = !newVisible.has(column.key);
-                      if (checked) {
-                        newVisible.add(column.key);
-                      } else {
-                        newVisible.delete(column.key);
-                      }
-                      setVisibleColumns(newVisible);
-                    }}
+  return (
+    <ToolCard
+      icon={<Table2 />}
+      eyebrow="Table"
+      title={title}
+      meta={joinMeta(
+        description,
+        `${data.length} ${data.length === 1 ? "row" : "rows"}`,
+      )}
+      action={<JsonViewPopup data={props} />}
+      bodyClassName="px-0 pb-0"
+      footer={
+        pageSize > 0 && totalPages > 1 ? (
+          <div className="flex w-full items-center justify-between">
+            <span className="text-xs text-muted-foreground tabular-nums">
+              Page {currentPage} of {totalPages}
+            </span>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 rounded-full"
+                aria-label="Previous page"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 rounded-full"
+                aria-label="Next page"
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                }
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight />
+              </Button>
+            </div>
+          </div>
+        ) : undefined
+      }
+    >
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 px-5 pb-3">
+        {searchable && (
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-8 rounded-lg pl-9 text-sm"
+            />
+          </div>
+        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-muted-foreground data-[state=open]:bg-accent"
+            >
+              <Eye />
+              Columns
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {columns.map((column) => (
+              <DropdownMenuCheckboxItem
+                key={column.key}
+                checked={visibleColumns.has(column.key)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  const newVisible = new Set(visibleColumns);
+                  if (newVisible.has(column.key)) {
+                    newVisible.delete(column.key);
+                  } else {
+                    newVisible.add(column.key);
+                  }
+                  setVisibleColumns(newVisible);
+                }}
+              >
+                {column.label}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {exportable && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-muted-foreground data-[state=open]:bg-accent"
+              >
+                <Download />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportToCSV}>
+                <Download />
+                CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToExcel}>
+                <FileSpreadsheet />
+                Excel
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+
+      <Table>
+        <TableHeader className="border-t border-border bg-secondary/60">
+          <TableRow className="hover:bg-transparent">
+            {visibleColumnsArray.map((column) => {
+              const active = sortColumn === column.key;
+              return (
+                <TableHead
+                  key={column.key}
+                  aria-sort={
+                    active && sortDirection
+                      ? sortDirection === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : undefined
+                  }
+                  className={cn(
+                    "select-none first:pl-5 last:pr-5",
+                    isCentered(column.type) && "text-center",
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleSort(column.key)}
+                    className={cn(
+                      "inline-flex items-center gap-1 transition-colors hover:text-foreground",
+                      active && "text-foreground",
+                    )}
                   >
                     {column.label}
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                    {active && sortDirection === "asc" ? (
+                      <ArrowUp className="size-3" />
+                    ) : active && sortDirection === "desc" ? (
+                      <ArrowDown className="size-3" />
+                    ) : (
+                      <ArrowDownUp className="size-3 opacity-30" />
+                    )}
+                  </button>
+                </TableHead>
+              );
+            })}
+          </TableRow>
+        </TableHeader>
 
-            {exportable && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="data-[state=open]:bg-accent"
-                  >
-                    <Download className="size-3.5" />
-                    Export
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={exportToCSV}>
-                    <Download className="h-4 w-4 mr-2" />
-                    CSV
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportToExcel}>
-                    <FileSpreadsheet className="h-4 w-4 mr-2" />
-                    Excel
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-        </CardHeader>
-
-        <CardContent className="px-0 relative">
-          <Table>
-            <TableHeader className="bg-secondary border-t">
-              <TableRow>
-                {visibleColumnsArray.map((column, index) => {
-                  return (
-                    <TableHead
-                      key={column.key}
-                      className={`relative select-none ${index === 0 ? "pl-6" : index === visibleColumnsArray.length - 1 ? "pr-6" : ""} ${
-                        column.type === "number" ||
-                        column.type === "date" ||
-                        column.type === "boolean"
-                          ? "text-center"
-                          : ""
-                      }`}
-                    >
-                      {/* Column header with sorting */}
-                      <div
-                        className={`flex items-center gap-2 cursor-pointer ${
-                          column.type === "number" || column.type === "date"
-                            ? "justify-center"
-                            : ""
-                        }`}
-                        onClick={() => handleSort(column.key)}
-                      >
-                        <span className="hover:text-primary">
-                          {column.label}
-                        </span>
-
-                        <ArrowDownUp
-                          className={`h-3 w-3 ${
-                            sortColumn === column.key
-                              ? ""
-                              : "text-muted-foreground/30"
-                          }`}
-                        />
-                      </div>
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            </TableHeader>
-
-            <TableBody className="min-h-[24rem]">
-              {paginatedData.length === 0 ? (
-                <TableRow>
+        <TableBody>
+          {paginatedData.length === 0 ? (
+            <TableRow className="hover:bg-transparent">
+              <TableCell
+                colSpan={visibleColumnsArray.length}
+                className="h-32 text-center text-sm text-muted-foreground"
+              >
+                {searchTerm ? `Nothing matches "${searchTerm}"` : "No rows"}
+              </TableCell>
+            </TableRow>
+          ) : (
+            paginatedData.map((row, rowIndex) => (
+              <TableRow key={rowIndex}>
+                {visibleColumnsArray.map((column) => (
                   <TableCell
-                    colSpan={visibleColumnsArray.length}
-                    className="text-center h-48"
+                    key={column.key}
+                    className={cn(
+                      "first:pl-5 last:pr-5",
+                      isCentered(column.type) && "text-center tabular-nums",
+                    )}
                   >
-                    No data found
+                    {column.type === "boolean" ? (
+                      <Checkbox
+                        checked={Boolean(row[column.key])}
+                        className="pointer-events-none"
+                        aria-label={column.label}
+                      />
+                    ) : searchTerm && searchable ? (
+                      highlightText(
+                        formatCellValue(row[column.key], column.type),
+                        searchTerm,
+                      )
+                    ) : (
+                      formatCellValue(row[column.key], column.type)
+                    )}
                   </TableCell>
-                </TableRow>
-              ) : (
-                paginatedData.map((row, index) => {
-                  return (
-                    <TableRow key={index} className={`border-b!`}>
-                      {visibleColumnsArray.map((column, index) => (
-                        <TableCell
-                          key={column.key}
-                          className={`py-3 ${index === 0 ? "pl-6" : index === visibleColumnsArray.length - 1 ? "pr-6" : ""} ${
-                            column.type === "number" || column.type === "date"
-                              ? "text-center"
-                              : column.type == "boolean"
-                                ? "flex items-center justify-center"
-                                : ""
-                          }`}
-                        >
-                          {column.type == "boolean" ? (
-                            <>
-                              <Checkbox checked={row[column.key]} />
-                            </>
-                          ) : searchTerm && searchable ? (
-                            highlightText(
-                              formatCellValue(row[column.key], column.type),
-                              searchTerm,
-                            )
-                          ) : (
-                            formatCellValue(row[column.key], column.type)
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between pt-4 px-6">
-            <div className="text-xs text-muted-foreground">
-              Total rows: {data.length}
-            </div>
-            {pageSize > 0 && totalPages > 1 && (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.max(1, prev - 1))
-                  }
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-
-                <span className="text-sm px-2">
-                  Page {currentPage} of {totalPages}
-                </span>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                  }
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+                ))}
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </ToolCard>
   );
 }

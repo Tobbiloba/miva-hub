@@ -1,5 +1,6 @@
 "use client";
 
+import { LineChart as LineChartIcon } from "lucide-react";
 import * as React from "react";
 
 import {
@@ -13,13 +14,6 @@ import {
 } from "recharts";
 
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
@@ -29,6 +23,7 @@ import {
 import { generateUniqueKey } from "lib/utils";
 import { JsonViewPopup } from "../json-view-popup";
 import { sanitizeCssVariableName } from "./shared.tool-invocation";
+import { ToolCard } from "./tool-card";
 // LineChart component props interface
 export interface LineChartProps {
   // Chart title (required)
@@ -129,68 +124,55 @@ export function LineChart(props: LineChartProps) {
   }, [deduplicateData]);
 
   return (
-    <Card>
-      <CardHeader className="flex flex-col gap-2 relative">
-        <CardTitle className="flex items-center">
-          Line Chart - {title}
-          <div className="absolute right-4 top-0">
-            <JsonViewPopup
-              data={{
-                ...props,
-                data: deduplicateData,
-              }}
-            />
-          </div>
-        </CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
-      </CardHeader>
-      <CardContent>
-        <div>
-          <ChartContainer config={chartConfig}>
-            <ResponsiveContainer width="100%" height="400px">
-              <RechartsLineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="label"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
+    <ToolCard
+      icon={<LineChartIcon />}
+      eyebrow="Line chart"
+      title={title}
+      meta={description}
+      action={<JsonViewPopup data={{ ...props, data: deduplicateData }} />}
+    >
+      <div>
+        <ChartContainer config={chartConfig}>
+          <ResponsiveContainer width="100%" height={300}>
+            <RechartsLineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="label"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={10}
+                label={
+                  yAxisLabel
+                    ? {
+                        value: yAxisLabel,
+                        angle: -90,
+                        position: "insideLeft",
+                      }
+                    : undefined
+                }
+              />
+              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+              <Legend />
+              {seriesNames.map((seriesName, index) => (
+                <Line
+                  key={index}
+                  type="monotone"
+                  name={seriesName}
+                  dataKey={sanitizeCssVariableName(seriesName)}
+                  stroke={`var(--color-${sanitizeCssVariableName(seriesName)})`}
+                  strokeWidth={2}
+                  dot={false}
                 />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={10}
-                  label={
-                    yAxisLabel
-                      ? {
-                          value: yAxisLabel,
-                          angle: -90,
-                          position: "insideLeft",
-                        }
-                      : undefined
-                  }
-                />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent />}
-                />
-                <Legend />
-                {seriesNames.map((seriesName, index) => (
-                  <Line
-                    key={index}
-                    type="monotone"
-                    name={seriesName}
-                    dataKey={sanitizeCssVariableName(seriesName)}
-                    stroke={`var(--color-${sanitizeCssVariableName(seriesName)})`}
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                ))}
-              </RechartsLineChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </div>
-      </CardContent>
-    </Card>
+              ))}
+            </RechartsLineChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+      </div>
+    </ToolCard>
   );
 }
