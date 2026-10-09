@@ -1,3 +1,5 @@
+import { paymentRequiredResponse } from "@/lib/billing/access";
+import { checkCaptureAccess } from "@/lib/ingest/access";
 import { getEnrolledCourse } from "@/lib/ai/course-tutor-context";
 import { s3Service } from "@/lib/aws/s3-service";
 import { pgDb } from "@/lib/db/pg/db.pg";
@@ -39,6 +41,9 @@ export async function POST(request: NextRequest) {
         { status: 401 },
       );
     }
+
+    const access = await checkCaptureAccess(userId);
+    if (!access.allowed) return paymentRequiredResponse(access.reason);
 
     const limit = await checkRateLimit(`ingest-upload:${userId}`, 30, 60 * 60);
     if (!limit.allowed) return rateLimitResponse(limit);

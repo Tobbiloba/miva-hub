@@ -4,6 +4,8 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
+import { eq } from "drizzle-orm";
+import { revokeAllExtensionTokens } from "lib/extension/revoke";
 import { pgDb } from "lib/db/pg/db.pg";
 import {
   AccountSchema,
@@ -61,6 +63,17 @@ export const auth = betterAuth({
     },
     resetPasswordTokenExpiresIn: 60 * 60, // 1 hour
     revokeSessionsOnPasswordReset: true,
+    onPasswordReset: async ({ user }) => {
+      // The reset link went to this inbox, so completing it proves ownership
+      // (admitted applicants set their first password this way).
+      if (!user.emailVerified) {
+        await pgDb
+          .update(UserSchema)
+          .set({ emailVerified: true, updatedAt: new Date() })
+          .where(eq(UserSchema.id, user.id));
+      }
+      await revokeAllExtensionTokens(user.id);
+    },
   },
   // Every user row better-auth creates (email sign-up, OAuth, server-side
   // provisioning) passes the tenant gate: unknown email domains are rejected

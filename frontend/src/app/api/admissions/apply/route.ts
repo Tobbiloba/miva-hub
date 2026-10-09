@@ -229,12 +229,12 @@ export async function POST(request: NextRequest) {
       reasoning: review.reasoning,
       verifiedCredentials: review.verifiedCredentials,
       confidence: review.confidence,
-      // Present only on instant admission — shown once, never stored plaintext
+      // Account details on admission; the password is set via an emailed link
       credentials: provisioned
         ? {
             email,
             studentId: provisioned.studentId,
-            tempPassword: provisioned.tempPassword,
+            setPasswordEmailSent: provisioned.setPasswordEmailSent,
           }
         : null,
     });

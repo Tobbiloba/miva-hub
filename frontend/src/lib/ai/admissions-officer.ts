@@ -4,7 +4,8 @@ import { type UserContent, generateObject } from "ai";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { auth } from "auth/server";
+import { sendPasswordResetEmail } from "lib/auth/password-reset";
+import { createCredentialUser } from "lib/auth/provision-user";
 import { customModelProvider } from "lib/ai/models";
 import { pgDb } from "lib/db/pg/db.pg";
 import {
@@ -12,7 +13,6 @@ import {
   DepartmentSchema,
   ProgramSchema,
   UniversitySchema,
-  UserSchema,
 } from "lib/db/pg/schema.pg";
 
 /**
@@ -215,13 +215,19 @@ export async function getAdmittableProgram(programId: string) {
 export interface ProvisionedAccount {
   userId: string;
   studentId: string;
-  tempPassword: string;
+  /** A "set your password" link was emailed to the applicant. */
+  setPasswordEmailSent: boolean;
 }
 
 /**
- * Provision the admitted student's account through the better-auth adapter
- * (hash + account row — never a raw insert), then promote it to a student of
- * the university. Returns the generated credentials for one-time display.
+ * Create the admitted student's account through the auth adapter (hashed
+ * credential + account row), with tenant, role and trial assigned by the
+ * signup policy in the same insert. Applicants apply with personal emails,
+ * so the tenant comes from the program — never from the email domain.
+ *
+ * No password is ever returned: the account gets a random one nobody knows,
+ * and a set-password link goes to the applicant's inbox. Completing it
+ * proves the inbox is theirs (see onPasswordReset in auth/server.ts).
  */
 export async function provisionStudentAccount(params: {
   fullName: string;
@@ -229,25 +235,6 @@ export async function provisionStudentAccount(params: {
   universityId: string;
   programId: string;
 }): Promise<ProvisionedAccount> {
-  // Temp password: 16 chars from a URL-safe alphabet, crypto-random
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#";
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  const tempPassword = Array.from(bytes)
-    .map((b) => alphabet[b % alphabet.length])
-    .join("");
-
-  const signUpResponse = await auth.api.signUpEmail({
-    body: {
-      email: params.email,
-      name: params.fullName,
-      password: tempPassword,
-    },
-  });
-  if (!signUpResponse?.user) {
-    throw new Error("Account provisioning failed");
-  }
-  const userId = signUpResponse.user.id;
-
   // Current academic session for the university (fallback: derive from date)
   const [session] = await pgDb
     .select({ sessionName: AcademicSessionSchema.sessionName })
@@ -268,21 +255,22 @@ export async function provisionStudentAccount(params: {
     .slice(-4)
     .toUpperCase()}`;
 
-  await pgDb
-    .update(UserSchema)
-    .set({
-      role: "student",
-      universityId: params.universityId,
+  const user = await createCredentialUser({
+    email: params.email,
+    name: params.fullName,
+    password: crypto.randomUUID() + crypto.randomUUID(),
+    assignment: { universityId: params.universityId, role: "student" },
+    emailVerified: false,
+    profile: {
       programId: params.programId,
       studentId,
       admissionSession,
       admissionLevel: 100,
       currentLevel: 100,
       academicYear,
-      enrollmentStatus: "active",
-      updatedAt: new Date(),
-    })
-    .where(eq(UserSchema.id, userId));
+    },
+  });
 
-  return { userId, studentId, tempPassword };
+  const { sent } = await sendPasswordResetEmail(user.email);
+  return { userId: user.id, studentId, setPasswordEmailSent: sent };
 }

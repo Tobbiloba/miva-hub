@@ -13,6 +13,7 @@ import {
   generateExampleToolSchemaPrompt,
 } from "lib/ai/prompts";
 
+import { checkIsSuperAdmin } from "lib/auth/admin";
 import type { ChatModel, ChatThread } from "app-types/chat";
 
 import { MCPToolInfo } from "app-types/mcp";
@@ -22,10 +23,6 @@ import { chatRepository } from "lib/db/repository";
 import { toAny } from "lib/utils";
 import logger from "logger";
 import { headers } from "next/headers";
-
-import { ObjectJsonSchema7 } from "app-types/util";
-import { JSONSchema7 } from "json-schema";
-import { jsonSchemaToZod } from "lib/json-schema-to-zod";
 
 export async function getUserId() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -123,7 +120,10 @@ export async function generateExampleToolSchemaAction(options: {
   toolInfo: MCPToolInfo;
   prompt?: string;
 }) {
-  await getUserId();
+  // MCP tooling helper (used by the super-admin-only /mcp/test page): any
+  // other caller would get a free model proxy.
+  const userId = await getUserId();
+  if (!(await checkIsSuperAdmin(userId))) throw new Error("Forbidden");
   const model = await customModelProvider.getModel(options.model);
 
   const schema = jsonSchema(
@@ -143,26 +143,4 @@ export async function generateExampleToolSchemaAction(options: {
   });
 
   return object;
-}
-
-export async function generateObjectAction({
-  model,
-  prompt,
-  schema,
-}: {
-  model?: ChatModel;
-  prompt: {
-    system?: string;
-    user?: string;
-  };
-  schema: JSONSchema7 | ObjectJsonSchema7;
-}) {
-  await getUserId();
-  const result = await generateObject({
-    model: await customModelProvider.getModel(model),
-    system: prompt.system,
-    prompt: prompt.user || "",
-    schema: jsonSchemaToZod(schema),
-  });
-  return result.object;
 }

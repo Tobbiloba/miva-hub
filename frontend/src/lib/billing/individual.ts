@@ -15,7 +15,8 @@ import {
   UserSchema,
   UserSubscriptionSchema,
 } from "@/lib/db/pg/schema.pg";
-import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
+import { INDIVIDUAL_PLANS } from "./plans";
 
 /**
  * Individual (student) subscription lifecycle, driven by Paystack data.
@@ -84,12 +85,24 @@ async function lockUser(tx: Tx, userId: string) {
   await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${userId}))`);
 }
 
+/**
+ * Only the plans sold today (plans.ts) grant access. Legacy rows (PRO,
+ * STUDENT, …) still exist with Paystack plan codes, and a charge on one of
+ * them must not turn into an Askly subscription.
+ */
+const SELLABLE_PLAN_NAMES = Object.values(INDIVIDUAL_PLANS).map((p) => p.name);
+
 async function getPlanByCode(code: string | undefined) {
   if (!code) return undefined;
   const [plan] = await pgDb
     .select()
     .from(SubscriptionPlanSchema)
-    .where(eq(SubscriptionPlanSchema.paystackPlanCode, code))
+    .where(
+      and(
+        eq(SubscriptionPlanSchema.paystackPlanCode, code),
+        inArray(SubscriptionPlanSchema.name, SELLABLE_PLAN_NAMES),
+      ),
+    )
     .limit(1);
   return plan;
 }
@@ -99,7 +112,12 @@ async function getPlanById(id: string | undefined) {
   const [plan] = await pgDb
     .select()
     .from(SubscriptionPlanSchema)
-    .where(eq(SubscriptionPlanSchema.id, id))
+    .where(
+      and(
+        eq(SubscriptionPlanSchema.id, id),
+        inArray(SubscriptionPlanSchema.name, SELLABLE_PLAN_NAMES),
+      ),
+    )
     .limit(1);
   return plan;
 }
@@ -245,13 +263,31 @@ async function upsertSubscription(
     !(existing.cancelledAt && opts.paidAt > existing.cancelledAt);
   const cancelAtPeriodEnd = !!opts.nonRenewing || stillCancelled;
 
+  // A second live Paystack subscription for the same student (two paid
+  // checkouts) must not overwrite the first one's code — that orphaned it,
+  // leaving a subscription nobody could cancel. Keep the first, flag it;
+  // cancel disables every live subscription of the customer.
+  const existingStillLive =
+    !!existing &&
+    existing.status === "active" &&
+    !existing.cancelAtPeriodEnd &&
+    existing.currentPeriodEnd > now;
+  if (isDifferentPaystackSub && existingStillLive) {
+    console.error(
+      `[billing] user ${opts.userId} has a second live Paystack subscription ${opts.subscriptionCode} (keeping ${existing?.paystackSubscriptionCode})`,
+    );
+  }
+
   const values = {
     planId: opts.plan.id,
-    paystackSubscriptionCode: pickSubscriptionCode(
-      opts.subscriptionCode,
-      existing?.paystackSubscriptionCode,
-      opts.reference,
-    ),
+    paystackSubscriptionCode:
+      isDifferentPaystackSub && existingStillLive
+        ? existing!.paystackSubscriptionCode
+        : pickSubscriptionCode(
+            opts.subscriptionCode,
+            existing?.paystackSubscriptionCode,
+            opts.reference,
+          ),
     paystackCustomerCode:
       opts.customerCode || existing?.paystackCustomerCode || null,
     paystackAuthorizationCode:

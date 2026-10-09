@@ -65,17 +65,8 @@ export async function cancelSubscriptionForUser(
           subscription.paystackCustomerCode,
         )
       ).filter((s) => s.status === "active" || s.status === "attention");
-      if (live.length > 1) {
-        console.error(
-          `Cancel failed: customer ${subscription.paystackCustomerCode} has ${live.length} live Paystack subscriptions`,
-        );
-        return {
-          ok: false,
-          code: "provider_error",
-          message:
-            "We couldn't match your subscription with our payment provider. Please contact support.",
-        };
-      }
+      // With several live subscriptions, adopt the first; the loop below
+      // disables the rest.
       if (live[0]) {
         subCode = live[0].subscription_code;
         emailToken = live[0].email_token ?? null;
@@ -127,6 +118,47 @@ export async function cancelSubscriptionForUser(
           message:
             "Unable to cancel with our payment provider right now. Please try again or contact support.",
         };
+      }
+    }
+
+    // "Cancel" must stop all recurring billing. If the customer somehow holds
+    // another live Paystack subscription (e.g. paid two checkouts before the
+    // guard existed), disable it too rather than leave it charging.
+    if (subscription.paystackCustomerCode) {
+      const others = (
+        await paystackService.getCustomerSubscriptions(
+          subscription.paystackCustomerCode,
+        )
+      ).filter(
+        (s) =>
+          (s.status === "active" || s.status === "attention") &&
+          s.subscription_code !== subCode,
+      );
+      for (const other of others) {
+        const token =
+          other.email_token ??
+          (await paystackService.getSubscription(other.subscription_code))?.data
+            ?.email_token;
+        const res = token
+          ? await paystackService.disableSubscription(
+              other.subscription_code,
+              token,
+            )
+          : null;
+        if (!res?.status) {
+          console.error(
+            `Cancel incomplete: could not disable extra Paystack subscription ${other.subscription_code} for user ${userId}`,
+          );
+          return {
+            ok: false,
+            code: "provider_error",
+            message:
+              "Unable to cancel with our payment provider right now. Please try again or contact support.",
+          };
+        }
+        console.warn(
+          `Cancel: disabled extra live Paystack subscription ${other.subscription_code} for user ${userId}`,
+        );
       }
     }
   } catch (error) {

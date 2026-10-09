@@ -61,7 +61,7 @@ interface ApplicationResult {
   credentials: {
     email: string;
     studentId: string;
-    tempPassword: string;
+    setPasswordEmailSent: boolean;
   } | null;
 }
 
@@ -286,10 +286,7 @@ export function AdmissionApplication() {
           )}
           {result.credentials && (
             <div className="rounded-lg border bg-muted/50 p-4 space-y-1 text-sm">
-              <p className="font-medium">
-                Your student account is ready — save these now, they are shown
-                only once:
-              </p>
+              <p className="font-medium">Your student account is ready.</p>
               <p>
                 Email:{" "}
                 <span className="font-mono">{result.credentials.email}</span>
@@ -300,14 +297,13 @@ export function AdmissionApplication() {
                   {result.credentials.studentId}
                 </span>
               </p>
-              <p>
-                Temporary password:{" "}
-                <span className="font-mono">
-                  {result.credentials.tempPassword}
-                </span>
+              <p className="pt-1">
+                {result.credentials.setPasswordEmailSent
+                  ? "We've emailed you a link to set your password. Open it, choose a password, then sign in."
+                  : 'We couldn\'t send your set-password email. Use "Forgot password" on the sign-in page with this email address.'}
               </p>
               <Button asChild className="mt-3">
-                <Link href="/sign-in">Sign in to your student portal</Link>
+                <Link href="/sign-in">Go to sign in</Link>
               </Button>
             </div>
           )}

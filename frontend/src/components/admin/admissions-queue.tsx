@@ -120,7 +120,9 @@ export function AdmissionsQueue() {
       if (!res.ok) throw new Error(data?.error || "Review failed");
       if (data.credentials) {
         toast.success(
-          `Admitted. Student account: ${data.credentials.email} / temp password: ${data.credentials.tempPassword} (share securely — shown once)`,
+          data.credentials.setPasswordEmailSent
+            ? `Admitted. ${data.credentials.email} has been emailed a link to set their password.`
+            : `Admitted, but the set-password email to ${data.credentials.email} failed — ask them to use "Forgot password".`,
           { duration: 30000 },
         );
       } else {

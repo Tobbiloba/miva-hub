@@ -152,16 +152,29 @@ const {
 // XPRIZE compliance + cost: Gemini is the default brain for all chat flows.
 const fallbackModel = staticModels.google["gemini-2.5-flash"];
 
-// Optional cost guard for the hosted product: restrict which models clients
-// may select, e.g. CHAT_MODEL_ALLOWLIST="google/gemini-2.5-flash,openai/gpt-4.1-mini".
-// Unset = every model whose provider has an API key configured.
-const modelAllowlist = process.env.CHAT_MODEL_ALLOWLIST?.split(",")
-  .map((m) => m.trim())
-  .filter(Boolean);
+// Cost guard: which models clients may select. Every student pays the same
+// flat price, so the selectable set is cost-controlled by default.
+// CHAT_MODEL_ALLOWLIST overrides it (comma-separated "provider/model");
+// "*" deliberately allows every model whose provider has an API key.
+const DEFAULT_MODEL_ALLOWLIST = [
+  "google/gemini-2.5-flash",
+  "google/gemini-2.5-flash-lite",
+  "openai/gpt-4.1-mini",
+  "openai/gpt-5-mini",
+];
+const modelAllowlist: string[] | "all" = (() => {
+  const raw = process.env.CHAT_MODEL_ALLOWLIST?.trim();
+  if (raw === "*") return "all";
+  const list = raw
+    ?.split(",")
+    .map((m) => m.trim())
+    .filter(Boolean);
+  return list?.length ? list : DEFAULT_MODEL_ALLOWLIST;
+})();
 
 function isAllowedModel(provider: string, name: string): boolean {
   return (
-    !modelAllowlist?.length || modelAllowlist.includes(`${provider}/${name}`)
+    modelAllowlist === "all" || modelAllowlist.includes(`${provider}/${name}`)
   );
 }
 

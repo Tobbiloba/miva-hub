@@ -7,6 +7,8 @@ import { buildCourseTutorContext } from "@/lib/ai/course-tutor-context";
 import { recordAIDecision } from "@/lib/ai/decision-ledger";
 import { customModelProvider } from "@/lib/ai/models";
 import { getUserUniversity } from "@/lib/tenant";
+import { checkPaidAccess } from "lib/billing/access";
+import { getAppBaseUrl } from "lib/billing/app-url";
 import { pgDb } from "lib/db/pg/db.pg";
 import { WhatsAppLinkSchema } from "lib/db/pg/schema.pg";
 import globalLogger from "logger";
@@ -188,7 +190,17 @@ export async function handleInboundMessage(
     return;
   }
 
-  // Free text → course tutor answer.
+  // Free text → course tutor answer. Same paywall as the web chat: the
+  // tutor is the paid product, whatever channel it's reached through.
+  const access = await checkPaidAccess(link.userId);
+  if (!access.allowed) {
+    await sendWhatsAppText(
+      from,
+      `Your Askly access has ended. Renew at ${getAppBaseUrl()}/billing to keep asking questions here.`,
+    );
+    return;
+  }
+
   if (!link.activeCourseId) {
     await sendWhatsAppText(
       from,

@@ -7,11 +7,18 @@ import {
 } from "@/lib/billing/plans";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
-import { SubscriptionPlanSchema, UserSchema } from "@/lib/db/pg/schema.pg";
+import {
+  PaymentTransactionSchema,
+  SubscriptionPlanSchema,
+  UserSchema,
+} from "@/lib/db/pg/schema.pg";
 import { paystackService } from "@/lib/payment/paystack-service";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+
+/** How long an unpaid checkout stays the user's one open checkout. */
+const OPEN_CHECKOUT_WINDOW_MINUTES = 30;
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,6 +59,45 @@ export async function POST(req: NextRequest) {
         },
         { status: 400 },
       );
+    }
+
+    // One checkout at a time. Two open checkouts (two tabs, a retry) can
+    // both be paid, leaving the student with two recurring Paystack
+    // subscriptions — so hand back the open one instead of starting another.
+    const [openCheckout] = await pgDb
+      .select({
+        metadata: PaymentTransactionSchema.metadata,
+        reference: PaymentTransactionSchema.paystackReference,
+      })
+      .from(PaymentTransactionSchema)
+      .where(
+        and(
+          eq(PaymentTransactionSchema.userId, session.user.id),
+          eq(PaymentTransactionSchema.status, "pending"),
+          // Compared in SQL: created_at is a timezone-less column filled
+          // by the DB's clock, so a JS Date would be off by the DB's offset.
+          gte(
+            PaymentTransactionSchema.createdAt,
+            sql`now() - make_interval(mins => ${OPEN_CHECKOUT_WINDOW_MINUTES})`,
+          ),
+        ),
+      )
+      .orderBy(desc(PaymentTransactionSchema.createdAt))
+      .limit(1);
+    if (openCheckout?.metadata?.authorizationUrl) {
+      if (openCheckout.metadata.plan !== plan) {
+        return NextResponse.json(
+          {
+            error:
+              "You already have a checkout in progress. Complete it, or try again in 30 minutes.",
+          },
+          { status: 409 },
+        );
+      }
+      return NextResponse.json({
+        authorization_url: openCheckout.metadata.authorizationUrl,
+        reference: openCheckout.reference,
+      });
     }
 
     // Look up the plan from DB
@@ -101,6 +147,40 @@ export async function POST(req: NextRequest) {
     }
 
     let customerCode = user.paystackCustomerCode;
+
+    // Paystack is the source of truth for recurring billing: a live
+    // subscription there (e.g. past_due and retrying, or one our webhook
+    // never recorded) means a new checkout would bill twice.
+    if (customerCode) {
+      let live: Awaited<
+        ReturnType<typeof paystackService.getCustomerSubscriptions>
+      >;
+      try {
+        live = (
+          await paystackService.getCustomerSubscriptions(customerCode)
+        ).filter((s) => s.status === "active" || s.status === "attention");
+      } catch (error) {
+        console.error(
+          "Billing checkout: Paystack customer lookup failed",
+          error,
+        );
+        return NextResponse.json(
+          {
+            error: "We couldn't reach our payment provider. Please try again.",
+          },
+          { status: 503 },
+        );
+      }
+      if (live.length > 0) {
+        return NextResponse.json(
+          {
+            error:
+              "You already have a subscription with our payment provider. Manage or update it from your billing page.",
+          },
+          { status: 409 },
+        );
+      }
+    }
 
     if (!customerCode) {
       const names = (user.name || "Student").split(" ");
@@ -155,6 +235,9 @@ export async function POST(req: NextRequest) {
         planId: dbPlan.id,
         planName: dbPlan.name,
         studentId: session.user.id,
+        plan,
+        // Returned to a repeat checkout within the open window (see above)
+        authorizationUrl: initRes.data.authorization_url,
       },
     });
 

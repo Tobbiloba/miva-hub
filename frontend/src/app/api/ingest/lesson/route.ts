@@ -1,3 +1,5 @@
+import { paymentRequiredResponse } from "@/lib/billing/access";
+import { checkCaptureAccess } from "@/lib/ingest/access";
 import { getEnrolledCourse } from "@/lib/ai/course-tutor-context";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
@@ -40,6 +42,9 @@ export async function POST(request: NextRequest) {
         { status: 401 },
       );
     }
+
+    const access = await checkCaptureAccess(userId);
+    if (!access.allowed) return paymentRequiredResponse(access.reason);
 
     // Caps protect extraction/embedding spend: bursts and daily volume
     const burst = await checkRateLimit(`ingest:${userId}`, 30, 60 * 60);

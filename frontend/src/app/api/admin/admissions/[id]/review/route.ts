@@ -128,12 +128,12 @@ export async function POST(
     return NextResponse.json({
       success: true,
       status,
-      // One-time display for the admin to convey to the student
+      // The student sets their own password via the emailed link
       credentials: provisioned
         ? {
             email: application.email,
             studentId: provisioned.studentId,
-            tempPassword: provisioned.tempPassword,
+            setPasswordEmailSent: provisioned.setPasswordEmailSent,
           }
         : null,
     });

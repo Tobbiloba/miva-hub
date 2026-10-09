@@ -1,3 +1,4 @@
+import { revokeAllExtensionTokens } from "@/lib/extension/revoke";
 import { auth } from "@/lib/auth/server";
 import { APIError } from "better-auth/api";
 import { headers } from "next/headers";
@@ -53,10 +54,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await auth.api.changePassword({
+    const changed = await auth.api.changePassword({
       body: { currentPassword, newPassword, revokeOtherSessions: true },
       headers: requestHeaders,
     });
+    // Sessions are revoked above; extension tokens are credentials too.
+    await revokeAllExtensionTokens(changed.user.id);
     return NextResponse.json({
       success: true,
       message: "Password changed successfully",
