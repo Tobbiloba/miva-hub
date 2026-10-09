@@ -1,3 +1,4 @@
+import { isArchivedApi, isArchivedStudentPage } from "@/lib/config/product";
 import { getSessionCookie } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -24,6 +25,15 @@ export async function middleware(request: NextRequest) {
     )
   ) {
     return NextResponse.next();
+  }
+
+  // Archived student features (lib/config/product.ts): pages fall back to the
+  // chat, their APIs no longer exist.
+  if (isArchivedApi(pathname)) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (isArchivedStudentPage(pathname)) {
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   // Get session cookie to check if user is authenticated

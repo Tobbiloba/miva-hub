@@ -55,6 +55,8 @@ type Props = {
   threadId: string;
   initialMessages: Array<UIMessage>;
   selectedChatModel?: string;
+  /** Shown on the empty chat, under the greeting (first-run setup). */
+  onboarding?: React.ReactNode;
 };
 
 const CHAT_SUGGESTIONS = [
@@ -82,7 +84,11 @@ const CHAT_SUGGESTIONS = [
 ];
 
 
-export default function ChatBot({ threadId, initialMessages }: Props) {
+export default function ChatBot({
+  threadId,
+  initialMessages,
+  onboarding,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
 
@@ -375,6 +381,7 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
         {emptyMessage ? (
           <>
             <ChatGreeting />
+            {onboarding && <div className="w-full px-6">{onboarding}</div>}
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}

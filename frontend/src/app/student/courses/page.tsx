@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/auth/server";
+import { CHAT_FIRST } from "@/lib/config/product";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import {
   BookOpen,
@@ -62,12 +63,14 @@ export default async function StudentCoursesPage() {
               Course Registration
             </Link>
           </Button>
-          <Button asChild>
-            <Link href="/student/schedule">
-              <Calendar className="mr-2 h-4 w-4" />
-              View Schedule
-            </Link>
-          </Button>
+          {!CHAT_FIRST && (
+            <Button asChild>
+              <Link href="/student/schedule">
+                <Calendar className="mr-2 h-4 w-4" />
+                View Schedule
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 

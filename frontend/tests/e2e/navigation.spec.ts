@@ -36,13 +36,9 @@ test.describe
     });
     test.afterAll(() => page.close());
 
-    test("/student/dashboard renders without crash", async () => {
+    test("/student/dashboard is archived → chat", async () => {
       await page.goto("/student/dashboard");
-      await page.waitForLoadState("networkidle", { timeout: 15000 });
-      await expect(page.locator("body")).not.toContainText("Application error");
-      await expect(page.locator("body")).not.toContainText(
-        "Internal Server Error",
-      );
+      await page.waitForURL((url) => url.pathname === "/", { timeout: 15000 });
     });
 
     test("/student/courses renders course list", async () => {
@@ -54,14 +50,14 @@ test.describe
       ).toBeVisible({ timeout: 10000 });
     });
 
-    test("/student/grades renders", async () => {
-      await page.goto("/student/grades");
+    test("/student/flashcards renders", async () => {
+      await page.goto("/student/flashcards");
       await page.waitForLoadState("networkidle", { timeout: 15000 });
       await expect(page.locator("body")).not.toContainText("Application error");
     });
 
-    test("/student/materials renders", async () => {
-      await page.goto("/student/materials");
+    test("/student/assignments renders", async () => {
+      await page.goto("/student/assignments");
       await page.waitForLoadState("networkidle", { timeout: 15000 });
       await expect(page.locator("body")).not.toContainText("Application error");
     });

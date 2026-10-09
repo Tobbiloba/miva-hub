@@ -1,22 +1,16 @@
-import { AppHeader } from "@/components/layouts/app-header";
-import { AppSidebar } from "@/components/layouts/app-sidebar";
-import { cookies, headers as getHeaders } from "next/headers";
+import { ChatShell } from "@/components/layouts/chat-shell";
+import { headers as getHeaders } from "next/headers";
 import { redirect } from "next/navigation";
-import { SidebarProvider } from "ui/sidebar";
 
-import { AppPopupProvider } from "@/components/layouts/app-popup-provider";
-import { ToolsInfoDrawerProvider } from "@/components/layouts/tools-info-drawer-provider";
 import { getBillingStatus } from "@/lib/billing/status";
 import { auth } from "auth/server";
-import { COOKIE_KEY_SIDEBAR_STATE } from "lib/const";
-import { SWRConfigProvider } from "./swr-config";
 
 export const experimental_ppr = true;
 
 export default async function ChatLayout({
   children,
 }: { children: React.ReactNode }) {
-  const [cookieStore, headers] = await Promise.all([cookies(), getHeaders()]);
+  const headers = await getHeaders();
   const session = await auth.api
     .getSession({
       headers,
@@ -30,20 +24,5 @@ export default async function ChatLayout({
       redirect("/billing");
     }
   }
-  const isCollapsed =
-    cookieStore.get(COOKIE_KEY_SIDEBAR_STATE)?.value !== "true";
-  return (
-    <SidebarProvider defaultOpen={!isCollapsed}>
-      <SWRConfigProvider>
-        <ToolsInfoDrawerProvider>
-          <AppPopupProvider />
-          <AppSidebar session={session || undefined} />
-          <main className="relative bg-background  w-full flex flex-col h-screen">
-            <AppHeader />
-            <div className="flex-1 overflow-y-auto">{children}</div>
-          </main>
-        </ToolsInfoDrawerProvider>
-      </SWRConfigProvider>
-    </SidebarProvider>
-  );
+  return <ChatShell session={session || undefined}>{children}</ChatShell>;
 }

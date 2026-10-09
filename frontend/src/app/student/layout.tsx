@@ -1,8 +1,10 @@
+import { ChatShell } from "@/components/layouts/chat-shell";
 import { StudentLayoutShell } from "@/components/student/student-layout-shell";
 import { SupportWidget } from "@/components/support/support-widget";
 import { getSession } from "@/lib/auth/server";
 import { isActiveStudent } from "@/lib/auth/student";
 import { getBillingStatus } from "@/lib/billing/status";
+import { CHAT_FIRST } from "@/lib/config/product";
 import { redirect } from "next/navigation";
 
 export default async function StudentLayout({
@@ -30,6 +32,17 @@ export default async function StudentLayout({
     if (billing.paywalled) {
       redirect("/billing");
     }
+  }
+
+  // Chat-first: the study pages live inside the chat's frame, so a student
+  // moves between chat, courses, deadlines and flashcards in one product.
+  if (CHAT_FIRST) {
+    return (
+      <ChatShell session={session}>
+        <div className="p-4 sm:p-6">{children}</div>
+        <SupportWidget />
+      </ChatShell>
+    );
   }
 
   return (

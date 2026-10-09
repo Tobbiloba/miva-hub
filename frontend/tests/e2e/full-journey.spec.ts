@@ -113,15 +113,24 @@ test.describe
       });
     });
 
+    // The student launch surface (lib/config/product.ts, CHAT_FIRST on)
     for (const path of [
       "/",
-      "/student",
-      "/student/dashboard",
       "/student/courses",
       "/student/courses/browse",
-      "/student/materials",
       "/student/assignments",
       "/student/flashcards",
+    ]) {
+      test(`page renders: ${path}`, async () => {
+        test.setTimeout(150_000);
+        await expectPageRenders(page, path);
+      });
+    }
+
+    for (const path of [
+      "/student",
+      "/student/dashboard",
+      "/student/materials",
       "/student/grades",
       "/student/schedule",
       "/student/calendar",
@@ -131,12 +140,52 @@ test.describe
       "/student/faculty",
       "/student/credentials",
       "/student/whatsapp",
+      "/student/viva",
+      "/student/professor",
+      "/student/tutor",
+      "/student/plan",
+      "/agents",
+      "/agent/new",
+      "/test",
     ]) {
-      test(`page renders: ${path}`, async () => {
+      test(`archived page returns to the chat: ${path}`, async () => {
         test.setTimeout(150_000);
-        await expectPageRenders(page, path);
+        await page.goto(path, { timeout: 120_000 });
+        await page.waitForURL((url) => url.pathname === "/", {
+          timeout: 60_000,
+        });
       });
     }
+
+    test("archived feature APIs are gone", async () => {
+      for (const path of [
+        "/api/student/viva/token",
+        "/api/student/credentials",
+        "/api/student/plan/x",
+      ]) {
+        const res = await page.request.get(path);
+        expect(res.status(), path).toBe(404);
+      }
+    });
+
+    test("sidebar shows only the study pages", async () => {
+      await page.goto("/");
+      const sidebar = page.locator('[data-sidebar="sidebar"]').first();
+      for (const name of ["My Courses", "Deadlines", "Flashcards"]) {
+        await expect(sidebar.getByRole("link", { name })).toBeVisible();
+      }
+      await expect(sidebar.getByTestId("agents-link")).toHaveCount(0);
+    });
+
+    test("study pages keep the chat sidebar", async () => {
+      await page.goto("/student/flashcards");
+      await expect(
+        page
+          .locator('[data-sidebar="sidebar"]')
+          .first()
+          .getByRole("link", { name: "My Courses" }),
+      ).toBeVisible({ timeout: 60_000 });
+    });
 
     test("model picker only offers allowed models", async () => {
       const res = await page.request.get("/api/chat/models");

@@ -11,6 +11,7 @@ import {
   ChevronRight,
   ChevronsUpDown,
   Command,
+  CreditCard,
   Languages,
   LogOutIcon,
   MoonStar,
@@ -125,6 +126,15 @@ export function AppSidebarUser({
               <User className="size-4 text-foreground" />
               <span>Profile</span>
             </DropdownMenuItem>
+            {(user as { role?: string } | undefined)?.role === "student" && (
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => router.push("/billing")}
+              >
+                <CreditCard className="size-4 text-foreground" />
+                <span>Billing</span>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               className="cursor-pointer"
               onClick={() => appStoreMutate({ openChatPreferences: true })}

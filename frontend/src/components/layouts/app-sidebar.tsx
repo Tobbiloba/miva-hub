@@ -32,6 +32,7 @@ export function AppSidebar({
   const isMobile = useIsMobile();
 
   const currentPath = usePathname();
+  const role = (session?.user as { role?: string } | undefined)?.role;
 
   // global shortcuts
   useEffect(() => {
@@ -99,10 +100,9 @@ export function AppSidebar({
 
       <SidebarContent className="mt-2 overflow-hidden relative">
         <div className="flex flex-col overflow-y-auto">
-          <AppSidebarMenus
-            isSuperAdmin={(session?.user as { role?: string })?.role === "super_admin"}
-          />
-          <AppSidebarAgents />
+          <AppSidebarMenus role={role} />
+          {/* Agents are a power-user feature; students get the study pages */}
+          {role !== "student" && <AppSidebarAgents />}
           <AppSidebarThreads />
         </div>
       </SidebarContent>

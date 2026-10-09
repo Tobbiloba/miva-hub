@@ -1,19 +1,19 @@
 "use client";
 
 import {
-  CheckCircle,
-  Clock,
-  CreditCard,
-  GraduationCap,
-  Loader2,
-} from "lucide-react";
-import {
   INDIVIDUAL_PLANS,
   PLAN_FEATURES,
   YEARLY_SAVINGS_KOBO,
   formatNaira,
   getIndividualPlanByName,
 } from "lib/billing/plans";
+import {
+  CheckCircle,
+  Clock,
+  CreditCard,
+  GraduationCap,
+  Loader2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -181,12 +181,8 @@ export default function BillingPage() {
           </Card>
 
           <div className="text-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push("/student")}
-            >
-              Back to dashboard
+            <Button variant="ghost" size="sm" onClick={() => router.push("/")}>
+              Back to chat
             </Button>
           </div>
         </div>
@@ -337,12 +333,8 @@ export default function BillingPage() {
         )}
 
         <div className="text-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push("/student")}
-          >
-            Back to dashboard
+          <Button variant="ghost" size="sm" onClick={() => router.push("/")}>
+            Back to chat
           </Button>
         </div>
       </div>

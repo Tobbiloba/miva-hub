@@ -4,20 +4,35 @@ import { SidebarMenu, SidebarMenuItem } from "ui/sidebar";
 import { SidebarGroupContent } from "ui/sidebar";
 import { Tooltip } from "ui/tooltip";
 
-import { CHAT_FIRST } from "lib/config/product";
+import { CHAT_FIRST, STUDENT_PAGES } from "lib/config/product";
 import { Shortcuts, getShortcutKeyList } from "lib/keyboard-shortcuts";
-import { FolderOpenIcon } from "lucide-react";
+import {
+  BookOpenIcon,
+  CalendarClockIcon,
+  FolderOpenIcon,
+  LayersIcon,
+  type LucideIcon,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { MCPIcon } from "ui/mcp-icon";
 import { SidebarGroup } from "ui/sidebar";
 import { WriteIcon } from "ui/write-icon";
 
-export function AppSidebarMenus({
-  isSuperAdmin = false,
-}: { isSuperAdmin?: boolean }) {
+const STUDENT_PAGE_ICONS: Record<
+  (typeof STUDENT_PAGES)[number]["href"],
+  LucideIcon
+> = {
+  "/student/courses": BookOpenIcon,
+  "/student/assignments": CalendarClockIcon,
+  "/student/flashcards": LayersIcon,
+};
+
+export function AppSidebarMenus({ role }: { role?: string }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const isSuperAdmin = role === "super_admin";
   const t = useTranslations("");
   const { setOpenMobile } = useSidebar();
 
@@ -67,6 +82,25 @@ export function AppSidebarMenus({
                 </Link>
               </SidebarMenuItem>
             </Tooltip>
+          </SidebarMenu>
+        )}
+        {CHAT_FIRST && role === "student" && (
+          <SidebarMenu className="mt-2">
+            {STUDENT_PAGES.map(({ title, href }) => {
+              const Icon = STUDENT_PAGE_ICONS[href];
+              const active =
+                pathname === href || pathname.startsWith(`${href}/`);
+              return (
+                <SidebarMenuItem key={href}>
+                  <Link href={href} onClick={() => setOpenMobile(false)}>
+                    <SidebarMenuButton isActive={active}>
+                      <Icon className="size-4" />
+                      {title}
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+              );
+            })}
           </SidebarMenu>
         )}
         {!CHAT_FIRST && (

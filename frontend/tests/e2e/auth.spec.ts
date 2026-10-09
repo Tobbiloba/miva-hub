@@ -33,17 +33,17 @@ async function browserSignIn(page: Page, email: string, password: string) {
 }
 
 test.describe("Phase 2A: Auth", () => {
-  test("login as Ada → authenticated, sees her name on dashboard", async ({
+  test("login as Ada → authenticated, sees her name in the app", async ({
     page,
   }) => {
     const res = await browserSignIn(page, ADA_EMAIL, ADA_PASSWORD);
     expect(res.ok).toBe(true);
 
-    // Navigate to dashboard — session cookie is set in browser
-    await page.goto("/student/dashboard");
+    // Students live in the chat — session cookie is set in browser
+    await page.goto("/");
     await page.waitForLoadState("networkidle", { timeout: 15000 });
 
-    // Ada's name should appear (greeting, sidebar, or header)
+    // Ada's name should appear (sidebar user menu)
     await expect(page.getByText(/ada/i).first()).toBeVisible({
       timeout: 10000,
     });
@@ -67,7 +67,7 @@ test.describe("Phase 2A: Auth", () => {
     });
 
     // Protected page should redirect to sign-in
-    await page.goto("/student/dashboard");
+    await page.goto("/student/courses");
     await page.waitForURL(/sign-in/, { timeout: 10000 });
     expect(page.url()).toContain("sign-in");
   });

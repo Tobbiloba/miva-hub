@@ -91,11 +91,8 @@ export default function BillingCallbackPage() {
               Your subscription is active. A receipt is on its way to your
               email.
             </p>
-            <Button
-              onClick={() => router.push("/student")}
-              className="mt-4 min-h-11"
-            >
-              Go to Dashboard
+            <Button onClick={() => router.push("/")} className="mt-4 min-h-11">
+              Start studying
             </Button>
           </>
         )}
@@ -175,11 +172,8 @@ export default function BillingCallbackPage() {
               >
                 Billing page
               </Button>
-              <Button
-                className="min-h-11"
-                onClick={() => router.push("/student")}
-              >
-                Go to Dashboard
+              <Button className="min-h-11" onClick={() => router.push("/")}>
+                Start studying
               </Button>
             </div>
           </>
