@@ -118,6 +118,21 @@ const components: Partial<Components> = {
     );
   },
   a: ({ node, children, ...props }) => {
+    // Course-material citation ([S1] → lib/ai/citations): an inline chip
+    if (typeof props.href === "string" && props.href.includes("?cite=S")) {
+      return (
+        <a
+          href={props.href}
+          title={props.title}
+          aria-label={`Source ${children}: ${props.title ?? ""}`}
+          target="_blank"
+          rel="noreferrer"
+          className="mx-0.5 inline-flex items-center rounded-md bg-primary/10 px-1.5 align-baseline text-xs font-medium text-primary no-underline hover:bg-primary/20"
+        >
+          {children}
+        </a>
+      );
+    }
     return (
       <a
         className="text-primary hover:underline flex gap-1.5 items-center"

@@ -6,6 +6,7 @@ import { Fragment, memo, useMemo, useState } from "react";
 
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { ChatMetadata } from "app-types/chat";
+import { citationSourcesBefore } from "lib/ai/citations";
 import { cn, truncateString } from "lib/utils";
 import { extractRichMaterials } from "lib/video-utils";
 import { ChevronDown, ChevronUp, TriangleAlertIcon } from "lucide-react";
@@ -48,6 +49,11 @@ const PurePreviewMessage = ({
   sendMessage,
 }: Props) => {
   const isUserMessage = useMemo(() => message.role === "user", [message.role]);
+  // What each text part can cite: the last material search before it
+  const citationsByPart = useMemo(
+    () => message.parts.map((_, i) => citationSourcesBefore(message.parts, i)),
+    [message.parts],
+  );
 
   if (message.role == "system") {
     return null; // system message is not shown
@@ -93,6 +99,7 @@ const PurePreviewMessage = ({
             if (part.type === "text" && !isUserMessage) {
               return (
                 <AssistMessagePart
+                  citations={citationsByPart[index]}
                   threadId={threadId}
                   isLast={isLastMessage && isLastPart}
                   isLoading={isLoading}

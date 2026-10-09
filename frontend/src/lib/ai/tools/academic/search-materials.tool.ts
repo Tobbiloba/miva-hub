@@ -1,9 +1,11 @@
 import { tool as createTool } from "ai";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { pgDb } from "../../../db/pg/db.pg";
 import {
+  CourseMaterialSchema,
   CourseSchema,
+  MaterialChunkSchema,
   StudentEnrollmentSchema,
 } from "../../../db/pg/schema.pg";
 import { searchEnrolledMaterials } from "../../rag/retrieve";
@@ -60,17 +62,32 @@ export const createSearchMaterialsTool = (userId: string) =>
         courseId,
       });
       if (passages.length === 0) {
+        const searched = courseId
+          ? enrolled.filter((c) => c.id === courseId)
+          : enrolled;
+        const withContent = await coursesWithSearchableContent(
+          userId,
+          searched.map((c) => c.id),
+        );
+        const empty = searched
+          .filter((c) => !withContent.has(c.id))
+          .map((c) => c.code);
         return {
           passages: [],
           note,
+          coursesWithoutMaterials: empty,
           message:
-            "No matching passages in this student's course materials. Say so plainly; do not invent course content.",
+            empty.length === searched.length
+              ? `Askly has no materials yet for ${empty.join(", ") || "the student's courses"}. Tell the student plainly, and that they can add them by opening the lectures/PDFs on their LMS and pressing Capture in the Askly Capture extension. Do not answer as if from their notes.`
+              : "No matching passages in this student's course materials. Say so plainly; do not invent course content. If the topic is from a lecture they haven't captured yet, they can capture it with Askly Capture.",
         };
       }
       return {
         note,
         passages: passages.map((p, i) => ({
           source: `S${i + 1}`,
+          // lets the chat UI link [S#] citations to the material
+          materialId: p.materialId,
           course: p.courseCode,
           title: p.title,
           type: p.materialType,
@@ -81,3 +98,40 @@ export const createSearchMaterialsTool = (userId: string) =>
       };
     },
   });
+
+/**
+ * Which of these courses have anything the student's search can hit: chunks
+ * of published shared material or of their own captures (same rule as
+ * searchEnrolledMaterials).
+ */
+async function coursesWithSearchableContent(
+  studentId: string,
+  courseIds: string[],
+): Promise<Set<string>> {
+  if (courseIds.length === 0) return new Set();
+  const rows = await pgDb
+    .selectDistinct({ courseId: MaterialChunkSchema.courseId })
+    .from(MaterialChunkSchema)
+    .innerJoin(
+      CourseMaterialSchema,
+      eq(CourseMaterialSchema.id, MaterialChunkSchema.materialId),
+    )
+    .where(
+      and(
+        inArray(MaterialChunkSchema.courseId, courseIds),
+        isNull(CourseMaterialSchema.deletedAt),
+        or(
+          and(
+            isNull(MaterialChunkSchema.ownerUserId),
+            isNull(CourseMaterialSchema.ownerUserId),
+            eq(CourseMaterialSchema.isPublished, true),
+          ),
+          and(
+            eq(MaterialChunkSchema.ownerUserId, studentId),
+            eq(CourseMaterialSchema.ownerUserId, studentId),
+          ),
+        ),
+      ),
+    );
+  return new Set(rows.map((r) => r.courseId));
+}

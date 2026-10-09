@@ -43,6 +43,12 @@ import { useTranslations } from "next-intl";
 import { Separator } from "ui/separator";
 import { MediaRenderer } from "./chat/MediaRenderer";
 
+import {
+  type CitationSource,
+  citationHref,
+  citationLabel,
+  linkCitations,
+} from "lib/ai/citations";
 import { DefaultToolName } from "lib/ai/tools";
 import equal from "lib/equal";
 import {
@@ -84,6 +90,8 @@ interface AssistMessagePartProps {
   setMessages: UseChatHelpers<UIMessage>["setMessages"];
   sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
   isError?: boolean;
+  /** Course-material passages this text can cite as [S#] */
+  citations?: Map<string, CitationSource>;
 }
 
 interface ToolMessagePartProps {
@@ -279,8 +287,13 @@ export const AssistMessagePart = memo(function AssistMessagePart({
   threadId,
   setMessages,
   sendMessage,
+  citations,
 }: AssistMessagePartProps) {
   const { copied, copy } = useCopy();
+  const { text: linkedText, cited } = useMemo(
+    () => linkCitations(part.text, citations ?? new Map()),
+    [part.text, citations],
+  );
   const [isLoading, setIsLoading] = useState(false);
   const agentList = appStore((state) => state.agentList);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -354,8 +367,28 @@ export const AssistMessagePart = memo(function AssistMessagePart({
           "opacity-50 border border-destructive bg-card rounded-lg": isError,
         })}
       >
-        <MarkdownWithFiles>{part.text}</MarkdownWithFiles>
+        <MarkdownWithFiles>{linkedText}</MarkdownWithFiles>
         <MediaRenderer content={part.text} />
+        {cited.length > 0 && (
+          <div className="flex flex-col gap-1 border-t pt-3 text-xs text-muted-foreground">
+            <span className="font-medium">From your course materials</span>
+            <ol className="flex flex-col gap-1">
+              {cited.map((source) => (
+                <li key={source.source}>
+                  <a
+                    href={citationHref(source)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-foreground hover:underline"
+                  >
+                    <span className="font-medium">[{source.source}]</span>{" "}
+                    {citationLabel(source)}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
       </div>
       {showActions && (
         <div className="flex w-full">
