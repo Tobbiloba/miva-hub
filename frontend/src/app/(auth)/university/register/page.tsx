@@ -155,10 +155,12 @@ export default function UniversityRegisterPage() {
   if (submitted) {
     return (
       <div className="flex items-center justify-center min-h-full py-12 animate-in fade-in duration-500">
-        <Card className="w-full max-w-md border-none shadow-none">
+        <Card className="w-full max-w-md shadow-[var(--shadow-float)]">
           <CardHeader className="text-center">
             <CheckCircle2 className="h-12 w-12 text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
-            <CardTitle className="text-2xl">Registration received</CardTitle>
+            <CardTitle className="text-3xl font-bold">
+              Registration received
+            </CardTitle>
             <CardDescription>
               <strong>{universityName}</strong> is now pending approval. Our
               team will review your registration and activate your university —
@@ -178,13 +180,13 @@ export default function UniversityRegisterPage() {
 
   return (
     <div className="flex items-center justify-center min-h-full py-12 animate-in fade-in duration-500">
-      <Card className="w-full max-w-md border-none shadow-none">
+      <Card className="w-full max-w-md shadow-[var(--shadow-float)]">
         <CardHeader>
           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
             <Building2 className="h-4 w-4" />
             <span>University registration — step {step} of 2</span>
           </div>
-          <CardTitle className="text-2xl">
+          <CardTitle className="text-3xl font-bold">
             {step === 1 ? "Register your university" : "Create admin account"}
           </CardTitle>
           <CardDescription>

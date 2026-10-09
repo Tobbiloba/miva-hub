@@ -381,12 +381,14 @@ export default function ChatBot({
     <>
       <div
         className={cn(
-          emptyMessage && "justify-center pb-10",
+          emptyMessage && "overflow-y-auto py-6",
           "flex flex-col min-w-0 relative h-full z-40",
         )}
       >
         {emptyMessage ? (
           <>
+            {/* spacers centre the empty state but collapse when it overflows */}
+            <div aria-hidden className="flex-1" />
             <ChatGreeting />
             {onboarding && (
               <div className="mx-auto w-full max-w-3xl px-6 pb-4">
@@ -486,6 +488,7 @@ export default function ChatBot({
             materials.
           </p>
         </div>
+        {emptyMessage && <div aria-hidden className="flex-1" />}
         <DeleteThreadPopup
           threadId={threadId}
           onClose={() => setIsDeleteThreadPopupOpen(false)}
@@ -493,7 +496,7 @@ export default function ChatBot({
         />
 
         {/* Drawer Toggle Button */}
-        <div className="fixed top-1/2 right-4 -translate-y-1/2 z-50">
+        <div className="fixed top-1/2 right-4 z-50 hidden -translate-y-1/2 md:block">
           <Button
             variant="outline"
             size="icon"

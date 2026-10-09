@@ -63,7 +63,10 @@ export async function middleware(request: NextRequest) {
   // Payment wall for chat routes
   if (pathname === "/" || pathname.startsWith("/(chat)")) {
     if (!sessionCookie) {
-      return NextResponse.redirect(new URL("/sign-in", request.url));
+      // Signed-out visitors on the root get the landing page (waitlist)
+      return NextResponse.redirect(
+        new URL(pathname === "/" ? "/landing" : "/sign-in", request.url),
+      );
     }
     // Subscription check will be done in the page/layout components
     return NextResponse.next();
@@ -91,6 +94,8 @@ export async function middleware(request: NextRequest) {
     !pathname.startsWith("/api/invite/") &&
     !pathname.startsWith("/api/university/resolve") &&
     !pathname.startsWith("/api/university/register") &&
+    // Landing page waitlist form: rate-limited per IP in the route
+    !pathname.startsWith("/api/waitlist") &&
     // Meta webhook: authenticated by X-Hub-Signature-256 (+ verify-token
     // handshake), not session
     !pathname.startsWith("/api/whatsapp/webhook") &&

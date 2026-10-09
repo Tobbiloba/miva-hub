@@ -266,9 +266,9 @@ export default function SignUpPage() {
         </Link>
       </div>
 
-      <Card className="w-full md:max-w-lg bg-background border-none mx-auto gap-0 shadow-none">
+      <Card className="w-full md:max-w-lg mx-auto gap-0 shadow-[var(--shadow-float)]">
         <CardHeader>
-          <CardTitle className="text-2xl text-center">
+          <CardTitle className="text-3xl font-bold text-center">
             {universityName ? `Join ${universityName}` : "Create your account"}
           </CardTitle>
           <CardDescription className="py-6">

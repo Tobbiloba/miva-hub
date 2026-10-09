@@ -356,7 +356,7 @@ export default function PromptInput({
                 </button>
               )}
             </div>
-            <div className="z-30 flex w-full items-center gap-0.5 border-t border-border bg-secondary/60 px-2 py-1.5 text-muted-foreground">
+            <div className="z-30 flex w-full min-w-0 items-center gap-0.5 overflow-x-auto border-t border-border bg-secondary/60 px-2 py-1.5 text-muted-foreground [scrollbar-width:none]">
               <Button
                 variant={"ghost"}
                 size={"sm"}
@@ -369,7 +369,10 @@ export default function PromptInput({
 
               {!toolDisabled && (
                 <>
-                  <span aria-hidden className="mx-1 h-4 w-px bg-border" />
+                  <span
+                    aria-hidden
+                    className="mx-1 hidden h-4 w-px shrink-0 bg-border sm:block"
+                  />
                   <ToolModeDropdown />
                   <ToolSelectDropdown
                     className="mx-1"
@@ -378,7 +381,10 @@ export default function PromptInput({
                     onSelectAgent={onSelectAgent}
                     mentions={mentions}
                   />
-                  <span aria-hidden className="mx-1 h-4 w-px bg-border" />
+                  <span
+                    aria-hidden
+                    className="mx-1 hidden h-4 w-px shrink-0 bg-border sm:block"
+                  />
                   <CourseContextSelector />
                 </>
               )}

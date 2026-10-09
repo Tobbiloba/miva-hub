@@ -66,11 +66,17 @@ export default function SignIn({
       toast.error(e.error);
     });
   };
+  // Providers this form has a button for (Google sign-in is switched off
+  // in the UI even when configured), so the divider never shows alone.
+  const shownProviders = socialAuthenticationProviders.filter(
+    (p) => p === "github" || p === "microsoft",
+  );
+
   return (
     <div className="w-full h-full flex flex-col p-4 md:p-8 justify-center">
-      <Card className="w-full md:max-w-md bg-background border-none mx-auto shadow-none animate-in fade-in duration-1000">
+      <Card className="w-full md:max-w-md mx-auto shadow-[var(--shadow-float)] animate-in fade-in duration-1000">
         <CardHeader className="my-4">
-          <CardTitle className="text-2xl text-center my-1">
+          <CardTitle className="text-3xl font-bold text-center my-1">
             {t("title")}
           </CardTitle>
           <CardDescription className="text-center text-muted-foreground">
@@ -131,7 +137,7 @@ export default function SignIn({
               </Button>
             </div>
           )}
-          {socialAuthenticationProviders.length > 0 && (
+          {shownProviders.length > 0 && (
             <>
               {emailAndPasswordEnabled && (
                 <div className="flex items-center my-4">

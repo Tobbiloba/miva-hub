@@ -2646,3 +2646,24 @@ export const CourseProfessorSchema = pgTable(
 );
 
 export type CourseProfessorEntity = typeof CourseProfessorSchema.$inferSelect;
+
+// Pre-launch waitlist from the public landing page. One row per email
+// (stored lowercased); a repeat sign-up is a no-op, not an error.
+export const WaitlistSignupSchema = pgTable(
+  "waitlist_signup",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    email: text("email").notNull(),
+    name: text("name"),
+    university: text("university"),
+    role: varchar("role", { enum: ["student", "lecturer", "other"] })
+      .notNull()
+      .default("student"),
+    // Which landing CTA they used (hero, footer, …)
+    source: varchar("source", { length: 40 }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [uniqueIndex("waitlist_signup_email_idx").on(table.email)],
+);

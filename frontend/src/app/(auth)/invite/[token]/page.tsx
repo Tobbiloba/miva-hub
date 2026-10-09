@@ -98,7 +98,7 @@ export default function AcceptInvitePage() {
   if (loadError || !invite) {
     return (
       <div className="flex items-center justify-center min-h-full py-12">
-        <Card className="w-full max-w-md border-none shadow-none">
+        <Card className="w-full max-w-md shadow-[var(--shadow-float)]">
           <CardHeader className="text-center">
             <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-2" />
             <CardTitle>Invitation unavailable</CardTitle>
@@ -116,13 +116,13 @@ export default function AcceptInvitePage() {
 
   return (
     <div className="flex items-center justify-center min-h-full py-12 animate-in fade-in duration-500">
-      <Card className="w-full max-w-md border-none shadow-none">
+      <Card className="w-full max-w-md shadow-[var(--shadow-float)]">
         <CardHeader>
           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
             <GraduationCap className="h-4 w-4" />
             <span>Faculty invitation</span>
           </div>
-          <CardTitle className="text-2xl">
+          <CardTitle className="text-3xl font-bold">
             Join {invite.universityName}
           </CardTitle>
           <CardDescription>
