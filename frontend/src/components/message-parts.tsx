@@ -181,7 +181,7 @@ export const UserMessagePart = memo(
         <div
           data-testid="message-content"
           className={cn(
-            "relative flex max-w-full flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-card px-4 py-2.5 text-card-foreground shadow-[var(--shadow-soft)]",
+            "relative flex max-w-full flex-col gap-4 overflow-hidden rounded-[18px] bg-secondary px-4 py-2.5 text-foreground",
             {
               "opacity-50": isError,
             },
@@ -189,9 +189,13 @@ export const UserMessagePart = memo(
           )}
         >
           {isLongText && !expanded && (
-            <div className="absolute pointer-events-none bg-gradient-to-t from-card to-transparent w-full h-40 bottom-0 left-0" />
+            <div className="absolute pointer-events-none bg-gradient-to-t from-secondary to-transparent w-full h-40 bottom-0 left-0" />
           )}
-          <p className={cn("whitespace-pre-wrap text-sm break-words")}>
+          <p
+            className={cn(
+              "whitespace-pre-wrap text-[15px] leading-6 break-words",
+            )}
+          >
             {displayText}
           </p>
           {isLongText && (
@@ -220,7 +224,7 @@ export const UserMessagePart = memo(
                   data-testid="message-edit-button"
                   variant="ghost"
                   size="icon"
-                  className={cn("size-3! p-4!")}
+                  className="size-3! p-4! text-muted-foreground hover:text-foreground"
                   onClick={() => copy(part.text)}
                 >
                   {copied ? <Check /> : <Copy />}
@@ -234,7 +238,7 @@ export const UserMessagePart = memo(
                   data-testid="message-edit-button"
                   variant="ghost"
                   size="icon"
-                  className="size-3! p-4!"
+                  className="size-3! p-4! text-muted-foreground hover:text-foreground"
                   onClick={() => setMode("edit")}
                 >
                   <Pencil />
@@ -250,7 +254,7 @@ export const UserMessagePart = memo(
                   onClick={deleteMessage}
                   variant="ghost"
                   size="icon"
-                  className="size-3! p-4! hover:text-destructive"
+                  className="size-3! p-4! text-muted-foreground hover:text-destructive"
                 >
                   {isDeleting ? (
                     <Loader className="animate-spin" />
@@ -366,31 +370,32 @@ export const AssistMessagePart = memo(function AssistMessagePart({
     >
       <div
         data-testid="message-content"
-        className={cn(
-          "flex flex-col gap-4 rounded-2xl border border-border/70 bg-secondary/50 px-5 py-4",
-          {
-            "opacity-50 border-destructive": isError,
-          },
-        )}
+        className={cn("flex flex-col gap-4 px-1", {
+          "opacity-50 rounded-xl border border-destructive p-4": isError,
+        })}
       >
         <MarkdownWithFiles>{linkedText}</MarkdownWithFiles>
         <MediaRenderer content={part.text} />
         {cited.length > 0 && (
-          <div className="flex flex-col gap-1.5 border-t border-border pt-3 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">
-              From your course materials
+          <div className="flex flex-col gap-2 pt-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              Sources from your course materials
             </span>
-            <ol className="flex flex-col gap-1">
+            <ol className="flex flex-wrap gap-1.5">
               {cited.map((source) => (
-                <li key={source.source}>
+                <li key={source.source} className="min-w-0 max-w-full">
                   <a
                     href={citationHref(source)}
                     target="_blank"
                     rel="noreferrer"
-                    className="hover:text-foreground hover:underline"
+                    className="flex min-w-0 items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-xs transition-colors hover:bg-accent"
                   >
-                    <span className="font-medium">[{source.source}]</span>{" "}
-                    {citationLabel(source)}
+                    <span className="shrink-0 rounded-[5px] bg-tint-blue px-1.5 text-[11px] font-semibold leading-[18px] text-brand">
+                      {source.source}
+                    </span>
+                    <span className="truncate text-foreground/80">
+                      {citationLabel(source)}
+                    </span>
                   </a>
                 </li>
               ))}
@@ -406,7 +411,7 @@ export const AssistMessagePart = memo(function AssistMessagePart({
                 data-testid="message-edit-button"
                 variant="ghost"
                 size="icon"
-                className="size-3! p-4!"
+                className="size-3! p-4! text-muted-foreground hover:text-foreground"
                 onClick={() => copy(part.text)}
               >
                 {copied ? <Check /> : <Copy />}
@@ -422,7 +427,7 @@ export const AssistMessagePart = memo(function AssistMessagePart({
                     data-testid="message-edit-button data-[state=open]:bg-secondary!"
                     variant="ghost"
                     size="icon"
-                    className="size-3! p-4!"
+                    className="size-3! p-4! text-muted-foreground hover:text-foreground"
                   >
                     {<RefreshCw />}
                   </Button>
@@ -438,7 +443,7 @@ export const AssistMessagePart = memo(function AssistMessagePart({
                 size="icon"
                 disabled={isDeleting}
                 onClick={deleteMessage}
-                className="size-3! p-4! hover:text-destructive"
+                className="size-3! p-4! text-muted-foreground hover:text-destructive"
               >
                 {isDeleting ? <Loader className="animate-spin" /> : <Trash2 />}
               </Button>
@@ -1082,7 +1087,7 @@ export const ToolMessagePart = memo(
               className="flex gap-2 items-center cursor-pointer group/title"
               onClick={() => setExpanded(!expanded)}
             >
-              <div className="rounded-lg border bg-card p-1.5 text-brand">
+              <div className="grid size-6 place-items-center text-muted-foreground">
                 {isExecuting ? (
                   <Loader className="size-3.5 animate-spin" />
                 ) : isError ? (
@@ -1122,7 +1127,7 @@ export const ToolMessagePart = memo(
               <div className="w-full flex flex-col gap-2">
                 <div
                   className={cn(
-                    "min-w-0 w-full rounded-xl border bg-card p-4 text-xs shadow-[var(--shadow-soft)] transition-colors fade-300",
+                    "min-w-0 w-full rounded-xl border bg-card p-4 text-xs transition-colors fade-300",
                     !isExpanded && "hover:bg-secondary cursor-pointer",
                   )}
                   onClick={() => {
@@ -1158,7 +1163,7 @@ export const ToolMessagePart = memo(
                 {!result ? null : (
                   <div
                     className={cn(
-                      "mt-2 min-w-0 w-full rounded-xl border bg-card p-4 text-xs shadow-[var(--shadow-soft)] transition-colors fade-300",
+                      "mt-2 min-w-0 w-full rounded-xl border bg-card p-4 text-xs transition-colors fade-300",
                       !isExpanded && "hover:bg-secondary cursor-pointer",
                     )}
                     onClick={() => {

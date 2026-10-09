@@ -22,7 +22,6 @@ import { Session, User } from "better-auth";
 import { Shortcuts, isShortcutEvent } from "lib/keyboard-shortcuts";
 import { PanelLeft } from "lucide-react";
 import { AppSidebarUser } from "./app-sidebar-user";
-import { ThemeSwitch } from "./theme-switch";
 
 export function AppSidebar({
   session,
@@ -59,12 +58,12 @@ export function AppSidebar({
 
   return (
     <Sidebar collapsible="offcanvas" className="border-r-0">
-      <SidebarHeader className="px-3 pt-4 pb-2">
+      <SidebarHeader className="px-3 pt-3.5 pb-1">
         <SidebarMenu>
-          <SidebarMenuItem className="flex items-center justify-between">
+          <SidebarMenuItem className="flex h-9 items-center justify-between pl-1.5">
             <Link
               href="/"
-              className="rounded-lg px-1.5 py-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onClick={(e) => {
                 e.preventDefault();
                 router.push("/");
@@ -81,22 +80,21 @@ export function AppSidebar({
               }
               className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
             >
-              <PanelLeft className="size-4" />
+              <PanelLeft className="size-[18px]" />
             </button>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent className="relative overflow-hidden px-1">
-        <div className="flex flex-col overflow-y-auto [scrollbar-width:thin]">
+      <SidebarContent className="relative overflow-hidden px-1.5">
+        <div className="flex flex-col overflow-y-auto [scrollbar-width:none]">
           <AppSidebarMenus role={role} />
           {/* Agents are a power-user feature; students get the study pages */}
           {role !== "student" && <AppSidebarAgents />}
           <AppSidebarThreads />
         </div>
       </SidebarContent>
-      <SidebarFooter className="flex flex-col items-stretch gap-3 border-t border-sidebar-border p-3">
-        <ThemeSwitch />
+      <SidebarFooter className="p-2">
         <AppSidebarUser session={session} />
       </SidebarFooter>
     </Sidebar>

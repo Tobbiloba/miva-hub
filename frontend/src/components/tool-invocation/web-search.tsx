@@ -155,7 +155,7 @@ function PureWebSearchToolInvocation({ part }: WebSearchToolInvocationProps) {
                         href={result.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group flex cursor-pointer items-center gap-1.5 rounded-full border bg-card py-1.5 pr-2.5 pl-1.5 text-xs shadow-[var(--shadow-soft)] transition-all hover:border-brand/50"
+                        className="group flex cursor-pointer items-center gap-1.5 rounded-full border border-border py-1.5 pr-2.5 pl-1.5 text-xs transition-colors hover:bg-accent"
                       >
                         <div className="rounded-full bg-input ring ring-input">
                           <Avatar className="size-3 rounded-full">

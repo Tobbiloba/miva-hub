@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -19,14 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import {
   clearAssignmentProgress,
@@ -35,8 +19,8 @@ import {
 } from "@/hooks/useAssignmentProgress";
 import { authClient } from "@/lib/auth/client";
 import { getStudentId } from "@/lib/auth/user-utils";
+import { cn } from "lib/utils";
 import {
-  Calendar,
   CheckCircle2,
   CloudOff,
   ExternalLink,
@@ -47,6 +31,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ToolCard, joinMeta } from "./tool-card";
 
 type AssignmentProps = {
   assignment_id?: string;
@@ -140,21 +125,6 @@ export function Assignment(props: AssignmentProps) {
     setMode("interactive");
   };
 
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case "not_started":
-        return "bg-muted text-muted-foreground border-border";
-      case "in_progress":
-        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
-      case "submitted":
-        return "bg-primary/10 text-primary border-primary/20";
-      case "graded":
-        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
-      default:
-        return "bg-muted text-muted-foreground border-border";
-    }
-  };
-
   const getSaveStatusDisplay = () => {
     switch (saveStatus.status) {
       case "saving":
@@ -190,289 +160,219 @@ export function Assignment(props: AssignmentProps) {
     }
   };
 
-  if (mode === "preview") {
-    return (
-      <div className="space-y-4">
-        {showResumePrompt && savedProgress && (
-          <Alert className="border-brand/30 bg-tint-blue/50">
-            <AlertDescription className="flex items-center justify-between">
-              <span className="text-sm">Resume your draft submission?</span>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={handleStartFresh}>
-                  Start Fresh
-                </Button>
-                <Button size="sm" onClick={handleResumeProgress}>
-                  Resume
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
+  const statusLabel = props.status
+    ? props.status.replace("_", " ").replace(/^./, (c) => c.toUpperCase())
+    : undefined;
+  const header = {
+    icon: <FileText />,
+    eyebrow: joinMeta("Assignment", props.course_code),
+    title: props.title,
+    meta: joinMeta(
+      `Due ${props.due_date}`,
+      `${props.total_points} points`,
+      statusLabel,
+    ),
+  };
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-tint-green text-green-700 dark:text-green-300 [&_svg]:size-5">
-                <FileText className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-lg">{props.title}</h3>
-                  {props.status && (
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(props.status)}`}
-                    >
-                      {props.status.replace("_", " ").toUpperCase()}
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground mb-3">
-                  {props.course_code && (
-                    <span className="font-medium">{props.course_code}</span>
-                  )}
-                  {props.course_name && props.course_code && " • "}
-                  {props.course_name}
-                </p>
-                <p className="text-sm mb-4">{props.description}</p>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    Due: {props.due_date}
-                  </span>
-                  <span>•</span>
-                  <span>{props.total_points} points</span>
-                </div>
-                <Button onClick={() => setMode("interactive")}>
-                  View Details
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+  if (mode === "preview") {
+    const resumable = showResumePrompt && savedProgress;
+    return (
+      <ToolCard
+        {...header}
+        footer={
+          resumable ? (
+            <>
+              <Button size="sm" onClick={handleResumeProgress}>
+                Resume draft
+              </Button>
+              <Button size="sm" variant="ghost" onClick={handleStartFresh}>
+                Start over
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" onClick={() => setMode("interactive")}>
+              View details
+            </Button>
+          )
+        }
+      >
+        <p className="line-clamp-3 text-sm text-muted-foreground">
+          {props.description}
+        </p>
+      </ToolCard>
     );
   }
 
+  const section = "border-t border-border pt-4 first:border-t-0 first:pt-0";
+
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-xl mb-2">{props.title}</h3>
-              <p className="text-sm text-muted-foreground">
-                {props.course_code} • {props.course_name}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {getSaveStatusDisplay()}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setMode("preview")}
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 text-sm">
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              Due: {props.due_date}
-            </span>
-            <span className="text-muted-foreground">•</span>
-            <span className="font-medium">{props.total_points} points</span>
-            {props.status && (
-              <>
-                <span className="text-muted-foreground">•</span>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(props.status)}`}
-                >
-                  {props.status.replace("_", " ").toUpperCase()}
-                </span>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-secondary/40">
-        <CardContent className="p-0">
-          <Accordion
-            type="multiple"
-            defaultValue={["description"]}
-            className="w-full"
-          >
-            <AccordionItem value="description" className="border-b-0">
-              <AccordionTrigger className="px-4">
-                <h4 className="font-semibold text-sm">Description</h4>
-              </AccordionTrigger>
-              <AccordionContent className="px-4">
-                <p className="text-sm">{props.description}</p>
-              </AccordionContent>
-            </AccordionItem>
-
-            {props.instructions && (
-              <AccordionItem value="instructions" className="border-b-0">
-                <AccordionTrigger className="px-4">
-                  <h4 className="font-semibold text-sm">Instructions</h4>
-                </AccordionTrigger>
-                <AccordionContent className="px-4">
-                  <p className="text-sm whitespace-pre-wrap">
-                    {props.instructions}
-                  </p>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-
-            {props.rubric && props.rubric.length > 0 && (
-              <AccordionItem value="rubric" className="border-b-0">
-                <AccordionTrigger className="px-4">
-                  <h4 className="font-semibold text-sm">Grading Rubric</h4>
-                </AccordionTrigger>
-                <AccordionContent className="px-4">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Criteria</TableHead>
-                        <TableHead>Points</TableHead>
-                        <TableHead>Description</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {props.rubric.map((item, i) => (
-                        <TableRow key={i}>
-                          <TableCell className="font-medium">
-                            {item.criteria}
-                          </TableCell>
-                          <TableCell>{item.points}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {item.description}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-
-            {props.resources && props.resources.length > 0 && (
-              <AccordionItem value="resources" className="border-b-0">
-                <AccordionTrigger className="px-4">
-                  <h4 className="font-semibold text-sm">Resources</h4>
-                </AccordionTrigger>
-                <AccordionContent className="px-4">
-                  <div className="space-y-2">
-                    {props.resources.map((resource, i) => (
-                      <a
-                        key={i}
-                        href={resource.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-between p-3 rounded-lg bg-card hover:bg-accent/50 transition-colors border border-border"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="px-2 py-1 rounded bg-secondary/40 text-xs font-medium">
-                            {resource.type}
-                          </span>
-                          <span className="text-sm">{resource.title}</span>
-                        </div>
-                        <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                      </a>
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-          </Accordion>
-        </CardContent>
-      </Card>
-
-      {props.status !== "submitted" && props.status !== "graded" && (
-        <Card>
-          <CardContent className="p-6 space-y-4">
-            <h4 className="font-semibold text-sm mb-4">Submit Your Work</h4>
-
-            {(props.submission_type === "file" ||
-              props.submission_type === "multiple") && (
-              <div className="space-y-2">
-                <Label>Upload Files</Label>
-                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                  <input
-                    type="file"
-                    multiple={props.submission_type === "multiple"}
-                    onChange={(e) =>
-                      setSelectedFiles(Array.from(e.target.files || []))
-                    }
-                    className="hidden"
-                    id="file-upload"
-                  />
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Click to upload or drag and drop
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      PDF, DOC, DOCX, ZIP (max 50MB)
-                    </p>
-                  </label>
-                </div>
-                {selectedFiles.length > 0 && (
-                  <div className="space-y-1">
-                    {selectedFiles.map((file, i) => (
-                      <div
-                        key={i}
-                        className="text-sm text-muted-foreground flex items-center gap-2"
-                      >
-                        <FileText className="w-4 h-4" />
-                        {file.name} ({(file.size / 1024).toFixed(2)} KB)
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {(props.submission_type === "text" ||
-              props.submission_type === "multiple") && (
-              <div className="space-y-2">
-                <Label>Submission Text</Label>
-                <Textarea
-                  value={submissionText}
-                  onChange={(e) => setSubmissionText(e.target.value)}
-                  placeholder="Type or paste your submission here..."
-                  className="min-h-[200px]"
-                />
-              </div>
-            )}
-
-            {(props.submission_type === "link" ||
-              props.submission_type === "multiple") && (
-              <div className="space-y-2">
-                <Label>Submission Link</Label>
-                <Input
-                  type="url"
-                  value={submissionLink}
-                  onChange={(e) => setSubmissionLink(e.target.value)}
-                  placeholder="https://..."
-                />
-              </div>
-            )}
-
+    <>
+      <ToolCard
+        {...header}
+        action={
+          <div className="flex items-center gap-3">
+            {getSaveStatusDisplay()}
             <Button
-              className="w-full"
+              variant="ghost"
+              size="sm"
+              onClick={() => setMode("preview")}
+            >
+              Close
+            </Button>
+          </div>
+        }
+        footer={
+          props.status !== "submitted" && props.status !== "graded" ? (
+            <Button
+              size="sm"
               onClick={async () => {
                 await forceSave();
                 setShowSubmitDialog(true);
               }}
             >
-              <Send className="w-4 h-4 mr-2" />
-              Submit Assignment
+              <Send />
+              Submit assignment
             </Button>
-          </CardContent>
-        </Card>
-      )}
+          ) : undefined
+        }
+      >
+        <div className="space-y-4 text-sm">
+          <section className={section}>
+            <h4 className="mb-1.5 font-semibold">Description</h4>
+            <p className="leading-relaxed text-foreground/85">
+              {props.description}
+            </p>
+          </section>
+
+          {props.instructions && (
+            <section className={section}>
+              <h4 className="mb-1.5 font-semibold">Instructions</h4>
+              <p className="whitespace-pre-wrap leading-relaxed text-foreground/85">
+                {props.instructions}
+              </p>
+            </section>
+          )}
+
+          {props.rubric && props.rubric.length > 0 && (
+            <section className={section}>
+              <h4 className="mb-2 font-semibold">Grading rubric</h4>
+              <ul className="divide-y divide-border rounded-lg border border-border">
+                {props.rubric.map((item, i) => (
+                  <li key={i} className="flex gap-3 px-3 py-2.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">{item.criteria}</p>
+                      <p className="text-muted-foreground">
+                        {item.description}
+                      </p>
+                    </div>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">
+                      {item.points} pts
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {props.resources && props.resources.length > 0 && (
+            <section className={section}>
+              <h4 className="mb-2 font-semibold">Resources</h4>
+              <div className="space-y-1.5">
+                {props.resources.map((resource, i) => (
+                  <a
+                    key={i}
+                    href={resource.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5 transition-colors hover:bg-accent/60"
+                  >
+                    <span className="rounded-md bg-secondary px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+                      {resource.type}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {resource.title}
+                    </span>
+                    <ExternalLink className="size-4 text-muted-foreground" />
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {props.status !== "submitted" && props.status !== "graded" && (
+            <section className={cn(section, "space-y-4")}>
+              <h4 className="font-semibold">Your submission</h4>
+
+              {(props.submission_type === "file" ||
+                props.submission_type === "multiple") && (
+                <div className="space-y-2">
+                  <Label htmlFor="file-upload">Files</Label>
+                  <label
+                    htmlFor="file-upload"
+                    className="flex cursor-pointer flex-col items-center rounded-xl border border-dashed border-input px-6 py-7 text-center transition-colors hover:bg-accent/40"
+                  >
+                    <input
+                      type="file"
+                      multiple={props.submission_type === "multiple"}
+                      onChange={(e) =>
+                        setSelectedFiles(Array.from(e.target.files || []))
+                      }
+                      className="sr-only"
+                      id="file-upload"
+                    />
+                    <Upload className="mb-2 size-6 text-muted-foreground" />
+                    <span className="font-medium">Choose files</span>
+                    <span className="text-xs text-muted-foreground">
+                      PDF, DOC, DOCX or ZIP, up to 50 MB
+                    </span>
+                  </label>
+                  {selectedFiles.length > 0 && (
+                    <ul className="space-y-1">
+                      {selectedFiles.map((file, i) => (
+                        <li
+                          key={i}
+                          className="flex items-center gap-2 text-muted-foreground"
+                        >
+                          <FileText className="size-4" />
+                          {file.name} ({(file.size / 1024).toFixed(0)} KB)
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {(props.submission_type === "text" ||
+                props.submission_type === "multiple") && (
+                <div className="space-y-2">
+                  <Label htmlFor="submission-text">Text</Label>
+                  <Textarea
+                    id="submission-text"
+                    value={submissionText}
+                    onChange={(e) => setSubmissionText(e.target.value)}
+                    placeholder="Type or paste your submission"
+                    className="min-h-[180px]"
+                  />
+                </div>
+              )}
+
+              {(props.submission_type === "link" ||
+                props.submission_type === "multiple") && (
+                <div className="space-y-2">
+                  <Label htmlFor="submission-link">Link</Label>
+                  <Input
+                    id="submission-link"
+                    type="url"
+                    value={submissionLink}
+                    onChange={(e) => setSubmissionLink(e.target.value)}
+                    placeholder="https://"
+                  />
+                </div>
+              )}
+            </section>
+          )}
+        </div>
+      </ToolCard>
 
       <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
         <DialogContent>
@@ -533,6 +433,6 @@ export function Assignment(props: AssignmentProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

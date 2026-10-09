@@ -90,9 +90,9 @@ export const ToolModeDropdown = ({ disabled }: { disabled?: boolean }) => {
                 variant={"ghost"}
                 size={"sm"}
                 className={cn(
-                  "rounded-full p-2! data-[state=open]:bg-input! hover:bg-input!",
+                  "rounded-lg p-2! data-[state=open]:bg-accent",
                   toolChoice == "none" && "text-muted-foreground",
-                  open && "bg-input!",
+                  open && "bg-accent",
                 )}
                 onClick={() => setOpen(true)}
               >

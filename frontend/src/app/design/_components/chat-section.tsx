@@ -95,6 +95,7 @@ export function ChatSection() {
                   id: "snap",
                   icon: <Camera />,
                   title: "Grade my handwriting",
+                  hint: "Against this week's rubric",
                   prompt:
                     "Snap a photo of my worked problem set and grade it against the Week 4 rubric.",
                 },
@@ -102,6 +103,7 @@ export function ChatSection() {
                   id: "quiz",
                   icon: <FileQuestion />,
                   title: "Quiz me before the test",
+                  hint: "Ten questions, instant feedback",
                   prompt:
                     "Give me a 10-question practice quiz on sorting algorithms with instant feedback.",
                 },
@@ -109,6 +111,7 @@ export function ChatSection() {
                   id: "plan",
                   icon: <NotebookPen />,
                   title: "Plan my study week",
+                  hint: "Around your timetable",
                   prompt:
                     "Build a study plan for my three deadlines this week around my class timetable.",
                 },

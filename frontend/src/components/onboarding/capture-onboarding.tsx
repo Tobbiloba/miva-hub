@@ -23,6 +23,7 @@ export function CaptureOnboarding({
   // Only the finished state is dismissible, so the hidden default can't hide
   // the setup steps from a student who still needs them.
   const [dismissed, setDismissed] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   useEffect(() => {
     try {
       setDismissed(localStorage.getItem(DISMISS_KEY) === "1");
@@ -36,9 +37,9 @@ export function CaptureOnboarding({
     return (
       <div
         role="status"
-        className="mx-auto flex w-full max-w-3xl items-center gap-3 rounded-2xl border bg-card px-4 py-3 text-sm shadow-[var(--shadow-soft)]"
+        className="mx-auto flex w-full max-w-3xl items-center gap-3 rounded-xl border bg-card px-4 py-3 text-sm"
       >
-        <CheckCircle2 className="size-5 shrink-0 text-green-600" aria-hidden />
+        <CheckCircle2 className="size-5 shrink-0 text-success" aria-hidden />
         <p className="flex-1">
           You&apos;re set up.{" "}
           {status.capturedCount > 0
@@ -95,53 +96,81 @@ export function CaptureOnboarding({
     },
   ];
 
+  const doneCount = steps.filter((step) => step.done).length;
+  const next = steps.find((step) => !step.done) ?? steps[steps.length - 1];
+
   return (
     <section
       aria-labelledby="capture-onboarding-title"
-      className="mx-auto w-full max-w-3xl overflow-hidden rounded-2xl border bg-card shadow-[var(--shadow-soft)]"
+      className="mx-auto w-full max-w-3xl rounded-xl border bg-card"
     >
-      <div className="border-b px-5 py-4">
-        <h2
-          id="capture-onboarding-title"
-          className="font-display text-base font-bold"
+      <div className="flex items-center gap-4 px-4 py-3.5">
+        <div className="min-w-0 flex-1">
+          <h2
+            id="capture-onboarding-title"
+            className="flex items-center gap-2 text-[13px] font-medium text-muted-foreground"
+          >
+            <span className="flex gap-1" aria-hidden>
+              {steps.map((step) => (
+                <span
+                  key={step.title}
+                  className={cn(
+                    "h-1 w-4 rounded-full",
+                    step.done ? "bg-brand" : "bg-input",
+                  )}
+                />
+              ))}
+            </span>
+            Set up Askly · {doneCount} of {steps.length}
+          </h2>
+          <p className="mt-1 text-sm font-medium">{next.title}</p>
+          <p className="text-[13px] text-muted-foreground">{next.body}</p>
+        </div>
+        {next.action && (
+          <div className="hidden shrink-0 sm:block">{next.action}</div>
+        )}
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          className="shrink-0 rounded-md px-2 py-1 text-[13px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
-          Get Askly ready for your courses
-        </h2>
-        <p className="mt-0.5 text-sm text-muted-foreground">
-          Askly answers from your own course content. Three steps:
-        </p>
+          {expanded ? "Hide steps" : "All steps"}
+        </button>
       </div>
-      <ol className="divide-y">
-        {steps.map((step, i) => (
-          <li key={step.title} className="flex items-center gap-3 px-5 py-3">
-            {step.done ? (
-              <CheckCircle2
-                className="size-6 shrink-0 text-green-600"
-                aria-label="Done"
-              />
-            ) : (
-              <span
-                className="grid size-6 shrink-0 place-items-center rounded-full border text-xs font-semibold text-muted-foreground"
-                aria-label="Not done"
-              >
-                {i + 1}
-              </span>
-            )}
-            <div className="min-w-0 flex-1">
-              <p
-                className={cn(
-                  "text-sm font-medium",
-                  step.done && "text-muted-foreground line-through",
-                )}
-              >
-                {step.title}
-              </p>
-              <p className="text-sm text-muted-foreground">{step.body}</p>
-            </div>
-            {!step.done && step.action}
-          </li>
-        ))}
-      </ol>
+      {expanded && (
+        <ol className="divide-y border-t">
+          {steps.map((step, i) => (
+            <li key={step.title} className="flex items-center gap-3 px-4 py-3">
+              {step.done ? (
+                <CheckCircle2
+                  className="size-5 shrink-0 text-success"
+                  aria-label="Done"
+                />
+              ) : (
+                <span
+                  className="grid size-5 shrink-0 place-items-center rounded-full border text-[11px] font-semibold text-muted-foreground"
+                  aria-label="Not done"
+                >
+                  {i + 1}
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p
+                  className={cn(
+                    "text-sm font-medium",
+                    step.done && "text-muted-foreground line-through",
+                  )}
+                >
+                  {step.title}
+                </p>
+                <p className="text-[13px] text-muted-foreground">{step.body}</p>
+              </div>
+              {!step.done && step.action}
+            </li>
+          ))}
+        </ol>
+      )}
     </section>
   );
 }

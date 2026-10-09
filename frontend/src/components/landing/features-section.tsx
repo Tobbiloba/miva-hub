@@ -103,7 +103,7 @@ export function FeaturesSection() {
       </div>
 
       <div className="relative mx-auto max-w-6xl px-5 py-24 sm:px-8 lg:px-24">
-        <h2 className="text-center font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">
+        <h2 className="text-center text-4xl font-semibold tracking-[-0.035em] text-white sm:text-5xl">
           Engineered differently, built for you
         </h2>
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -117,7 +117,9 @@ export function FeaturesSection() {
               className="rounded-2xl border border-white/60 bg-white p-6 text-neutral-900 shadow-xl"
             >
               <Icon className="size-6" aria-hidden />
-              <h3 className="mt-5 font-display text-lg font-bold">{title}</h3>
+              <h3 className="mt-5 text-lg font-semibold tracking-[-0.025em]">
+                {title}
+              </h3>
               <p className="mt-1.5 text-sm leading-relaxed text-neutral-600">
                 {body}
               </p>
@@ -126,7 +128,7 @@ export function FeaturesSection() {
         </div>
 
         <div id="how" className="scroll-mt-8 pt-32">
-          <h2 className="text-center font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">
+          <h2 className="text-center text-4xl font-semibold tracking-[-0.035em] text-white sm:text-5xl">
             Unlock your full potential with Askly
           </h2>
           <KeyFeatures />
@@ -189,7 +191,7 @@ function KeyFeatures() {
                   type="button"
                   onClick={() => setActive(i)}
                   aria-expanded={isActive}
-                  className={`w-full py-4 text-left font-display text-lg font-bold transition-colors ${
+                  className={`w-full py-4 text-left text-lg font-semibold tracking-[-0.025em] transition-colors ${
                     isActive
                       ? "text-neutral-900"
                       : "text-neutral-400 hover:text-neutral-700"

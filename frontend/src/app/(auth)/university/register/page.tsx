@@ -158,7 +158,7 @@ export default function UniversityRegisterPage() {
         <Card className="w-full max-w-md shadow-[var(--shadow-float)]">
           <CardHeader className="text-center">
             <CheckCircle2 className="h-12 w-12 text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
-            <CardTitle className="text-3xl font-bold">
+            <CardTitle className="text-2xl font-semibold tracking-[-0.025em]">
               Registration received
             </CardTitle>
             <CardDescription>
@@ -186,7 +186,7 @@ export default function UniversityRegisterPage() {
             <Building2 className="h-4 w-4" />
             <span>University registration — step {step} of 2</span>
           </div>
-          <CardTitle className="text-3xl font-bold">
+          <CardTitle className="text-2xl font-semibold tracking-[-0.025em]">
             {step === 1 ? "Register your university" : "Create admin account"}
           </CardTitle>
           <CardDescription>

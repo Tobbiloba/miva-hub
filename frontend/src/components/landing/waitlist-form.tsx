@@ -66,7 +66,7 @@ export function WaitlistForm({
         )}
       >
         <CheckCircle2 className="size-10 text-emerald-600" aria-hidden />
-        <p className="font-display text-2xl font-bold">
+        <p className="text-2xl font-semibold tracking-[-0.025em]">
           You&apos;re on the list
         </p>
         <p className="max-w-sm text-sm text-neutral-600">

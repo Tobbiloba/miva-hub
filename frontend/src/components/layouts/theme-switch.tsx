@@ -22,7 +22,7 @@ export function ThemeSwitch({ className }: { className?: string }) {
       role="radiogroup"
       aria-label="Theme"
       className={cn(
-        "grid grid-cols-2 gap-1 rounded-xl border border-sidebar-border bg-secondary p-1",
+        "grid grid-cols-2 gap-0.5 rounded-lg bg-secondary p-0.5",
         className,
       )}
     >
@@ -36,13 +36,13 @@ export function ThemeSwitch({ className }: { className?: string }) {
             aria-checked={active}
             onClick={() => setTheme(value)}
             className={cn(
-              "flex h-8 items-center justify-center gap-2 rounded-lg text-sm transition-colors",
+              "flex h-7 items-center justify-center gap-1.5 rounded-md text-[13px] transition-colors",
               active
-                ? "bg-card font-medium text-foreground shadow-[var(--shadow-soft)]"
+                ? "bg-card font-medium text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.08)] dark:bg-input"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <Icon className="size-4" />
+            <Icon className="size-3.5" />
             {label}
           </button>
         );

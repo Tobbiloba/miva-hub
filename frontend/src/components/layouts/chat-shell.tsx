@@ -29,10 +29,10 @@ export async function ChatShell({
         <ToolsInfoDrawerProvider>
           <AppPopupProvider />
           <AppSidebar session={session} />
-          <main className="relative flex h-screen w-full min-w-0 flex-col bg-sidebar">
+          <main className="relative flex h-svh w-full min-w-0 flex-col bg-sidebar">
             <AppHeader />
             {/* The work panel: one solid, bordered surface under the header */}
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-border bg-surface md:rounded-tl-2xl md:border-l">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-border bg-surface md:mr-2 md:mb-2 md:rounded-xl md:border md:shadow-[var(--shadow-soft)]">
               <div className="flex-1 overflow-y-auto">{children}</div>
             </div>
           </main>

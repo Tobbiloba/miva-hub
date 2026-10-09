@@ -81,7 +81,7 @@ const ROWS = [
         {["⌘", "⇧", "O"].map((k) => (
           <span
             key={k}
-            className="grid size-14 place-items-center rounded-2xl border border-white/30 bg-white/15 font-display text-2xl font-bold text-white shadow-xl"
+            className="grid size-14 place-items-center rounded-2xl border border-white/30 bg-white/15 text-2xl font-semibold tracking-[-0.025em] text-white shadow-xl"
           >
             {k === "⌘" ? <Command className="size-6" /> : k}
           </span>
@@ -95,7 +95,7 @@ export function ExploreSection() {
   return (
     <section className="bg-white text-neutral-900">
       <div className="mx-auto max-w-6xl px-5 pb-24 sm:px-8 lg:px-24">
-        <h2 className="text-center font-display text-4xl font-bold tracking-tight sm:text-5xl">
+        <h2 className="text-center text-4xl font-semibold tracking-[-0.035em] sm:text-5xl">
           Explore more features in Askly
         </h2>
         <div className="mt-14 space-y-6">
@@ -109,7 +109,9 @@ export function ExploreSection() {
               className="grid items-center gap-6 md:grid-cols-[1fr_1.4fr] md:gap-12"
             >
               <div>
-                <h3 className="font-display text-2xl font-bold">{row.title}</h3>
+                <h3 className="text-2xl font-semibold tracking-[-0.025em]">
+                  {row.title}
+                </h3>
                 <p className="mt-2 max-w-sm text-sm leading-relaxed text-neutral-600">
                   {row.body}
                 </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { appStore } from "@/app/store";
+import { cn } from "lib/utils";
 import { BookOpenCheck, ChevronDown, GraduationCap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "ui/button";
@@ -12,7 +13,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "ui/dropdown-menu";
-import { cn } from "lib/utils";
 import { useShallow } from "zustand/shallow";
 
 interface EnrolledCourse {
@@ -71,8 +71,8 @@ export function CourseContextSelector() {
           variant="ghost"
           size="sm"
           className={cn(
-            "rounded-full hover:bg-input! mr-1 gap-1.5",
-            active && "text-primary",
+            "gap-1.5 rounded-lg text-[13px] data-[state=open]:bg-accent",
+            active ? "text-brand" : "text-muted-foreground",
           )}
           data-testid="course-context-button"
         >

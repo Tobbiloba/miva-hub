@@ -44,7 +44,7 @@ export function HeroSection() {
           <SiteNav />
 
           <div className="mx-auto max-w-6xl px-5 pt-14 pb-10 sm:px-8 sm:pt-24 lg:px-24">
-            <h1 className="font-display text-5xl font-bold leading-[1.02] tracking-tight text-white sm:text-6xl lg:text-7xl">
+            <h1 className="text-5xl font-semibold leading-[1.02] tracking-[-0.035em] text-white sm:text-6xl lg:text-7xl">
               <RevealLine text={LINES[0]} delay={0.1} />
               <RevealLine text={LINES[1]} delay={0.5} />
             </h1>
@@ -142,7 +142,9 @@ function ProductCard({
         </a>
       </div>
       <div className="px-6 pt-5 pb-6 text-center">
-        <p className="font-display text-xl font-bold sm:text-2xl">{title}</p>
+        <p className="text-xl font-semibold tracking-[-0.025em] sm:text-2xl">
+          {title}
+        </p>
         <p className="mx-auto mt-1.5 max-w-xs text-sm text-white/80">{body}</p>
       </div>
       {children}

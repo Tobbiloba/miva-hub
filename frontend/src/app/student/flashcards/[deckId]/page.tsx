@@ -2,7 +2,13 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Check, RotateCcw, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronLeft,
+  Loader2,
+  RotateCcw,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -115,8 +121,8 @@ export default function ReviewSessionPage() {
 
   if (loading) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        Loading deck...
+      <div className="flex justify-center py-16" aria-label="Loading">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -137,16 +143,20 @@ export default function ReviewSessionPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <Link href="/student/flashcards">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-1" /> Decks
-          </Button>
+      <div>
+        <Link
+          href="/student/flashcards"
+          className="mb-3 inline-flex items-center gap-1 text-[13px] text-brand hover:underline"
+        >
+          <ChevronLeft className="size-4" />
+          Flashcards
         </Link>
-        <div className="text-sm text-muted-foreground">
-          {deck?.courseCode ? `${deck.courseCode} · ` : ""}
+        <p className="text-xs font-medium text-muted-foreground">
+          {deck?.courseCode ?? "General"}
+        </p>
+        <h1 className="mt-0.5 text-[22px] leading-tight font-semibold tracking-[-0.022em]">
           {deck?.title}
-        </div>
+        </h1>
       </div>
 
       {queue.length === 0 ? (
@@ -213,14 +223,14 @@ export default function ReviewSessionPage() {
             tabIndex={0}
             onKeyDown={(e) => e.key === "Enter" && handleFlip()}
           >
-            <Card className="flex min-h-[300px] items-center justify-center shadow-[var(--shadow-float)] transition-all hover:border-foreground/20">
+            <Card className="flex min-h-[300px] items-center justify-center transition-colors">
               <CardContent className="p-8 text-center w-full">
                 {!flipped ? (
                   <>
                     <p className="text-xs uppercase tracking-wide text-muted-foreground mb-4">
                       Question
                     </p>
-                    <p className="font-display text-2xl font-semibold leading-snug">
+                    <p className="text-2xl leading-snug font-semibold tracking-[-0.02em]">
                       {currentCard?.front}
                     </p>
                     <p className="text-xs text-muted-foreground mt-6">
@@ -232,7 +242,7 @@ export default function ReviewSessionPage() {
                     <p className="text-xs uppercase tracking-wide text-muted-foreground mb-4">
                       Answer
                     </p>
-                    <p className="font-display text-2xl font-semibold leading-snug">
+                    <p className="text-2xl leading-snug font-semibold tracking-[-0.02em]">
                       {currentCard?.back}
                     </p>
                   </>
@@ -246,21 +256,26 @@ export default function ReviewSessionPage() {
             <div className="flex gap-4 justify-center">
               <Button
                 variant="outline"
-                className="flex-1 max-w-[200px] border-destructive/30 text-destructive hover:bg-destructive/10"
+                size="lg"
+                className="max-w-[200px] flex-1"
                 onClick={() => handleRate("again")}
                 disabled={reviewing}
               >
-                <X className="h-4 w-4 mr-1" /> Again
-                <span className="ml-1 text-xs text-muted-foreground">(1)</span>
+                Again
+                <kbd className="ml-1 rounded border px-1.5 font-sans text-[11px] text-muted-foreground">
+                  1
+                </kbd>
               </Button>
               <Button
-                variant="outline"
-                className="flex-1 max-w-[200px] border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+                size="lg"
+                className="max-w-[200px] flex-1"
                 onClick={() => handleRate("good")}
                 disabled={reviewing}
               >
-                <Check className="h-4 w-4 mr-1" /> Good
-                <span className="ml-1 text-xs text-muted-foreground">(2)</span>
+                Got it
+                <kbd className="ml-1 rounded border border-white/25 px-1.5 font-sans text-[11px] opacity-70">
+                  2
+                </kbd>
               </Button>
             </div>
           )}

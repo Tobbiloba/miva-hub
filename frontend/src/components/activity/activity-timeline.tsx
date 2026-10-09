@@ -67,10 +67,10 @@ export function ActivityTimeline() {
   return (
     <section
       aria-labelledby="activity-title"
-      className="rounded-2xl border bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6"
+      className="rounded-xl border bg-card p-5"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="activity-title" className="font-display text-lg font-bold">
+        <h2 id="activity-title" className="text-[15px] font-semibold">
           Recent activity
         </h2>
         {!!data?.flashcardsReviewed && (

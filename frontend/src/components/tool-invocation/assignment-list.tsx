@@ -1,13 +1,8 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { AlertCircle, Calendar, Clock, FileText, Target } from "lucide-react";
+import { cn } from "lib/utils";
+import { CalendarClock } from "lucide-react";
+import { ToolCard, joinMeta } from "./tool-card";
 
 type AssignmentListProps = {
   student_id?: string;
@@ -28,151 +23,85 @@ type AssignmentListProps = {
   }>;
 };
 
+const URGENCY = {
+  urgent: {
+    label: "Due soon",
+    className: "bg-destructive/10 text-destructive",
+  },
+  soon: { label: "This week", className: "bg-warning/12 text-warning" },
+  later: { label: "Later", className: "bg-secondary text-muted-foreground" },
+} as const;
+
+function dueIn(days?: number) {
+  if (days === undefined) return undefined;
+  if (days <= 0) return "Due today";
+  if (days === 1) return "Due tomorrow";
+  return `In ${days} days`;
+}
+
 export function AssignmentList(props: AssignmentListProps) {
   const totalCount = props.total_count || props.assignments.length;
 
-  const getUrgencyIndicator = (urgency?: string) => {
-    switch (urgency) {
-      case "urgent":
-        return {
-          icon: "🚨",
-          label: "Urgent",
-          color: "text-destructive border-destructive/30",
-        };
-      case "soon":
-        return {
-          icon: "⚠️",
-          label: "Soon",
-          color: "text-amber-600 dark:text-amber-400 border-amber-500/30",
-        };
-      default:
-        return {
-          icon: "✅",
-          label: "Later",
-          color: "text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-        };
-    }
-  };
-
   if (props.assignments.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <div className="text-6xl mb-4">🎉</div>
-          <h3 className="text-lg font-semibold mb-2">
-            No Upcoming Assignments!
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            You&apos;re all caught up. Great work!
-          </p>
-        </CardContent>
-      </Card>
+      <ToolCard
+        icon={<CalendarClock />}
+        eyebrow="Upcoming work"
+        title="Nothing due"
+        meta="You're all caught up."
+      />
     );
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Upcoming Assignments</CardTitle>
-          <CardDescription>
-            You have {totalCount}{" "}
-            {totalCount === 1 ? "assignment" : "assignments"} due soon
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      <div className="space-y-3">
+    <ToolCard
+      icon={<CalendarClock />}
+      eyebrow="Upcoming work"
+      title={`${totalCount} ${totalCount === 1 ? "assignment" : "assignments"} due soon`}
+      bodyClassName="px-0 pb-0"
+    >
+      <ul className="divide-y divide-border border-t border-border">
         {props.assignments.map((assignment, index) => {
-          const urgency = getUrgencyIndicator(assignment.urgency);
-
+          const urgency = assignment.urgency
+            ? URGENCY[assignment.urgency]
+            : undefined;
           return (
-            <Card
-              key={index}
-              className="transition-colors hover:border-foreground/25"
-            >
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h4 className="font-semibold text-sm">
-                        {assignment.title}
-                      </h4>
-                      {assignment.urgency && (
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium border ${urgency.color}`}
-                        >
-                          {urgency.icon} {urgency.label}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {assignment.course_name} ({assignment.course_code})
-                    </p>
-                    {assignment.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                        {assignment.description}
-                      </p>
+            <li key={index} className="flex items-start gap-4 px-5 py-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium leading-snug">
+                  {assignment.title}
+                </p>
+                <p className="mt-0.5 text-[13px] text-muted-foreground">
+                  {joinMeta(
+                    assignment.course_code,
+                    `${assignment.due_date}${assignment.due_time ? ` at ${assignment.due_time}` : ""}`,
+                    assignment.points_possible !== undefined &&
+                      `${assignment.points_possible} points`,
+                    assignment.status &&
+                      assignment.status !== "not_started" &&
+                      assignment.status.replace("_", " "),
+                  )}
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                {urgency && (
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-xs font-medium",
+                      urgency.className,
                     )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-muted-foreground">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      <span>
-                        Due: {assignment.due_date}
-                        {assignment.due_time && ` at ${assignment.due_time}`}
-                      </span>
-                    </div>
-                    {assignment.points_possible !== undefined && (
-                      <div className="flex items-center gap-2">
-                        <Target className="w-4 h-4" />
-                        <span>{assignment.points_possible} points</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    {assignment.assignment_type && (
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        <span className="capitalize">
-                          {assignment.assignment_type}
-                        </span>
-                      </div>
-                    )}
-                    {assignment.days_until_due !== undefined && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4" />
-                        <span>
-                          {assignment.days_until_due === 0
-                            ? "Due today"
-                            : assignment.days_until_due === 1
-                              ? "1 day remaining"
-                              : `${assignment.days_until_due} days remaining`}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {assignment.status && assignment.status !== "not_started" && (
-                  <div className="mt-3 pt-3 border-t">
-                    <div className="flex items-center gap-2 text-sm">
-                      <AlertCircle className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground capitalize">
-                        Status: {assignment.status.replace("_", " ")}
-                      </span>
-                    </div>
-                  </div>
+                  >
+                    {urgency.label}
+                  </span>
                 )}
-              </CardContent>
-            </Card>
+                <span className="text-xs text-muted-foreground">
+                  {dueIn(assignment.days_until_due)}
+                </span>
+              </div>
+            </li>
           );
         })}
-      </div>
-    </div>
+      </ul>
+    </ToolCard>
   );
 }

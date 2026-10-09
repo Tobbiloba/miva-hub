@@ -105,9 +105,9 @@ export function AcademicToolStatus({ part }: { part: ToolUIPart }) {
   return (
     <div
       role="status"
-      className="flex items-center gap-2 text-sm text-muted-foreground"
+      className="flex items-center gap-2 text-[13px] text-muted-foreground"
     >
-      <span className="rounded-lg border bg-card p-1.5 text-brand">
+      <span className="grid size-5 place-items-center">
         <Icon
           className={
             failed

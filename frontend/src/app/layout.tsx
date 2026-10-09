@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Urbanist } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import {
   ThemeProvider,
@@ -8,21 +8,18 @@ import {
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 import { Toaster } from "sonner";
-// Fixed three-role type system: display / body / mono. Not user-switchable.
-const display = Urbanist({
-  variable: "--font-urbanist",
-  subsets: ["latin"],
-});
+// One typeface. The opsz axis gives headings Inter's display cut.
 const sans = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  axes: ["opsz"],
 });
 const mono = JetBrains_Mono({
   variable: "--font-jetbrains",
   subsets: ["latin"],
 });
 
-const FONT_VARS = [display.variable, sans.variable, mono.variable].join(" ");
+const FONT_VARS = [sans.variable, mono.variable].join(" ");
 
 export const metadata: Metadata = {
   title: "Askly",

@@ -49,7 +49,7 @@ import {
   DialogTitle,
 } from "ui/dialog";
 import { Think } from "ui/think";
-import { ChatDrawer } from "./chat/ChatSidebar";
+import { ChatDrawer, hasDrawerContent } from "./chat/ChatSidebar";
 
 type Props = {
   threadId: string;
@@ -66,6 +66,7 @@ const CHAT_SUGGESTIONS = [
     id: "due",
     icon: <CalendarClock />,
     title: "What's due?",
+    hint: "Your next two weeks, in order",
     prompt:
       "What do I have due in the next two weeks, and what should I start first?",
   },
@@ -73,6 +74,7 @@ const CHAT_SUGGESTIONS = [
     id: "quiz",
     icon: <FileQuestion />,
     title: "Quiz me before the test",
+    hint: "Ten questions from your materials",
     prompt:
       "Give me a 10-question practice quiz from my course materials, with feedback after each answer.",
   },
@@ -80,6 +82,7 @@ const CHAT_SUGGESTIONS = [
     id: "flashcards",
     icon: <Layers />,
     title: "Flashcards from my notes",
+    hint: "A deck from your latest lecture",
     prompt:
       "Make flashcards from my latest lecture notes so I can save them for review.",
   },
@@ -87,6 +90,7 @@ const CHAT_SUGGESTIONS = [
     id: "explain",
     icon: <Lightbulb />,
     title: "Explain my last lecture",
+    hint: "The key ideas, in plain language",
     prompt:
       "Explain my latest lecture in plain language: the key ideas, and what I'm most likely to be tested on.",
   },
@@ -282,6 +286,11 @@ export default function ChatBot({
     });
   }, []);
 
+  const showDrawerToggle = useMemo(
+    () => hasDrawerContent(messages),
+    [messages],
+  );
+
   const toggleDrawer = useCallback(() => {
     appStoreMutate((state) => ({
       chatSidebar: {
@@ -381,36 +390,40 @@ export default function ChatBot({
     <>
       <div
         className={cn(
-          emptyMessage && "overflow-y-auto py-6",
+          emptyMessage && "pt-4 pb-3 md:overflow-y-auto md:py-6",
           "flex flex-col min-w-0 relative h-full z-40",
         )}
       >
         {emptyMessage ? (
           <>
-            {/* spacers centre the empty state but collapse when it overflows */}
-            <div aria-hidden className="flex-1" />
-            <ChatGreeting />
-            {onboarding && (
-              <div className="mx-auto w-full max-w-3xl px-6 pb-4">
-                {onboarding}
-              </div>
-            )}
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="mx-auto w-full max-w-3xl px-6 pb-6"
-            >
-              <SuggestionCards
-                items={CHAT_SUGGESTIONS}
-                onSelect={(s) =>
-                  sendMessage({
-                    role: "user",
-                    parts: [{ type: "text", text: s.prompt }],
-                  })
-                }
-              />
-            </motion.div>
+            {/* Desktop: spacers centre greeting + composer. Phone: the
+                starters scroll on their own and the composer stays pinned. */}
+            <div aria-hidden className="hidden flex-1 md:block" />
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-none md:overflow-visible">
+              <div aria-hidden className="flex-1 md:hidden" />
+              <ChatGreeting />
+              {onboarding && (
+                <div className="mx-auto w-full max-w-3xl px-6 pb-4">
+                  {onboarding}
+                </div>
+              )}
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="mx-auto w-full max-w-3xl px-6 pb-6"
+              >
+                <SuggestionCards
+                  items={CHAT_SUGGESTIONS}
+                  onSelect={(s) =>
+                    sendMessage({
+                      role: "user",
+                      parts: [{ type: "text", text: s.prompt }],
+                    })
+                  }
+                />
+              </motion.div>
+            </div>
           </>
         ) : (
           <>
@@ -488,21 +501,26 @@ export default function ChatBot({
             materials.
           </p>
         </div>
-        {emptyMessage && <div aria-hidden className="flex-1" />}
+        {emptyMessage && <div aria-hidden className="hidden flex-1 md:block" />}
         <DeleteThreadPopup
           threadId={threadId}
           onClose={() => setIsDeleteThreadPopupOpen(false)}
           open={isDeleteThreadPopupOpen}
         />
 
-        {/* Drawer Toggle Button */}
-        <div className="fixed top-1/2 right-4 z-50 hidden -translate-y-1/2 md:block">
+        {/* Drawer toggle: only when there are MIVA tool results to show */}
+        <div
+          className={cn(
+            "fixed top-1/2 right-4 z-50 hidden -translate-y-1/2",
+            showDrawerToggle && "md:block",
+          )}
+        >
           <Button
             variant="outline"
             size="icon"
             onClick={toggleDrawer}
             aria-label={chatSidebar.visible ? "Close drawer" : "Open drawer"}
-            className="rounded-xl bg-card shadow-[var(--shadow-soft)]"
+            className="rounded-lg bg-card"
             title={chatSidebar.visible ? "Close drawer" : "Open drawer"}
           >
             {chatSidebar.visible ? (

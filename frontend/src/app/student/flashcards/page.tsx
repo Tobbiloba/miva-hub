@@ -1,10 +1,9 @@
 "use client";
 
+import { EmptyState } from "@/components/layouts/empty-state";
 import { PageHeader } from "@/components/layouts/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Clock, Layers } from "lucide-react";
+import { ArrowRight, Layers, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -47,80 +46,62 @@ export default function FlashcardsPage() {
       />
 
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">
-          Loading decks...
+        <div className="flex justify-center py-16" aria-label="Loading">
+          <Loader2 className="size-5 animate-spin text-muted-foreground" />
         </div>
       ) : error ? (
-        <Card role="alert">
-          <CardContent className="text-center py-12">
-            <p className="text-lg font-medium mb-3">
-              Couldn&apos;t load your decks
-            </p>
+        <EmptyState
+          icon={<Layers />}
+          title="Couldn't load your decks"
+          action={
             <Button variant="outline" onClick={load}>
               Try again
             </Button>
-          </CardContent>
-        </Card>
+          }
+        />
       ) : decks.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Layers className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-            <p className="text-lg font-medium mb-2">No flashcard decks yet</p>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Ask Askly to make some, e.g. &quot;make flashcards on my COS101
-              week 3 notes&quot;, then press Save deck under the cards.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState icon={<Layers />} title="No decks yet">
+          Ask Askly to make some, like &ldquo;make flashcards on my COS101 week
+          3 notes&rdquo;, then press Save deck under the cards.
+        </EmptyState>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {decks.map((deck) => (
-            <Card
+            <Link
               key={deck.id}
-              className="flex flex-col transition-all hover:border-foreground/20 hover:shadow-[var(--shadow-float)]"
+              href={`/student/flashcards/${deck.id}`}
+              className="group flex flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:bg-accent/40"
             >
-              <CardHeader className="pb-1">
-                <span className="mb-2 grid size-10 place-items-center rounded-xl bg-tint-green text-green-700 dark:text-green-300">
-                  <Layers className="size-5" />
+              <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <span className="font-semibold text-foreground">
+                  {deck.courseCode ?? "General"}
                 </span>
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-base leading-tight">
-                    {deck.title}
-                  </CardTitle>
-                  {deck.dueCount > 0 && (
-                    <Badge variant="destructive" className="ml-2 shrink-0">
-                      {deck.dueCount} due
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                  <BookOpen className="h-3.5 w-3.5" />
-                  <span>{deck.courseCode ?? "General"}</span>
-                  {deck.weekNumber && (
-                    <span className="text-xs">· Week {deck.weekNumber}</span>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col justify-end gap-3">
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>{deck.cardCount} cards</span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    {new Date(deck.createdAt).toLocaleDateString()}
+                {deck.weekNumber && <span>Week {deck.weekNumber}</span>}
+              </p>
+              <h3 className="mt-1.5 text-[17px] leading-snug font-semibold tracking-[-0.015em]">
+                {deck.title}
+              </h3>
+              <p className="mt-1 text-[13px] text-muted-foreground">
+                {deck.cardCount} cards · Made{" "}
+                {new Date(deck.createdAt).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                })}
+              </p>
+              <div className="mt-5 flex items-center justify-between">
+                {deck.dueCount > 0 ? (
+                  <span className="flex items-center gap-1.5 text-[13px] font-medium text-brand">
+                    <span className="size-1.5 rounded-full bg-brand" />
+                    {deck.dueCount} due for review
                   </span>
-                </div>
-                <Link href={`/student/flashcards/${deck.id}`}>
-                  <Button
-                    className="w-full"
-                    variant={deck.dueCount > 0 ? "default" : "outline"}
-                  >
-                    {deck.dueCount > 0
-                      ? `Review ${deck.dueCount} card${deck.dueCount !== 1 ? "s" : ""}`
-                      : "View deck"}
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+                ) : (
+                  <span className="text-[13px] text-muted-foreground">
+                    All caught up
+                  </span>
+                )}
+                <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              </div>
+            </Link>
           ))}
         </div>
       )}

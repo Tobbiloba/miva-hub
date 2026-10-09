@@ -1,12 +1,8 @@
 "use client";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   clearQuizProgress,
   useLoadQuizProgress,
@@ -24,7 +20,10 @@ import {
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ChoiceList } from "./choice-list";
 import { reportQuizResult } from "./report-result";
+import { ResultRow, ScoreSummary } from "./result-row";
+import { ToolCard, joinMeta } from "./tool-card";
 
 type QuizProps = {
   quiz_id?: string;
@@ -197,70 +196,38 @@ export function Quiz(props: QuizProps) {
   };
 
   if (mode === "preview") {
+    const resumable = showResumePrompt && savedProgress;
     return (
-      <div className="space-y-4">
-        {showResumePrompt && savedProgress && (
-          <Alert className="border-brand/30 bg-tint-blue/50">
-            <AlertDescription className="flex items-center justify-between">
-              <span className="text-sm">
-                Resume your previous attempt? (
-                {Object.keys(savedProgress.answers).length} questions answered)
-              </span>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={handleStartFresh}>
-                  Start Fresh
-                </Button>
-                <Button size="sm" onClick={handleResumeProgress}>
-                  Resume
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
+      <ToolCard
+        icon={<ClipboardList />}
+        eyebrow={joinMeta("Practice quiz", props.course_code)}
+        title={props.title}
+        meta={joinMeta(
+          `${props.total_questions} questions`,
+          `${props.total_points} points`,
+          props.estimated_time,
         )}
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-tint-blue text-blue-700 dark:text-blue-300 [&_svg]:size-5">
-                <ClipboardList className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="mb-1 font-display text-xl font-bold">
-                  {props.title}
-                </h3>
-                {(props.course_name || props.course_code) && (
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {props.course_code && (
-                      <span className="font-medium">{props.course_code}</span>
-                    )}
-                    {props.course_name && props.course_code && " • "}
-                    {props.course_name}
-                  </p>
-                )}
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                  <span>{props.total_questions} questions</span>
-                  <span>•</span>
-                  <span>{props.total_points} points</span>
-                  {props.estimated_time && (
-                    <>
-                      <span>•</span>
-                      <span>{props.estimated_time}</span>
-                    </>
-                  )}
-                </div>
-                {props.instructions && (
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {props.instructions}
-                  </p>
-                )}
-                <Button onClick={() => setMode("interactive")}>
-                  Start Quiz
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        footer={
+          resumable ? (
+            <>
+              <Button size="sm" onClick={handleResumeProgress}>
+                Resume ({Object.keys(savedProgress.answers).length} answered)
+              </Button>
+              <Button size="sm" variant="ghost" onClick={handleStartFresh}>
+                Start over
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" onClick={() => setMode("interactive")}>
+              Start quiz
+            </Button>
+          )
+        }
+      >
+        {props.instructions && (
+          <p className="text-sm text-muted-foreground">{props.instructions}</p>
+        )}
+      </ToolCard>
     );
   }
 
@@ -269,26 +236,25 @@ export function Quiz(props: QuizProps) {
     const percentage = (earnedPoints / totalPoints) * 100;
 
     return (
-      <div className="space-y-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center mb-6">
-              <h3 className="font-semibold text-2xl mb-2">Quiz Complete!</h3>
-              <div className="mb-2 font-display text-5xl font-bold tracking-tight">
-                {percentage.toFixed(0)}%
-              </div>
-              <p className="text-muted-foreground">
-                {correct} out of {props.total_questions} correct •{" "}
-                {earnedPoints.toFixed(1)} / {totalPoints} points
-              </p>
-            </div>
-            <Button onClick={() => setMode("preview")} className="w-full">
-              Close Results
-            </Button>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-3">
+      <ToolCard
+        icon={<ClipboardList />}
+        eyebrow={joinMeta("Quiz results", props.course_code)}
+        title={props.title}
+        footer={
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setMode("preview")}
+          >
+            Done
+          </Button>
+        }
+      >
+        <ScoreSummary
+          percentage={percentage}
+          detail={`${correct} of ${props.total_questions} correct · ${earnedPoints.toFixed(1)} / ${totalPoints} points`}
+        />
+        <ol className="mt-3 divide-y divide-border border-t border-border">
           {props.questions.map((q, i) => {
             const wasAnswered = answers[i] !== undefined;
             let score = 0;
@@ -313,75 +279,32 @@ export function Quiz(props: QuizProps) {
               }
             }
 
-            const borderColor = isFullyCorrect
-              ? "border-emerald-500/20"
-              : isPartialCredit
-                ? "border-amber-500/20"
-                : wasAnswered
-                  ? "border-destructive/30"
-                  : "border-border";
-
             return (
-              <Card key={i} className={borderColor}>
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    {isFullyCorrect ? (
-                      <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5" />
-                    ) : isPartialCredit ? (
-                      <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center mt-0.5">
-                        <span className="text-xs text-amber-600 dark:text-amber-400 font-bold">
-                          ~
-                        </span>
-                      </div>
-                    ) : wasAnswered ? (
-                      <XCircle className="w-5 h-5 text-destructive mt-0.5" />
-                    ) : (
-                      <div className="w-5 h-5 rounded-full border-2 border-border mt-0.5" />
-                    )}
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="font-medium text-sm">
-                          Question {i + 1}: {q.question}
-                        </p>
-                        {wasAnswered && (
-                          <span
-                            className={`text-xs font-medium px-2 py-1 rounded ${
-                              isFullyCorrect
-                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                : isPartialCredit
-                                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                                  : "bg-destructive/10 text-destructive"
-                            }`}
-                          >
-                            {(score * q.points).toFixed(1)}/{q.points} pts (
-                            {(score * 100).toFixed(0)}%)
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Your answer: {answers[i] || "Not answered"}
-                      </p>
-                      {q.correct_answer && !isFullyCorrect && wasAnswered && (
-                        <>
-                          <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">
-                            Correct answer: {q.correct_answer}
-                          </p>
-                          {isPartialCredit && (
-                            <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">
-                              ℹ️ Partial credit: Your answer is close but not
-                              exact
-                            </p>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <ResultRow
+                key={i}
+                index={i + 1}
+                question={q.question}
+                state={
+                  isFullyCorrect
+                    ? "correct"
+                    : isPartialCredit
+                      ? "partial"
+                      : wasAnswered
+                        ? "wrong"
+                        : "skipped"
+                }
+                answer={answers[i]}
+                correctAnswer={q.correct_answer}
+                points={
+                  wasAnswered
+                    ? `${(score * q.points).toFixed(1)} / ${q.points}`
+                    : undefined
+                }
+              />
             );
           })}
-        </div>
-      </div>
+        </ol>
+      </ToolCard>
     );
   }
 
@@ -424,115 +347,71 @@ export function Quiz(props: QuizProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium">
-              Question {currentQuestion + 1} of {props.total_questions}
-            </div>
-            <div className="flex items-center gap-3">
-              {getSaveStatusDisplay()}
-              <div className="text-sm text-muted-foreground">
-                {question.points} {question.points === 1 ? "point" : "points"}
-              </div>
-            </div>
-          </div>
-          <Progress value={questionProgress} className="h-2" />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-6">
-          <h3 className="mb-5 font-display text-lg font-semibold">
-            {question.question}
-          </h3>
-
-          {question.question_type === "multiple_choice" && question.options && (
-            <RadioGroup value={currentAnswer} onValueChange={handleAnswer}>
-              <div className="space-y-3">
-                {question.options.map((option, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-foreground/25 has-[[data-state=checked]]:border-brand has-[[data-state=checked]]:bg-tint-blue/40"
-                  >
-                    <RadioGroupItem
-                      value={option}
-                      id={`q${currentQuestion}-opt${i}`}
-                    />
-                    <Label
-                      htmlFor={`q${currentQuestion}-opt${i}`}
-                      className="flex-1 cursor-pointer py-0.5 leading-snug"
-                    >
-                      {option}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </RadioGroup>
-          )}
-
-          {question.question_type === "true_false" && (
-            <RadioGroup value={currentAnswer} onValueChange={handleAnswer}>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-foreground/25 has-[[data-state=checked]]:border-brand has-[[data-state=checked]]:bg-tint-blue/40">
-                  <RadioGroupItem
-                    value="True"
-                    id={`q${currentQuestion}-true`}
-                  />
-                  <Label
-                    htmlFor={`q${currentQuestion}-true`}
-                    className="flex-1 cursor-pointer py-0.5"
-                  >
-                    True
-                  </Label>
-                </div>
-                <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-foreground/25 has-[[data-state=checked]]:border-brand has-[[data-state=checked]]:bg-tint-blue/40">
-                  <RadioGroupItem
-                    value="False"
-                    id={`q${currentQuestion}-false`}
-                  />
-                  <Label
-                    htmlFor={`q${currentQuestion}-false`}
-                    className="flex-1 cursor-pointer py-0.5"
-                  >
-                    False
-                  </Label>
-                </div>
-              </div>
-            </RadioGroup>
-          )}
-
-          {question.question_type === "short_answer" && (
-            <Input
-              value={currentAnswer || ""}
-              onChange={(e) => handleAnswer(e.target.value)}
-              placeholder="Type your answer here..."
-              className="w-full"
-            />
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          onClick={handlePrevious}
-          disabled={currentQuestion === 0}
-        >
-          <ChevronLeft className="w-4 h-4 mr-2" />
-          Previous
-        </Button>
-
-        {currentQuestion === props.total_questions - 1 ? (
-          <Button onClick={handleSubmit}>Submit Quiz</Button>
-        ) : (
-          <Button onClick={handleNext}>
-            Next
-            <ChevronRight className="w-4 h-4 ml-2" />
+    <ToolCard
+      icon={<ClipboardList />}
+      eyebrow={`Question ${currentQuestion + 1} of ${props.total_questions}`}
+      action={
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          {getSaveStatusDisplay()}
+          <span>
+            {question.points} {question.points === 1 ? "point" : "points"}
+          </span>
+        </div>
+      }
+      title={question.question}
+      footer={
+        <>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handlePrevious}
+            disabled={currentQuestion === 0}
+          >
+            <ChevronLeft />
+            Previous
           </Button>
-        )}
-      </div>
-    </div>
+          <div className="flex-1" />
+          {currentQuestion === props.total_questions - 1 ? (
+            <Button size="sm" onClick={handleSubmit}>
+              Submit quiz
+            </Button>
+          ) : (
+            <Button size="sm" onClick={handleNext}>
+              Next
+              <ChevronRight />
+            </Button>
+          )}
+        </>
+      }
+    >
+      <Progress value={questionProgress} className="mb-5 h-1" />
+
+      {question.question_type === "multiple_choice" && question.options && (
+        <ChoiceList
+          name={`q${currentQuestion}`}
+          options={question.options}
+          value={currentAnswer}
+          onChange={handleAnswer}
+        />
+      )}
+
+      {question.question_type === "true_false" && (
+        <ChoiceList
+          name={`q${currentQuestion}`}
+          options={["True", "False"]}
+          value={currentAnswer}
+          onChange={handleAnswer}
+        />
+      )}
+
+      {question.question_type === "short_answer" && (
+        <Input
+          value={currentAnswer || ""}
+          onChange={(e) => handleAnswer(e.target.value)}
+          placeholder="Type your answer"
+          className="w-full"
+        />
+      )}
+    </ToolCard>
   );
 }

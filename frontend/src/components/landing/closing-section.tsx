@@ -76,7 +76,7 @@ export function ClosingSection() {
         <div className="relative mx-auto max-w-6xl px-5 pt-24 pb-8 sm:px-8 lg:px-24">
           <p
             ref={ref}
-            className="max-w-3xl font-display text-4xl font-bold leading-tight text-white sm:text-5xl"
+            className="max-w-3xl text-4xl font-semibold tracking-[-0.025em] leading-tight text-white sm:text-5xl"
           >
             {words.map((w, i) => (
               <Word
@@ -93,7 +93,7 @@ export function ClosingSection() {
             className="mt-14 grid scroll-mt-8 items-start gap-8 lg:grid-cols-[1fr_1.1fr]"
           >
             <div className="text-white">
-              <h2 className="font-display text-3xl font-bold">
+              <h2 className="text-3xl font-semibold tracking-[-0.025em]">
                 Join the waitlist
               </h2>
               <p className="mt-2 max-w-sm text-white/80">

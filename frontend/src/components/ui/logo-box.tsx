@@ -7,7 +7,7 @@ export function LogoBox({ className }: { className?: string }) {
     <div
       aria-hidden
       className={cn(
-        "grid shrink-0 place-items-center rounded-lg bg-primary font-display text-sm font-bold text-primary-foreground",
+        "grid shrink-0 place-items-center rounded-[7px] bg-primary text-[13px] font-semibold text-primary-foreground",
         className,
       )}
     >
@@ -23,8 +23,8 @@ export function AsklyLogo({
 }: { className?: string; markClassName?: string }) {
   return (
     <span className={cn("flex items-center gap-2", className)}>
-      <LogoBox className={cn("size-7", markClassName)} />
-      <span className="font-display text-lg font-bold tracking-tight">
+      <LogoBox className={cn("size-6", markClassName)} />
+      <span className="text-[15px] font-semibold tracking-[-0.02em]">
         Askly
       </span>
     </span>

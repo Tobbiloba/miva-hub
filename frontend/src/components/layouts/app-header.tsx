@@ -12,6 +12,7 @@ import { useSidebar } from "ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
 
 import { appStore } from "@/app/store";
+import { authClient } from "auth/client";
 import { Shortcuts, getShortcutKeyList } from "lib/keyboard-shortcuts";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
@@ -24,6 +25,10 @@ export function AppHeader() {
   const t = useTranslations();
   const [appStoreMutate] = appStore(useShallow((state) => [state.mutate]));
   const { toggleSidebar, open, isMobile } = useSidebar();
+  const { data: session } = authClient.useSession();
+  // The tools/demos catalogue is a staff view; students just chat
+  const isStudent =
+    (session?.user as { role?: string } | undefined)?.role === "student";
   const currentPaths = usePathname();
 
   const componentByPage = useMemo(() => {
@@ -34,10 +39,10 @@ export function AppHeader() {
 
   const title = useMemo(() => pageTitle(currentPaths), [currentPaths]);
   const iconButton =
-    "size-9 rounded-xl border border-border bg-card text-muted-foreground shadow-[var(--shadow-soft)] hover:bg-secondary hover:text-foreground";
+    "size-8 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground [&_svg]:size-[18px]!";
 
   return (
-    <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 px-4 md:px-5">
+    <header className="sticky top-0 z-50 flex h-12 shrink-0 items-center gap-1.5 px-3 md:px-4">
       {(!open || isMobile) && (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -72,33 +77,37 @@ export function AppHeader() {
 
       {componentByPage ??
         (title && (
-          <p className="truncate font-display text-lg font-semibold">{title}</p>
+          <p className="truncate px-1 text-[15px] font-semibold tracking-[-0.01em]">
+            {title}
+          </p>
         ))}
       <div className="flex-1" />
 
       <div className="flex items-center gap-2">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              size={"icon"}
-              variant={"ghost"}
-              aria-label="Available tools"
-              className={iconButton}
-              onClick={() => {
-                appStoreMutate((_state) => ({
-                  toolsInfoDrawer: {
-                    isOpen: true,
-                  },
-                }));
-              }}
-            >
-              <Info className="size-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent align="end" side="bottom">
-            <div className="text-xs">View Available Tools & Demos</div>
-          </TooltipContent>
-        </Tooltip>
+        {!isStudent && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size={"icon"}
+                variant={"ghost"}
+                aria-label="Available tools"
+                className={iconButton}
+                onClick={() => {
+                  appStoreMutate((_state) => ({
+                    toolsInfoDrawer: {
+                      isOpen: true,
+                    },
+                  }));
+                }}
+              >
+                <Info className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent align="end" side="bottom">
+              <div className="text-xs">View Available Tools & Demos</div>
+            </TooltipContent>
+          </Tooltip>
+        )}
 
         <Tooltip>
           <TooltipTrigger asChild>
@@ -215,7 +224,7 @@ function ThreadDropdownComponent() {
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                className="-ml-2 flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 font-display text-lg font-semibold hover:bg-card hover:text-foreground data-[state=open]:bg-card"
+                className="flex h-8 cursor-pointer items-center gap-1 rounded-lg px-2 text-[15px] font-semibold tracking-[-0.01em] hover:bg-accent data-[state=open]:bg-accent"
               >
                 {generatingTitleThreadIds.includes(currentThread.id) ? (
                   <TextShimmer className="truncate max-w-60 min-w-0 mr-1">

@@ -46,7 +46,7 @@ export function AppearanceSection() {
         </span>
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="font-display text-4xl font-bold tracking-tight sm:text-5xl">
+            <h2 className="text-4xl font-semibold tracking-[-0.035em] sm:text-5xl">
               Make Askly truly yours
             </h2>
             <p className="mt-2 text-base text-neutral-600">
@@ -110,7 +110,7 @@ export function AppearanceSection() {
                   />
                 )}
                 <span
-                  className={`block font-display text-xl font-bold transition-colors ${
+                  className={`block text-xl font-semibold tracking-[-0.025em] transition-colors ${
                     isActive ? "text-neutral-900" : "text-neutral-400"
                   }`}
                 >

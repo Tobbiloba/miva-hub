@@ -1,14 +1,7 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Calendar, GraduationCap, TrendingUp, User } from "lucide-react";
-
+import { GraduationCap } from "lucide-react";
+import { ToolCard, joinMeta } from "./tool-card";
 type CourseListProps = {
   student_id?: string;
   semester?: string;
@@ -31,116 +24,39 @@ export function CourseList(props: CourseListProps) {
     props.total_credits || props.courses.reduce((sum, c) => sum + c.credits, 0);
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Enrolled Courses</CardTitle>
-          <CardDescription>
-            {props.semester && <span>{props.semester}</span>}
-            {props.student_id && (
-              <>
-                {props.semester && " • "}
-                <span>Student ID: {props.student_id}</span>
-              </>
-            )}
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Courses</p>
-                <p className="font-display text-3xl font-bold">
-                  {totalCourses}
-                </p>
-              </div>
-              <GraduationCap className="w-8 h-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Credits</p>
-                <p className="font-display text-3xl font-bold">
-                  {totalCredits}
-                </p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <ToolCard
+      icon={<GraduationCap />}
+      eyebrow={joinMeta("Your courses", props.semester)}
+      title={`${totalCourses} ${totalCourses === 1 ? "course" : "courses"} · ${totalCredits} credits`}
+      bodyClassName="px-0 pb-0"
+    >
+      <ul className="divide-y divide-border border-t border-border">
         {props.courses.map((course, index) => (
-          <Card
-            key={index}
-            className="transition-colors hover:border-foreground/25"
-          >
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h4 className="font-semibold text-sm">
-                      {course.course_code}
-                    </h4>
-                    <span className="px-2 py-0.5 rounded-full border bg-secondary text-xs">
-                      {course.credits}{" "}
-                      {course.credits === 1 ? "credit" : "credits"}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {course.course_name}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2 text-sm text-muted-foreground">
-                {course.instructor && (
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    <span>{course.instructor}</span>
-                  </div>
+          <li key={index} className="flex items-start gap-4 px-5 py-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm">
+                <span className="font-semibold">{course.course_code}</span>
+                <span className="text-muted-foreground">
+                  {" "}
+                  · {course.course_name}
+                </span>
+              </p>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">
+                {joinMeta(
+                  course.instructor,
+                  course.status &&
+                    course.status.charAt(0).toUpperCase() +
+                      course.status.slice(1),
+                  course.grade && `Grade ${course.grade}`,
                 )}
-                {course.enrollment_date && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>
-                      Enrolled:{" "}
-                      {new Date(course.enrollment_date).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
-                {course.status && (
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`w-2 h-2 rounded-full ${
-                        course.status === "enrolled"
-                          ? "bg-emerald-500"
-                          : course.status === "completed"
-                            ? "bg-primary"
-                            : "bg-muted-foreground"
-                      }`}
-                    />
-                    <span className="capitalize">{course.status}</span>
-                  </div>
-                )}
-                {course.grade && (
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">Grade: {course.grade}</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              </p>
+            </div>
+            <span className="shrink-0 text-[13px] tabular-nums text-muted-foreground">
+              {course.credits} {course.credits === 1 ? "credit" : "credits"}
+            </span>
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </ToolCard>
   );
 }

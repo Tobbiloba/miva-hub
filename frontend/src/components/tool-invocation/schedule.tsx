@@ -1,13 +1,7 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Clock, MapPin, User } from "lucide-react";
+import { CalendarDays } from "lucide-react";
+import { ToolCard, joinMeta } from "./tool-card";
 
 type ScheduleProps = {
   student_id?: string;
@@ -29,77 +23,48 @@ type ScheduleProps = {
 
 export function Schedule(props: ScheduleProps) {
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Academic Schedule</CardTitle>
-          <CardDescription>
-            {props.semester && <span>{props.semester}</span>}
-            {props.week_number && (
-              <>
-                {props.semester && " • "}
-                <span>Week {props.week_number}</span>
-              </>
-            )}
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        {props.days.map((day, dayIndex) => (
-          <Card key={dayIndex} className="bg-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">{day.day}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {day.classes.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No classes
-                </p>
-              ) : (
-                day.classes.map((classItem, classIndex) => (
-                  <div
-                    key={classIndex}
-                    className="rounded-xl border bg-card p-3 transition-colors hover:border-foreground/25"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <span className="font-medium text-xs">
-                        {classItem.course_code}
+    <ToolCard
+      icon={<CalendarDays />}
+      eyebrow={joinMeta(
+        "Timetable",
+        props.semester,
+        props.week_number && `Week ${props.week_number}`,
+      )}
+      title="Your classes"
+      bodyClassName="px-0 pb-0"
+    >
+      <div className="divide-y divide-border border-t border-border">
+        {props.days.map((day) => (
+          <div key={day.day} className="flex gap-4 px-5 py-3">
+            <p className="w-24 shrink-0 pt-0.5 text-sm font-semibold">
+              {day.day}
+            </p>
+            {day.classes.length === 0 ? (
+              <p className="pt-0.5 text-sm text-muted-foreground">No classes</p>
+            ) : (
+              <ul className="min-w-0 flex-1 space-y-2">
+                {day.classes.map((c, i) => (
+                  <li key={i} className="text-sm">
+                    <p>
+                      <span className="tabular-nums text-muted-foreground">
+                        {c.time}
                       </span>
-                      {classItem.class_type && (
-                        <span className="px-2 py-0.5 rounded-full bg-card text-xs border">
-                          {classItem.class_type}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                      {classItem.course_name}
+                      <span className="font-medium"> {c.course_code}</span>
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · {c.course_name}
+                      </span>
                     </p>
-                    <div className="space-y-1 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        <span>{classItem.time}</span>
-                      </div>
-                      {classItem.location && (
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          <span>{classItem.location}</span>
-                        </div>
-                      )}
-                      {classItem.instructor && (
-                        <div className="flex items-center gap-1">
-                          <User className="w-3 h-3" />
-                          <span>{classItem.instructor}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
+                    <p className="text-[13px] text-muted-foreground">
+                      {joinMeta(c.class_type, c.location, c.instructor)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         ))}
       </div>
-    </div>
+    </ToolCard>
   );
 }

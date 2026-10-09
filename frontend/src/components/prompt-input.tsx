@@ -21,6 +21,7 @@ import { SelectModel } from "./select-model";
 import { ToolModeDropdown } from "./tool-mode-dropdown";
 
 import { Editor } from "@tiptap/react";
+import { authClient } from "auth/client";
 import { DefaultToolName } from "lib/ai/tools";
 import equal from "lib/equal";
 import { cn } from "lib/utils";
@@ -77,6 +78,9 @@ export default function PromptInput({
   disabledMention,
 }: PromptInputProps) {
   const t = useTranslations("Chat");
+  const { data: session } = authClient.useSession();
+  const isStudent =
+    (session?.user as { role?: string } | undefined)?.role === "student";
 
   const [globalModel, threadMentions, appStoreMutate] = appStore(
     useShallow((state) => [
@@ -231,7 +235,7 @@ export default function PromptInput({
     <div className="max-w-3xl mx-auto fade-in animate-in">
       <div className="z-10 mx-auto w-full max-w-3xl relative">
         <fieldset className="flex w-full min-w-0 max-w-full flex-col px-4">
-          <div className="relative z-10 flex w-full cursor-text flex-col items-stretch overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-float)] transition-[border-color,box-shadow] duration-200 focus-within:border-brand/50 focus-within:ring-4 focus-within:ring-brand/10">
+          <div className="relative z-10 flex w-full cursor-text flex-col items-stretch overflow-hidden rounded-[20px] border border-border bg-card shadow-[var(--shadow-float)] transition-[border-color,box-shadow] duration-200 focus-within:border-input">
             {mentions.length > 0 && (
               <div className="m-2 flex flex-col gap-4 rounded-xl border bg-secondary p-3">
                 {mentions.map((mention, i) => {
@@ -292,8 +296,8 @@ export default function PromptInput({
                 })}
               </div>
             )}
-            <div className="flex items-end gap-2 px-4 pt-3 pb-3">
-              <div className="relative min-h-[2.25rem] min-w-0 flex-1 py-1">
+            <div className="px-4 pt-3.5 pb-1">
+              <div className="relative min-h-[2.75rem] min-w-0 text-[15px]">
                 <ChatMentionInput
                   input={input}
                   onChange={setInput}
@@ -305,63 +309,13 @@ export default function PromptInput({
                   onFocus={onFocus}
                 />
               </div>
-              {!isLoading && !input.length && !voiceDisabled ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size={"icon"}
-                      aria-label={t("VoiceChat.title")}
-                      onClick={() => {
-                        appStoreMutate((state) => ({
-                          voiceChat: {
-                            ...state.voiceChat,
-                            isOpen: true,
-                            agentId: undefined,
-                          },
-                        }));
-                      }}
-                      className="size-9 shrink-0 rounded-xl"
-                    >
-                      <AudioWaveformIcon size={16} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{t("VoiceChat.title")}</TooltipContent>
-                </Tooltip>
-              ) : (
-                <button
-                  type="button"
-                  aria-label={isLoading ? "Stop" : "Send message"}
-                  onClick={() => {
-                    if (isLoading) {
-                      onStop();
-                    } else {
-                      submit();
-                    }
-                  }}
-                  className={cn(
-                    "fade-in animate-in grid size-9 shrink-0 cursor-pointer place-items-center rounded-xl transition-all duration-200",
-                    isLoading
-                      ? "border bg-secondary text-muted-foreground hover:bg-accent"
-                      : "bg-energy text-energy-foreground hover:opacity-85",
-                  )}
-                >
-                  {isLoading ? (
-                    <Square
-                      size={14}
-                      className="fill-muted-foreground text-muted-foreground"
-                    />
-                  ) : (
-                    <ArrowUp size={16} />
-                  )}
-                </button>
-              )}
             </div>
-            <div className="z-30 flex w-full min-w-0 items-center gap-0.5 overflow-x-auto border-t border-border bg-secondary/60 px-2 py-1.5 text-muted-foreground [scrollbar-width:none]">
+            <div className="z-30 flex w-full min-w-0 items-center gap-0.5 overflow-x-auto px-2 pb-2 text-muted-foreground [scrollbar-width:none]">
               <Button
                 variant={"ghost"}
                 size={"sm"}
                 aria-label="Attach"
-                className="rounded-lg p-2!"
+                className="rounded-lg p-2! text-muted-foreground"
                 onClick={notImplementedToast}
               >
                 <PlusIcon />
@@ -369,22 +323,17 @@ export default function PromptInput({
 
               {!toolDisabled && (
                 <>
-                  <span
-                    aria-hidden
-                    className="mx-1 hidden h-4 w-px shrink-0 bg-border sm:block"
-                  />
-                  <ToolModeDropdown />
-                  <ToolSelectDropdown
-                    className="mx-1"
-                    align="start"
-                    side="top"
-                    onSelectAgent={onSelectAgent}
-                    mentions={mentions}
-                  />
-                  <span
-                    aria-hidden
-                    className="mx-1 hidden h-4 w-px shrink-0 bg-border sm:block"
-                  />
+                  {/* Tool wiring is a staff control; students just chat */}
+                  {!isStudent && <ToolModeDropdown />}
+                  {!isStudent && (
+                    <ToolSelectDropdown
+                      className="mx-1"
+                      align="start"
+                      side="top"
+                      onSelectAgent={onSelectAgent}
+                      mentions={mentions}
+                    />
+                  )}
                   <CourseContextSelector />
                 </>
               )}
@@ -395,7 +344,7 @@ export default function PromptInput({
                 <Button
                   variant={"ghost"}
                   size={"sm"}
-                  className="group rounded-lg data-[state=open]:bg-card"
+                  className="group rounded-lg data-[state=open]:bg-accent"
                   data-testid="model-selector-button"
                 >
                   {chatModel?.model ? (
@@ -423,6 +372,53 @@ export default function PromptInput({
                   <ChevronDown className="size-3" />
                 </Button>
               </SelectModel>
+              {!isLoading && !input.length && !voiceDisabled ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size={"icon"}
+                      aria-label={t("VoiceChat.title")}
+                      onClick={() => {
+                        appStoreMutate((state) => ({
+                          voiceChat: {
+                            ...state.voiceChat,
+                            isOpen: true,
+                            agentId: undefined,
+                          },
+                        }));
+                      }}
+                      className="ml-1 size-8 shrink-0 rounded-full"
+                    >
+                      <AudioWaveformIcon size={16} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t("VoiceChat.title")}</TooltipContent>
+                </Tooltip>
+              ) : (
+                <button
+                  type="button"
+                  aria-label={isLoading ? "Stop" : "Send message"}
+                  onClick={() => {
+                    if (isLoading) {
+                      onStop();
+                    } else {
+                      submit();
+                    }
+                  }}
+                  className={cn(
+                    "fade-in animate-in ml-1 grid size-8 shrink-0 cursor-pointer place-items-center rounded-full transition-colors duration-150",
+                    isLoading
+                      ? "bg-secondary text-foreground hover:bg-accent"
+                      : "bg-energy text-energy-foreground hover:opacity-85",
+                  )}
+                >
+                  {isLoading ? (
+                    <Square size={12} className="fill-current" />
+                  ) : (
+                    <ArrowUp size={16} />
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </fieldset>

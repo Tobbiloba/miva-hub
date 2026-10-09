@@ -3,14 +3,8 @@
 import { PDFViewer } from "@/components/media/PDFViewer";
 import { VideoPlayer } from "@/components/media/VideoPlayer";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Download, File, FileText, Music, Video } from "lucide-react";
+import { ToolCard, joinMeta } from "./tool-card";
 
 type CourseMaterialProps = {
   material_id?: string;
@@ -76,7 +70,7 @@ export function CourseMaterial(props: CourseMaterialProps) {
       case "wav":
       case "m4a":
         return (
-          <div className="flex items-center justify-center py-8 rounded-xl border border-dashed bg-secondary">
+          <div className="flex items-center justify-center py-8 rounded-lg bg-secondary">
             <div className="text-center max-w-md px-6">
               <Music className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-4">{props.title}</h3>
@@ -97,7 +91,7 @@ export function CourseMaterial(props: CourseMaterialProps) {
       case "docx":
       case "doc":
         return (
-          <div className="flex items-center justify-center py-12 rounded-xl border border-dashed bg-secondary">
+          <div className="flex items-center justify-center py-12 rounded-lg bg-secondary">
             <div className="text-center max-w-md px-6">
               <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-4">{props.title}</h3>
@@ -122,7 +116,7 @@ export function CourseMaterial(props: CourseMaterialProps) {
       case "pptx":
       case "ppt":
         return (
-          <div className="flex items-center justify-center py-12 rounded-xl border border-dashed bg-secondary">
+          <div className="flex items-center justify-center py-12 rounded-lg bg-secondary">
             <div className="text-center max-w-md px-6">
               <File className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-4">{props.title}</h3>
@@ -147,7 +141,7 @@ export function CourseMaterial(props: CourseMaterialProps) {
 
       default:
         return (
-          <div className="flex items-center justify-center py-12 rounded-xl border border-dashed bg-secondary">
+          <div className="flex items-center justify-center py-12 rounded-lg bg-secondary">
             <div className="text-center max-w-md px-6">
               <File className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-4">{props.title}</h3>
@@ -172,78 +166,57 @@ export function CourseMaterial(props: CourseMaterialProps) {
     }
   };
 
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-3 flex-1">
-              <div className="mt-1">{getIcon()}</div>
-              <div className="flex-1">
-                <CardTitle className="text-base">{props.title}</CardTitle>
-                <CardDescription className="mt-1">
-                  {props.course_code && (
-                    <span className="font-medium">{props.course_code}</span>
-                  )}
-                  {props.course_name && props.course_code && " • "}
-                  {props.course_name && <span>{props.course_name}</span>}
-                  {props.week_number && (
-                    <>
-                      {(props.course_name || props.course_code) && " • "}
-                      <span>Week {props.week_number}</span>
-                    </>
-                  )}
-                  {props.material_type && (
-                    <>
-                      {(props.course_name ||
-                        props.course_code ||
-                        props.week_number) &&
-                        " • "}
-                      <span className="capitalize">{props.material_type}</span>
-                    </>
-                  )}
-                </CardDescription>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                window.open(
-                  `/api/files/stream?url=${encodeURIComponent(props.file_url)}`,
-                  "_blank",
-                )
-              }
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Download
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>{renderContent()}</CardContent>
-      </Card>
+  const hasNotes =
+    props.ai_summary || (props.key_concepts && props.key_concepts.length > 0);
 
-      {(props.ai_summary ||
-        (props.key_concepts && props.key_concepts.length > 0)) && (
-        <Card className="bg-secondary/40">
-          <CardContent className="p-4 space-y-4">
+  return (
+    <ToolCard
+      icon={getIcon()}
+      eyebrow={joinMeta(
+        props.course_code,
+        props.week_number && `Week ${props.week_number}`,
+        props.material_type &&
+          props.material_type.charAt(0).toUpperCase() +
+            props.material_type.slice(1),
+      )}
+      title={props.title}
+      meta={props.course_name}
+      action={
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            window.open(
+              `/api/files/stream?url=${encodeURIComponent(props.file_url)}`,
+              "_blank",
+            )
+          }
+        >
+          <Download />
+          Download
+        </Button>
+      }
+      footer={
+        hasNotes ? (
+          <div className="w-full space-y-3 py-1">
             {props.ai_summary && (
               <div>
-                <h4 className="font-medium text-sm mb-2">📋 AI Summary:</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {props.ai_summary}
+                <p className="mb-1 text-xs font-medium text-muted-foreground">
+                  Summary
                 </p>
+                <p className="text-sm leading-relaxed">{props.ai_summary}</p>
               </div>
             )}
-
             {props.key_concepts && props.key_concepts.length > 0 && (
               <div>
-                <h4 className="font-medium text-sm mb-2">🔑 Key Concepts:</h4>
-                <div className="flex flex-wrap gap-2">
+                <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+                  Key concepts
+                </p>
+                <div className="flex flex-wrap gap-1.5">
                   {props.key_concepts.map((concept, index) => (
                     <span
                       key={index}
-                      className="px-2 py-1 rounded-full text-xs bg-card border"
+                      className="rounded-full bg-secondary px-2.5 py-1 text-xs"
                     >
                       {concept}
                     </span>
@@ -251,9 +224,11 @@ export function CourseMaterial(props: CourseMaterialProps) {
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
-    </div>
+          </div>
+        ) : undefined
+      }
+    >
+      {renderContent()}
+    </ToolCard>
   );
 }

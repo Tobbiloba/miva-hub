@@ -68,7 +68,7 @@ export function SupportWidget() {
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
       {open && (
-        <Card className="w-80 sm:w-96 shadow-lg py-0 gap-0 overflow-hidden">
+        <Card className="w-80 gap-0 overflow-hidden rounded-2xl border-0 py-0 shadow-[var(--shadow-float)] sm:w-96">
           <CardHeader className="flex flex-row items-center justify-between border-b px-4 py-3 space-y-0">
             <CardTitle className="text-sm font-semibold">
               Support Desk
@@ -98,10 +98,10 @@ export function SupportWidget() {
                 <div
                   key={i}
                   className={cn(
-                    "max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap",
+                    "max-w-[85%] rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap",
                     m.role === "user"
-                      ? "self-end bg-primary text-primary-foreground"
-                      : "self-start bg-muted",
+                      ? "self-end bg-brand text-brand-foreground"
+                      : "self-start bg-secondary",
                   )}
                 >
                   {m.content}
@@ -147,7 +147,8 @@ export function SupportWidget() {
       )}
       <Button
         size="icon"
-        className="size-11 rounded-full shadow-lg"
+        variant="outline"
+        className="size-11 rounded-full border-border bg-card text-muted-foreground shadow-[var(--shadow-float)] hover:text-foreground"
         aria-label={open ? "Close help" : "Open help"}
         onClick={() => setOpen((v) => !v)}
       >

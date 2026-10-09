@@ -252,8 +252,8 @@ export const CodeExecutor = memo(function CodeExecutor({
   return (
     <div className="flex flex-col">
       <div className="py-2">
-        <div className="relative overflow-x-hidden rounded-2xl border bg-card shadow-[var(--shadow-soft)] fade-in animate-in duration-500">
-          <div className="z-10 flex min-h-[40px] items-center gap-1.5 border-b bg-secondary px-4 py-2.5">
+        <div className="relative overflow-x-hidden rounded-xl border bg-card fade-in animate-in duration-500">
+          <div className="z-10 flex min-h-[40px] items-center gap-1.5 border-b px-4 py-2.5">
             {header}
             <div className="flex-1" />
 

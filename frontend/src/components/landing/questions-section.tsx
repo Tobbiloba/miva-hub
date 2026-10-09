@@ -31,7 +31,7 @@ export function QuestionsSection() {
         <span className="text-xs font-medium text-neutral-500">
           In the chat
         </span>
-        <h2 className="mt-1 font-display text-4xl font-bold tracking-tight sm:text-5xl">
+        <h2 className="mt-1 text-4xl font-semibold tracking-[-0.035em] sm:text-5xl">
           Made for real student questions
         </h2>
         <p className="mt-2 text-base text-neutral-600">
@@ -44,7 +44,7 @@ export function QuestionsSection() {
                 key={c.text}
                 className={`flex min-h-48 flex-col justify-between rounded-2xl border border-neutral-200 bg-neutral-100 p-6 ${c.span ?? ""}`}
               >
-                <blockquote className="font-display text-xl font-semibold leading-snug sm:text-2xl">
+                <blockquote className="text-xl font-semibold leading-snug sm:text-2xl">
                   {c.text}
                 </blockquote>
                 <figcaption className="mt-6 text-xs font-medium text-neutral-500">
@@ -56,7 +56,7 @@ export function QuestionsSection() {
                 key={c.big}
                 className="flex min-h-48 flex-col items-center justify-center rounded-2xl border border-neutral-200 bg-neutral-100 p-6 text-center"
               >
-                <span className="font-display text-5xl font-bold tracking-tight">
+                <span className="text-5xl font-semibold tracking-[-0.035em]">
                   {c.big}
                 </span>
                 <span className="mt-2 text-sm text-neutral-600">{c.small}</span>

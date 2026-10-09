@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/components/layouts/empty-state";
 import { PageHeader } from "@/components/layouts/page-header";
 import { cn } from "lib/utils";
 import {
@@ -193,7 +194,7 @@ export function DeadlinesBoard({
       {error ? (
         <div
           role="alert"
-          className="flex items-center gap-3 rounded-2xl border border-destructive/40 bg-card p-4 text-sm"
+          className="flex items-center gap-3 rounded-xl border border-destructive/40 bg-card p-4 text-sm"
         >
           <AlertCircle className="size-5 text-destructive" aria-hidden />
           <span className="flex-1">{error.message}</span>
@@ -206,29 +207,26 @@ export function DeadlinesBoard({
           <Loader2 className="size-6 animate-spin text-muted-foreground" />
         </div>
       ) : groups.length === 0 ? (
-        <div className="rounded-2xl border border-dashed bg-card p-10 text-center">
-          <span className="mx-auto grid size-12 place-items-center rounded-xl bg-tint-blue text-blue-700 dark:text-blue-300">
-            <CalendarClock className="size-6" aria-hidden />
-          </span>
-          <p className="mt-3 font-medium">No deadlines yet</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Capture an assignment or quiz page with Askly Capture and its due
-            date appears here, or add one yourself.
-          </p>
-        </div>
+        <EmptyState icon={<CalendarClock />} title="No deadlines yet">
+          Capture an assignment or quiz page with Askly Capture and its due date
+          appears here, or add one yourself.
+        </EmptyState>
       ) : (
         groups.map((group) => (
           <section key={group.id} aria-labelledby={`deadlines-${group.id}`}>
             <h2
               id={`deadlines-${group.id}`}
               className={cn(
-                "mb-3 text-sm font-semibold text-muted-foreground",
+                "mb-2 px-1 text-[13px] font-semibold",
                 group.id === "overdue" && "text-destructive",
               )}
             >
-              {group.title} ({group.items.length})
+              {group.title}{" "}
+              <span className="font-normal text-muted-foreground">
+                {group.items.length}
+              </span>
             </h2>
-            <ul className="divide-y overflow-hidden rounded-2xl border bg-card shadow-[var(--shadow-soft)]">
+            <ul className="divide-y overflow-hidden rounded-xl border bg-card">
               {group.items.map((item) => (
                 <DeadlineRow
                   key={item.key}
@@ -261,7 +259,7 @@ function DeadlineRow({
   const tickable = item.kind !== "assignment";
   const checkboxId = `deadline-${item.key}`;
   return (
-    <li className="flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-secondary/50 sm:px-5">
+    <li className="group flex items-start gap-3 px-4 py-3 sm:px-5">
       {/* 44px hit area around the checkbox */}
       <label
         htmlFor={checkboxId}
@@ -281,19 +279,21 @@ function DeadlineRow({
       <div className="min-w-0 flex-1">
         <p
           className={cn(
-            "break-words font-medium",
+            "break-words text-[15px] leading-snug font-medium",
             item.done && "text-muted-foreground line-through",
           )}
         >
           {item.title}
         </p>
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted-foreground">
           {item.course && <Badge variant="secondary">{item.course.code}</Badge>}
-          <span className={cn(overdue && "font-medium text-destructive")}>
-            {formatDue(item.dueAt)}
-            {!item.done && ` · ${relativeDue(item.dueAt, now)}`}
+          <span>
+            <span className={cn(overdue && "font-medium text-destructive")}>
+              {formatDue(item.dueAt)}
+              {!item.done && ` · ${relativeDue(item.dueAt, now)}`}
+            </span>
+            {` · ${SOURCE_LABEL[item.kind]}`}
           </span>
-          <span>· {SOURCE_LABEL[item.kind]}</span>
         </div>
         {item.notes && (
           <p className="mt-1 text-sm text-muted-foreground">{item.notes}</p>
@@ -304,7 +304,7 @@ function DeadlineRow({
           asChild
           variant="ghost"
           size="icon"
-          className="size-11 shrink-0"
+          className="size-11 shrink-0 text-muted-foreground"
           aria-label={`Open "${item.title}"`}
         >
           <Link href={item.href}>
@@ -316,8 +316,9 @@ function DeadlineRow({
         <Button
           variant="ghost"
           size="icon"
-          className="size-11 shrink-0"
+          className="size-11 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
           aria-label={`Delete "${item.title}"`}
+          title="Delete"
           onClick={onDelete}
         >
           <Trash2 className="size-4" />
@@ -369,7 +370,7 @@ function AddDeadlineForm({
   return (
     <form
       onSubmit={submit}
-      className="grid gap-4 rounded-2xl border bg-card p-5 shadow-[var(--shadow-soft)] sm:grid-cols-2"
+      className="grid gap-4 rounded-xl border bg-card p-5 sm:grid-cols-2"
     >
       <div className="grid gap-2 sm:col-span-2">
         <Label htmlFor="deadline-title">What&apos;s due?</Label>

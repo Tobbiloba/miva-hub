@@ -34,6 +34,7 @@ import {
 } from "ui/dropdown-menu";
 import { GithubIcon } from "ui/github-icon";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "ui/sidebar";
+import { ThemeSwitch } from "./theme-switch";
 
 export function AppSidebarUser({
   session,
@@ -71,11 +72,10 @@ export function AppSidebarUser({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
-              className="h-auto gap-3 rounded-xl px-2 py-2 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-              size={"lg"}
+              className="h-auto gap-2.5 px-2 py-2 data-[state=open]:bg-sidebar-accent"
               data-testid="sidebar-user-button"
             >
-              <Avatar className="size-9 rounded-full border">
+              <Avatar className="size-7 rounded-full">
                 <AvatarImage
                   className="object-cover"
                   src={user?.image || "/pf.png"}
@@ -84,14 +84,14 @@ export function AppSidebarUser({
                 <AvatarFallback>{user?.name?.slice(0, 1) || ""}</AvatarFallback>
               </Avatar>
               <span className="grid min-w-0 flex-1 text-left leading-tight">
-                <span className="truncate text-sm font-semibold text-foreground">
+                <span className="truncate text-[13px] font-medium text-foreground">
                   {user?.name}
                 </span>
-                <span className="truncate text-xs text-muted-foreground">
+                <span className="truncate text-[12px] text-muted-foreground">
                   {user?.email}
                 </span>
               </span>
-              <ChevronsUpDown className="ml-auto text-muted-foreground" />
+              <ChevronsUpDown className="ml-auto size-3.5! text-muted-foreground" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -144,6 +144,9 @@ export function AppSidebarUser({
               <span>{t("chatPreferences")}</span>
             </DropdownMenuItem>
             <SelectLanguage />
+            <div className="px-2 pt-1.5 pb-1">
+              <ThemeSwitch />
+            </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer"

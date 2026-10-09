@@ -1,9 +1,9 @@
-import { termKey } from "@/lib/utils/semester";
+import { EmptyState } from "@/components/layouts/empty-state";
+import { PageHeader } from "@/components/layouts/page-header";
 import {
   type BrowsableCourse,
   CourseBrowser,
 } from "@/components/student/course-browser";
-import { Button } from "@/components/ui/button";
 import { getSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
@@ -13,8 +13,9 @@ import {
   StudentEnrollmentSchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
+import { termKey } from "@/lib/utils/semester";
 import { and, eq } from "drizzle-orm";
-import { ArrowLeft } from "lucide-react";
+import { CalendarOff, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 
 export default async function BrowseCoursesPage() {
@@ -95,31 +96,30 @@ export default async function BrowseCoursesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-4">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/student/courses">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              My Courses
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Course Registration</h1>
-            <p className="mt-1 text-muted-foreground">
-              {activeSession
-                ? `Enroll for ${activeSession.sessionName} — ${activeSession.currentSemester} semester`
-                : "Enrollment is currently closed — no active session"}
-            </p>
-          </div>
-        </div>
+      <div>
+        <Link
+          href="/student/courses"
+          className="mb-3 inline-flex items-center gap-1 text-[13px] text-brand hover:underline"
+        >
+          <ChevronLeft className="size-4" />
+          My Courses
+        </Link>
+        <PageHeader
+          title="Course Registration"
+          description={
+            activeSession
+              ? `Enroll for ${activeSession.sessionName}, ${activeSession.currentSemester} semester`
+              : "Enrollment is closed: there's no active session"
+          }
+        />
       </div>
 
       {activeSession ? (
         <CourseBrowser courses={courses} />
       ) : (
-        <div className="rounded-lg border py-12 text-center text-muted-foreground">
+        <EmptyState icon={<CalendarOff />} title="Enrollment is closed">
           Check back when the new semester opens, or contact your department.
-        </div>
+        </EmptyState>
       )}
     </div>
   );

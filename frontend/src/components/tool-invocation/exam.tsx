@@ -1,11 +1,7 @@
 "use client";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import {
   clearExamProgress,
@@ -14,9 +10,12 @@ import {
 } from "@/hooks/useExamProgress";
 import { authClient } from "@/lib/auth/client";
 import { getStudentId } from "@/lib/auth/user-utils";
+import { cn } from "lib/utils";
 import {
   AlertTriangle,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   CloudOff,
   GraduationCap,
@@ -24,7 +23,10 @@ import {
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ChoiceList } from "./choice-list";
 import { reportQuizResult } from "./report-result";
+import { ResultRow, ScoreSummary } from "./result-row";
+import { ToolCard, joinMeta } from "./tool-card";
 
 type ExamProps = {
   exam_id?: string;
@@ -252,82 +254,46 @@ export function Exam(props: ExamProps) {
     }
   };
 
-  if (mode === "preview") {
-    return (
-      <div className="space-y-4">
-        {showResumePrompt && savedProgress && (
-          <Alert className="border-brand/30 bg-tint-blue/50">
-            <AlertDescription className="flex items-center justify-between">
-              <span className="text-sm">
-                Resume your previous attempt? (
-                {Object.keys(savedProgress.answers).length} questions answered,{" "}
-                {Math.floor(savedProgress.timeRemaining / 60)} min remaining)
-              </span>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={handleStartFresh}>
-                  Start Fresh
-                </Button>
-                <Button size="sm" onClick={handleResumeProgress}>
-                  Resume
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
+  const examLabel = props.exam_type
+    ? props.exam_type.charAt(0).toUpperCase() + props.exam_type.slice(1)
+    : "Exam";
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-tint-orange text-orange-700 dark:text-orange-300 [&_svg]:size-5">
-                <GraduationCap className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="font-semibold text-lg">
-                    {props.exam_type
-                      ? props.exam_type.charAt(0).toUpperCase() +
-                        props.exam_type.slice(1)
-                      : "Exam"}
-                  </h3>
-                  {props.exam_type && (
-                    <span className="px-2 py-1 rounded-full bg-secondary/40 text-xs font-medium capitalize">
-                      {props.exam_type}
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground mb-3">
-                  {props.course_code && (
-                    <span className="font-medium">{props.course_code}</span>
-                  )}
-                  {props.course_name && props.course_code && " • "}
-                  {props.course_name}
-                </p>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    {props.time_limit_minutes} minutes
-                  </span>
-                  <span>•</span>
-                  <span>{props.total_questions} questions</span>
-                  <span>•</span>
-                  <span>{props.total_points} points</span>
-                </div>
-                {props.instructions && (
-                  <div className="mb-4 p-3 rounded-lg bg-secondary/40">
-                    <p className="text-sm font-medium mb-1">Instructions:</p>
-                    <p className="text-sm text-muted-foreground">
-                      {props.instructions}
-                    </p>
-                  </div>
-                )}
-                <Button onClick={() => setMode("interactive")}>
-                  Start Exam
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+  if (mode === "preview") {
+    const resumable = showResumePrompt && savedProgress;
+    return (
+      <ToolCard
+        icon={<GraduationCap />}
+        eyebrow={joinMeta("Practice exam", props.course_code)}
+        title={
+          props.course_name ? `${examLabel}: ${props.course_name}` : examLabel
+        }
+        meta={joinMeta(
+          `${props.time_limit_minutes} minutes`,
+          `${props.total_questions} questions`,
+          `${props.total_points} points`,
+        )}
+        footer={
+          resumable ? (
+            <>
+              <Button size="sm" onClick={handleResumeProgress}>
+                Resume ({Math.floor(savedProgress.timeRemaining / 60)} min left)
+              </Button>
+              <Button size="sm" variant="ghost" onClick={handleStartFresh}>
+                Start over
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" onClick={() => setMode("interactive")}>
+              <Clock />
+              Start exam
+            </Button>
+          )
+        }
+      >
+        {props.instructions && (
+          <p className="text-sm text-muted-foreground">{props.instructions}</p>
+        )}
+      </ToolCard>
     );
   }
 
@@ -336,26 +302,27 @@ export function Exam(props: ExamProps) {
     const percentage = (earnedPoints / totalPoints) * 100;
 
     return (
-      <div className="space-y-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center mb-6">
-              <h3 className="font-semibold text-2xl mb-2">Exam Submitted!</h3>
-              <div className="mb-2 font-display text-5xl font-bold tracking-tight">
-                {percentage.toFixed(0)}%
-              </div>
-              <p className="text-muted-foreground">
-                {correct} out of {props.total_questions} correct •{" "}
-                {earnedPoints.toFixed(1)} / {totalPoints} points
-              </p>
-            </div>
-            <Button onClick={() => setMode("preview")} className="w-full">
-              Close Results
-            </Button>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-3">
+      <ToolCard
+        icon={<GraduationCap />}
+        eyebrow={joinMeta("Exam results", props.course_code)}
+        title={
+          props.course_name ? `${examLabel}: ${props.course_name}` : examLabel
+        }
+        footer={
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setMode("preview")}
+          >
+            Done
+          </Button>
+        }
+      >
+        <ScoreSummary
+          percentage={percentage}
+          detail={`${correct} of ${props.total_questions} correct · ${earnedPoints.toFixed(1)} / ${totalPoints} points`}
+        />
+        <ol className="mt-3 divide-y divide-border border-t border-border">
           {props.questions.map((q, i) => {
             const wasAnswered = answers[i] !== undefined;
             let score = 0;
@@ -383,75 +350,32 @@ export function Exam(props: ExamProps) {
               }
             }
 
-            const borderColor = isFullyCorrect
-              ? "border-emerald-500/20"
-              : isPartialCredit
-                ? "border-amber-500/20"
-                : wasAnswered
-                  ? "border-destructive/30"
-                  : "border-border";
-
             return (
-              <Card key={i} className={borderColor}>
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    {isFullyCorrect ? (
-                      <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5" />
-                    ) : isPartialCredit ? (
-                      <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center mt-0.5">
-                        <span className="text-xs text-amber-600 dark:text-amber-400 font-bold">
-                          ~
-                        </span>
-                      </div>
-                    ) : wasAnswered ? (
-                      <XCircle className="w-5 h-5 text-destructive mt-0.5" />
-                    ) : (
-                      <div className="w-5 h-5 rounded-full border-2 border-border mt-0.5" />
-                    )}
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="font-medium text-sm">
-                          Question {i + 1}: {q.question}
-                        </p>
-                        {wasAnswered && (
-                          <span
-                            className={`text-xs font-medium px-2 py-1 rounded ${
-                              isFullyCorrect
-                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                : isPartialCredit
-                                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                                  : "bg-destructive/10 text-destructive"
-                            }`}
-                          >
-                            {(score * q.points).toFixed(1)}/{q.points} pts (
-                            {(score * 100).toFixed(0)}%)
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Your answer: {answers[i] || "Not answered"}
-                      </p>
-                      {q.correct_answer && !isFullyCorrect && wasAnswered && (
-                        <>
-                          <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">
-                            Expected answer: {q.correct_answer}
-                          </p>
-                          {isPartialCredit && (
-                            <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">
-                              ℹ️ Partial credit: Your answer demonstrates some
-                              understanding but is incomplete
-                            </p>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <ResultRow
+                key={i}
+                index={i + 1}
+                question={q.question}
+                state={
+                  isFullyCorrect
+                    ? "correct"
+                    : isPartialCredit
+                      ? "partial"
+                      : wasAnswered
+                        ? "wrong"
+                        : "skipped"
+                }
+                answer={answers[i]}
+                correctAnswer={q.correct_answer}
+                points={
+                  wasAnswered
+                    ? `${(score * q.points).toFixed(1)} / ${q.points}`
+                    : undefined
+                }
+              />
             );
           })}
-        </div>
-      </div>
+        </ol>
+      </ToolCard>
     );
   }
 
@@ -459,147 +383,128 @@ export function Exam(props: ExamProps) {
   const currentAnswer = answers[currentQuestion];
 
   return (
-    <div className="space-y-4">
-      <Card
-        className={`${isWarningTime ? "border-2 border-amber-500/40 bg-amber-500/5" : "bg-card"}`}
-      >
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {isWarningTime && (
-                <AlertTriangle className="w-5 h-5 text-amber-500" />
+    <ToolCard
+      icon={<GraduationCap />}
+      eyebrow={`Question ${currentQuestion + 1} of ${props.total_questions} · ${question.points} ${question.points === 1 ? "point" : "points"}`}
+      title={question.question}
+      action={
+        <div className="flex items-center gap-3">
+          {getSaveStatusDisplay()}
+          <span
+            className={cn(
+              "flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-sm tabular-nums",
+              isWarningTime
+                ? "bg-warning/12 text-warning"
+                : "bg-secondary text-foreground",
+            )}
+            aria-label={
+              isWarningTime
+                ? "Less than five minutes remaining"
+                : "Time remaining"
+            }
+          >
+            {isWarningTime ? (
+              <AlertTriangle className="size-3.5" />
+            ) : (
+              <Clock className="size-3.5" />
+            )}
+            {formatTime(timeRemaining)}
+          </span>
+        </div>
+      }
+      footer={
+        <>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setCurrentQuestion((i) => Math.max(0, i - 1))}
+            disabled={currentQuestion === 0}
+          >
+            <ChevronLeft />
+            Previous
+          </Button>
+          <div className="flex-1" />
+          {currentQuestion < props.total_questions - 1 && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                setCurrentQuestion((i) =>
+                  Math.min(props.total_questions - 1, i + 1),
+                )
+              }
+            >
+              Next
+              <ChevronRight />
+            </Button>
+          )}
+          <Button size="sm" onClick={handleSubmit}>
+            Submit exam
+          </Button>
+        </>
+      }
+    >
+      <nav aria-label="Questions" className="mb-5 flex flex-wrap gap-1.5">
+        {props.questions.map((_, i) => {
+          const isCurrent = currentQuestion === i;
+          const isAnswered = answers[i] !== undefined;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setCurrentQuestion(i)}
+              aria-current={isCurrent ? "step" : undefined}
+              aria-label={`Question ${i + 1}${isAnswered ? ", answered" : ""}`}
+              className={cn(
+                "grid size-8 place-items-center rounded-lg text-xs font-medium tabular-nums transition-colors",
+                isCurrent
+                  ? "bg-primary text-primary-foreground"
+                  : isAnswered
+                    ? "bg-tint-blue text-brand"
+                    : "bg-secondary text-muted-foreground hover:bg-accent",
               )}
-              <Clock className="w-5 h-5" />
-              <span
-                className={`font-mono text-lg font-semibold ${isWarningTime ? "text-amber-500" : ""}`}
-              >
-                {formatTime(timeRemaining)}
-              </span>
-              {isWarningTime && (
-                <span className="text-sm text-amber-600 dark:text-amber-400">
-                  Warning: Less than 5 minutes remaining!
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              {getSaveStatusDisplay()}
-              <Button onClick={handleSubmit} variant="destructive" size="sm">
-                Submit Exam
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            >
+              {i + 1}
+            </button>
+          );
+        })}
+      </nav>
 
-      <Card className="bg-secondary/40">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-            {props.questions.map((_, i) => (
-              <Button
-                key={i}
-                variant={currentQuestion === i ? "default" : "outline"}
-                size="sm"
-                onClick={() => setCurrentQuestion(i)}
-                className={`h-10 ${
-                  answers[i] !== undefined
-                    ? "bg-emerald-500/20 hover:bg-emerald-500/30"
-                    : ""
-                }`}
-              >
-                {i + 1}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {question.question_type === "multiple_choice" && question.options && (
+        <ChoiceList
+          name={`q${currentQuestion}`}
+          options={question.options}
+          value={currentAnswer}
+          onChange={handleAnswer}
+        />
+      )}
 
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-sm text-muted-foreground">
-              Question {currentQuestion + 1} of {props.total_questions}
-            </h3>
-            <span className="text-sm text-muted-foreground">
-              {question.points} {question.points === 1 ? "point" : "points"}
-            </span>
-          </div>
+      {question.question_type === "true_false" && (
+        <ChoiceList
+          name={`q${currentQuestion}`}
+          options={["True", "False"]}
+          value={currentAnswer}
+          onChange={handleAnswer}
+        />
+      )}
 
-          <h3 className="font-semibold text-lg mb-4">{question.question}</h3>
+      {question.question_type === "short_answer" && (
+        <Input
+          value={currentAnswer || ""}
+          onChange={(e) => handleAnswer(e.target.value)}
+          placeholder="Type your answer"
+          className="w-full"
+        />
+      )}
 
-          {question.question_type === "multiple_choice" && question.options && (
-            <RadioGroup value={currentAnswer} onValueChange={handleAnswer}>
-              <div className="space-y-3">
-                {question.options.map((option, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-foreground/25 has-[[data-state=checked]]:border-brand has-[[data-state=checked]]:bg-tint-blue/40"
-                  >
-                    <RadioGroupItem
-                      value={option}
-                      id={`q${currentQuestion}-opt${i}`}
-                    />
-                    <Label
-                      htmlFor={`q${currentQuestion}-opt${i}`}
-                      className="flex-1 cursor-pointer py-0.5 leading-snug"
-                    >
-                      {option}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </RadioGroup>
-          )}
-
-          {question.question_type === "true_false" && (
-            <RadioGroup value={currentAnswer} onValueChange={handleAnswer}>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-foreground/25 has-[[data-state=checked]]:border-brand has-[[data-state=checked]]:bg-tint-blue/40">
-                  <RadioGroupItem
-                    value="True"
-                    id={`q${currentQuestion}-true`}
-                  />
-                  <Label
-                    htmlFor={`q${currentQuestion}-true`}
-                    className="flex-1 cursor-pointer py-0.5"
-                  >
-                    True
-                  </Label>
-                </div>
-                <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-foreground/25 has-[[data-state=checked]]:border-brand has-[[data-state=checked]]:bg-tint-blue/40">
-                  <RadioGroupItem
-                    value="False"
-                    id={`q${currentQuestion}-false`}
-                  />
-                  <Label
-                    htmlFor={`q${currentQuestion}-false`}
-                    className="flex-1 cursor-pointer py-0.5"
-                  >
-                    False
-                  </Label>
-                </div>
-              </div>
-            </RadioGroup>
-          )}
-
-          {question.question_type === "short_answer" && (
-            <Input
-              value={currentAnswer || ""}
-              onChange={(e) => handleAnswer(e.target.value)}
-              placeholder="Type your answer here..."
-              className="w-full"
-            />
-          )}
-
-          {question.question_type === "essay" && (
-            <Textarea
-              value={currentAnswer || ""}
-              onChange={(e) => handleAnswer(e.target.value)}
-              placeholder="Type your essay response here..."
-              className="w-full min-h-[200px]"
-            />
-          )}
-        </CardContent>
-      </Card>
-    </div>
+      {question.question_type === "essay" && (
+        <Textarea
+          value={currentAnswer || ""}
+          onChange={(e) => handleAnswer(e.target.value)}
+          placeholder="Write your answer"
+          className="min-h-[200px] w-full"
+        />
+      )}
+    </ToolCard>
   );
 }

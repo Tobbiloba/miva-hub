@@ -177,7 +177,7 @@ export function AppSidebarThreads() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarGroupLabel className="">
-                <h4 className="text-xs font-medium text-muted-foreground">
+                <h4 className="text-[11px] font-semibold text-muted-foreground">
                   {t("recentChats")}
                 </h4>
               </SidebarGroupLabel>
@@ -209,7 +209,7 @@ export function AppSidebarThreads() {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarGroupLabel className="">
-                    <h4 className="text-xs font-medium text-muted-foreground group-hover/threads:text-foreground transition-colors">
+                    <h4 className="text-[11px] font-semibold text-muted-foreground">
                       {group.label}
                     </h4>
                     <div className="flex-1" />
@@ -255,7 +255,7 @@ export function AppSidebarThreads() {
                           threadId={thread.id}
                           beforeTitle={thread.title}
                         >
-                          <div className="flex items-center rounded-lg data-[state=open]:bg-sidebar-accent! group-hover/thread:bg-sidebar-accent!">
+                          <div className="flex items-center rounded-lg data-[state=open]:bg-sidebar-accent/60! group-hover/thread:bg-sidebar-accent/60!">
                             <Tooltip delayDuration={1000}>
                               <TooltipTrigger asChild>
                                 <SidebarMenuButton
@@ -286,7 +286,7 @@ export function AppSidebarThreads() {
                               </TooltipContent>
                             </Tooltip>
 
-                            <SidebarMenuAction className="top-2 data-[state=open]:opacity-100 opacity-0 group-hover/thread:opacity-100">
+                            <SidebarMenuAction className="top-1 data-[state=open]:opacity-100 opacity-0 group-hover/thread:opacity-100">
                               <MoreHorizontal />
                             </SidebarMenuAction>
                           </div>
@@ -305,11 +305,11 @@ export function AppSidebarThreads() {
         <SidebarMenu>
           <SidebarMenuItem>
             {/* TODO: Later implement a dedicated search/all chats page instead of this expand functionality */}
-            <div className="w-full flex px-4">
+            <div className="w-full flex px-2">
               <Button
-                variant="secondary"
+                variant="ghost"
                 size="sm"
-                className="w-full justify-start border bg-sidebar-accent hover:bg-sidebar-accent/70"
+                className="w-full justify-start text-[13px] text-muted-foreground hover:bg-sidebar-accent/60"
                 onClick={() => setIsExpanded(!isExpanded)}
               >
                 <MoreHorizontal className="mr-2" />

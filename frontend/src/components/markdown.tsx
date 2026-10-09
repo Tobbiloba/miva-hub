@@ -1,5 +1,4 @@
 import { isJson, isString, toAny } from "lib/utils";
-import { LinkIcon } from "lucide-react";
 import React, { memo, PropsWithChildren } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -61,51 +60,55 @@ const components: Partial<Components> = {
   },
   code: ({ children }) => {
     return (
-      <code className="text-sm rounded-md bg-accent text-primary py-1 px-2 mx-0.5">
+      <code className="mx-0.5 rounded-md bg-secondary px-1.5 py-0.5 font-mono text-[0.86em] text-foreground">
         {children}
       </code>
     );
   },
   blockquote: ({ children }) => {
     return (
-      <div className="px-4">
-        <blockquote className="relative bg-accent/30 p-6 rounded-2xl my-6 overflow-hidden border">
-          <WordByWordFadeIn>{children}</WordByWordFadeIn>
-        </blockquote>
-      </div>
+      <blockquote className="my-4 border-l-2 border-input pl-4 text-muted-foreground">
+        <WordByWordFadeIn>{children}</WordByWordFadeIn>
+      </blockquote>
     );
   },
   p: ({ children }) => {
     return (
-      <p className="leading-6 my-4 break-words">
+      <p className="my-3 break-words leading-7 first:mt-0 last:mb-0">
         <WordByWordFadeIn>{children}</WordByWordFadeIn>
       </p>
     );
   },
   pre: ({ children }) => {
     return (
-      <div className="px-4 py-2">
+      <div className="my-3">
         <PreBlock>{children}</PreBlock>
       </div>
     );
   },
   ol: ({ node, children, ...props }) => {
     return (
-      <ol className="px-8 list-decimal list-outside" {...props}>
+      <ol
+        className="my-3 list-decimal space-y-1.5 pl-6 marker:text-muted-foreground"
+        {...props}
+      >
         {children}
       </ol>
     );
   },
   li: ({ node, children, ...props }) => {
     return (
-      <li className="py-2 break-words" {...props}>
+      <li className="break-words pl-1 leading-7" {...props}>
         <WordByWordFadeIn>{children}</WordByWordFadeIn>
       </li>
     );
   },
   ul: ({ node, children, ...props }) => {
     return (
-      <ul className="px-8 list-decimal list-outside" {...props}>
+      <ul
+        className="my-3 list-disc space-y-1.5 pl-6 marker:text-muted-foreground"
+        {...props}
+      >
         {children}
       </ul>
     );
@@ -127,7 +130,7 @@ const components: Partial<Components> = {
           aria-label={`Source ${children}: ${props.title ?? ""}`}
           target="_blank"
           rel="noreferrer"
-          className="mx-0.5 inline-flex items-center rounded-md bg-primary/10 px-1.5 align-baseline text-xs font-medium text-primary no-underline hover:bg-primary/20"
+          className="mx-0.5 inline-flex h-[18px] items-center rounded-[5px] bg-tint-blue px-1.5 align-[1px] text-[11px] font-semibold text-brand no-underline transition-colors hover:bg-brand hover:text-brand-foreground"
         >
           {children}
         </a>
@@ -135,54 +138,59 @@ const components: Partial<Components> = {
     }
     return (
       <a
-        className="text-primary hover:underline flex gap-1.5 items-center"
+        className="text-brand underline-offset-2 hover:underline"
         target="_blank"
         rel="noreferrer"
         {...toAny(props)}
       >
-        <LinkIcon className="size-3.5" />
         <WordByWordFadeIn>{children}</WordByWordFadeIn>
       </a>
     );
   },
   h1: ({ node, children, ...props }) => {
     return (
-      <h1 className="text-3xl font-semibold mt-6 mb-2" {...props}>
+      <h1 className="mt-6 mb-2 text-2xl font-semibold first:mt-0" {...props}>
         <WordByWordFadeIn>{children}</WordByWordFadeIn>
       </h1>
     );
   },
   h2: ({ node, children, ...props }) => {
     return (
-      <h2 className="text-2xl font-semibold mt-6 mb-2" {...props}>
+      <h2 className="mt-6 mb-2 text-xl font-semibold first:mt-0" {...props}>
         <WordByWordFadeIn>{children}</WordByWordFadeIn>
       </h2>
     );
   },
   h3: ({ node, children, ...props }) => {
     return (
-      <h3 className="text-xl font-semibold mt-6 mb-2" {...props}>
+      <h3
+        className="mt-5 mb-1.5 text-[17px] font-semibold first:mt-0"
+        {...props}
+      >
         <WordByWordFadeIn>{children}</WordByWordFadeIn>
       </h3>
     );
   },
   h4: ({ node, children, ...props }) => {
     return (
-      <h4 className="text-lg font-semibold mt-6 mb-2" {...props}>
+      <h4 className="mt-5 mb-1.5 text-[15px] font-semibold" {...props}>
         <WordByWordFadeIn>{children}</WordByWordFadeIn>
       </h4>
     );
   },
   h5: ({ node, children, ...props }) => {
     return (
-      <h5 className="text-base font-semibold mt-6 mb-2" {...props}>
+      <h5 className="mt-4 mb-1 text-[15px] font-semibold" {...props}>
         <WordByWordFadeIn>{children}</WordByWordFadeIn>
       </h5>
     );
   },
   h6: ({ node, children, ...props }) => {
     return (
-      <h6 className="text-sm font-semibold mt-6 mb-2" {...props}>
+      <h6
+        className="mt-4 mb-1 text-sm font-semibold text-muted-foreground"
+        {...props}
+      >
         <WordByWordFadeIn>{children}</WordByWordFadeIn>
       </h6>
     );
@@ -199,7 +207,7 @@ const components: Partial<Components> = {
 
 const NonMemoizedMarkdown = ({ children }: { children: string }) => {
   return (
-    <article className="w-full h-full relative">
+    <article className="relative h-full w-full text-[15px] leading-7">
       {isJson(children) ? (
         <JsonView data={children} />
       ) : (

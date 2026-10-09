@@ -122,7 +122,7 @@ export default function AcceptInvitePage() {
             <GraduationCap className="h-4 w-4" />
             <span>Faculty invitation</span>
           </div>
-          <CardTitle className="text-3xl font-bold">
+          <CardTitle className="text-2xl font-semibold tracking-[-0.025em]">
             Join {invite.universityName}
           </CardTitle>
           <CardDescription>

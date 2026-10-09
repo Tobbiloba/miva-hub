@@ -23,7 +23,7 @@ export default function AuthLayout({
             <AsklyLogo markClassName="bg-white text-black" />
           </Link>
           <div className="flex-1" />
-          <h2 className="max-w-md font-display text-4xl font-bold leading-tight">
+          <h2 className="max-w-md text-4xl font-semibold tracking-[-0.025em] leading-tight">
             Study smarter. Stress less.
           </h2>
           <p className="mt-3 max-w-md text-base text-white/80">

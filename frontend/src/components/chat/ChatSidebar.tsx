@@ -25,6 +25,19 @@ interface ChatDrawerProps {
   onOpenChange: (open: boolean) => void;
 }
 
+/** True when the thread has MIVA MCP results for the drawer to show. */
+export function hasDrawerContent(messages: UIMessage[]): boolean {
+  return messages.some((message) =>
+    message.parts.some(
+      (part) =>
+        isToolUIPart(part) &&
+        part.state.startsWith("output") &&
+        !!part.output &&
+        extractMCPToolId(getToolName(part)).serverName === "miva-academic",
+    ),
+  );
+}
+
 export function ChatDrawer({ messages, open, onOpenChange }: ChatDrawerProps) {
   const [selectedToolCall, setSelectedToolCall] = useState<ToolCallData | null>(
     null,

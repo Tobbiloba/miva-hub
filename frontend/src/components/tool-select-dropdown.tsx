@@ -146,12 +146,9 @@ export function ToolSelectDropdown({
         variant="ghost"
         size={"sm"}
         className={cn(
-          "gap-0.5 bg-input/60 border rounded-full data-[state=open]:bg-input! hover:bg-input!",
-          !bindingTools.length &&
-            !isLoading &&
-            "text-muted-foreground bg-transparent border-transparent",
-          isLoading && "bg-input/60",
-          open && "bg-input!",
+          "gap-0.5 rounded-lg text-[13px] data-[state=open]:bg-accent",
+          !bindingTools.length && !isLoading && "text-muted-foreground",
+          open && "bg-accent",
           className,
         )}
       >
