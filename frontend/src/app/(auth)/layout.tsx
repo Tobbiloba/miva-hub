@@ -7,29 +7,29 @@ export default function AuthLayout({
 }: { children: React.ReactNode }) {
   return (
     <main className="flex min-h-screen w-full bg-background">
-      {/* Painted panel, the same sunrise as the landing hero */}
-      <div className="relative hidden overflow-hidden lg:m-3 lg:flex lg:w-1/2 lg:flex-col lg:rounded-3xl">
-        <Image
-          src="/landing/art/hero.webp"
-          alt=""
-          fill
-          priority
-          sizes="50vw"
-          className="object-cover object-[center_70%]"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#fbf9f5]/10 via-transparent to-[#fbf9f5]/70" />
-        <div className="relative z-10 flex flex-1 flex-col p-10 text-[#151413]">
+      {/* Showcase panel in the landing's black style, with the real app */}
+      <div className="dark relative hidden overflow-hidden bg-black text-white lg:m-3 lg:flex lg:w-1/2 lg:flex-col lg:rounded">
+        <div className="relative z-10 flex flex-col p-10">
           <Link href="/landing" className="w-fit">
-            <AsklyLogo />
+            <AsklyLogo markClassName="bg-white text-black" />
           </Link>
-          <div className="flex-1" />
-          <h2 className="max-w-md text-4xl font-semibold tracking-[-0.025em] leading-tight">
-            Study smarter. Stress less.
+          <h2 className="mt-16 max-w-md text-4xl leading-tight font-normal tracking-[-0.025em]">
+            Your course, answered.
           </h2>
-          <p className="mt-3 max-w-md text-base text-[#4b463f]">
+          <p className="mt-3 max-w-md text-base text-neutral-400">
             Askly answers from your own course materials, keeps track of your
             deadlines, and turns your notes into quizzes and flashcards.
           </p>
+        </div>
+        <div className="relative mt-auto ml-10 h-[45%] overflow-hidden rounded-tl border-t border-l border-neutral-800">
+          <Image
+            src="/landing/screens/answer-dark.webp"
+            alt="Askly answering a question with sources from course notes"
+            fill
+            priority
+            sizes="50vw"
+            className="object-cover object-left-top"
+          />
         </div>
       </div>
 
