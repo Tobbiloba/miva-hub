@@ -6,9 +6,9 @@ import { MermaidDiagram } from "@/components/mermaid-diagram";
 import { SourceCardRow } from "@/components/source-card";
 import type { UseChatHelpers } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
+import { Camera, FileQuestion, NotebookPen } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { Camera, FileQuestion, NotebookPen } from "lucide-react";
 import { toast } from "sonner";
 import { BackgroundPaths } from "ui/background-paths";
 import {
@@ -79,41 +79,43 @@ export function ChatSection() {
       description="The real chat composer and the renderers that display AI responses — markdown, diagrams, and layout primitives."
     >
       <SubSection title="Empty-state suggestions (SuggestionCards)">
-        <div className="mx-auto w-full max-w-3xl space-y-4">
-          <div className="space-y-1 text-center">
-            <h3 className="text-2xl font-semibold tracking-tight">
-              Good morning, Amara.
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Where would you like to start?
-            </p>
+        <div className="relative overflow-hidden border bg-background p-8">
+          <div className="relative z-10 mx-auto w-full max-w-3xl space-y-4">
+            <div className="space-y-1 text-center">
+              <h3 className="text-2xl font-semibold tracking-tight">
+                Good morning, Amara.
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Where would you like to start?
+              </p>
+            </div>
+            <SuggestionCards
+              items={[
+                {
+                  id: "snap",
+                  icon: <Camera />,
+                  title: "Grade my handwriting",
+                  prompt:
+                    "Snap a photo of my worked problem set and grade it against the Week 4 rubric.",
+                },
+                {
+                  id: "quiz",
+                  icon: <FileQuestion />,
+                  title: "Quiz me before the test",
+                  prompt:
+                    "Give me a 10-question practice quiz on sorting algorithms with instant feedback.",
+                },
+                {
+                  id: "plan",
+                  icon: <NotebookPen />,
+                  title: "Plan my study week",
+                  prompt:
+                    "Build a study plan for my three deadlines this week around my class timetable.",
+                },
+              ]}
+              onSelect={(s) => toast.info(`Design demo — "${s.title}"`)}
+            />
           </div>
-          <SuggestionCards
-            items={[
-              {
-                id: "snap",
-                icon: <Camera />,
-                title: "Grade my handwriting",
-                prompt:
-                  "Snap a photo of my worked problem set and grade it against the Week 4 rubric.",
-              },
-              {
-                id: "quiz",
-                icon: <FileQuestion />,
-                title: "Quiz me before the test",
-                prompt:
-                  "Give me a 10-question practice quiz on sorting algorithms with instant feedback.",
-              },
-              {
-                id: "plan",
-                icon: <NotebookPen />,
-                title: "Plan my study week",
-                prompt:
-                  "Build a study plan for my three deadlines this week around my class timetable.",
-              },
-            ]}
-            onSelect={(s) => toast.info(`Design demo — "${s.title}"`)}
-          />
         </div>
         <p className="font-mono text-xs text-muted-foreground">
           SuggestionCards — chat empty state under the greeting; click pre-fills
@@ -159,16 +161,18 @@ export function ChatSection() {
 
       <SubSection title="Chat composer (PromptInput)">
         <div className="min-w-0 space-y-2">
-          <div className="mx-auto w-full max-w-3xl">
-            <PromptInput
-              input={input}
-              setInput={setInput}
-              sendMessage={sendMessage}
-              onStop={() => {}}
-              placeholder="Ask your AI professor anything…"
-              voiceDisabled
-              disabledMention
-            />
+          <div className="relative overflow-hidden border bg-background p-8">
+            <div className="relative z-10 mx-auto w-full max-w-3xl">
+              <PromptInput
+                input={input}
+                setInput={setInput}
+                sendMessage={sendMessage}
+                onStop={() => {}}
+                placeholder="Ask your AI professor anything…"
+                voiceDisabled
+                disabledMention
+              />
+            </div>
           </div>
           <p className="font-mono text-xs text-muted-foreground">
             PromptInput — TipTap editor, model selector, tool mode, attachments.

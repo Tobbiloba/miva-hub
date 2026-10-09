@@ -8,9 +8,7 @@ import {
   PanelLeft,
 } from "lucide-react";
 import { Button } from "ui/button";
-import { Separator } from "ui/separator";
 import { useSidebar } from "ui/sidebar";
-import { Toggle } from "ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
 
 import { appStore } from "@/app/store";
@@ -25,7 +23,7 @@ import { ThreadDropdown } from "../thread-dropdown";
 export function AppHeader() {
   const t = useTranslations();
   const [appStoreMutate] = appStore(useShallow((state) => [state.mutate]));
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, open, isMobile } = useSidebar();
   const currentPaths = usePathname();
 
   const componentByPage = useMemo(() => {
@@ -34,36 +32,48 @@ export function AppHeader() {
     }
   }, [currentPaths]);
 
-  return (
-    <header className="sticky top-0 z-50 flex items-center px-3 py-2">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Toggle
-            aria-label="Toggle Sidebar"
-            onClick={toggleSidebar}
-            data-testid="sidebar-toggle"
-          >
-            <PanelLeft />
-          </Toggle>
-        </TooltipTrigger>
-        <TooltipContent align="start" side="bottom">
-          <div className="flex items-center gap-2">
-            {t("KeyboardShortcuts.toggleSidebar")}
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
-              {getShortcutKeyList(Shortcuts.toggleSidebar).map((key) => (
-                <span
-                  key={key}
-                  className="w-5 h-5 flex items-center justify-center bg-muted rounded "
-                >
-                  {key}
-                </span>
-              ))}
-            </div>
-          </div>
-        </TooltipContent>
-      </Tooltip>
+  const title = useMemo(() => pageTitle(currentPaths), [currentPaths]);
+  const iconButton =
+    "size-9 rounded-xl border border-border bg-card text-muted-foreground shadow-[var(--shadow-soft)] hover:bg-secondary hover:text-foreground";
 
-      {componentByPage}
+  return (
+    <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 px-4 md:px-5">
+      {(!open || isMobile) && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Toggle Sidebar"
+              onClick={toggleSidebar}
+              data-testid="sidebar-toggle"
+              className={iconButton}
+            >
+              <PanelLeft />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent align="start" side="bottom">
+            <div className="flex items-center gap-2">
+              {t("KeyboardShortcuts.toggleSidebar")}
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                {getShortcutKeyList(Shortcuts.toggleSidebar).map((key) => (
+                  <span
+                    key={key}
+                    className="w-5 h-5 flex items-center justify-center bg-muted rounded "
+                  >
+                    {key}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      )}
+
+      {componentByPage ??
+        (title && (
+          <p className="truncate font-display text-lg font-semibold">{title}</p>
+        ))}
       <div className="flex-1" />
 
       <div className="flex items-center gap-2">
@@ -72,7 +82,8 @@ export function AppHeader() {
             <Button
               size={"icon"}
               variant={"ghost"}
-              className="bg-secondary/40"
+              aria-label="Available tools"
+              className={iconButton}
               onClick={() => {
                 appStoreMutate((_state) => ({
                   toolsInfoDrawer: {
@@ -94,7 +105,8 @@ export function AppHeader() {
             <Button
               size={"icon"}
               variant={"ghost"}
-              className="bg-secondary/40"
+              aria-label="Voice chat"
+              className={iconButton}
               onClick={() => {
                 appStoreMutate((state) => ({
                   voiceChat: {
@@ -129,8 +141,9 @@ export function AppHeader() {
           <TooltipTrigger asChild>
             <Button
               size={"icon"}
-              variant={"secondary"}
-              className="bg-secondary/40"
+              variant={"ghost"}
+              aria-label="Temporary chat"
+              className={iconButton}
               onClick={() => {
                 appStoreMutate((state) => ({
                   temporaryChat: {
@@ -166,6 +179,11 @@ export function AppHeader() {
   );
 }
 
+// Pages carry their own heading inside the panel; only the chat needs one here.
+function pageTitle(pathname: string): string {
+  return pathname === "/" || pathname.startsWith("/chat") ? "Chat" : "";
+}
+
 function ThreadDropdownComponent() {
   const [threadList, currentThreadId, generatingTitleThreadIds] = appStore(
     useShallow((state) => [
@@ -187,11 +205,7 @@ function ThreadDropdownComponent() {
   if (!currentThread) return null;
 
   return (
-    <div className="items-center gap-1 hidden md:flex">
-      <div className="w-1 h-4">
-        <Separator orientation="vertical" />
-      </div>
-
+    <div className="flex min-w-0 items-center gap-1">
       <ThreadDropdown
         threadId={currentThread.id}
         beforeTitle={currentThread.title}
@@ -201,7 +215,7 @@ function ThreadDropdownComponent() {
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                className="data-[state=open]:bg-input! hover:text-foreground cursor-pointer flex gap-1 items-center px-2 py-1 rounded-md hover:bg-accent"
+                className="-ml-2 flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 font-display text-lg font-semibold hover:bg-card hover:text-foreground data-[state=open]:bg-card"
               >
                 {generatingTitleThreadIds.includes(currentThread.id) ? (
                   <TextShimmer className="truncate max-w-60 min-w-0 mr-1">

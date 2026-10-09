@@ -76,7 +76,7 @@ export function CourseMaterial(props: CourseMaterialProps) {
       case "wav":
       case "m4a":
         return (
-          <div className="flex items-center justify-center py-8 bg-secondary/40 rounded-lg">
+          <div className="flex items-center justify-center py-8 rounded-xl border border-dashed bg-secondary">
             <div className="text-center max-w-md px-6">
               <Music className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-4">{props.title}</h3>
@@ -97,7 +97,7 @@ export function CourseMaterial(props: CourseMaterialProps) {
       case "docx":
       case "doc":
         return (
-          <div className="flex items-center justify-center py-12 bg-secondary/40 rounded-lg">
+          <div className="flex items-center justify-center py-12 rounded-xl border border-dashed bg-secondary">
             <div className="text-center max-w-md px-6">
               <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-4">{props.title}</h3>
@@ -122,7 +122,7 @@ export function CourseMaterial(props: CourseMaterialProps) {
       case "pptx":
       case "ppt":
         return (
-          <div className="flex items-center justify-center py-12 bg-secondary/40 rounded-lg">
+          <div className="flex items-center justify-center py-12 rounded-xl border border-dashed bg-secondary">
             <div className="text-center max-w-md px-6">
               <File className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-4">{props.title}</h3>
@@ -147,7 +147,7 @@ export function CourseMaterial(props: CourseMaterialProps) {
 
       default:
         return (
-          <div className="flex items-center justify-center py-12 bg-secondary/40 rounded-lg">
+          <div className="flex items-center justify-center py-12 rounded-xl border border-dashed bg-secondary">
             <div className="text-center max-w-md px-6">
               <File className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-4">{props.title}</h3>
@@ -174,7 +174,7 @@ export function CourseMaterial(props: CourseMaterialProps) {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-card">
+      <Card>
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-3 flex-1">

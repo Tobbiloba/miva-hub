@@ -140,17 +140,20 @@ export function FoundationsSection() {
         </div>
       </SubSection>
 
-      <SubSection title="Typography — Neue Montreal (sans) / Geist Mono">
+      <SubSection title="Typography — Urbanist (display) / Inter (body) / JetBrains Mono">
         <div className="grid gap-6 lg:grid-cols-2">
-          <Specimen label="Font weights & styles">
+          <Specimen label="Three roles — display, body, mono">
             <div className="w-full space-y-1">
+              <p className="font-display text-2xl font-semibold">
+                Display — Urbanist for headings
+              </p>
               {FONT_WEIGHTS.map((w) => (
                 <p key={w.label} className={`${w.cls} text-lg`}>
                   {w.label} — The quick brown fox jumps over the lazy dog
                 </p>
               ))}
               <p className="pt-2 font-mono text-sm">
-                font-mono — const answer = 42; // Geist Mono
+                font-mono — const answer = 42; // JetBrains Mono
               </p>
             </div>
           </Specimen>

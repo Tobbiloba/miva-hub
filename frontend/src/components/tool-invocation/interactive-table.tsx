@@ -309,8 +309,8 @@ export function InteractiveTable(props: InteractiveTableProps) {
   );
 
   return (
-    <div className="px-6">
-      <Card className="w-full px-0">
+    <div>
+      <Card className="w-full overflow-hidden px-0">
         <CardHeader>
           <div className="flex flex-col">
             <CardTitle className="w-full flex items-center gap-2 justify-between">
@@ -333,7 +333,7 @@ export function InteractiveTable(props: InteractiveTableProps) {
                     setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="hover:bg-input bg-secondary/40 transition-colors border-transparent border-none! focus-visible:bg-input! ring-0!"
+                  className="h-9"
                 />
               </div>
             )}

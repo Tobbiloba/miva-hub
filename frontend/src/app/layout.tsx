@@ -1,13 +1,5 @@
 import type { Metadata } from "next";
-import {
-  Geist,
-  Geist_Mono,
-  Inter,
-  Manrope,
-  Plus_Jakarta_Sans,
-  Sora,
-  Space_Grotesk,
-} from "next/font/google";
+import { Inter, JetBrains_Mono, Urbanist } from "next/font/google";
 import "./globals.css";
 import {
   ThemeProvider,
@@ -16,40 +8,21 @@ import {
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 import { Toaster } from "sonner";
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Fixed three-role type system: display / body / mono. Not user-switchable.
+const display = Urbanist({
+  variable: "--font-urbanist",
   subsets: ["latin"],
 });
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const sans = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
-// Selectable body fonts — switched at runtime via [data-font] (see FontSwitcher).
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
-const manrope = Manrope({ variable: "--font-manrope", subsets: ["latin"] });
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
-  subsets: ["latin"],
-});
-const sora = Sora({ variable: "--font-sora", subsets: ["latin"] });
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space",
+const mono = JetBrains_Mono({
+  variable: "--font-jetbrains",
   subsets: ["latin"],
 });
 
-const FONT_VARS = [
-  geistSans.variable,
-  geistMono.variable,
-  inter.variable,
-  manrope.variable,
-  jakarta.variable,
-  sora.variable,
-  spaceGrotesk.variable,
-].join(" ");
-
-// Applies the saved font before paint to avoid a flash of the default.
-// jakarta is the CSS default (body base rule), so it needs no attribute.
-const FONT_INIT = `try{var f=localStorage.getItem('app-font');if(f&&f!=='jakarta')document.documentElement.setAttribute('data-font',f);}catch(e){}`;
+const FONT_VARS = [display.variable, sans.variable, mono.variable].join(" ");
 
 export const metadata: Metadata = {
   title: "Askly",
@@ -68,10 +41,6 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <head>
-        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: pre-paint font init */}
-        <script dangerouslySetInnerHTML={{ __html: FONT_INIT }} />
-      </head>
       <body
         className={`${FONT_VARS} antialiased max-w-screen overflow-x-hidden`}
       >

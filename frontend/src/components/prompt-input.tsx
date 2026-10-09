@@ -4,9 +4,9 @@ import { appStore } from "@/app/store";
 import { UIMessage, UseChatHelpers } from "@ai-sdk/react";
 import { ChatMention, ChatModel } from "app-types/chat";
 import {
+  ArrowUp,
   AudioWaveformIcon,
   ChevronDown,
-  CornerRightUp,
   PlusIcon,
   Square,
   XIcon,
@@ -231,9 +231,9 @@ export default function PromptInput({
     <div className="max-w-3xl mx-auto fade-in animate-in">
       <div className="z-10 mx-auto w-full max-w-3xl relative">
         <fieldset className="flex w-full min-w-0 max-w-full flex-col px-4">
-          <div className="glass-strong overflow-hidden transition-all duration-200 relative flex w-full flex-col cursor-text z-10 items-stretch">
+          <div className="relative z-10 flex w-full cursor-text flex-col items-stretch overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-float)] transition-[border-color,box-shadow] duration-200 focus-within:border-brand/50 focus-within:ring-4 focus-within:ring-brand/10">
             {mentions.length > 0 && (
-              <div className="bg-input rounded-b-sm rounded-t-3xl p-3 flex flex-col gap-4 mx-2 my-2">
+              <div className="m-2 flex flex-col gap-4 rounded-xl border bg-secondary p-3">
                 {mentions.map((mention, i) => {
                   return (
                     <div key={i} className="flex items-center gap-2">
@@ -292,8 +292,8 @@ export default function PromptInput({
                 })}
               </div>
             )}
-            <div className="flex flex-col gap-3.5 px-5 pt-2 pb-4">
-              <div className="relative min-h-[2rem]">
+            <div className="flex items-end gap-2 px-4 pt-3 pb-3">
+              <div className="relative min-h-[2.25rem] min-w-0 flex-1 py-1">
                 <ChatMentionInput
                   input={input}
                   onChange={setInput}
@@ -305,112 +305,118 @@ export default function PromptInput({
                   onFocus={onFocus}
                 />
               </div>
-              <div className="flex w-full items-center z-30">
+              {!isLoading && !input.length && !voiceDisabled ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size={"icon"}
+                      aria-label={t("VoiceChat.title")}
+                      onClick={() => {
+                        appStoreMutate((state) => ({
+                          voiceChat: {
+                            ...state.voiceChat,
+                            isOpen: true,
+                            agentId: undefined,
+                          },
+                        }));
+                      }}
+                      className="size-9 shrink-0 rounded-xl"
+                    >
+                      <AudioWaveformIcon size={16} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t("VoiceChat.title")}</TooltipContent>
+                </Tooltip>
+              ) : (
+                <button
+                  type="button"
+                  aria-label={isLoading ? "Stop" : "Send message"}
+                  onClick={() => {
+                    if (isLoading) {
+                      onStop();
+                    } else {
+                      submit();
+                    }
+                  }}
+                  className={cn(
+                    "fade-in animate-in grid size-9 shrink-0 cursor-pointer place-items-center rounded-xl transition-all duration-200",
+                    isLoading
+                      ? "border bg-secondary text-muted-foreground hover:bg-accent"
+                      : "bg-energy text-energy-foreground hover:opacity-85",
+                  )}
+                >
+                  {isLoading ? (
+                    <Square
+                      size={14}
+                      className="fill-muted-foreground text-muted-foreground"
+                    />
+                  ) : (
+                    <ArrowUp size={16} />
+                  )}
+                </button>
+              )}
+            </div>
+            <div className="z-30 flex w-full items-center gap-0.5 border-t border-border bg-secondary/60 px-2 py-1.5 text-muted-foreground">
+              <Button
+                variant={"ghost"}
+                size={"sm"}
+                aria-label="Attach"
+                className="rounded-lg p-2!"
+                onClick={notImplementedToast}
+              >
+                <PlusIcon />
+              </Button>
+
+              {!toolDisabled && (
+                <>
+                  <span aria-hidden className="mx-1 h-4 w-px bg-border" />
+                  <ToolModeDropdown />
+                  <ToolSelectDropdown
+                    className="mx-1"
+                    align="start"
+                    side="top"
+                    onSelectAgent={onSelectAgent}
+                    mentions={mentions}
+                  />
+                  <span aria-hidden className="mx-1 h-4 w-px bg-border" />
+                  <CourseContextSelector />
+                </>
+              )}
+
+              <div className="flex-1" />
+
+              <SelectModel onSelect={setChatModel} currentModel={chatModel}>
                 <Button
                   variant={"ghost"}
                   size={"sm"}
-                  className="rounded-full hover:bg-input! p-2!"
-                  onClick={notImplementedToast}
+                  className="group rounded-lg data-[state=open]:bg-card"
+                  data-testid="model-selector-button"
                 >
-                  <PlusIcon />
-                </Button>
-
-                {!toolDisabled && (
-                  <>
-                    <ToolModeDropdown />
-                    <ToolSelectDropdown
-                      className="mx-1"
-                      align="start"
-                      side="top"
-                      onSelectAgent={onSelectAgent}
-                      mentions={mentions}
-                    />
-                    <CourseContextSelector />
-                  </>
-                )}
-
-                <div className="flex-1" />
-
-                <SelectModel onSelect={setChatModel} currentModel={chatModel}>
-                  <Button
-                    variant={"ghost"}
-                    size={"sm"}
-                    className="rounded-full group data-[state=open]:bg-input! hover:bg-input! mr-1"
-                    data-testid="model-selector-button"
-                  >
-                    {chatModel?.model ? (
-                      <>
-                        {chatModel.provider === "openai" ? (
-                          <OpenAIIcon className="size-3 opacity-0 group-data-[state=open]:opacity-100 group-hover:opacity-100" />
-                        ) : chatModel.provider === "xai" ? (
-                          <GrokIcon className="size-3 opacity-0 group-data-[state=open]:opacity-100 group-hover:opacity-100" />
-                        ) : chatModel.provider === "anthropic" ? (
-                          <ClaudeIcon className="size-3 opacity-0 group-data-[state=open]:opacity-100 group-hover:opacity-100" />
-                        ) : chatModel.provider === "google" ? (
-                          <GeminiIcon className="size-3 opacity-0 group-data-[state=open]:opacity-100 group-hover:opacity-100" />
-                        ) : null}
-                        <span
-                          className="text-foreground group-data-[state=open]:text-foreground  "
-                          data-testid="selected-model-name"
-                        >
-                          {chatModel.model}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-muted-foreground">model</span>
-                    )}
-
-                    <ChevronDown className="size-3" />
-                  </Button>
-                </SelectModel>
-                {!isLoading && !input.length && !voiceDisabled ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size={"sm"}
-                        onClick={() => {
-                          appStoreMutate((state) => ({
-                            voiceChat: {
-                              ...state.voiceChat,
-                              isOpen: true,
-                              agentId: undefined,
-                            },
-                          }));
-                        }}
-                        className="rounded-full p-2!"
+                  {chatModel?.model ? (
+                    <>
+                      {chatModel.provider === "openai" ? (
+                        <OpenAIIcon className="size-3" />
+                      ) : chatModel.provider === "xai" ? (
+                        <GrokIcon className="size-3" />
+                      ) : chatModel.provider === "anthropic" ? (
+                        <ClaudeIcon className="size-3" />
+                      ) : chatModel.provider === "google" ? (
+                        <GeminiIcon className="size-3" />
+                      ) : null}
+                      <span
+                        className="text-xs text-foreground"
+                        data-testid="selected-model-name"
                       >
-                        <AudioWaveformIcon size={16} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{t("VoiceChat.title")}</TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <div
-                    onClick={() => {
-                      if (isLoading) {
-                        onStop();
-                      } else {
-                        submit();
-                      }
-                    }}
-                    className={cn(
-                      "fade-in animate-in cursor-pointer rounded-full p-2 transition-all duration-200",
-                      isLoading
-                        ? "bg-secondary text-muted-foreground hover:bg-accent-foreground hover:text-accent"
-                        : "bg-energy text-energy-foreground hover:opacity-80",
-                    )}
-                  >
-                    {isLoading ? (
-                      <Square
-                        size={16}
-                        className="fill-muted-foreground text-muted-foreground"
-                      />
-                    ) : (
-                      <CornerRightUp size={16} />
-                    )}
-                  </div>
-                )}
-              </div>
+                        {chatModel.model}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">model</span>
+                  )}
+
+                  <ChevronDown className="size-3" />
+                </Button>
+              </SelectModel>
             </div>
           </div>
         </fieldset>

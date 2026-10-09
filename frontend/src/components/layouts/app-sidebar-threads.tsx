@@ -177,7 +177,7 @@ export function AppSidebarThreads() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarGroupLabel className="">
-                <h4 className="text-xs text-muted-foreground">
+                <h4 className="text-xs font-medium text-muted-foreground">
                   {t("recentChats")}
                 </h4>
               </SidebarGroupLabel>
@@ -209,7 +209,7 @@ export function AppSidebarThreads() {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarGroupLabel className="">
-                    <h4 className="text-xs text-muted-foreground group-hover/threads:text-foreground transition-colors">
+                    <h4 className="text-xs font-medium text-muted-foreground group-hover/threads:text-foreground transition-colors">
                       {group.label}
                     </h4>
                     <div className="flex-1" />
@@ -247,7 +247,7 @@ export function AppSidebarThreads() {
                   {group.threads.map((thread) => (
                     <SidebarMenuSub
                       key={thread.id}
-                      className={"group/thread mr-0"}
+                      className={"group/thread mx-0 border-l-0 px-0 py-0"}
                     >
                       <SidebarMenuSubItem>
                         <ThreadDropdown
@@ -255,7 +255,7 @@ export function AppSidebarThreads() {
                           threadId={thread.id}
                           beforeTitle={thread.title}
                         >
-                          <div className="flex items-center data-[state=open]:bg-input! group-hover/thread:bg-input! rounded-lg">
+                          <div className="flex items-center rounded-lg data-[state=open]:bg-sidebar-accent! group-hover/thread:bg-sidebar-accent!">
                             <Tooltip delayDuration={1000}>
                               <TooltipTrigger asChild>
                                 <SidebarMenuButton
@@ -286,7 +286,7 @@ export function AppSidebarThreads() {
                               </TooltipContent>
                             </Tooltip>
 
-                            <SidebarMenuAction className="data-[state=open]:bg-input data-[state=open]:opacity-100 opacity-0 group-hover/thread:opacity-100">
+                            <SidebarMenuAction className="top-2 data-[state=open]:opacity-100 opacity-0 group-hover/thread:opacity-100">
                               <MoreHorizontal />
                             </SidebarMenuAction>
                           </div>
@@ -309,7 +309,7 @@ export function AppSidebarThreads() {
               <Button
                 variant="secondary"
                 size="sm"
-                className="w-full hover:bg-input! justify-start"
+                className="w-full justify-start border bg-sidebar-accent hover:bg-sidebar-accent/70"
                 onClick={() => setIsExpanded(!isExpanded)}
               >
                 <MoreHorizontal className="mr-2" />

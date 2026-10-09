@@ -194,7 +194,7 @@ export function Assignment(props: AssignmentProps) {
     return (
       <div className="space-y-4">
         {showResumePrompt && savedProgress && (
-          <Alert className="bg-primary/10 border-primary/20">
+          <Alert className="border-brand/30 bg-tint-blue/50">
             <AlertDescription className="flex items-center justify-between">
               <span className="text-sm">Resume your draft submission?</span>
               <div className="flex gap-2">
@@ -209,10 +209,10 @@ export function Assignment(props: AssignmentProps) {
           </Alert>
         )}
 
-        <Card className="bg-card">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-secondary/40">
+              <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-tint-green text-green-700 dark:text-green-300 [&_svg]:size-5">
                 <FileText className="w-6 h-6" />
               </div>
               <div className="flex-1">
@@ -255,7 +255,7 @@ export function Assignment(props: AssignmentProps) {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-card">
+      <Card>
         <CardContent className="p-6">
           <div className="flex items-start justify-between mb-4">
             <div>
@@ -390,7 +390,7 @@ export function Assignment(props: AssignmentProps) {
       </Card>
 
       {props.status !== "submitted" && props.status !== "graded" && (
-        <Card className="bg-card">
+        <Card>
           <CardContent className="p-6 space-y-4">
             <h4 className="font-semibold text-sm mb-4">Submit Your Work</h4>
 

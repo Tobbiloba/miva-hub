@@ -12,6 +12,7 @@ import {
   FolderOpenIcon,
   LayersIcon,
   type LucideIcon,
+  MessageSquareTextIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
@@ -40,34 +41,49 @@ export function AppSidebarMenus({ role }: { role?: string }) {
     <SidebarGroup>
       <SidebarGroupContent>
         <SidebarMenu>
-          <Tooltip>
-            <SidebarMenuItem className="mb-1">
-              <Link
-                href="/"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setOpenMobile(false);
-                  router.push(`/`);
-                  router.refresh();
-                }}
+          <SidebarMenuItem className="mb-2">
+            <Link
+              href="/"
+              onClick={(e) => {
+                e.preventDefault();
+                setOpenMobile(false);
+                router.push(`/`);
+                router.refresh();
+              }}
+              className="group/new-chat flex h-10 w-full items-center gap-2.5 rounded-xl border border-sidebar-border bg-card px-3 text-sm font-medium text-foreground shadow-[var(--shadow-soft)] transition-colors hover:bg-secondary"
+            >
+              <WriteIcon className="size-4" />
+              {t("Layout.newChat")}
+              <span className="ml-auto flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                {getShortcutKeyList(Shortcuts.openNewChat).map((key) => (
+                  <kbd
+                    key={key}
+                    className="grid h-5 min-w-5 place-items-center rounded-md border bg-secondary px-1 font-sans"
+                  >
+                    {key}
+                  </kbd>
+                ))}
+              </span>
+            </Link>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Link
+              href="/"
+              onClick={(e) => {
+                e.preventDefault();
+                setOpenMobile(false);
+                router.push(`/`);
+                router.refresh();
+              }}
+            >
+              <SidebarMenuButton
+                isActive={pathname === "/" || pathname.startsWith("/chat/")}
               >
-                <SidebarMenuButton className="flex font-semibold group/new-chat bg-input/20 border border-border/40">
-                  <WriteIcon className="size-4" />
-                  {t("Layout.newChat")}
-                  <div className="flex items-center gap-1 text-xs font-medium ml-auto opacity-0 group-hover/new-chat:opacity-100 transition-opacity">
-                    {getShortcutKeyList(Shortcuts.openNewChat).map((key) => (
-                      <span
-                        key={key}
-                        className="border w-5 h-5 flex items-center justify-center bg-accent rounded"
-                      >
-                        {key}
-                      </span>
-                    ))}
-                  </div>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-          </Tooltip>
+                <MessageSquareTextIcon className="size-4" />
+                Chat
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
         </SidebarMenu>
         {/* MCP servers are platform-global; only super_admin manages them */}
         {isSuperAdmin && (
@@ -85,7 +101,7 @@ export function AppSidebarMenus({ role }: { role?: string }) {
           </SidebarMenu>
         )}
         {CHAT_FIRST && role === "student" && (
-          <SidebarMenu className="mt-2">
+          <SidebarMenu className="mt-1">
             {STUDENT_PAGES.map(({ title, href }) => {
               const Icon = STUDENT_PAGE_ICONS[href];
               const active =

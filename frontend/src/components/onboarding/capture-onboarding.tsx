@@ -2,7 +2,7 @@
 
 import type { CaptureOnboardingStatus } from "@/lib/onboarding/capture-status";
 import { cn } from "lib/utils";
-import { CheckCircle2, Circle, X } from "lucide-react";
+import { CheckCircle2, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "ui/button";
@@ -36,7 +36,7 @@ export function CaptureOnboarding({
     return (
       <div
         role="status"
-        className="mx-auto mb-4 flex w-full max-w-3xl items-center gap-3 rounded-xl border bg-card px-4 py-3 text-sm"
+        className="mx-auto flex w-full max-w-3xl items-center gap-3 rounded-2xl border bg-card px-4 py-3 text-sm shadow-[var(--shadow-soft)]"
       >
         <CheckCircle2 className="size-5 shrink-0 text-green-600" aria-hidden />
         <p className="flex-1">
@@ -98,27 +98,34 @@ export function CaptureOnboarding({
   return (
     <section
       aria-labelledby="capture-onboarding-title"
-      className="mx-auto mb-4 w-full max-w-3xl rounded-xl border bg-card p-4 sm:p-5"
+      className="mx-auto w-full max-w-3xl overflow-hidden rounded-2xl border bg-card shadow-[var(--shadow-soft)]"
     >
-      <h2 id="capture-onboarding-title" className="font-semibold">
-        Get Askly ready for your courses
-      </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Askly answers from your own course content. Three steps:
-      </p>
-      <ol className="mt-4 space-y-3">
-        {steps.map((step) => (
-          <li key={step.title} className="flex items-start gap-3">
+      <div className="border-b px-5 py-4">
+        <h2
+          id="capture-onboarding-title"
+          className="font-display text-base font-bold"
+        >
+          Get Askly ready for your courses
+        </h2>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          Askly answers from your own course content. Three steps:
+        </p>
+      </div>
+      <ol className="divide-y">
+        {steps.map((step, i) => (
+          <li key={step.title} className="flex items-center gap-3 px-5 py-3">
             {step.done ? (
               <CheckCircle2
-                className="mt-0.5 size-5 shrink-0 text-green-600"
+                className="size-6 shrink-0 text-green-600"
                 aria-label="Done"
               />
             ) : (
-              <Circle
-                className="mt-0.5 size-5 shrink-0 text-muted-foreground"
+              <span
+                className="grid size-6 shrink-0 place-items-center rounded-full border text-xs font-semibold text-muted-foreground"
                 aria-label="Not done"
-              />
+              >
+                {i + 1}
+              </span>
             )}
             <div className="min-w-0 flex-1">
               <p

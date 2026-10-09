@@ -127,7 +127,7 @@ export function BarChart(props: BarChartProps) {
   }, [deduplicateData]);
 
   return (
-    <Card className="bg-card">
+    <Card>
       <CardHeader className="flex flex-col gap-2 relative">
         <CardTitle className="flex items-center">
           Bar Chart - {title}

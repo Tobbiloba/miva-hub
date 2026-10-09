@@ -1,5 +1,5 @@
 "use client";
-import Image from "next/image";
+import { AsklyLogo } from "@/components/ui/logo-box";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -9,7 +9,6 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "ui/sidebar";
@@ -23,6 +22,7 @@ import { Session, User } from "better-auth";
 import { Shortcuts, isShortcutEvent } from "lib/keyboard-shortcuts";
 import { PanelLeft } from "lucide-react";
 import { AppSidebarUser } from "./app-sidebar-user";
+import { ThemeSwitch } from "./theme-switch";
 
 export function AppSidebar({
   session,
@@ -58,55 +58,45 @@ export function AppSidebar({
   }, [currentPath, isMobile]);
 
   return (
-    <Sidebar
-      collapsible="offcanvas"
-      className="border-r border-sidebar-border/80"
-    >
-      <SidebarHeader>
+    <Sidebar collapsible="offcanvas" className="border-r-0">
+      <SidebarHeader className="px-3 pt-4 pb-2">
         <SidebarMenu>
-          <SidebarMenuItem className="flex items-center gap-0.5">
-            <SidebarMenuButton asChild className="hover:bg-transparent px-2">
-              <Link
-                href={`/`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  router.push("/");
-                  router.refresh();
-                }}
-              >
-                <Image
-                  src="/logo.png"
-                  alt="Askly"
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 object-contain"
-                  priority
-                />
-                <div
-                  className="ml-auto block sm:hidden"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setOpenMobile(false);
-                  }}
-                >
-                  <PanelLeft className="size-4" />
-                </div>
-              </Link>
-            </SidebarMenuButton>
+          <SidebarMenuItem className="flex items-center justify-between">
+            <Link
+              href="/"
+              className="rounded-lg px-1.5 py-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              onClick={(e) => {
+                e.preventDefault();
+                router.push("/");
+                router.refresh();
+              }}
+            >
+              <AsklyLogo />
+            </Link>
+            <button
+              type="button"
+              aria-label="Close sidebar"
+              onClick={() =>
+                isMobile ? setOpenMobile(false) : toggleSidebar()
+              }
+              className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
+            >
+              <PanelLeft className="size-4" />
+            </button>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent className="mt-2 overflow-hidden relative">
-        <div className="flex flex-col overflow-y-auto">
+      <SidebarContent className="relative overflow-hidden px-1">
+        <div className="flex flex-col overflow-y-auto [scrollbar-width:thin]">
           <AppSidebarMenus role={role} />
           {/* Agents are a power-user feature; students get the study pages */}
           {role !== "student" && <AppSidebarAgents />}
           <AppSidebarThreads />
         </div>
       </SidebarContent>
-      <SidebarFooter className="flex flex-col items-stretch space-y-2">
+      <SidebarFooter className="flex flex-col items-stretch gap-3 border-t border-sidebar-border p-3">
+        <ThemeSwitch />
         <AppSidebarUser session={session} />
       </SidebarFooter>
     </Sidebar>

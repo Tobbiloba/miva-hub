@@ -3,8 +3,7 @@
 import { authClient } from "auth/client";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { useMemo } from "react";
-import { FlipWords } from "ui/flip-words";
+import { useEffect, useState } from "react";
 
 function getGreetingByTime() {
   const hour = new Date().getHours();
@@ -15,38 +14,29 @@ function getGreetingByTime() {
 
 export const ChatGreeting = () => {
   const { data: session } = authClient.useSession();
-
   const t = useTranslations("Chat.Greeting");
+  const firstName = session?.user?.name?.split(" ")[0];
 
-  const user = session?.user;
-
-  const word = useMemo(() => {
-    if (!user?.name) return "";
-    const words = [
-      t(getGreetingByTime(), { name: user.name }),
-      t("niceToSeeYouAgain", { name: user.name }),
-      t("whatAreYouWorkingOnToday", { name: user.name }),
-      t("letMeKnowWhenYoureReadyToBegin"),
-      t("whatAreYourThoughtsToday"),
-      t("whereWouldYouLikeToStart"),
-      t("whatAreYouThinking", { name: user.name }),
-    ];
-    return words[Math.floor(Math.random() * words.length)];
-  }, [user?.name]);
+  // Time of day is client-only (server render would use the server's clock)
+  const [key, setKey] = useState<string | null>(null);
+  useEffect(() => setKey(getGreetingByTime()), []);
 
   return (
     <motion.div
       key="welcome"
-      className="max-w-3xl mx-auto my-4 h-20"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ delay: 0.3 }}
+      className="mx-auto w-full max-w-3xl px-6"
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
     >
-      <div className="rounded-xl p-6 flex flex-col gap-2 leading-relaxed text-center">
-        <h1 className="text-2xl md:text-3xl">
-          {word ? <FlipWords words={[word]} className="text-primary" /> : ""}
+      <div className="flex flex-col items-center gap-3 pb-8 text-center">
+        <h1 className="min-h-[1.2em] font-display text-4xl font-bold tracking-tight md:text-5xl">
+          {key && firstName ? t(key, { name: firstName }) : "Welcome to Askly"}
         </h1>
+        <p className="max-w-xl text-base text-muted-foreground">
+          Ask about your courses, deadlines or notes and Askly answers from your
+          own materials. Not sure where to start?
+        </p>
       </div>
     </motion.div>
   );

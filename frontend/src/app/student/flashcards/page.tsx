@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@/components/layouts/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,16 +40,11 @@ export default function FlashcardsPage() {
   useEffect(load, [load]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Layers className="h-8 w-8 text-primary" />
-          Flashcards
-        </h1>
-        <p className="text-muted-foreground">
-          Review your spaced-repetition flashcard decks
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Flashcards"
+        description="Review your spaced-repetition decks. Ask Askly in the chat to make a new one from your notes."
+      />
 
       {loading ? (
         <div className="text-center py-12 text-muted-foreground">
@@ -79,8 +75,14 @@ export default function FlashcardsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {decks.map((deck) => (
-            <Card key={deck.id} className="flex flex-col">
-              <CardHeader className="pb-3">
+            <Card
+              key={deck.id}
+              className="flex flex-col transition-all hover:border-foreground/20 hover:shadow-[var(--shadow-float)]"
+            >
+              <CardHeader className="pb-1">
+                <span className="mb-2 grid size-10 place-items-center rounded-xl bg-tint-green text-green-700 dark:text-green-300">
+                  <Layers className="size-5" />
+                </span>
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-base leading-tight">
                     {deck.title}

@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@/components/layouts/page-header";
 import { cn } from "lib/utils";
 import {
   AlertCircle,
@@ -159,21 +160,17 @@ export function DeadlinesBoard({
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold sm:text-3xl">Deadlines</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Assignments and quizzes you capture from your LMS show up here
-            automatically. Add anything else yourself, or just tell Askly in the
-            chat.
-          </p>
-        </div>
-        <Button onClick={() => setAdding((v) => !v)} className="min-h-11">
-          <Plus className="size-4" />
-          Add deadline
-        </Button>
-      </div>
+    <div className="mx-auto w-full max-w-3xl space-y-8">
+      <PageHeader
+        title="Deadlines"
+        description="Assignments and quizzes you capture from your LMS show up here automatically. Add anything else yourself, or just tell Askly in the chat."
+        actions={
+          <Button onClick={() => setAdding((v) => !v)} className="min-h-11">
+            <Plus className="size-4" />
+            Add deadline
+          </Button>
+        }
+      />
 
       {adding && (
         <AddDeadlineForm
@@ -196,7 +193,7 @@ export function DeadlinesBoard({
       {error ? (
         <div
           role="alert"
-          className="flex items-center gap-3 rounded-xl border border-destructive/40 p-4 text-sm"
+          className="flex items-center gap-3 rounded-2xl border border-destructive/40 bg-card p-4 text-sm"
         >
           <AlertCircle className="size-5 text-destructive" aria-hidden />
           <span className="flex-1">{error.message}</span>
@@ -209,11 +206,10 @@ export function DeadlinesBoard({
           <Loader2 className="size-6 animate-spin text-muted-foreground" />
         </div>
       ) : groups.length === 0 ? (
-        <div className="rounded-xl border border-dashed p-8 text-center">
-          <CalendarClock
-            className="mx-auto size-8 text-muted-foreground"
-            aria-hidden
-          />
+        <div className="rounded-2xl border border-dashed bg-card p-10 text-center">
+          <span className="mx-auto grid size-12 place-items-center rounded-xl bg-tint-blue text-blue-700 dark:text-blue-300">
+            <CalendarClock className="size-6" aria-hidden />
+          </span>
           <p className="mt-3 font-medium">No deadlines yet</p>
           <p className="mt-1 text-sm text-muted-foreground">
             Capture an assignment or quiz page with Askly Capture and its due
@@ -226,13 +222,13 @@ export function DeadlinesBoard({
             <h2
               id={`deadlines-${group.id}`}
               className={cn(
-                "mb-2 text-sm font-medium text-muted-foreground",
+                "mb-3 text-sm font-semibold text-muted-foreground",
                 group.id === "overdue" && "text-destructive",
               )}
             >
               {group.title} ({group.items.length})
             </h2>
-            <ul className="divide-y rounded-xl border">
+            <ul className="divide-y overflow-hidden rounded-2xl border bg-card shadow-[var(--shadow-soft)]">
               {group.items.map((item) => (
                 <DeadlineRow
                   key={item.key}
@@ -265,7 +261,7 @@ function DeadlineRow({
   const tickable = item.kind !== "assignment";
   const checkboxId = `deadline-${item.key}`;
   return (
-    <li className="flex items-start gap-3 p-3 sm:p-4">
+    <li className="flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-secondary/50 sm:px-5">
       {/* 44px hit area around the checkbox */}
       <label
         htmlFor={checkboxId}
@@ -373,7 +369,7 @@ function AddDeadlineForm({
   return (
     <form
       onSubmit={submit}
-      className="grid gap-4 rounded-xl border bg-card p-4 sm:grid-cols-2"
+      className="grid gap-4 rounded-2xl border bg-card p-5 shadow-[var(--shadow-soft)] sm:grid-cols-2"
     >
       <div className="grid gap-2 sm:col-span-2">
         <Label htmlFor="deadline-title">What&apos;s due?</Label>
@@ -402,7 +398,7 @@ function AddDeadlineForm({
           id="deadline-course"
           value={courseId}
           onChange={(e) => setCourseId(e.target.value)}
-          className="h-9 rounded-md border bg-transparent px-3 text-sm"
+          className="h-10 rounded-lg border bg-card px-3 text-sm"
         >
           <option value="">No course</option>
           {courses.map((c) => (

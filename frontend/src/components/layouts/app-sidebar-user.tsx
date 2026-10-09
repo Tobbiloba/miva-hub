@@ -1,27 +1,20 @@
 "use client";
 
 import { appStore } from "@/app/store";
-import { useThemeStyle } from "@/hooks/use-theme-style";
 import { getLocaleAction } from "@/i18n/get-locale";
 import { authClient } from "auth/client";
 import { Session, User as UserType } from "better-auth";
-import { BASE_THEMES, COOKIE_KEY_LOCALE, SUPPORTED_LOCALES } from "lib/const";
-import { capitalizeFirstLetter, cn } from "lib/utils";
+import { COOKIE_KEY_LOCALE, SUPPORTED_LOCALES } from "lib/const";
 import {
-  ChevronRight,
   ChevronsUpDown,
   Command,
   CreditCard,
   Languages,
   LogOutIcon,
-  MoonStar,
-  Palette,
   Settings2,
-  Sun,
   User,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import useSWR from "swr";
@@ -78,10 +71,11 @@ export function AppSidebarUser({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground bg-input/30 border"
+              className="h-auto gap-3 rounded-xl px-2 py-2 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               size={"lg"}
+              data-testid="sidebar-user-button"
             >
-              <Avatar className="rounded-full size-8 border">
+              <Avatar className="size-9 rounded-full border">
                 <AvatarImage
                   className="object-cover"
                   src={user?.image || "/pf.png"}
@@ -89,13 +83,20 @@ export function AppSidebarUser({
                 />
                 <AvatarFallback>{user?.name?.slice(0, 1) || ""}</AvatarFallback>
               </Avatar>
-              <span className="truncate">{user?.email}</span>
-              <ChevronsUpDown className="ml-auto" />
+              <span className="grid min-w-0 flex-1 text-left leading-tight">
+                <span className="truncate text-sm font-semibold text-foreground">
+                  {user?.name}
+                </span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {user?.email}
+                </span>
+              </span>
+              <ChevronsUpDown className="ml-auto text-muted-foreground" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             side="top"
-            className="bg-background w-[--radix-dropdown-menu-trigger-width] min-w-60 rounded-lg"
+            className="w-[--radix-dropdown-menu-trigger-width] min-w-60 rounded-xl"
             align="center"
           >
             <DropdownMenuLabel className="p-0 font-normal">
@@ -142,7 +143,6 @@ export function AppSidebarUser({
               <Settings2 className="size-4 text-foreground" />
               <span>{t("chatPreferences")}</span>
             </DropdownMenuItem>
-            <SelectTheme />
             <SelectLanguage />
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -172,84 +172,6 @@ export function AppSidebarUser({
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
-  );
-}
-
-function SelectTheme() {
-  const t = useTranslations("Layout");
-
-  const { theme = "light", setTheme } = useTheme();
-
-  const { themeStyle = "default", setThemeStyle } = useThemeStyle();
-
-  return (
-    <DropdownMenuSub>
-      <DropdownMenuSubTrigger
-        className="flex items-center"
-        icon={
-          <>
-            <span className="text-muted-foreground text-xs min-w-0 truncate">
-              {`${capitalizeFirstLetter(theme)} ${capitalizeFirstLetter(
-                themeStyle,
-              )}`}
-            </span>
-            <ChevronRight className="size-4 ml-2" />
-          </>
-        }
-      >
-        <Palette className="mr-2 size-4" />
-        <span className="mr-auto">{t("theme")}</span>
-      </DropdownMenuSubTrigger>
-      <DropdownMenuPortal>
-        <DropdownMenuSubContent className="w-48">
-          <DropdownMenuLabel className="text-muted-foreground w-full flex items-center">
-            <span className="text-muted-foreground text-xs mr-2 select-none">
-              {capitalizeFirstLetter(theme)}
-            </span>
-            <div className="flex-1" />
-
-            <div
-              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-              className="cursor-pointer border rounded-full flex items-center"
-            >
-              <div
-                className={cn(
-                  theme === "dark" &&
-                    "bg-accent ring ring-muted-foreground/40 text-foreground",
-                  "p-1 rounded-full",
-                )}
-              >
-                <MoonStar className="size-3" />
-              </div>
-              <div
-                className={cn(
-                  theme === "light" &&
-                    "bg-accent ring ring-muted-foreground/40 text-foreground",
-                  "p-1 rounded-full",
-                )}
-              >
-                <Sun className="size-3" />
-              </div>
-            </div>
-          </DropdownMenuLabel>
-          <div className="max-h-96 overflow-y-auto">
-            {BASE_THEMES.map((t) => (
-              <DropdownMenuCheckboxItem
-                key={t}
-                checked={themeStyle === t}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setThemeStyle(t);
-                }}
-                className="text-sm"
-              >
-                {capitalizeFirstLetter(t)}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </div>
-        </DropdownMenuSubContent>
-      </DropdownMenuPortal>
-    </DropdownMenuSub>
   );
 }
 

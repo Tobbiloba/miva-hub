@@ -56,7 +56,7 @@ export function AssignmentList(props: AssignmentListProps) {
 
   if (props.assignments.length === 0) {
     return (
-      <Card className="bg-card">
+      <Card>
         <CardContent className="py-12 text-center">
           <div className="text-6xl mb-4">🎉</div>
           <h3 className="text-lg font-semibold mb-2">
@@ -72,7 +72,7 @@ export function AssignmentList(props: AssignmentListProps) {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-card">
+      <Card>
         <CardHeader>
           <CardTitle>Upcoming Assignments</CardTitle>
           <CardDescription>
@@ -89,7 +89,7 @@ export function AssignmentList(props: AssignmentListProps) {
           return (
             <Card
               key={index}
-              className="bg-card hover:bg-secondary/20 transition-colors"
+              className="transition-colors hover:border-foreground/25"
             >
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-3">

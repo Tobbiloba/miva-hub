@@ -6,7 +6,6 @@ import clsx from "clsx";
 import { cn, generateUUID, truncateString } from "lib/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ChatAurora } from "./chat-aurora";
 import { ChatGreeting } from "./chat-greeting";
 import { SuggestionCards } from "./chat-suggestions";
 import { ErrorMessage, PreviewMessage } from "./message";
@@ -31,6 +30,7 @@ import {
   CalendarClock,
   FileQuestion,
   Layers,
+  Lightbulb,
   Loader,
   PanelRightClose,
   PanelRightOpen,
@@ -83,8 +83,14 @@ const CHAT_SUGGESTIONS = [
     prompt:
       "Make flashcards from my latest lecture notes so I can save them for review.",
   },
+  {
+    id: "explain",
+    icon: <Lightbulb />,
+    title: "Explain my last lecture",
+    prompt:
+      "Explain my latest lecture in plain language: the key ideas, and what I'm most likely to be tested on.",
+  },
 ];
-
 
 export default function ChatBot({
   threadId,
@@ -373,22 +379,25 @@ export default function ChatBot({
 
   return (
     <>
-      <ChatAurora />
       <div
         className={cn(
-          emptyMessage && "justify-center pb-24",
+          emptyMessage && "justify-center pb-10",
           "flex flex-col min-w-0 relative h-full z-40",
         )}
       >
         {emptyMessage ? (
           <>
             <ChatGreeting />
-            {onboarding && <div className="w-full px-6">{onboarding}</div>}
+            {onboarding && (
+              <div className="mx-auto w-full max-w-3xl px-6 pb-4">
+                {onboarding}
+              </div>
+            )}
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="mx-auto w-full max-w-3xl px-6"
+              transition={{ delay: 0.2 }}
+              className="mx-auto w-full max-w-3xl px-6 pb-6"
             >
               <SuggestionCards
                 items={CHAT_SUGGESTIONS}
@@ -453,7 +462,7 @@ export default function ChatBot({
 
         <div
           className={clsx(
-            messages.length && "absolute bottom-14",
+            messages.length && "absolute bottom-0 bg-surface pb-3",
             "w-full z-10",
           )}
         >
@@ -472,6 +481,10 @@ export default function ChatBot({
             isLoading={isLoading || isPendingToolCall}
             onStop={stop}
           />
+          <p className="mx-auto mt-2 max-w-3xl px-4 text-center text-xs text-muted-foreground">
+            Askly can make mistakes. Check important details against your course
+            materials.
+          </p>
         </div>
         <DeleteThreadPopup
           threadId={threadId}
@@ -485,7 +498,8 @@ export default function ChatBot({
             variant="outline"
             size="icon"
             onClick={toggleDrawer}
-            className="bg-background/80 backdrop-blur-sm border shadow-lg"
+            aria-label={chatSidebar.visible ? "Close drawer" : "Open drawer"}
+            className="rounded-xl bg-card shadow-[var(--shadow-soft)]"
             title={chatSidebar.visible ? "Close drawer" : "Open drawer"}
           >
             {chatSidebar.visible ? (
@@ -572,9 +586,10 @@ function ScrollToBottomButton({
         >
           <Button
             onClick={onClick}
-            className="shadow-lg backdrop-blur-sm border transition-colors"
+            className="rounded-full border bg-card shadow-[var(--shadow-float)] transition-colors hover:bg-secondary"
             size="icon"
             variant="ghost"
+            aria-label="Scroll to bottom"
           >
             <ArrowDown />
           </Button>

@@ -32,7 +32,7 @@ export function CourseList(props: CourseListProps) {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-card">
+      <Card>
         <CardHeader>
           <CardTitle>Enrolled Courses</CardTitle>
           <CardDescription>
@@ -48,24 +48,28 @@ export function CourseList(props: CourseListProps) {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="bg-card">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Courses</p>
-                <p className="text-2xl font-bold">{totalCourses}</p>
+                <p className="font-display text-3xl font-bold">
+                  {totalCourses}
+                </p>
               </div>
               <GraduationCap className="w-8 h-8 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Credits</p>
-                <p className="text-2xl font-bold">{totalCredits}</p>
+                <p className="font-display text-3xl font-bold">
+                  {totalCredits}
+                </p>
               </div>
               <TrendingUp className="w-8 h-8 text-muted-foreground" />
             </div>
@@ -77,7 +81,7 @@ export function CourseList(props: CourseListProps) {
         {props.courses.map((course, index) => (
           <Card
             key={index}
-            className="bg-card hover:bg-secondary/20 transition-colors"
+            className="transition-colors hover:border-foreground/25"
           >
             <CardContent className="p-5">
               <div className="flex items-start justify-between mb-3">
@@ -86,7 +90,7 @@ export function CourseList(props: CourseListProps) {
                     <h4 className="font-semibold text-sm">
                       {course.course_code}
                     </h4>
-                    <span className="px-2 py-0.5 rounded-full bg-secondary/40 text-xs border">
+                    <span className="px-2 py-0.5 rounded-full border bg-secondary text-xs">
                       {course.credits}{" "}
                       {course.credits === 1 ? "credit" : "credits"}
                     </span>

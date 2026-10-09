@@ -1,5 +1,6 @@
 import { ActivityTimeline } from "@/components/activity/activity-timeline";
 import { CapturesPanel } from "@/components/captures/captures-panel";
+import { PageHeader } from "@/components/layouts/page-header";
 import { getSession } from "@/lib/auth/server";
 import { CHAT_FIRST } from "@/lib/config/product";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
@@ -14,7 +15,7 @@ import {
 import Link from "next/link";
 import { Badge } from "ui/badge";
 import { Button } from "ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "ui/card";
+import { Card, CardContent, CardTitle } from "ui/card";
 
 export default async function StudentCoursesPage() {
   const session = await getSession();
@@ -48,33 +49,29 @@ export default async function StudentCoursesPage() {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">My Courses</h1>
-          <p className="text-muted-foreground mt-1">
-            {courses.length} course{courses.length !== 1 ? "s" : ""} enrolled •{" "}
-            {totalCredits} total credits
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link href="/student/courses/browse">
-              <BookOpen className="mr-2 h-4 w-4" />
-              Course Registration
-            </Link>
-          </Button>
-          {!CHAT_FIRST && (
-            <Button asChild>
-              <Link href="/student/schedule">
-                <Calendar className="mr-2 h-4 w-4" />
-                View Schedule
+    <div className="space-y-8">
+      <PageHeader
+        title="My Courses"
+        description={`${courses.length} course${courses.length !== 1 ? "s" : ""} enrolled · ${totalCredits} total credits`}
+        actions={
+          <>
+            <Button variant="outline" asChild>
+              <Link href="/student/courses/browse">
+                <BookOpen className="h-4 w-4" />
+                Course Registration
               </Link>
             </Button>
-          )}
-        </div>
-      </div>
+            {!CHAT_FIRST && (
+              <Button asChild>
+                <Link href="/student/schedule">
+                  <Calendar className="h-4 w-4" />
+                  View Schedule
+                </Link>
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <CapturesPanel />
@@ -83,18 +80,23 @@ export default async function StudentCoursesPage() {
 
       {/* Courses Grid */}
       {courses.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {courses.map(({ enrollment, course, department }) => (
-            <CourseCard
-              key={course.id}
-              course={course}
-              department={department}
-              enrollment={enrollment}
-              studentId={userId}
-              scheduleEntries={scheduleMap.get(course.id) ?? []}
-            />
-          ))}
-        </div>
+        <section aria-labelledby="enrolled-courses" className="space-y-4">
+          <h2 id="enrolled-courses" className="font-display text-lg font-bold">
+            Enrolled courses
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {courses.map(({ enrollment, course, department }) => (
+              <CourseCard
+                key={course.id}
+                course={course}
+                department={department}
+                enrollment={enrollment}
+                studentId={userId}
+                scheduleEntries={scheduleMap.get(course.id) ?? []}
+              />
+            ))}
+          </div>
+        </section>
       ) : (
         <EmptyCoursesState />
       )}
@@ -129,124 +131,133 @@ async function CourseCard({
     Date.now() - enrollmentDate.getTime() < 7 * 24 * 60 * 60 * 1000; // 7 days
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-200">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-lg">{course.courseCode}</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-              {course.title}
-            </p>
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            <Badge variant="outline" className="text-xs">
-              {course.credits} credit{course.credits !== 1 ? "s" : ""}
-            </Badge>
-            {isNewEnrollment && (
-              <Badge className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                New
-              </Badge>
-            )}
-          </div>
+    <Card className="group gap-0 py-0 transition-all duration-200 hover:border-foreground/20 hover:shadow-[var(--shadow-float)]">
+      <div className="flex items-start gap-3 p-5">
+        <span
+          className={`grid size-11 shrink-0 place-items-center rounded-xl font-display text-sm font-bold ${courseTile(course.courseCode)}`}
+        >
+          {String(course.courseCode).slice(0, 3)}
+        </span>
+        <div className="min-w-0 flex-1">
+          <CardTitle className="text-base">{course.courseCode}</CardTitle>
+          <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
+            {course.title}
+          </p>
         </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {/* Department & Level */}
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-1">
-            <GraduationCap className="h-4 w-4 text-primary" />
-            <span className="text-muted-foreground">{department.name}</span>
-          </div>
-          <Badge variant="secondary" className="text-xs">
-            {course.level || "Undergraduate"}
+        {isNewEnrollment && (
+          <Badge className="shrink-0 border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+            New
           </Badge>
-        </div>
+        )}
+      </div>
 
-        {/* Schedule */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span>Schedule</span>
+      <div className="flex flex-wrap gap-2 px-5">
+        <Badge variant="outline">
+          {course.credits} credit{course.credits !== 1 ? "s" : ""}
+        </Badge>
+        <Badge variant="outline">{course.level || "Undergraduate"}</Badge>
+        <Badge variant="outline" className="max-w-full truncate">
+          <GraduationCap />
+          {department.name}
+        </Badge>
+      </div>
+
+      <div className="mt-4 space-y-3 border-t px-5 py-4 text-sm">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Clock className="h-4 w-4" />
+          <span>Schedule</span>
+        </div>
+        {courseSchedule.length > 0 ? (
+          <div className="space-y-1.5">
+            {courseSchedule.slice(0, 2).map((schedule, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between gap-2 rounded-lg border bg-secondary px-3 py-2 text-xs"
+              >
+                <span className="capitalize">{schedule.dayOfWeek}</span>
+                <span>
+                  {schedule.startTime} - {schedule.endTime}
+                </span>
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {schedule.roomLocation || "TBD"}
+                </span>
+              </div>
+            ))}
           </div>
-          {courseSchedule.length > 0 ? (
-            <div className="space-y-1">
-              {courseSchedule.slice(0, 2).map((schedule, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between text-xs bg-muted/30 p-2 rounded"
-                >
-                  <span className="capitalize">{schedule.dayOfWeek}</span>
-                  <span>
-                    {schedule.startTime} - {schedule.endTime}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
-                    <span>{schedule.roomLocation || "TBD"}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground italic">
-              Schedule not yet set
-            </p>
-          )}
-        </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">Schedule not yet set</p>
+        )}
 
-        {/* Upcoming Assignments */}
         {upcomingAssignments.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+          <div className="space-y-1.5 pt-1">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
               <FileText className="h-4 w-4" />
               <span>Upcoming ({upcomingAssignments.length})</span>
             </div>
-            <div className="space-y-1">
-              {upcomingAssignments.slice(0, 2).map(({ assignment }) => {
-                const dueDate = new Date(assignment.dueDate);
-                const daysUntilDue = Math.ceil(
-                  (dueDate.getTime() - new Date().getTime()) /
-                    (1000 * 60 * 60 * 24),
-                );
+            {upcomingAssignments.slice(0, 2).map(({ assignment }) => {
+              const dueDate = new Date(assignment.dueDate);
+              const daysUntilDue = Math.ceil(
+                (dueDate.getTime() - new Date().getTime()) /
+                  (1000 * 60 * 60 * 24),
+              );
 
-                return (
-                  <div
-                    key={assignment.id}
-                    className="flex items-center justify-between text-xs bg-amber-500/10 p-2 rounded"
-                  >
-                    <span className="truncate flex-1">{assignment.title}</span>
-                    <span className="text-amber-600 dark:text-amber-400 shrink-0">
-                      {daysUntilDue > 0 ? `${daysUntilDue}d` : "Due"}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+              return (
+                <div
+                  key={assignment.id}
+                  className="flex items-center justify-between gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs"
+                >
+                  <span className="flex-1 truncate">{assignment.title}</span>
+                  <span className="shrink-0 font-medium text-amber-700 dark:text-amber-400">
+                    {daysUntilDue > 0 ? `${daysUntilDue}d` : "Due"}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
+      </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 pt-2">
-          <Button size="sm" className="flex-1" asChild>
-            <Link href={`/student/tutor?course=${course.id}`}>
-              <GraduationCap className="mr-1 h-3 w-3" />
-              Ask AI Tutor
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild title="Course materials">
-            <Link href="/student/materials">
-              <FileText className="h-3 w-3" />
-            </Link>
-          </Button>
-        </div>
-      </CardContent>
+      <div className="flex gap-2 border-t bg-secondary/50 px-5 py-3">
+        <Button size="sm" className="flex-1" asChild>
+          <Link href={`/student/tutor?course=${course.id}`}>
+            <GraduationCap className="h-3.5 w-3.5" />
+            Ask AI Tutor
+          </Link>
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          asChild
+          title="Course materials"
+          aria-label="Course materials"
+        >
+          <Link href="/student/materials">
+            <FileText className="h-3.5 w-3.5" />
+          </Link>
+        </Button>
+      </div>
     </Card>
   );
 }
 
+// Stable pastel tile per course, so a course keeps its colour everywhere.
+const COURSE_TILES = [
+  "bg-tint-blue text-blue-700 dark:text-blue-300",
+  "bg-tint-butter text-amber-700 dark:text-amber-300",
+  "bg-tint-green text-green-700 dark:text-green-300",
+  "bg-tint-pink text-pink-700 dark:text-pink-300",
+  "bg-tint-orange text-orange-700 dark:text-orange-300",
+];
+function courseTile(code: string) {
+  let h = 0;
+  for (const ch of String(code)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return COURSE_TILES[h % COURSE_TILES.length];
+}
+
 function EmptyCoursesState() {
   return (
-    <Card className="text-center py-12">
+    <Card className="border-dashed py-12 text-center">
       <CardContent>
         <BookOpen className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold mb-2">No Courses Enrolled</h3>

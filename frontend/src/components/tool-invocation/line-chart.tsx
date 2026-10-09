@@ -129,7 +129,7 @@ export function LineChart(props: LineChartProps) {
   }, [deduplicateData]);
 
   return (
-    <Card className="bg-card">
+    <Card>
       <CardHeader className="flex flex-col gap-2 relative">
         <CardTitle className="flex items-center">
           Line Chart - {title}

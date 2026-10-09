@@ -39,7 +39,9 @@ export default async function StudentLayout({
   if (CHAT_FIRST) {
     return (
       <ChatShell session={session}>
-        <div className="p-4 sm:p-6">{children}</div>
+        <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-8 sm:py-8">
+          {children}
+        </div>
         <SupportWidget />
       </ChatShell>
     );

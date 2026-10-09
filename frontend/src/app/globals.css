@@ -1,43 +1,3 @@
-@font-face {
-  font-family: "Neue Montreal";
-  src: url("/font/NeueMontreal-Regular.otf") format("opentype");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Neue Montreal";
-  src: url("/font/NeueMontreal-Medium.otf") format("opentype");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Neue Montreal";
-  src: url("/font/NeueMontreal-Bold.otf") format("opentype");
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Neue Montreal";
-  src: url("/font/NeueMontreal-Light.otf") format("opentype");
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Neue Montreal";
-  src: url("/font/NeueMontreal-Italic.otf") format("opentype");
-  font-weight: 400;
-  font-style: italic;
-  font-display: swap;
-}
-
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -57,9 +17,11 @@ html {
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-jakarta), system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+  --font-display: var(--font-urbanist), var(--font-inter), system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -82,6 +44,14 @@ html {
   --color-accent: var(--accent);
   --color-energy-foreground: var(--energy-foreground);
   --color-energy: var(--energy);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-tint-mint: var(--tint-mint);
+  --color-tint-butter: var(--tint-butter);
+  --color-tint-green: var(--tint-green);
+  --color-tint-pink: var(--tint-pink);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -92,54 +62,77 @@ html {
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --color-tint-blue: var(--tint-blue);
+  --color-tint-orange: var(--tint-orange);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
 }
 
-/* "Calm Campus" — light-first foundation (design/final-decision/DECISION.md)
- * Off-white page, white hairline cards, violet primary, lime reserved for
- * the --energy token (primary chat action, streaks, success moments only). */
+/* "Solid" system (design refs: design/*.webp + landing video).
+ * Light: cool off-white ground, solid white surfaces, hairline borders,
+ * near-black primary actions, one blue brand accent, pastel icon tiles.
+ * Dark: warm charcoal (Synapse) — still solid, no transparency or blur.
+ * Inter for UI, Urbanist for display. Everything themes through these tokens. */
 :root {
-  --radius: 1rem;
-  /* Neutral :root fallback; the real body font is set on `body` (Jakarta by
-   * default) and overridden per selection by [data-font]. See FontSwitcher. */
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    sans-serif;
-  --background: oklch(0.977 0.003 106.47); /* warm off-white ~#F7F7F5 */
-  --foreground: oklch(0.165 0.008 285.8);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.165 0.008 285.8);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.165 0.008 285.8);
-  --primary: oklch(0.585 0.187 281); /* violet ~#7C6FF0 */
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.955 0.008 286);
-  --secondary-foreground: oklch(0.25 0.02 283);
-  --muted: oklch(0.955 0.006 286);
-  --muted-foreground: oklch(0.52 0.018 285.9);
-  --accent: oklch(0.945 0.024 283); /* soft violet hover wash */
-  --accent-foreground: oklch(0.32 0.09 281);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.928 0.003 106); /* hairline ~#ECECEC */
-  --input: oklch(0.928 0.003 106);
-  --ring: oklch(0.585 0.187 281 / 55%);
-  --energy: oklch(0.9 0.21 123); /* lime ~#C6F432 — scarcity accent */
-  --energy-foreground: oklch(0.22 0.05 130);
-  --chart-1: oklch(0.585 0.187 281); /* violet series lead */
-  --chart-2: oklch(0.88 0.09 100); /* muted yellow (secondary bars) */
-  --chart-3: oklch(0.72 0.13 195); /* teal */
-  --chart-4: oklch(0.75 0.15 150); /* green */
-  --chart-5: oklch(0.78 0.09 283); /* soft violet */
-  --sidebar: oklch(0.985 0.002 106);
-  --sidebar-foreground: oklch(0.165 0.008 285.8);
-  --sidebar-primary: oklch(0.585 0.187 281);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.945 0.024 283); /* soft violet active pill */
-  --sidebar-accent-foreground: oklch(0.32 0.09 281);
-  --sidebar-border: oklch(0.928 0.003 106);
-  --sidebar-ring: oklch(0.585 0.187 281 / 55%);
+  --radius: 0.75rem;
+  --font-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  --background: #f4f5f7; /* page ground, behind the panels */
+  --foreground: #101218;
+  --surface: #ffffff; /* the main work panel */
+  --surface-foreground: #101218;
+  --card: #ffffff;
+  --card-foreground: #101218;
+  --popover: #ffffff;
+  --popover-foreground: #101218;
+  --primary: #111318; /* actions are near-black */
+  --primary-foreground: #ffffff;
+  --secondary: #f2f3f5;
+  --secondary-foreground: #1c1f26;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7180;
+  --accent: #f1f2f4;
+  --accent-foreground: #101218;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e4e6ea;
+  --input: #e1e3e8;
+  --ring: rgba(47, 107, 255, 0.45);
+  --brand: #2f6bff; /* blue — active nav tile, links, focus */
+  --brand-foreground: #ffffff;
+  --energy: #111318; /* send button */
+  --energy-foreground: #ffffff;
+  --highlight: #2f6bff;
+  --highlight-foreground: #ffffff;
+  /* pastel icon tiles (suggestions, features) */
+  --tint-mint: #dcf3e4;
+  --tint-butter: #fdf0cc;
+  --tint-green: #e2f4d4;
+  --tint-pink: #fde2ec;
+  --tint-blue: #dde8ff;
+  --tint-orange: #ffe6d2;
+  --chart-1: #2f6bff;
+  --chart-2: #8b5cf6;
+  --chart-3: #10b981;
+  --chart-4: #f59e0b;
+  --chart-5: #ec4899;
+  --sidebar: #f7f8fa;
+  --sidebar-foreground: #101218;
+  --sidebar-primary: #111318;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ffffff; /* active item: white pill with a border */
+  --sidebar-accent-foreground: #101218;
+  --sidebar-border: #e4e6ea;
+  --sidebar-ring: rgba(47, 107, 255, 0.45);
+  --shadow-soft: 0 1px 2px rgba(16, 18, 24, 0.04), 0 4px 12px -6px
+    rgba(16, 18, 24, 0.08);
+  --shadow-float: 0 1px 2px rgba(16, 18, 24, 0.05), 0 12px 32px -12px
+    rgba(16, 18, 24, 0.16);
 }
 .light {
   [data-theme="zinc"] {
@@ -828,39 +821,54 @@ html {
 }
 
 .dark {
-  --background: oklch(0.17 0.008 285.8);
-  --foreground: oklch(0.97 0.002 106);
-  --card: oklch(0.212 0.01 285.9);
-  --card-foreground: oklch(0.97 0.002 106);
-  --popover: oklch(0.212 0.01 285.9);
-  --popover-foreground: oklch(0.97 0.002 106);
-  --primary: oklch(0.68 0.16 281); /* violet, lifted for dark bg */
-  --primary-foreground: oklch(0.145 0.02 283);
-  --secondary: oklch(0.27 0.012 286);
-  --secondary-foreground: oklch(0.97 0.002 106);
-  --muted: oklch(0.27 0.012 286);
-  --muted-foreground: oklch(0.71 0.015 286);
-  --accent: oklch(0.3 0.04 283); /* violet-tinted hover wash */
-  --accent-foreground: oklch(0.92 0.03 283);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.68 0.16 281 / 55%);
-  --energy: oklch(0.87 0.2 123); /* lime survives dark mode */
-  --energy-foreground: oklch(0.22 0.05 130);
-  --chart-1: oklch(0.68 0.16 281);
-  --chart-2: oklch(0.82 0.1 100);
-  --chart-3: oklch(0.72 0.13 195);
-  --chart-4: oklch(0.75 0.15 150);
-  --chart-5: oklch(0.6 0.08 283);
-  --sidebar: oklch(0.17 0.008 285.8);
-  --sidebar-foreground: oklch(0.97 0.002 106);
-  --sidebar-primary: oklch(0.68 0.16 281);
-  --sidebar-primary-foreground: oklch(0.145 0.02 283);
-  --sidebar-accent: oklch(0.3 0.04 283);
-  --sidebar-accent-foreground: oklch(0.92 0.03 283);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.68 0.16 281 / 55%);
+  --background: #171514; /* warm charcoal ground */
+  --foreground: #f3f1ef;
+  --surface: #1f1d1c;
+  --surface-foreground: #f3f1ef;
+  --card: #262423;
+  --card-foreground: #f3f1ef;
+  --popover: #2a2827;
+  --popover-foreground: #f3f1ef;
+  --primary: #f3f1ef; /* actions invert: light on dark */
+  --primary-foreground: #171514;
+  --secondary: #2d2b2a;
+  --secondary-foreground: #f3f1ef;
+  --muted: #2a2827;
+  --muted-foreground: #a8a29e;
+  --accent: #2f2d2b;
+  --accent-foreground: #f3f1ef;
+  --destructive: #f87171;
+  --destructive-foreground: #171514;
+  --border: #353231;
+  --input: #3b3836;
+  --ring: rgba(107, 147, 255, 0.5);
+  --brand: #6b93ff;
+  --brand-foreground: #0f1320;
+  --energy: #f3f1ef;
+  --energy-foreground: #171514;
+  --highlight: #6b93ff;
+  --highlight-foreground: #0f1320;
+  --tint-mint: #1f3328;
+  --tint-butter: #3a3020;
+  --tint-green: #26341d;
+  --tint-pink: #3b2229;
+  --tint-blue: #1f2a45;
+  --tint-orange: #3d2a1d;
+  --chart-1: #6b93ff;
+  --chart-2: #a78bfa;
+  --chart-3: #34d399;
+  --chart-4: #fbbf24;
+  --chart-5: #f472b6;
+  --sidebar: #1b1918;
+  --sidebar-foreground: #f3f1ef;
+  --sidebar-primary: #f3f1ef;
+  --sidebar-primary-foreground: #171514;
+  --sidebar-accent: #2d2b2a;
+  --sidebar-accent-foreground: #f3f1ef;
+  --sidebar-border: #312e2d;
+  --sidebar-ring: rgba(107, 147, 255, 0.5);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-float: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
 
   [data-theme="zinc"] {
     --background: hsl(240 10% 3.9%);
@@ -1505,31 +1513,9 @@ html {
   }
 }
 
-/* Selectable body fonts. Targets `body` (not :root) because the next/font
- * family variables (--font-inter, …) are defined on <body>. Unlayered so the
- * [data-font] override beats the unlayered :root default. Set by FontSwitcher.
- * Plus Jakarta Sans is the default (see the body base rule below). */
-[data-font="jakarta"] body,
+/* Fixed type system. Body: Inter. Display (headings): Urbanist. Mono: JetBrains. */
 body {
-  --font-sans: var(--font-jakarta), system-ui, sans-serif;
-}
-[data-font="neue"] body {
-  --font-sans: "Neue Montreal", system-ui, sans-serif;
-}
-[data-font="geist"] body {
-  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
-}
-[data-font="inter"] body {
   --font-sans: var(--font-inter), system-ui, sans-serif;
-}
-[data-font="manrope"] body {
-  --font-sans: var(--font-manrope), system-ui, sans-serif;
-}
-[data-font="sora"] body {
-  --font-sans: var(--font-sora), system-ui, sans-serif;
-}
-[data-font="space"] body {
-  --font-sans: var(--font-space), system-ui, sans-serif;
 }
 
 @layer base {
@@ -1539,6 +1525,14 @@ body {
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
+  }
+
+  /* Headings speak in the display face by default. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
   }
 
   button {
@@ -1641,17 +1635,17 @@ body {
    ─────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Background */
-  --askly-bg: #0a0807;
-  --askly-bg-elevated: #15110d;
+  /* Background — warm near-black twin of the cream ground */
+  --askly-bg: #121410;
+  --askly-bg-elevated: #1b1e19;
 
-  /* Amber ramp */
-  --askly-amber-50: #faeeda;
-  --askly-amber-100: #fac775;
-  --askly-amber-400: #ef9f27;
-  --askly-amber-600: #ba7517;
-  --askly-amber-800: #633806;
-  --askly-amber-900: #412402;
+  /* Accent ramp — green/lime (token names keep the historical "amber" prefix) */
+  --askly-amber-50: #eafbef;
+  --askly-amber-100: #bbf7d0;
+  --askly-amber-400: #4ade80;
+  --askly-amber-600: #16a34a;
+  --askly-amber-800: #14532d;
+  --askly-amber-900: #0b2e1b;
 
   /* Text */
   --askly-text-primary: rgba(255, 255, 255, 0.95);
@@ -1662,12 +1656,12 @@ body {
   /* Borders */
   --askly-border: rgba(255, 255, 255, 0.08);
   --askly-border-hover: rgba(255, 255, 255, 0.16);
-  --askly-border-active: rgba(250, 199, 117, 0.35);
+  --askly-border-active: rgba(74, 222, 128, 0.35);
 
   /* Glass backgrounds */
-  --askly-glass-bg: rgba(20, 16, 12, 0.45);
+  --askly-glass-bg: rgba(16, 20, 14, 0.45);
   --askly-glass-bg-subtle: rgba(255, 255, 255, 0.04);
-  --askly-glass-bg-active: rgba(250, 199, 117, 0.12);
+  --askly-glass-bg-active: rgba(74, 222, 128, 0.12);
 }
 
 /* ── Glass surface utilities ─────────────────────────────────────────────── */
@@ -1756,4 +1750,20 @@ body {
 }
 .askly-pulse-glow {
   animation: askly-pulse-glow 4s ease-in-out infinite;
+}
+
+/* Solid surfaces. `.glass` / `.glass-strong` are kept as names (many
+ * components use them) but are plain cards: solid fill, hairline border,
+ * soft shadow. No blur, no transparency. */
+.glass {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+}
+.glass-strong {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-float);
 }

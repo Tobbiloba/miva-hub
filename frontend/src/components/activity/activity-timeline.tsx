@@ -67,10 +67,10 @@ export function ActivityTimeline() {
   return (
     <section
       aria-labelledby="activity-title"
-      className="rounded-xl border bg-card p-4 sm:p-5"
+      className="rounded-2xl border bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="activity-title" className="text-lg font-semibold">
+        <h2 id="activity-title" className="font-display text-lg font-bold">
           Recent activity
         </h2>
         {!!data?.flashcardsReviewed && (
@@ -117,7 +117,7 @@ export function ActivityTimeline() {
                       className="flex items-start gap-2 text-sm"
                     >
                       <Icon
-                        className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                        className="mt-0.5 size-6 shrink-0 rounded-md border bg-secondary p-1 text-muted-foreground"
                         aria-hidden
                       />
                       <span className="min-w-0 break-words">You {e.text}</span>

@@ -256,7 +256,7 @@ export function Exam(props: ExamProps) {
     return (
       <div className="space-y-4">
         {showResumePrompt && savedProgress && (
-          <Alert className="bg-primary/10 border-primary/20">
+          <Alert className="border-brand/30 bg-tint-blue/50">
             <AlertDescription className="flex items-center justify-between">
               <span className="text-sm">
                 Resume your previous attempt? (
@@ -275,10 +275,10 @@ export function Exam(props: ExamProps) {
           </Alert>
         )}
 
-        <Card className="bg-card">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-secondary/40">
+              <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-tint-orange text-orange-700 dark:text-orange-300 [&_svg]:size-5">
                 <GraduationCap className="w-6 h-6" />
               </div>
               <div className="flex-1">
@@ -337,11 +337,11 @@ export function Exam(props: ExamProps) {
 
     return (
       <div className="space-y-4">
-        <Card className="bg-card">
+        <Card>
           <CardContent className="p-6">
             <div className="text-center mb-6">
               <h3 className="font-semibold text-2xl mb-2">Exam Submitted!</h3>
-              <div className="text-4xl font-bold mb-2">
+              <div className="mb-2 font-display text-5xl font-bold tracking-tight">
                 {percentage.toFixed(0)}%
               </div>
               <p className="text-muted-foreground">
@@ -513,7 +513,7 @@ export function Exam(props: ExamProps) {
         </CardContent>
       </Card>
 
-      <Card className="bg-card">
+      <Card>
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-sm text-muted-foreground">
@@ -530,14 +530,17 @@ export function Exam(props: ExamProps) {
             <RadioGroup value={currentAnswer} onValueChange={handleAnswer}>
               <div className="space-y-3">
                 {question.options.map((option, i) => (
-                  <div key={i} className="flex items-center space-x-2">
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-foreground/25 has-[[data-state=checked]]:border-brand has-[[data-state=checked]]:bg-tint-blue/40"
+                  >
                     <RadioGroupItem
                       value={option}
                       id={`q${currentQuestion}-opt${i}`}
                     />
                     <Label
                       htmlFor={`q${currentQuestion}-opt${i}`}
-                      className="flex-1 cursor-pointer"
+                      className="flex-1 cursor-pointer py-0.5 leading-snug"
                     >
                       {option}
                     </Label>
@@ -550,26 +553,26 @@ export function Exam(props: ExamProps) {
           {question.question_type === "true_false" && (
             <RadioGroup value={currentAnswer} onValueChange={handleAnswer}>
               <div className="space-y-3">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-foreground/25 has-[[data-state=checked]]:border-brand has-[[data-state=checked]]:bg-tint-blue/40">
                   <RadioGroupItem
                     value="True"
                     id={`q${currentQuestion}-true`}
                   />
                   <Label
                     htmlFor={`q${currentQuestion}-true`}
-                    className="cursor-pointer"
+                    className="flex-1 cursor-pointer py-0.5"
                   >
                     True
                   </Label>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-foreground/25 has-[[data-state=checked]]:border-brand has-[[data-state=checked]]:bg-tint-blue/40">
                   <RadioGroupItem
                     value="False"
                     id={`q${currentQuestion}-false`}
                   />
                   <Label
                     htmlFor={`q${currentQuestion}-false`}
-                    className="cursor-pointer"
+                    className="flex-1 cursor-pointer py-0.5"
                   >
                     False
                   </Label>

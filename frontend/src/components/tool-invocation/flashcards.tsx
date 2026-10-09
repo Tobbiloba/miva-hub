@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Check, Loader2, Save } from "lucide-react";
+import { Check, Layers, Loader2, Save } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -75,9 +75,14 @@ export function Flashcards(props: FlashcardsProps) {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-card">
-        <CardHeader>
-          <CardTitle>Flashcards - {props.topic}</CardTitle>
+      <Card>
+        <CardHeader className="grid-cols-[auto_1fr] gap-x-3">
+          <span className="row-span-2 grid size-11 place-items-center rounded-xl bg-tint-green text-green-700 dark:text-green-300">
+            <Layers className="size-5" />
+          </span>
+          <CardTitle className="font-display text-lg">
+            Flashcards · {props.topic}
+          </CardTitle>
           <CardDescription>
             {props.course_code && (
               <span className="font-medium">{props.course_code}</span>
@@ -91,7 +96,7 @@ export function Flashcards(props: FlashcardsProps) {
             )}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap items-center justify-between gap-3">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
           <p className="text-sm text-muted-foreground">
             Click on any card to flip it
           </p>
@@ -117,7 +122,7 @@ export function Flashcards(props: FlashcardsProps) {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {props.cards.map((card, index) => (
           <button
             type="button"
@@ -137,9 +142,14 @@ export function Flashcards(props: FlashcardsProps) {
               }`}
             >
               {/* Front */}
-              <Card className="absolute inset-0 backface-hidden bg-secondary/40 hover:bg-secondary/60 transition-colors">
+              <Card className="absolute inset-0 backface-hidden py-0 transition-colors hover:border-foreground/25">
                 <CardContent className="p-4 h-full flex flex-col items-center justify-center text-center">
-                  <p className="text-sm font-medium">{card.front}</p>
+                  <span className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Card {index + 1}
+                  </span>
+                  <p className="text-sm font-semibold leading-snug">
+                    {card.front}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-2">
                     Click to flip
                   </p>
@@ -147,7 +157,7 @@ export function Flashcards(props: FlashcardsProps) {
               </Card>
 
               {/* Back */}
-              <Card className="absolute inset-0 backface-hidden rotate-y-180 bg-accent/50">
+              <Card className="absolute inset-0 backface-hidden rotate-y-180 border-brand/30 bg-tint-blue py-0">
                 <CardContent className="p-4 h-full flex flex-col items-center justify-center text-center">
                   <p className="text-sm">{card.back}</p>
                   <p className="text-xs text-muted-foreground mt-2">
@@ -161,9 +171,9 @@ export function Flashcards(props: FlashcardsProps) {
       </div>
 
       {props.sources_used && props.sources_used.length > 0 && (
-        <Card className="bg-secondary/40">
-          <CardContent className="p-4">
-            <p className="text-sm font-medium mb-2">Sources Used:</p>
+        <Card className="py-4">
+          <CardContent>
+            <p className="text-sm font-medium mb-2">Sources used</p>
             <ul className="text-sm text-muted-foreground space-y-1">
               {props.sources_used.map((source, i) => (
                 <li key={i}>• {source}</li>

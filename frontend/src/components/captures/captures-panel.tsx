@@ -136,10 +136,10 @@ export function CapturesPanel() {
   return (
     <section
       aria-labelledby="captures-title"
-      className="rounded-xl border bg-card p-4 sm:p-5"
+      className="rounded-2xl border bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="captures-title" className="text-lg font-semibold">
+        <h2 id="captures-title" className="font-display text-lg font-bold">
           Your captures
         </h2>
         {captures.length > 0 && (
@@ -191,7 +191,7 @@ export function CapturesPanel() {
                   className="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
                 >
                   <TypeIcon
-                    className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                    className="mt-0.5 size-7 shrink-0 rounded-lg border bg-secondary p-1.5 text-muted-foreground"
                     aria-hidden
                   />
                   <div className="min-w-0 flex-1">

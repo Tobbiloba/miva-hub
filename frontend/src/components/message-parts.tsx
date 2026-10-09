@@ -181,16 +181,15 @@ export const UserMessagePart = memo(
         <div
           data-testid="message-content"
           className={cn(
-            "flex flex-col gap-4 max-w-full ring ring-input relative overflow-hidden",
+            "relative flex max-w-full flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-card px-4 py-2.5 text-card-foreground shadow-[var(--shadow-soft)]",
             {
-              "bg-accent text-accent-foreground px-4 py-3 rounded-2xl": isLast,
               "opacity-50": isError,
             },
             isError && "border-destructive border",
           )}
         >
           {isLongText && !expanded && (
-            <div className="absolute pointer-events-none bg-gradient-to-t from-accent to-transparent w-full h-40 bottom-0 left-0" />
+            <div className="absolute pointer-events-none bg-gradient-to-t from-card to-transparent w-full h-40 bottom-0 left-0" />
           )}
           <p className={cn("whitespace-pre-wrap text-sm break-words")}>
             {displayText}
@@ -367,15 +366,20 @@ export const AssistMessagePart = memo(function AssistMessagePart({
     >
       <div
         data-testid="message-content"
-        className={cn("flex flex-col gap-4 px-2", {
-          "opacity-50 border border-destructive bg-card rounded-lg": isError,
-        })}
+        className={cn(
+          "flex flex-col gap-4 rounded-2xl border border-border/70 bg-secondary/50 px-5 py-4",
+          {
+            "opacity-50 border-destructive": isError,
+          },
+        )}
       >
         <MarkdownWithFiles>{linkedText}</MarkdownWithFiles>
         <MediaRenderer content={part.text} />
         {cited.length > 0 && (
-          <div className="flex flex-col gap-1 border-t pt-3 text-xs text-muted-foreground">
-            <span className="font-medium">From your course materials</span>
+          <div className="flex flex-col gap-1.5 border-t border-border pt-3 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">
+              From your course materials
+            </span>
             <ol className="flex flex-col gap-1">
               {cited.map((source) => (
                 <li key={source.source}>
@@ -1078,7 +1082,7 @@ export const ToolMessagePart = memo(
               className="flex gap-2 items-center cursor-pointer group/title"
               onClick={() => setExpanded(!expanded)}
             >
-              <div className="p-1.5 text-primary bg-input/40 rounded">
+              <div className="rounded-lg border bg-card p-1.5 text-brand">
                 {isExecuting ? (
                   <Loader className="size-3.5 animate-spin" />
                 ) : isError ? (
@@ -1118,7 +1122,7 @@ export const ToolMessagePart = memo(
               <div className="w-full flex flex-col gap-2">
                 <div
                   className={cn(
-                    "min-w-0 w-full p-4 rounded-lg bg-card px-4 border text-xs transition-colors fade-300",
+                    "min-w-0 w-full rounded-xl border bg-card p-4 text-xs shadow-[var(--shadow-soft)] transition-colors fade-300",
                     !isExpanded && "hover:bg-secondary cursor-pointer",
                   )}
                   onClick={() => {
@@ -1154,7 +1158,7 @@ export const ToolMessagePart = memo(
                 {!result ? null : (
                   <div
                     className={cn(
-                      "min-w-0 w-full p-4 rounded-lg bg-card px-4 border text-xs mt-2 transition-colors fade-300",
+                      "mt-2 min-w-0 w-full rounded-xl border bg-card p-4 text-xs shadow-[var(--shadow-soft)] transition-colors fade-300",
                       !isExpanded && "hover:bg-secondary cursor-pointer",
                     )}
                     onClick={() => {

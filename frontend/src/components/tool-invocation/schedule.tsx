@@ -30,7 +30,7 @@ type ScheduleProps = {
 export function Schedule(props: ScheduleProps) {
   return (
     <div className="space-y-4">
-      <Card className="bg-card">
+      <Card>
         <CardHeader>
           <CardTitle>Academic Schedule</CardTitle>
           <CardDescription>
@@ -60,7 +60,7 @@ export function Schedule(props: ScheduleProps) {
                 day.classes.map((classItem, classIndex) => (
                   <div
                     key={classIndex}
-                    className="p-3 rounded-lg bg-secondary/40 hover:bg-secondary/60 transition-colors"
+                    className="rounded-xl border bg-card p-3 transition-colors hover:border-foreground/25"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <span className="font-medium text-xs">

@@ -251,23 +251,23 @@ export const CodeExecutor = memo(function CodeExecutor({
 
   return (
     <div className="flex flex-col">
-      <div className="px-6 py-3">
-        <div className="border overflow-x-hidden relative rounded-lg shadow fade-in animate-in duration-500">
-          <div className="py-2.5 bg-border px-4 flex items-center gap-1.5 z-10 min-h-[37px]">
+      <div className="py-2">
+        <div className="relative overflow-x-hidden rounded-2xl border bg-card shadow-[var(--shadow-soft)] fade-in animate-in duration-500">
+          <div className="z-10 flex min-h-[40px] items-center gap-1.5 border-b bg-secondary px-4 py-2.5">
             {header}
             <div className="flex-1" />
 
             {part.state.startsWith("output") && (
               <>
                 <div
-                  className="flex items-center gap-1 text-[10px] text-muted-foreground px-2 py-1 transition-all rounded-sm cursor-pointer hover:bg-input hover:text-foreground font-semibold"
+                  className="flex items-center gap-1 text-[10px] text-muted-foreground px-2 py-1 transition-all rounded-md cursor-pointer hover:bg-card hover:text-foreground font-semibold"
                   onClick={reExecute}
                 >
                   <PlayIcon className="size-2" />
                   Run
                 </div>
                 <div
-                  className="flex items-center gap-1 text-[10px] text-muted-foreground px-2 py-1 transition-all rounded-sm cursor-pointer hover:bg-input hover:text-foreground font-semibold"
+                  className="flex items-center gap-1 text-[10px] text-muted-foreground px-2 py-1 transition-all rounded-md cursor-pointer hover:bg-card hover:text-foreground font-semibold"
                   onClick={() => copy(toAny(part.input)?.code ?? "")}
                 >
                   {copied ? (
@@ -281,10 +281,10 @@ export const CodeExecutor = memo(function CodeExecutor({
             )}
           </div>
           <div className="relative">
-            <div className="absolute pointer-events-none top-0 left-0 w-full h-1/6 bg-gradient-to-b from-background to-transparent z-10" />
-            <div className="absolute pointer-events-none bottom-0 left-0 w-full h-1/6 bg-gradient-to-t from-background to-transparent z-10" />
-            <div className="absolute pointer-events-none top-0 left-0 w-1/6 h-full bg-gradient-to-r from-background to-transparent z-10" />
-            <div className="absolute pointer-events-none top-0 right-0 w-1/6 h-full bg-gradient-to-l from-background to-transparent z-10" />
+            <div className="absolute pointer-events-none top-0 left-0 w-full h-1/6 bg-gradient-to-b from-card to-transparent z-10" />
+            <div className="absolute pointer-events-none bottom-0 left-0 w-full h-1/6 bg-gradient-to-t from-card to-transparent z-10" />
+            <div className="absolute pointer-events-none top-0 left-0 w-1/6 h-full bg-gradient-to-r from-card to-transparent z-10" />
+            <div className="absolute pointer-events-none top-0 right-0 w-1/6 h-full bg-gradient-to-l from-card to-transparent z-10" />
             <div
               className="min-h-14 p-6 text-xs overflow-y-auto max-h-[40vh]"
               ref={codeResultContainerRef}

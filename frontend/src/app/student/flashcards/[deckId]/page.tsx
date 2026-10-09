@@ -213,14 +213,14 @@ export default function ReviewSessionPage() {
             tabIndex={0}
             onKeyDown={(e) => e.key === "Enter" && handleFlip()}
           >
-            <Card className="min-h-[280px] flex items-center justify-center transition-all">
+            <Card className="flex min-h-[300px] items-center justify-center shadow-[var(--shadow-float)] transition-all hover:border-foreground/20">
               <CardContent className="p-8 text-center w-full">
                 {!flipped ? (
                   <>
                     <p className="text-xs uppercase tracking-wide text-muted-foreground mb-4">
                       Question
                     </p>
-                    <p className="text-xl leading-relaxed">
+                    <p className="font-display text-2xl font-semibold leading-snug">
                       {currentCard?.front}
                     </p>
                     <p className="text-xs text-muted-foreground mt-6">
@@ -232,7 +232,7 @@ export default function ReviewSessionPage() {
                     <p className="text-xs uppercase tracking-wide text-muted-foreground mb-4">
                       Answer
                     </p>
-                    <p className="text-xl leading-relaxed">
+                    <p className="font-display text-2xl font-semibold leading-snug">
                       {currentCard?.back}
                     </p>
                   </>

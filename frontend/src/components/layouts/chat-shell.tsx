@@ -20,17 +20,21 @@ export async function ChatShell({
   children: React.ReactNode;
 }) {
   const cookieStore = await cookies();
+  // Open by default; only a stored "false" (the user closed it) collapses it.
   const isCollapsed =
-    cookieStore.get(COOKIE_KEY_SIDEBAR_STATE)?.value !== "true";
+    cookieStore.get(COOKIE_KEY_SIDEBAR_STATE)?.value === "false";
   return (
     <SidebarProvider defaultOpen={!isCollapsed}>
       <SWRConfigProvider>
         <ToolsInfoDrawerProvider>
           <AppPopupProvider />
           <AppSidebar session={session} />
-          <main className="relative bg-background  w-full flex flex-col h-screen">
+          <main className="relative flex h-screen w-full min-w-0 flex-col bg-sidebar">
             <AppHeader />
-            <div className="flex-1 overflow-y-auto">{children}</div>
+            {/* The work panel: one solid, bordered surface under the header */}
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-border bg-surface md:rounded-tl-2xl md:border-l">
+              <div className="flex-1 overflow-y-auto">{children}</div>
+            </div>
           </main>
         </ToolsInfoDrawerProvider>
       </SWRConfigProvider>
