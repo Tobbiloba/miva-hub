@@ -184,11 +184,35 @@ back on is a config change.
    - Capture status + job recovery.
 
    _Verify:_ Playwright journey: capture → ask → cite → quiz → save deck → see deadline.
-3. **Phase C: Launch.** Prod rollout (phase 6), Web Store listing, first cohort.
+3. **Phase C: Assistant memory** (done, see status), then **launch:** prod rollout (phase 6), Web Store listing, first cohort.
 4. **Phase D: P1**, ordered by what the first cohort actually asks for in chat (log and read the
    questions).
 5. **Phase E: P2**, starting with SIWES (after validating the format with real students), then group
    projects.
+
+### Status (2026-10-09)
+
+Built and tested end to end locally (Playwright specs: `full-journey`, `deadlines`,
+`flashcards`, `citations`, `memory`):
+
+- **Lean surface** — sidebar is Chat · My Courses · Deadlines · Flashcards (+ Billing in the
+  user menu); archived pages redirect to the chat, their APIs 404; three-step capture setup
+  on the empty chat. Flag: `lib/config/product.ts`.
+- **Deadlines** — captured assignment/quiz due dates (`course_material.due_at`), lecturer
+  assignments and the student's own (`student_deadline`) in one list; tick/add/remove on
+  `/student/deadlines` or in chat (`manage-deadlines`). Times are Africa/Lagos.
+- **Captures** — status per item (ready / processing / no text / failed), retry, remove;
+  jobs complete only after the text is read, abandoned jobs are reclaimed; cron route
+  `/api/cron/process-captures`.
+- **Flashcards** — "Save deck" on chat flashcards → spaced-repetition decks.
+- **Citations** — `[S#]` chips link to the material, sources listed under the answer;
+  honest "no materials yet, capture them" answers.
+- **Assistant memory** — captures, quiz scores + missed questions,
+  finished deadlines and course questions recorded in `study_activity`; every chat turn
+  gets a summary (`lib/memory`), `get-my-activity` tool, timeline on My Courses.
+
+Not yet: prod rollout (migrations 0041–0045, env, cron, extension 0.3.1 publish — see
+`frontend/LAUNCH-CHECKLIST.md`), then P1.
 
 ---
 

@@ -12,6 +12,19 @@ enforced/warned automatically by `src/lib/env-check.ts` at boot.
 - [ ] `RESEND_API_KEY` — email sending (invites, receipts, password resets) `(code: warn)`
 - [ ] AI provider keys (`OPENAI_API_KEY` at minimum) `(code: warn)`
 - [ ] Rotate any credentials previously committed in `mcp-server/.env`
+- [ ] Python services reachable and locked: `MCP_SERVER_URL`, `STUDY_BUDDY_API_URL`,
+      `CONTENT_PROCESSOR_URL`, plus `MCP_SHARED_SECRET`, `STUDY_BUDDY_SHARED_SECRET`,
+      `CONTENT_PROCESSOR_SHARED_SECRET` (same values on the services; they refuse
+      requests without them)
+- [ ] `CRON_SECRET` set, and `/api/cron/process-captures` scheduled every ~10 min
+      with `Authorization: Bearer $CRON_SECRET` (Vercel Cron on Pro sends it
+      itself; on Hobby use an external pinger). It finishes captures a timeout
+      left behind and re-indexes failed materials
+- [ ] `NEXT_PUBLIC_EXTENSION_INSTALL_URL` — Chrome Web Store link for Askly
+      Capture; the student setup card and captures panel show no install button
+      without it
+- [ ] `NEXT_PUBLIC_CHAT_FIRST` unset (default: lean student product). `APP_TIMEZONE`
+      only if students aren't in Africa/Lagos
 
 ## Paystack
 
@@ -23,6 +36,9 @@ enforced/warned automatically by `src/lib/env-check.ts` at boot.
 ## Database
 
 - [ ] Run `pnpm db:migrate` (never `db:push` against prod)
+      (0041–0045 are new since the last prod migration: per-university current
+      session, canonical term keys, student deadlines, chat flashcard decks,
+      assistant memory activity types)
 - [ ] Bootstrap a super admin: `npx tsx --env-file=.env scripts/promote-super-admin.ts <email>`
 - [ ] Verify MIVA tenant row is `active` and its `emailDomains` are correct
 
@@ -37,10 +53,20 @@ enforced/warned automatically by `src/lib/env-check.ts` at boot.
 - **Comp seat grants are API-only** — no UI; super admin grants seats via
   `POST /api/super-admin/universities/<id>/subscription` with
   `{"seatLimit": n, "months": n, "notes": "..."}`.
-- Pre-existing `tsc` baseline (~425 errors) — does not block builds but worth
-  burning down (notably `src/app/admin/faculty/page.tsx` schema drift).
+- `npx tsc --noEmit` is clean; keep it that way.
+
+## Chrome extension
+
+- [ ] Publish Askly Capture 0.3.1 (`extension/`; due-date fix) with the
+      production origin, then set `NEXT_PUBLIC_EXTENSION_INSTALL_URL`
 
 ## Smoke test (per deploy)
+
+- [ ] New student: sidebar shows only Chat, My Courses, Deadlines, Flashcards;
+      the empty chat shows the three-step capture setup
+- [ ] Capture an assignment page → it appears under Deadlines and in My Courses
+      → Your captures as Ready
+- [ ] Ask a course question → answer cites [S1] chips that open the material
 
 - [ ] University self-signup at `/university/register` → success screen, tenant `pending`
 - [ ] Super admin approves tenant at `/admin/universities` → student signup with that domain works
