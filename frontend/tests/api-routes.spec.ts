@@ -9,10 +9,17 @@ import { expect, test } from "@playwright/test";
 test.describe("Phase 1C: API Routes", () => {
   // ── Public routes (no auth) ──────────────────────────────────────────────
 
-  test("GET /api/programs/public → 200, array with ≥1 program", async ({
+  test("GET /api/programs/public → 400 without a university", async ({
     request,
   }) => {
     const res = await request.get("/api/programs/public");
+    expect(res.status()).toBe(400);
+  });
+
+  test("GET /api/programs/public?university=miva → 200, array with ≥1 program", async ({
+    request,
+  }) => {
+    const res = await request.get("/api/programs/public?university=miva");
     expect(res.status()).toBe(200);
     const data = await res.json();
     expect(Array.isArray(data)).toBe(true);
@@ -25,7 +32,9 @@ test.describe("Phase 1C: API Routes", () => {
   test("GET /api/academic/session/current → 200, session + semester mapping", async ({
     request,
   }) => {
-    const res = await request.get("/api/academic/session/current");
+    const res = await request.get(
+      "/api/academic/session/current?university=miva",
+    );
     expect(res.status()).toBe(200);
     const data = await res.json();
     expect(data).toHaveProperty("sessionName");
@@ -33,6 +42,10 @@ test.describe("Phase 1C: API Routes", () => {
     expect(data).toHaveProperty("academicYear");
     expect(data).toHaveProperty("enrollmentSemester");
     expect(["first", "second"]).toContain(data.currentSemester);
+    // Canonical term key, e.g. "2025/2026-first"
+    expect(data.enrollmentSemester).toBe(
+      `${data.sessionName}-${data.currentSemester}`,
+    );
   });
 
   // ── Auth-required routes (should 401 without session) ────────────────────

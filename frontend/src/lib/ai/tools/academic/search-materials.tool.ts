@@ -25,34 +25,36 @@ export const createSearchMaterialsTool = (userId: string) =>
       courseCode: z
         .string()
         .optional()
-        .describe("Limit to one enrolled course, e.g. COS101"),
+        .describe(
+          "Optional: limit to one of the student's enrolled course codes (exactly as listed by get-my-courses). Omit when unsure.",
+        ),
     }),
     execute: async ({ query, courseCode }) => {
-      let courseId: string | undefined;
-      if (courseCode) {
-        const [course] = await pgDb
-          .select({ id: CourseSchema.id })
-          .from(StudentEnrollmentSchema)
-          .innerJoin(
-            CourseSchema,
-            eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
-          )
-          .where(
-            and(
-              eq(StudentEnrollmentSchema.studentId, userId),
-              eq(StudentEnrollmentSchema.status, "enrolled"),
-              eq(CourseSchema.courseCode, courseCode.trim().toUpperCase()),
-            ),
-          )
-          .limit(1);
-        if (!course) {
-          return {
-            error: `You're not enrolled in ${courseCode.toUpperCase()}`,
-            passages: [],
-          };
-        }
-        courseId = course.id;
-      }
+      // The course filter is optional and models often guess it ("CS101"
+      // for COS101). An unknown code must not empty the search: search all
+      // of the student's courses and say which codes are real.
+      const enrolled = await pgDb
+        .select({ id: CourseSchema.id, code: CourseSchema.courseCode })
+        .from(StudentEnrollmentSchema)
+        .innerJoin(
+          CourseSchema,
+          eq(StudentEnrollmentSchema.courseId, CourseSchema.id),
+        )
+        .where(
+          and(
+            eq(StudentEnrollmentSchema.studentId, userId),
+            eq(StudentEnrollmentSchema.status, "enrolled"),
+          ),
+        );
+      const wanted = courseCode?.trim().toUpperCase();
+      const match = wanted
+        ? enrolled.find((c) => c.code.toUpperCase() === wanted)
+        : undefined;
+      const courseId = match?.id;
+      const note =
+        wanted && !match
+          ? `${wanted} isn't one of this student's courses (${enrolled.map((c) => c.code).join(", ")}); searched all of them instead.`
+          : undefined;
 
       const passages = await searchEnrolledMaterials(userId, query, {
         courseId,
@@ -60,11 +62,13 @@ export const createSearchMaterialsTool = (userId: string) =>
       if (passages.length === 0) {
         return {
           passages: [],
+          note,
           message:
             "No matching passages in this student's course materials. Say so plainly; do not invent course content.",
         };
       }
       return {
+        note,
         passages: passages.map((p, i) => ({
           source: `S${i + 1}`,
           course: p.courseCode,
