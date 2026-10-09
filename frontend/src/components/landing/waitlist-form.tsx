@@ -1,151 +1,111 @@
 "use client";
 
-import { cn } from "lib/utils";
-import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
-type Status =
+type State =
   | { kind: "idle" }
-  | { kind: "sending" }
+  | { kind: "loading" }
   | { kind: "done" }
   | { kind: "error"; message: string };
 
-const ROLES = [
-  { value: "student", label: "Student" },
-  { value: "lecturer", label: "Lecturer" },
-  { value: "other", label: "Other" },
-] as const;
+/** Email-only waitlist pill; posts to /api/waitlist (idempotent per email). */
+export function WaitlistForm({ source }: { source: string }) {
+  const id = useId();
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<State>({ kind: "idle" });
 
-/** Join-the-waitlist form; posts to /api/waitlist. */
-export function WaitlistForm({
-  source,
-  className,
-}: {
-  source: string;
-  className?: string;
-}) {
-  const [status, setStatus] = useState<Status>({ kind: "idle" });
-
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    setStatus({ kind: "sending" });
+    if (state.kind === "loading") return;
+    // Honeypot: bots fill every field, people never see this one
+    if (new FormData(e.currentTarget).get("company")) {
+      return setState({ kind: "done" });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
+      return setState({
+        kind: "error",
+        message: "Enter a valid email address.",
+      });
+    }
+    setState({ kind: "loading" });
     try {
       const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: form.get("email"),
-          name: form.get("name"),
-          university: form.get("university"),
-          role: form.get("role"),
-          source,
-        }),
+        body: JSON.stringify({ email, source }),
       });
-      if (res.ok) return setStatus({ kind: "done" });
-      const data = await res.json().catch(() => ({}));
-      setStatus({
+      if (res.ok) return setState({ kind: "done" });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      setState({
         kind: "error",
-        message: data.error ?? "Something went wrong. Please try again.",
+        message: data.error ?? "Something went wrong. Try again in a moment.",
       });
     } catch {
-      setStatus({
+      setState({
         kind: "error",
-        message: "You seem to be offline. Please try again.",
+        message: "No connection. Check your internet and try again.",
       });
     }
   }
 
-  if (status.kind === "done") {
+  if (state.kind === "done") {
     return (
-      <div
-        role="status"
-        className={cn(
-          "flex flex-col items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-8 text-center text-neutral-900",
-          className,
-        )}
-      >
-        <CheckCircle2 className="size-10 text-emerald-600" aria-hidden />
-        <p className="text-2xl font-semibold tracking-[-0.025em]">
-          You&apos;re on the list
-        </p>
-        <p className="max-w-sm text-sm text-neutral-600">
-          We&apos;ll email you as soon as Askly opens for your university.
-        </p>
+      <div className="waitlist-done" role="status" aria-live="polite">
+        <strong>You&apos;re on the list.</strong>
+        <span>We&apos;ll email you when your spot opens. Nothing else.</span>
       </div>
     );
   }
 
-  const field =
-    "h-11 w-full rounded-xl border border-neutral-200 bg-white px-3.5 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-[#2f6bff]/60 focus:ring-4 focus:ring-[#2f6bff]/10";
-
+  const loading = state.kind === "loading";
   return (
-    <form
-      onSubmit={onSubmit}
-      className={cn(
-        "grid gap-3 rounded-2xl border border-neutral-200 bg-white p-5 text-neutral-900 shadow-xl sm:grid-cols-2 sm:p-6",
-        className,
-      )}
-    >
-      <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">
-        Email
+    <form className="waitlist" onSubmit={submit} noValidate>
+      <div className="waitlist-row">
+        <label htmlFor={`${id}-email`} className="sr-only">
+          Email address
+        </label>
         <input
-          name="email"
+          id={`${id}-email`}
           type="email"
-          required
+          inputMode="email"
           autoComplete="email"
-          placeholder="you@university.edu.ng"
-          className={field}
+          placeholder="you@miva.edu.ng"
+          required
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (state.kind === "error") setState({ kind: "idle" });
+          }}
+          aria-invalid={state.kind === "error"}
+          aria-describedby={state.kind === "error" ? `${id}-err` : undefined}
+          disabled={loading}
         />
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium">
-        Name <span className="sr-only">(optional)</span>
         <input
-          name="name"
-          autoComplete="name"
-          placeholder="Optional"
-          className={field}
+          type="text"
+          name="company"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden
+          className="hp"
         />
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium">
-        I&apos;m a
-        <select name="role" defaultValue="student" className={field}>
-          {ROLES.map((r) => (
-            <option key={r.value} value={r.value}>
-              {r.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">
-        University <span className="sr-only">(optional)</span>
-        <input
-          name="university"
-          autoComplete="organization"
-          placeholder="Optional"
-          className={field}
-        />
-      </label>
-      {status.kind === "error" && (
-        <p role="alert" className="text-sm text-red-600 sm:col-span-2">
-          {status.message}
+        <button
+          type="submit"
+          className="btn btn-ink"
+          disabled={loading}
+          aria-busy={loading}
+        >
+          {loading ? "Joining…" : "Join the waitlist"}
+        </button>
+      </div>
+      {state.kind === "error" ? (
+        <p id={`${id}-err`} className="waitlist-msg error" role="alert">
+          {state.message}
+        </p>
+      ) : (
+        <p className="waitlist-msg">
+          Early access for students. One email when it&apos;s your turn.
         </p>
       )}
-      <button
-        type="submit"
-        disabled={status.kind === "sending"}
-        className="mt-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-60 sm:col-span-2"
-      >
-        {status.kind === "sending" ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <ArrowRight className="size-4" />
-        )}
-        Join the waitlist
-      </button>
-      <p className="text-center text-xs text-neutral-500 sm:col-span-2">
-        No spam. One email when Askly opens for you.
-      </p>
     </form>
   );
 }
