@@ -30,8 +30,15 @@ export type JobScope =
   | { all: true };
 
 /**
- * Atomically claim up to `limit` queued jobs in `scope` (queued → downloading).
- * FOR UPDATE SKIP LOCKED means concurrent processors never claim the same job.
+ * A job still "downloading" after this long was abandoned (the function
+ * running it timed out or crashed) and is claimed again.
+ */
+const STALE_JOB_MINUTES = 10;
+
+/**
+ * Atomically claim up to `limit` runnable jobs in `scope` (→ downloading):
+ * queued ones, and abandoned ones stuck in "downloading". FOR UPDATE SKIP
+ * LOCKED means concurrent processors never claim the same job.
  */
 export async function claimQueuedJobs(
   scope: JobScope,
@@ -51,7 +58,12 @@ export async function claimQueuedJobs(
     WHERE id IN (
       SELECT j.id FROM ingestion_job j
       JOIN course c ON c.id = j.course_id
-      WHERE j.status = 'queued' AND ${scopeFilter}
+      WHERE (
+          j.status = 'queued'
+          OR (j.status = 'downloading'
+              AND j.updated_at < now() - make_interval(mins => ${STALE_JOB_MINUTES}))
+        )
+        AND ${scopeFilter}
       ORDER BY j.created_at
       LIMIT ${limit}
       FOR UPDATE OF j SKIP LOCKED
@@ -141,7 +153,13 @@ async function loadCapturePdf(
   return downloadCapturePdf(payload.pdf_url);
 }
 
-/** Process one claimed job end to end. Failures are recorded on the job row. */
+/**
+ * Process one claimed job end to end: file the capture as a course_material,
+ * then extract its text. The job is "completed" only once the text was read
+ * (or the source has none, e.g. a video without captions, which the material
+ * records); an extraction failure fails the job so it can be retried. A retry
+ * reuses the material the first attempt created.
+ */
 export async function processIngestionJob(job: IngestionJob): Promise<{
   job_id: string;
   status: "completed" | "failed";
@@ -149,103 +167,32 @@ export async function processIngestionJob(job: IngestionJob): Promise<{
 }> {
   try {
     const payload = job.payload as Record<string, any>;
-    const slug = slugify(job.lessonTitle);
-    const weekStr = job.weekNumber
-      ? `week-${String(job.weekNumber).padStart(2, "0")}`
-      : "general";
-    const sessionDir = job.sessionId ?? "no-session";
-    // Private captures live under their owner so keys never collide/overwrite
-    const keyPrefix = job.ownerUserId
-      ? `materials/private/${job.ownerUserId}/${job.courseId}/${weekStr}`
-      : `materials/${sessionDir}/${job.courseId}/${weekStr}`;
+    let extraction: Awaited<ReturnType<typeof extractTranscriptForMaterial>>;
 
-    const common = {
-      courseId: job.courseId,
-      title: job.lessonTitle,
-      weekNumber: job.weekNumber,
-      isPublic: false,
-      isPublished: false,
-      uploadedById: job.volunteerId,
-      sessionId: job.sessionId,
-      ingestionSource: "volunteer_extension" as const,
-      volunteerId: job.volunteerId,
-      ownerUserId: job.ownerUserId,
-    };
-
-    let materialId: string;
-    if (job.contentType === "pdf") {
+    if (job.courseMaterialId) {
+      extraction = await reextract(job, payload, job.courseMaterialId);
+    } else if (job.contentType === "pdf") {
       const pdfBuffer = await loadCapturePdf(job, payload);
-      const pdfFilename = sanitizePdfFilename(payload.pdf_filename, slug);
-      const s3Key = `${keyPrefix}/${pdfFilename}`;
-
-      const s3Result = await s3Service.uploadFile(
-        new File([new Uint8Array(pdfBuffer)], pdfFilename, {
-          type: "application/pdf",
-        }),
-        s3Key,
-        { userId: job.volunteerId, userRole: "student" },
+      const materialId = await filePdfMaterial(job, payload, pdfBuffer);
+      extraction = await extractTranscriptForMaterial(
+        materialId,
+        "application/pdf",
+        { pdfBuffer },
       );
-      if (!s3Result.success) {
-        throw new Error(`S3 upload failed: ${s3Result.error}`);
-      }
-      if (payload.upload_key) {
-        // The temporary upload has been filed under the material's key
-        await s3Service.deleteFile(payload.upload_key, {
-          userId: job.volunteerId,
-          userRole: "student",
-        });
-      }
-
-      const [material] = await pgDb
-        .insert(CourseMaterialSchema)
-        .values({
-          ...common,
-          materialType: "reading",
-          contentUrl: s3Key,
-          publicUrl: s3Result.cloudFrontUrl || s3Result.s3Url,
-          fileName: pdfFilename,
-          fileSize: pdfBuffer.length,
-          mimeType: "application/pdf",
-        })
-        .returning({ id: CourseMaterialSchema.id });
-      materialId = material.id;
-      await markCompleted(job.id, materialId);
-
-      // Extraction indexes the text (immediately for private captures)
-      await extractTranscriptForMaterial(materialId, "application/pdf", {
-        pdfBuffer,
-      });
     } else {
-      // Video: the transcript comes from Vimeo's captions. The video file
-      // itself is not downloaded (yt-dlp is not wired up).
-      const vimeoId = String(payload.vimeo_video_id);
-      const vimeoHash = payload.vimeo_hash ? String(payload.vimeo_hash) : "";
-      const vimeoUrl = vimeoHash
-        ? `https://player.vimeo.com/video/${vimeoId}?h=${vimeoHash}`
-        : `https://player.vimeo.com/video/${vimeoId}`;
-
-      const [material] = await pgDb
-        .insert(CourseMaterialSchema)
-        .values({
-          ...common,
-          materialType: "lecture",
-          description: `Vimeo lecture: ${vimeoUrl}`,
-          publicUrl: vimeoUrl,
-          fileName: `${slug}.mp4`,
-          mimeType: "video/mp4",
-          vimeoVideoId: vimeoId,
-          ytDlpStatus: "skipped",
-        })
-        .returning({ id: CourseMaterialSchema.id });
-      materialId = material.id;
-      await markCompleted(job.id, materialId);
-
-      await extractTranscriptForMaterial(materialId, "video/mp4", {
-        vimeoVideoId: vimeoId,
-        vimeoHash: vimeoHash || undefined,
+      const materialId = await fileVideoMaterial(job, payload);
+      extraction = await extractTranscriptForMaterial(materialId, "video/mp4", {
+        vimeoVideoId: String(payload.vimeo_video_id),
+        vimeoHash: payload.vimeo_hash ? String(payload.vimeo_hash) : undefined,
       });
     }
 
+    if (extraction.status === "failed") {
+      throw new Error(
+        `Couldn't read the text: ${extraction.error ?? "unknown error"}`,
+      );
+    }
+    await markCompleted(job.id);
     return { job_id: job.id, status: "completed" };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -258,12 +205,146 @@ export async function processIngestionJob(job: IngestionJob): Promise<{
   }
 }
 
-async function markCompleted(jobId: string, materialId: string) {
+function materialBase(job: IngestionJob) {
+  return {
+    courseId: job.courseId,
+    title: job.lessonTitle,
+    weekNumber: job.weekNumber,
+    isPublic: false,
+    isPublished: false,
+    uploadedById: job.volunteerId,
+    sessionId: job.sessionId,
+    ingestionSource: "volunteer_extension" as const,
+    volunteerId: job.volunteerId,
+    ownerUserId: job.ownerUserId,
+  };
+}
+
+/** Upload the PDF to S3 and create its material; links it to the job. */
+async function filePdfMaterial(
+  job: IngestionJob,
+  payload: Record<string, any>,
+  pdfBuffer: Buffer,
+): Promise<string> {
+  const slug = slugify(job.lessonTitle);
+  const weekStr = job.weekNumber
+    ? `week-${String(job.weekNumber).padStart(2, "0")}`
+    : "general";
+  const sessionDir = job.sessionId ?? "no-session";
+  // Private captures live under their owner so keys never collide/overwrite
+  const keyPrefix = job.ownerUserId
+    ? `materials/private/${job.ownerUserId}/${job.courseId}/${weekStr}`
+    : `materials/${sessionDir}/${job.courseId}/${weekStr}`;
+  const pdfFilename = sanitizePdfFilename(payload.pdf_filename, slug);
+  const s3Key = `${keyPrefix}/${pdfFilename}`;
+
+  const s3Result = await s3Service.uploadFile(
+    new File([new Uint8Array(pdfBuffer)], pdfFilename, {
+      type: "application/pdf",
+    }),
+    s3Key,
+    { userId: job.volunteerId, userRole: "student" },
+  );
+  if (!s3Result.success) {
+    throw new Error(`S3 upload failed: ${s3Result.error}`);
+  }
+  if (payload.upload_key) {
+    // The temporary upload has been filed under the material's key
+    await s3Service.deleteFile(payload.upload_key, {
+      userId: job.volunteerId,
+      userRole: "student",
+    });
+  }
+
+  const [material] = await pgDb
+    .insert(CourseMaterialSchema)
+    .values({
+      ...materialBase(job),
+      materialType: "reading",
+      contentUrl: s3Key,
+      publicUrl: s3Result.cloudFrontUrl || s3Result.s3Url,
+      fileName: pdfFilename,
+      fileSize: pdfBuffer.length,
+      mimeType: "application/pdf",
+    })
+    .returning({ id: CourseMaterialSchema.id });
+  await linkMaterial(job.id, material.id);
+  return material.id;
+}
+
+/**
+ * Create a video's material. The transcript comes from Vimeo's captions; the
+ * video file itself is not downloaded (yt-dlp is not wired up).
+ */
+async function fileVideoMaterial(
+  job: IngestionJob,
+  payload: Record<string, any>,
+): Promise<string> {
+  const vimeoId = String(payload.vimeo_video_id);
+  const vimeoHash = payload.vimeo_hash ? String(payload.vimeo_hash) : "";
+  const vimeoUrl = vimeoHash
+    ? `https://player.vimeo.com/video/${vimeoId}?h=${vimeoHash}`
+    : `https://player.vimeo.com/video/${vimeoId}`;
+
+  const [material] = await pgDb
+    .insert(CourseMaterialSchema)
+    .values({
+      ...materialBase(job),
+      materialType: "lecture",
+      description: `Vimeo lecture: ${vimeoUrl}`,
+      publicUrl: vimeoUrl,
+      fileName: `${slugify(job.lessonTitle)}.mp4`,
+      mimeType: "video/mp4",
+      vimeoVideoId: vimeoId,
+      ytDlpStatus: "skipped",
+    })
+    .returning({ id: CourseMaterialSchema.id });
+  await linkMaterial(job.id, material.id);
+  return material.id;
+}
+
+/** Retry: extract again for the material a previous attempt created. */
+async function reextract(
+  job: IngestionJob,
+  payload: Record<string, any>,
+  materialId: string,
+) {
+  const [material] = await pgDb
+    .select({
+      contentUrl: CourseMaterialSchema.contentUrl,
+      deletedAt: CourseMaterialSchema.deletedAt,
+    })
+    .from(CourseMaterialSchema)
+    .where(eq(CourseMaterialSchema.id, materialId))
+    .limit(1);
+  if (!material || material.deletedAt) {
+    throw new Error("This capture was removed");
+  }
+  if (job.contentType === "pdf") {
+    if (!material.contentUrl) throw new Error("The captured PDF is missing");
+    return extractTranscriptForMaterial(materialId, "application/pdf", {
+      s3Key: material.contentUrl,
+    });
+  }
+  return extractTranscriptForMaterial(materialId, "video/mp4", {
+    vimeoVideoId: String(payload.vimeo_video_id),
+    vimeoHash: payload.vimeo_hash ? String(payload.vimeo_hash) : undefined,
+  });
+}
+
+async function linkMaterial(jobId: string, materialId: string) {
+  await pgDb
+    .update(IngestionJobSchema)
+    .set({ courseMaterialId: materialId, updatedAt: new Date() })
+    .where(eq(IngestionJobSchema.id, jobId));
+}
+
+async function markCompleted(jobId: string) {
   await pgDb
     .update(IngestionJobSchema)
     .set({
       status: "completed",
-      courseMaterialId: materialId,
+      errorMessage: null,
       completedAt: new Date(),
       updatedAt: new Date(),
     })

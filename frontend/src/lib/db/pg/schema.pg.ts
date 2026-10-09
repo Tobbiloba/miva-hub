@@ -734,6 +734,10 @@ export const CourseMaterialSchema = pgTable(
     transcriptErrorMessage: text("transcript_error_message"),
     // Quiz/assignment metadata (loose schema JSONB)
     externalMetadata: jsonb("external_metadata").$type<Record<string, any>>(),
+    // LMS deadline of a captured assignment/quiz page (parsed at capture from
+    // external_metadata.due_date). Every student who can see the material
+    // gets it as a deadline.
+    dueAt: timestamp("due_at", { withTimezone: true }),
     // Video dedup + download fields
     vimeoVideoId: text("vimeo_video_id"), // extracted from payload for dedup indexing
     // yt-dlp video download fields
@@ -2263,6 +2267,51 @@ export const StudyActivitySchema = pgTable(
 
 // Study Activity entity type
 export type StudyActivityEntity = typeof StudyActivitySchema.$inferSelect;
+
+// ================================================
+// STUDENT DEADLINES
+// ================================================
+
+// A student's personal deadline state. source "manual": a deadline they added
+// (page or chat). source "lms_capture": their done-tick on a captured
+// assignment/quiz (course_material.due_at), one row per material. Lecturer
+// assignments stay in `assignment`; lib/deadlines merges all three.
+export const StudentDeadlineSchema = pgTable(
+  "student_deadline",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id").references(() => CourseSchema.id, {
+      onDelete: "set null",
+    }),
+    title: text("title").notNull(),
+    dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
+    source: varchar("source", { enum: ["lms_capture", "manual"] }).notNull(),
+    // The captured assignment/quiz page this came from (one deadline each)
+    materialId: uuid("material_id").references(() => CourseMaterialSchema.id, {
+      onDelete: "cascade",
+    }),
+    notes: text("notes"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("student_deadline_student_due_idx").on(table.studentId, table.dueAt),
+    uniqueIndex("student_deadline_student_material_idx").on(
+      table.studentId,
+      table.materialId,
+    ),
+  ],
+);
+
+export type StudentDeadlineEntity = typeof StudentDeadlineSchema.$inferSelect;
 
 // ================================================
 // IN-APP NOTIFICATIONS

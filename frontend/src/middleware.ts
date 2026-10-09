@@ -98,6 +98,8 @@ export async function middleware(request: NextRequest) {
     // is the extension login; /api/ingest/* validates token or session itself
     !pathname.startsWith("/api/extension/token") &&
     !pathname.startsWith("/api/ingest/") &&
+    // Scheduled jobs: authenticated by CRON_SECRET in the route
+    !pathname.startsWith("/api/cron/") &&
     // Sign-up page needs the current session/semester before auth
     // (non-sensitive calendar fields only)
     pathname !== "/api/academic/session/current"

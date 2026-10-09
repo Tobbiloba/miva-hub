@@ -127,6 +127,28 @@
     return match ? match[1] : null;
   }
 
+  /**
+   * The activity's due/close date. Moodle lists several dates ("Opened:",
+   * "Due:", "Closes:"), so take the one labelled due/close; prefer the
+   * machine-readable <time datetime> inside it, else its text (the server
+   * parses Moodle's rendered format).
+   */
+  function findDueDate() {
+    const rows = document.querySelectorAll(
+      "[data-region='activity-dates'] div, .activity-dates div, .activity-information div, .dates tr, .submissionstatustable tr"
+    );
+    for (const row of rows) {
+      const text = (row.innerText || "").trim();
+      if (!/^(due|closes?|cut-?off|deadline)/i.test(text) && !/due date/i.test(text)) {
+        continue;
+      }
+      const time = row.querySelector("time[datetime]");
+      if (time) return time.getAttribute("datetime");
+      if (/\d{4}/.test(text)) return text;
+    }
+    return null;
+  }
+
   // ── Quiz detection (/mod/quiz/view.php) ───────────────────────
 
   function detectQuiz() {
@@ -190,15 +212,8 @@
       }
     }
 
-    // Due date from activity-dates or .dates
-    const dateEl =
-      document.querySelector(".activity-dates time") ||
-      document.querySelector(".dates td time") ||
-      document.querySelector(".activity-information time");
-    if (dateEl) {
-      quiz.metadata.due_date =
-        dateEl.getAttribute("datetime") || dateEl.innerText.trim();
-    }
+    const dueDate = findDueDate();
+    if (dueDate) quiz.metadata.due_date = dueDate;
 
     return quiz;
   }
@@ -231,14 +246,8 @@
     if (reqEl) assign.requirements = reqEl.innerText.trim();
 
     // Metadata
-    const dateEl =
-      document.querySelector(".activity-information time") ||
-      document.querySelector(".activity-dates time") ||
-      document.querySelector(".dates td time");
-    if (dateEl) {
-      assign.metadata.due_date =
-        dateEl.getAttribute("datetime") || dateEl.innerText.trim();
-    }
+    const dueDate = findDueDate();
+    if (dueDate) assign.metadata.due_date = dueDate;
 
     const gradeEl = document.querySelector(
       ".gradeitem .maximumgrade, .gradevalue, .submissionstatustable .cell.c1.lastcol"

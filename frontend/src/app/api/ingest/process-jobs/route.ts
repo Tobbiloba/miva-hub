@@ -10,6 +10,9 @@ import { eq } from "drizzle-orm";
 import logger from "logger";
 import { NextRequest, NextResponse } from "next/server";
 
+// Jobs are processed inline and large PDFs can take minutes.
+export const maxDuration = 300;
+
 /**
  * POST /api/ingest/process-jobs — process queued ingestion jobs.
  *

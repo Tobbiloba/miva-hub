@@ -1,6 +1,6 @@
-import { paymentRequiredResponse } from "@/lib/billing/access";
-import { checkCaptureAccess } from "@/lib/ingest/access";
 import { getEnrolledCourse } from "@/lib/ai/course-tutor-context";
+import { indexCourseMaterial } from "@/lib/ai/rag/index-material";
+import { paymentRequiredResponse } from "@/lib/billing/access";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
   AcademicSessionSchema,
@@ -9,18 +9,25 @@ import {
   IngestionJobSchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
+import { parseLmsDate } from "@/lib/deadlines/parse-lms-date";
 import { getIngestUserId } from "@/lib/extension/token";
+import { checkCaptureAccess } from "@/lib/ingest/access";
 import {
   LessonCaptureSchema,
   escapeLike,
   isOwnCaptureUploadKey,
   isShareableCapture,
 } from "@/lib/ingest/capture";
+import { listStudentCaptures, retryCapture } from "@/lib/ingest/captures";
 import { claimQueuedJobs, processIngestionJob } from "@/lib/ingest/process-job";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { and, eq, ilike, isNull, sql } from "drizzle-orm";
 import logger from "logger";
 import { NextRequest, NextResponse, after } from "next/server";
+
+// Processing runs after the response (after()) and can take minutes for
+// large PDFs; keep the function alive for it.
+export const maxDuration = 300;
 
 /**
  * POST /api/ingest/lesson — a lesson captured by the Askly Capture extension.
@@ -107,6 +114,35 @@ export async function POST(request: NextRequest) {
       assignment_requirements,
       assignment_metadata,
     } = parsed.data;
+
+    /** Text + metadata of a captured quiz/assignment page. */
+    const pageCapture = () => {
+      const transcriptText =
+        content_type === "quiz"
+          ? formatQuizTranscript(
+              lesson_title,
+              quiz_instructions ?? null,
+              quiz_questions ?? null,
+            )
+          : formatAssignmentTranscript(
+              lesson_title,
+              assignment_instructions ?? null,
+              assignment_requirements ?? null,
+              assignment_metadata ?? null,
+            );
+      const extMeta: Record<string, any> =
+        content_type === "quiz"
+          ? { ...(quiz_metadata || {}) }
+          : { ...(assignment_metadata || {}) };
+      if (content_type === "quiz" && quiz_questions?.length) {
+        extMeta.question_count = quiz_questions.length;
+      }
+      return {
+        transcriptText,
+        wordCount: transcriptText.split(/\s+/).filter(Boolean).length,
+        extMeta,
+      };
+    };
 
     // An uploaded PDF must be one this user uploaded via /api/ingest/upload-url
     if (upload_key && !isOwnCaptureUploadKey(upload_key, userId)) {
@@ -245,6 +281,59 @@ export async function POST(request: NextRequest) {
       )
       .limit(1);
 
+    // Capturing your own page again refreshes it: assignment/quiz pages pick
+    // up edits (an extended due date), and a capture that failed is retried
+    // instead of being blocked as a duplicate.
+    if (existingDup && isPrivate) {
+      if (content_type === "quiz" || content_type === "assignment_external") {
+        const { transcriptText, wordCount, extMeta } = pageCapture();
+        await pgDb
+          .update(CourseMaterialSchema)
+          .set({
+            title: lesson_title,
+            description:
+              content_type === "quiz"
+                ? quiz_instructions
+                : assignment_instructions,
+            transcriptText,
+            transcriptWordCount: wordCount,
+            transcriptExtractedAt: new Date(),
+            transcriptStatus: "extracted",
+            externalMetadata: extMeta,
+            dueAt: parseLmsDate(extMeta.due_date),
+            updatedAt: new Date(),
+          })
+          .where(eq(CourseMaterialSchema.id, existingDup.id));
+        after(() => indexCourseMaterial(existingDup.id).catch(() => {}));
+        return NextResponse.json({
+          material_id: existingDup.id,
+          updated: true,
+          message: "Updated your capture of this page.",
+        });
+      }
+
+      const capture = (await listStudentCaptures(userId)).find(
+        (c) => c.materialId === existingDup.id,
+      );
+      if (capture?.state === "failed") {
+        const work = await retryCapture(userId, capture.key);
+        after(() =>
+          work().catch((e) =>
+            logger.error("[ingest] re-capture retry failed", e),
+          ),
+        );
+        return NextResponse.json(
+          {
+            material_id: existingDup.id,
+            retried: true,
+            message:
+              "Your earlier capture of this lesson failed, so we're trying it again.",
+          },
+          { status: 202 },
+        );
+      }
+    }
+
     if (existingDup) {
       return NextResponse.json(
         {
@@ -262,28 +351,7 @@ export async function POST(request: NextRequest) {
 
     // 7. Quiz/assignment → create course_material directly (no background job needed)
     if (content_type === "quiz" || content_type === "assignment_external") {
-      const transcriptText =
-        content_type === "quiz"
-          ? formatQuizTranscript(
-              lesson_title,
-              quiz_instructions ?? null,
-              quiz_questions ?? null,
-            )
-          : formatAssignmentTranscript(
-              lesson_title,
-              assignment_instructions ?? null,
-              assignment_requirements ?? null,
-              assignment_metadata ?? null,
-            );
-
-      const wordCount = transcriptText.split(/\s+/).filter(Boolean).length;
-      const extMeta: Record<string, any> =
-        content_type === "quiz"
-          ? { ...(quiz_metadata || {}) }
-          : { ...(assignment_metadata || {}) };
-      if (content_type === "quiz" && quiz_questions?.length) {
-        extMeta.question_count = quiz_questions.length;
-      }
+      const { transcriptText, wordCount, extMeta } = pageCapture();
 
       const [material] = await pgDb
         .insert(CourseMaterialSchema)
@@ -312,17 +380,13 @@ export async function POST(request: NextRequest) {
           transcriptWordCount: wordCount,
           transcriptStatus: "extracted",
           externalMetadata: extMeta,
+          dueAt: parseLmsDate(extMeta.due_date),
         })
         .returning({ id: CourseMaterialSchema.id });
 
       // Private captures ground the student's chat right away
       if (ownerUserId) {
-        after(async () => {
-          const { indexCourseMaterial } = await import(
-            "@/lib/ai/rag/index-material"
-          );
-          await indexCourseMaterial(material.id).catch(() => {});
-        });
+        after(() => indexCourseMaterial(material.id).catch(() => {}));
       }
 
       return NextResponse.json(

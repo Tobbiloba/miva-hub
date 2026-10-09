@@ -1,53 +1,78 @@
 import { tool as createTool } from "ai";
-import { and, eq, gte, inArray, lte } from "drizzle-orm";
-import { safe } from "ts-safe";
+import { and, eq } from "drizzle-orm";
+import { pgDb } from "lib/db/pg/db.pg";
+import { CourseSchema, StudentEnrollmentSchema } from "lib/db/pg/schema.pg";
+import { type Deadline, listDeadlines } from "lib/deadlines";
+import { formatStudentTime } from "lib/deadlines/time";
 import { z } from "zod";
-// pgAcademicRepository not used in this implementation
-import { pgDb } from "../../../db/pg/db.pg";
-import {
-  AssignmentSchema,
-  CourseSchema,
-  StudentEnrollmentSchema,
-} from "../../../db/pg/schema.pg";
 
 /**
- * Assignment Tracker Tool - Gets upcoming assignments with urgency classification
- * Shows assignments across all enrolled courses with intelligent prioritization
- */
-
-const assignmentTrackerSchema = z.object({
-  daysAhead: z
-    .number()
-    .optional()
-    .default(30)
-    .describe("Number of days to look ahead (default: 30)"),
-  courseCode: z.string().optional().describe("Filter by specific course code"),
-  includeCompleted: z
-    .boolean()
-    .optional()
-    .default(false)
-    .describe("Include completed assignments"),
-});
-
-type AssignmentUrgency = "overdue" | "urgent" | "soon" | "later";
-
-/**
+ * The student's deadlines, from lib/deadlines: lecturer assignments,
+ * assignment/quiz pages captured from their LMS, and deadlines they added.
  * Bound to the signed-in student: the user id comes from the session, never
- * from model input (a prompt-injected id would read another student's data).
+ * from model input.
  */
+
+const DAY = 24 * 60 * 60 * 1000;
+
+type Urgency = "overdue" | "urgent" | "soon" | "later";
+
+function urgencyOf(d: Deadline, now: number): Urgency {
+  const left = d.dueAt.getTime() - now;
+  if (left < 0) return "overdue";
+  if (left <= DAY) return "urgent";
+  if (left <= 3 * DAY) return "soon";
+  return "later";
+}
+
+export function formatDeadlineForModel(d: Deadline, now = Date.now()) {
+  return {
+    key: d.key,
+    title: d.title,
+    course: d.course ? `${d.course.code}: ${d.course.title}` : null,
+    due: formatStudentTime(d.dueAt),
+    dueAt: d.dueAt.toISOString(),
+    daysLeft: Math.floor((d.dueAt.getTime() - now) / DAY),
+    urgency: urgencyOf(d, now),
+    done: d.done,
+    source:
+      d.kind === "assignment"
+        ? "lecturer assignment"
+        : d.kind === "lms"
+          ? "captured from the LMS"
+          : "added by the student",
+    notes: d.notes,
+  };
+}
+
 export const createAssignmentTrackerTool = (userId: string) =>
   createTool({
     description:
-      "Get upcoming assignments and deadlines across enrolled courses with urgency prioritization",
-    inputSchema: assignmentTrackerSchema,
-    execute: async ({ daysAhead, courseCode, includeCompleted }) => {
-      return safe(async () => {
-        // Get user's enrolled courses
-        let enrollmentsQuery = pgDb
-          .select({
-            course: CourseSchema,
-            enrollment: StudentEnrollmentSchema,
-          })
+      "Get the student's deadlines: assignments and quizzes captured from their LMS, lecturer assignments, and deadlines they added. Includes overdue ones. Use for anything about what's due, deadlines, or planning their week.",
+    inputSchema: z.object({
+      daysAhead: z
+        .number()
+        .int()
+        .min(1)
+        .max(365)
+        .optional()
+        .default(30)
+        .describe("How many days ahead to look (default 30)"),
+      courseCode: z
+        .string()
+        .optional()
+        .describe("Only this course (one of the student's course codes)"),
+      includeDone: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("Also include deadlines already done"),
+    }),
+    execute: async ({ daysAhead, courseCode, includeDone }) => {
+      let courseId: string | undefined;
+      if (courseCode) {
+        const [course] = await pgDb
+          .select({ id: CourseSchema.id })
           .from(StudentEnrollmentSchema)
           .innerJoin(
             CourseSchema,
@@ -57,244 +82,40 @@ export const createAssignmentTrackerTool = (userId: string) =>
             and(
               eq(StudentEnrollmentSchema.studentId, userId),
               eq(StudentEnrollmentSchema.status, "enrolled"),
-            ),
-          );
-
-        // Filter by specific course if requested
-        if (courseCode) {
-          enrollmentsQuery = pgDb
-            .select({
-              course: CourseSchema,
-              enrollment: StudentEnrollmentSchema,
-            })
-            .from(StudentEnrollmentSchema)
-            .innerJoin(
-              CourseSchema,
-              eq(CourseSchema.id, StudentEnrollmentSchema.courseId),
-            )
-            .where(
-              and(
-                eq(StudentEnrollmentSchema.studentId, userId),
-                eq(StudentEnrollmentSchema.status, "enrolled"),
-                eq(CourseSchema.courseCode, courseCode.toUpperCase()),
-              ),
-            );
-        }
-
-        const enrollments = await enrollmentsQuery;
-
-        if (enrollments.length === 0) {
-          return {
-            message: courseCode
-              ? `You are not enrolled in ${courseCode}`
-              : "You are not enrolled in any courses",
-            assignments: [],
-            summary: "No assignments found",
-            totalAssignments: 0,
-            timeRange: `Next ${daysAhead} days`,
-            courseFilter: courseCode || "All enrolled courses",
-          };
-        }
-
-        // Calculate date range
-        const now = new Date();
-        const cutoffDate = new Date(
-          Date.now() + daysAhead * 24 * 60 * 60 * 1000,
-        );
-        const courseIds = enrollments.map((e) => e.course.id);
-
-        // Get assignments from enrolled courses
-        let assignmentsQuery = pgDb
-          .select({
-            assignment: AssignmentSchema,
-            course: CourseSchema,
-          })
-          .from(AssignmentSchema)
-          .innerJoin(
-            CourseSchema,
-            eq(CourseSchema.id, AssignmentSchema.courseId),
-          )
-          .where(
-            and(
-              inArray(AssignmentSchema.courseId, courseIds),
-              eq(AssignmentSchema.isPublished, true),
-              lte(AssignmentSchema.dueDate, cutoffDate),
+              eq(CourseSchema.courseCode, courseCode.trim().toUpperCase()),
             ),
           )
-          .orderBy(AssignmentSchema.dueDate);
+          .limit(1);
+        // An unknown code shouldn't hide everything: show all, and say so
+        courseId = course?.id;
+      }
 
-        // Include future assignments only unless includeCompleted is true
-        if (!includeCompleted) {
-          assignmentsQuery = pgDb
-            .select({
-              assignment: AssignmentSchema,
-              course: CourseSchema,
-            })
-            .from(AssignmentSchema)
-            .innerJoin(
-              CourseSchema,
-              eq(CourseSchema.id, AssignmentSchema.courseId),
-            )
-            .where(
-              and(
-                inArray(AssignmentSchema.courseId, courseIds),
-                eq(AssignmentSchema.isPublished, true),
-                gte(AssignmentSchema.dueDate, now),
-                lte(AssignmentSchema.dueDate, cutoffDate),
-              ),
-            )
-            .orderBy(AssignmentSchema.dueDate);
-        }
+      const now = Date.now();
+      const deadlines = await listDeadlines(userId, {
+        // Overdue items from the last two weeks are still actionable
+        from: new Date(now - 14 * DAY),
+        to: new Date(now + daysAhead * DAY),
+        includeDone,
+        courseId,
+      });
 
-        const assignments = await assignmentsQuery;
-
-        // Format assignments with urgency classification
-        const formattedAssignments = assignments.map((item) => {
-          const assignment = item.assignment;
-          const course = item.course;
-          const dueDate = new Date(assignment.dueDate!);
-          const daysUntilDue = Math.ceil(
-            (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-          );
-
-          // Classify urgency
-          let urgency: AssignmentUrgency = "later";
-          if (daysUntilDue < 0) urgency = "overdue";
-          else if (daysUntilDue <= 1) urgency = "urgent";
-          else if (daysUntilDue <= 3) urgency = "soon";
-
-          return {
-            id: assignment.id,
-            course: {
-              code: course.courseCode,
-              title: course.title,
-              credits: course.credits,
-            },
-            title: assignment.title,
-            description: assignment.description,
-            instructions: assignment.instructions,
-            dueDate: assignment.dueDate,
-            dueDateFormatted: dueDate.toLocaleDateString("en-US", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-            daysUntilDue,
-            urgency,
-            totalPoints: assignment.totalPoints,
-            assignmentType: assignment.assignmentType,
-            submissionType: assignment.submissionType,
-            allowLateSubmission: assignment.allowLateSubmission,
-            lateSubmissionPenalty: assignment.lateSubmissionPenalty,
-            week: assignment.weekNumber,
-            isPublished: assignment.isPublished,
-          };
-        });
-
-        // Group by urgency for better presentation
-        const groupedByUrgency = formattedAssignments.reduce(
-          (acc, assignment) => {
-            if (!acc[assignment.urgency]) {
-              acc[assignment.urgency] = [];
-            }
-            acc[assignment.urgency].push(assignment);
-            return acc;
-          },
-          {} as Record<AssignmentUrgency, typeof formattedAssignments>,
-        );
-
-        // Sort each urgency group by due date
-        Object.keys(groupedByUrgency).forEach((urgency) => {
-          groupedByUrgency[urgency as AssignmentUrgency].sort(
-            (a, b) =>
-              new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime(),
-          );
-        });
-
-        const summary = generateAssignmentsSummary(
-          formattedAssignments,
-          daysAhead,
-          courseCode,
-        );
-
-        return {
-          totalAssignments: formattedAssignments.length,
-          timeRange: `Next ${daysAhead} days`,
-          courseFilter: courseCode || "All enrolled courses",
-          assignments: formattedAssignments,
-          groupedByUrgency,
-          summary,
-          urgencyBreakdown: {
-            overdue: groupedByUrgency.overdue?.length || 0,
-            urgent: groupedByUrgency.urgent?.length || 0,
-            soon: groupedByUrgency.soon?.length || 0,
-            later: groupedByUrgency.later?.length || 0,
-          },
-          enrolledCourses: enrollments.map((e) => ({
-            code: e.course.courseCode,
-            title: e.course.title,
-            credits: e.course.credits,
-          })),
-        };
-      })
-        .ifFail((error) => {
-          console.error("Assignment tracker tool error:", error);
-          return {
-            isError: true,
-            error: error.message,
-            solution:
-              "There was a problem accessing assignment data. Please try again or contact IT support if the issue persists.",
-          };
-        })
-        .unwrap();
+      const items = deadlines.map((d) => formatDeadlineForModel(d, now));
+      const count = (u: Urgency) =>
+        items.filter((i) => !i.done && i.urgency === u).length;
+      return {
+        now: formatStudentTime(new Date(now)),
+        courseFilter:
+          courseCode && !courseId
+            ? `No enrolled course "${courseCode}"; showing all courses`
+            : (courseCode ?? "All courses"),
+        total: items.length,
+        overdue: count("overdue"),
+        dueWithin24h: count("urgent"),
+        dueWithin3Days: count("soon"),
+        deadlines: items,
+        ...(items.length === 0 && {
+          hint: "No deadlines found. Assignments and quizzes the student captures with Askly Capture appear automatically; they can also ask you to add one.",
+        }),
+      };
     },
   });
-
-/**
- * Generate a human-readable summary of assignments
- */
-function generateAssignmentsSummary(
-  assignments: any[],
-  daysAhead: number,
-  courseCode?: string,
-): string {
-  if (assignments.length === 0) {
-    return `No assignments due in the next ${daysAhead} days${courseCode ? ` for ${courseCode}` : ""}`;
-  }
-
-  const urgentCount = assignments.filter((a) => a.urgency === "urgent").length;
-  const overdueCount = assignments.filter(
-    (a) => a.urgency === "overdue",
-  ).length;
-  const soonCount = assignments.filter((a) => a.urgency === "soon").length;
-
-  let summary = `You have ${assignments.length} assignment${assignments.length !== 1 ? "s" : ""} due in the next ${daysAhead} days`;
-
-  if (courseCode) {
-    summary += ` for ${courseCode}`;
-  }
-
-  const urgencyParts: string[] = [];
-  if (overdueCount > 0) urgencyParts.push(`${overdueCount} overdue`);
-  if (urgentCount > 0) urgencyParts.push(`${urgentCount} urgent`);
-  if (soonCount > 0) urgencyParts.push(`${soonCount} due soon`);
-
-  if (urgencyParts.length > 0) {
-    summary += ` (${urgencyParts.join(", ")})`;
-  }
-
-  // Add priority recommendation
-  if (overdueCount > 0) {
-    summary += ". ⚠️ PRIORITY: Complete overdue assignments immediately!";
-  } else if (urgentCount > 0) {
-    summary += ". 🔥 Focus on urgent assignments due within 24 hours.";
-  } else if (soonCount > 0) {
-    summary += ". ⏰ Plan to complete assignments due in the next 3 days.";
-  } else {
-    summary += ". ✅ No urgent deadlines - good time to plan ahead!";
-  }
-
-  return summary;
-}

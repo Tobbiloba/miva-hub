@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Askly Capture",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Save your MIVA University lessons to Askly so your AI study assistant can answer from them",
   "permissions": ["activeTab", "storage"],
   "host_permissions": [

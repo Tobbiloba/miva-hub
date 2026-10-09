@@ -10,6 +10,7 @@ import { createAcademicScheduleTool } from "./academic-schedule.tool";
 import { createAssignmentTrackerTool } from "./assignment-tracker.tool";
 import { createCourseContentTool } from "./course-content.tool";
 import { createFacultyDirectoryTool } from "./faculty-directory.tool";
+import { createManageDeadlinesTool } from "./manage-deadlines.tool";
 import { createMyCoursesTool } from "./my-courses.tool";
 import { createSearchMaterialsTool } from "./search-materials.tool";
 
@@ -26,6 +27,7 @@ export function createAcademicTools(
     "get-course-materials": createCourseContentTool(user.userId),
     "search-course-materials": createSearchMaterialsTool(user.userId),
     "get-upcoming-assignments": createAssignmentTrackerTool(user.userId),
+    "manage-deadlines": createManageDeadlinesTool(user.userId),
     "find-faculty": createFacultyDirectoryTool(user.universityId),
     "get-academic-schedule": createAcademicScheduleTool(user.userId),
   };

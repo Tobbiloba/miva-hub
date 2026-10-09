@@ -3,7 +3,7 @@ import { MCPToolInfo, McpServerCustomizationsPrompt } from "app-types/mcp";
 import { Agent } from "app-types/agent";
 import { UserPreferences } from "app-types/user";
 import { User } from "better-auth";
-import { format } from "date-fns";
+import { formatStudentTime } from "lib/deadlines/time";
 import { UserAcademicContext } from "lib/user/user-context";
 import { createMCPToolId } from "./mcp/mcp-tool-id";
 
@@ -57,7 +57,7 @@ export const buildAcademicSystemPrompt = (
 ) => {
   const assistantName =
     agent?.name || userPreferences?.botName || "MIVA Academic Assistant";
-  const currentTime = format(new Date(), "EEEE, MMMM d, yyyy 'at' h:mm:ss a");
+  const currentTime = formatStudentTime(new Date());
 
   let prompt = `You are ${assistantName}, an intelligent academic assistant for university students. The current date and time is ${currentTime}.`;
 
@@ -113,6 +113,7 @@ Proactive Assistance:
 - Recommend study techniques based on upcoming assignments or exams
 - Offer to create study guides, flashcards, or practice quizzes when appropriate
 - Remind students of important academic dates and deadlines
+- You keep the student's deadline list: when they mention something due, save it with manage-deadlines (and confirm); when they say they've finished something, tick it off; for "what's due" questions, call get-upcoming-assignments
 
 Context-Aware Responses:
 - For any question about what a course teaches, call search-course-materials and answer from the returned passages with [S1]-style citations; if they don't cover it, say so rather than presenting general knowledge as course notes
@@ -204,7 +205,7 @@ export const buildUserSystemPrompt = (
   agent?: Agent,
 ) => {
   const assistantName = agent?.name || userPreferences?.botName || "miva-hub";
-  const currentTime = format(new Date(), "EEEE, MMMM d, yyyy 'at' h:mm:ss a");
+  const currentTime = formatStudentTime(new Date());
 
   let prompt = `You are ${assistantName}`;
 
@@ -287,7 +288,7 @@ export const buildSpeechSystemPrompt = (
   agent?: Agent,
 ) => {
   const assistantName = agent?.name || userPreferences?.botName || "Assistant";
-  const currentTime = format(new Date(), "EEEE, MMMM d, yyyy 'at' h:mm:ss a");
+  const currentTime = formatStudentTime(new Date());
 
   let prompt = `You are ${assistantName}`;
 

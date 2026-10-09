@@ -1,3 +1,4 @@
+import { CapturesPanel } from "@/components/captures/captures-panel";
 import { getSession } from "@/lib/auth/server";
 import { CHAT_FIRST } from "@/lib/config/product";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
@@ -73,6 +74,8 @@ export default async function StudentCoursesPage() {
           )}
         </div>
       </div>
+
+      <CapturesPanel />
 
       {/* Courses Grid */}
       {courses.length > 0 ? (

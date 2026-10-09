@@ -18,15 +18,17 @@ export const CHAT_FIRST = process.env.NEXT_PUBLIC_CHAT_FIRST !== "false";
  */
 export const STUDENT_PAGES = [
   { title: "My Courses", href: "/student/courses" },
-  { title: "Deadlines", href: "/student/assignments" },
+  { title: "Deadlines", href: "/student/deadlines" },
   { title: "Flashcards", href: "/student/flashcards" },
 ] as const;
 
 /** /student paths that stay open: the nav pages above plus their sub-pages. */
 const STUDENT_OPEN_PREFIXES = [
   ...STUDENT_PAGES.map((p) => p.href),
-  // Material viewer, opened from My Courses and from chat citations
+  // Material viewer, opened from My Courses, deadlines and chat citations
   "/student/lecture-study",
+  // Lecturer assignment detail/submit, opened from Deadlines
+  "/student/assignments",
 ];
 
 /** APIs whose only callers are archived student features. */

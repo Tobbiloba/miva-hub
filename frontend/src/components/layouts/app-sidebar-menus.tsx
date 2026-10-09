@@ -25,7 +25,7 @@ const STUDENT_PAGE_ICONS: Record<
   LucideIcon
 > = {
   "/student/courses": BookOpenIcon,
-  "/student/assignments": CalendarClockIcon,
+  "/student/deadlines": CalendarClockIcon,
   "/student/flashcards": LayersIcon,
 };
 
