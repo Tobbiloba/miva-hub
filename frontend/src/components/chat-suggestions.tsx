@@ -8,6 +8,8 @@ export type ChatSuggestion = {
   /** One short line under the title */
   hint: string;
   prompt: string;
+  /** Spans both columns (a featured starter) */
+  wide?: boolean;
 };
 
 /** Empty-state starters under the greeting; clicking one sends the prompt. */
@@ -28,7 +30,10 @@ export function SuggestionCards({
           type="button"
           onClick={() => onSelect(item)}
           title={item.prompt}
-          className="group flex min-w-0 items-start gap-3 rounded-xl border border-border bg-card px-4 py-3.5 text-left transition-colors duration-150 hover:bg-accent/60"
+          className={cn(
+            "group flex min-w-0 items-start gap-3 rounded-xl border border-border bg-card px-4 py-3.5 text-left transition-colors duration-150 hover:bg-accent/60",
+            item.wide && "sm:col-span-2",
+          )}
         >
           <span className="mt-px shrink-0 text-muted-foreground transition-colors group-hover:text-foreground [&_svg]:size-[18px]">
             {item.icon}

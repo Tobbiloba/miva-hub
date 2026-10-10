@@ -3,7 +3,10 @@
 import { appStore } from "@/app/store";
 import { UIMessage, UseChatHelpers } from "@ai-sdk/react";
 import { ChatMention, ChatModel } from "app-types/chat";
-import { MAX_IMAGES_PER_MESSAGE } from "lib/chat/attachments";
+import {
+  MAX_IMAGES_PER_MESSAGE,
+  OPEN_PHOTO_PICKER_EVENT,
+} from "lib/chat/attachments";
 import { compressImage } from "lib/chat/compress-image";
 import {
   ArrowUp,
@@ -192,6 +195,14 @@ export default function PromptInput({
       attachmentsRef.current.forEach((a) => URL.revokeObjectURL(a.preview)),
     [],
   );
+
+  // "Snap a question" starter on the empty chat opens the picker
+  useEffect(() => {
+    if (attachmentsDisabled) return;
+    const open = () => fileInputRef.current?.click();
+    window.addEventListener(OPEN_PHOTO_PICKER_EVENT, open);
+    return () => window.removeEventListener(OPEN_PHOTO_PICKER_EVENT, open);
+  }, [attachmentsDisabled]);
 
   const setChatModel = useCallback(
     (model: ChatModel) => {

@@ -130,6 +130,11 @@ const FEATURES = [
     "Flashcards · Spaced review",
   ],
   [
+    "Snap a question",
+    "Take a photo of a problem from a textbook or past paper and get it worked through step by step.",
+    "Snap-to-Solve · Step by step",
+  ],
+  [
     "Never miss a due date",
     "Assignments and quizzes you capture land in one list, with their due dates.",
     "Deadlines · One list",

@@ -24,10 +24,12 @@ import { useGenerateThreadTitle } from "@/hooks/queries/use-generate-thread-titl
 import { useToRef } from "@/hooks/use-latest";
 import { ChatApiSchemaRequestBody, ChatModel } from "app-types/chat";
 import { AnimatePresence, motion } from "framer-motion";
+import { OPEN_PHOTO_PICKER_EVENT } from "lib/chat/attachments";
 import { Shortcuts, isShortcutEvent } from "lib/keyboard-shortcuts";
 import {
   ArrowDown,
   CalendarClock,
+  Camera,
   FileQuestion,
   Layers,
   Lightbulb,
@@ -62,6 +64,14 @@ type Props = {
 // Starters for the student launch features (docs/PRODUCT-FOCUS.md):
 // deadlines, practice from their own materials, flashcards to keep
 const CHAT_SUGGESTIONS = [
+  {
+    id: "snap",
+    icon: <Camera />,
+    title: "Snap a question",
+    hint: "A photo, solved step by step",
+    prompt: "",
+    wide: true,
+  },
   {
     id: "due",
     icon: <CalendarClock />,
@@ -416,10 +426,12 @@ export default function ChatBot({
                 <SuggestionCards
                   items={CHAT_SUGGESTIONS}
                   onSelect={(s) =>
-                    sendMessage({
-                      role: "user",
-                      parts: [{ type: "text", text: s.prompt }],
-                    })
+                    s.id === "snap"
+                      ? window.dispatchEvent(new Event(OPEN_PHOTO_PICKER_EVENT))
+                      : sendMessage({
+                          role: "user",
+                          parts: [{ type: "text", text: s.prompt }],
+                        })
                   }
                 />
               </motion.div>

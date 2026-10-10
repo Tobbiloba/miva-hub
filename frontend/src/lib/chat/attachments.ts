@@ -24,6 +24,9 @@ export const MAX_IMAGES_PER_MESSAGE = 3;
 /** Only the most recent images go to the model; older ones become a note. */
 export const MODEL_IMAGE_WINDOW = 4;
 
+/** Window event that asks the chat composer to open its photo picker. */
+export const OPEN_PHOTO_PICKER_EVENT = "askly:open-photo-picker";
+
 const ROUTE = "/api/chat/attachments/";
 const KEY_RE =
   /^chat-uploads\/([A-Za-z0-9-]{1,64})\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/;
