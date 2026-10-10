@@ -4,9 +4,9 @@ import { z } from "zod";
 
 import { recordAIDecision } from "@/lib/ai/decision-ledger";
 import { type VivaTurn, scoreVivaTranscript } from "@/lib/ai/viva";
+import { checkPaidAccess, paymentRequiredResponse } from "@/lib/billing/access";
 import { getUserUniversity } from "@/lib/tenant";
 import { getApiSession } from "auth/server";
-import { checkPaidAccess, paymentRequiredResponse } from "@/lib/billing/access";
 import { pgDb } from "lib/db/pg/db.pg";
 import { CourseSchema, VivaSessionSchema } from "lib/db/pg/schema.pg";
 import globalLogger from "logger";
@@ -58,6 +58,7 @@ export async function POST(
       .select({
         id: VivaSessionSchema.id,
         status: VivaSessionSchema.status,
+        mode: VivaSessionSchema.mode,
         focusTopic: VivaSessionSchema.focusTopic,
         courseId: VivaSessionSchema.courseId,
         startedAt: VivaSessionSchema.startedAt,
@@ -98,6 +99,19 @@ export async function POST(
         })
         .where(eq(VivaSessionSchema.id, viva.id));
       return NextResponse.json({ status: "abandoned", rubric: null });
+    }
+
+    // Tutor sessions aren't graded: keep the transcript and close
+    if (viva.mode === "tutor") {
+      await pgDb
+        .update(VivaSessionSchema)
+        .set({ status: "completed", transcript, endedAt: now, updatedAt: now })
+        .where(eq(VivaSessionSchema.id, viva.id));
+      return NextResponse.json({
+        status: "completed",
+        mode: "tutor",
+        rubric: null,
+      });
     }
 
     const university = await getUserUniversity(session.user.id);

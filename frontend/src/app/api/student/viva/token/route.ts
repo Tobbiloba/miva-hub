@@ -3,11 +3,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { buildCourseTutorContext } from "@/lib/ai/course-tutor-context";
-import { VIVA_LIVE_MODEL, buildVivaSystemPrompt } from "@/lib/ai/viva";
-import { getApiSession } from "auth/server";
+import {
+  VIVA_LIVE_MODEL,
+  type VoiceMode,
+  buildTutorVoicePrompt,
+  buildVivaSystemPrompt,
+} from "@/lib/ai/viva";
 import { checkPaidAccess, paymentRequiredResponse } from "@/lib/billing/access";
+import { getApiSession } from "auth/server";
 import { pgDb } from "lib/db/pg/db.pg";
 import { VivaSessionSchema } from "lib/db/pg/schema.pg";
+import { buildStudentMemory } from "lib/memory/student-memory";
 import { checkRateLimit, rateLimitResponse } from "lib/rate-limit";
 import globalLogger from "logger";
 
@@ -45,7 +51,9 @@ export async function POST(request: NextRequest) {
     const body = (await request.json().catch(() => ({}))) as {
       courseId?: string;
       focusTopic?: string;
+      mode?: string;
     };
+    const mode: VoiceMode = body.mode === "tutor" ? "tutor" : "viva";
     if (!body.courseId || !z.string().uuid().safeParse(body.courseId).success) {
       return NextResponse.json(
         { error: "A valid courseId is required" },
@@ -66,13 +74,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const systemPrompt = buildVivaSystemPrompt({
-      courseCode: context.course.courseCode,
-      courseTitle: context.course.title,
-      studentName: session.user.name || "the candidate",
-      focusTopic,
-      contextText: context.contextText,
-    });
+    const systemPrompt =
+      mode === "tutor"
+        ? buildTutorVoicePrompt({
+            courseCode: context.course.courseCode,
+            courseTitle: context.course.title,
+            studentName: session.user.name || "the student",
+            focusTopic,
+            contextText: context.contextText,
+            memory: await buildStudentMemory(session.user.id).catch(() => null),
+          })
+        : buildVivaSystemPrompt({
+            courseCode: context.course.courseCode,
+            courseTitle: context.course.title,
+            studentName: session.user.name || "the candidate",
+            focusTopic,
+            contextText: context.contextText,
+          });
 
     const client = new GoogleGenAI({
       apiKey,
@@ -105,6 +123,7 @@ export async function POST(request: NextRequest) {
         studentId: session.user.id,
         courseId: body.courseId,
         focusTopic,
+        mode,
         model: VIVA_LIVE_MODEL,
       })
       .returning({ id: VivaSessionSchema.id });
@@ -113,6 +132,7 @@ export async function POST(request: NextRequest) {
       sessionId: viva.id,
       token: token.name,
       model: VIVA_LIVE_MODEL,
+      mode,
       course: {
         courseCode: context.course.courseCode,
         title: context.course.title,

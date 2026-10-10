@@ -53,6 +53,7 @@ export function useVivaVoice() {
   const [isExaminerSpeaking, setIsExaminerSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rubric, setRubric] = useState<VivaRubricView | null>(null);
+  const [mode, setMode] = useState<"viva" | "tutor">("viva");
   const [course, setCourse] = useState<{
     courseCode: string;
     title: string;
@@ -161,8 +162,13 @@ export function useVivaVoice() {
   }, [stopPlayback]);
 
   const start = useCallback(
-    async (courseId: string, focusTopic?: string) => {
+    async (
+      courseId: string,
+      focusTopic?: string,
+      sessionMode: "viva" | "tutor" = "viva",
+    ) => {
       setStatus("connecting");
+      setMode(sessionMode);
       setError(null);
       setRubric(null);
       turnsRef.current = [];
@@ -173,7 +179,7 @@ export function useVivaVoice() {
         const res = await fetch("/api/student/viva/token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ courseId, focusTopic }),
+          body: JSON.stringify({ courseId, focusTopic, mode: sessionMode }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -275,7 +281,8 @@ export function useVivaVoice() {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || "Grading failed");
         setRubric(data.rubric ?? null);
-        setStatus(data.rubric ? "completed" : "idle");
+        // A graded viva shows its rubric; a tutor session shows its recap
+        setStatus(data.status === "completed" ? "completed" : "idle");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Grading failed");
         setStatus("error");
@@ -305,6 +312,7 @@ export function useVivaVoice() {
     isExaminerSpeaking,
     error,
     rubric,
+    mode,
     course,
     start,
     end,

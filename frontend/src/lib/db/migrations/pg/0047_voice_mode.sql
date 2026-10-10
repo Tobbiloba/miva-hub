@@ -1,0 +1,1 @@
+ALTER TABLE "viva_session" ADD COLUMN "mode" varchar DEFAULT 'viva' NOT NULL;

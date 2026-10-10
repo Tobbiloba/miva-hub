@@ -2548,6 +2548,10 @@ export const VivaSessionSchema = pgTable(
     })
       .notNull()
       .default("active"),
+    /** viva: examiner + rubric; tutor: explain and check understanding */
+    mode: varchar("mode", { enum: ["viva", "tutor"] })
+      .notNull()
+      .default("viva"),
     focusTopic: text("focus_topic"),
     /** [{ role: "examiner" | "student", text: string }] in spoken order */
     transcript: json("transcript").default([]),

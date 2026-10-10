@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useVivaVoice } from "@/lib/ai/speech/gemini/use-viva-voice";
+import { cn } from "lib/utils";
 
 const CRITERION_LABELS: Record<string, string> = {
   conceptual_understanding: "Conceptual Understanding",
@@ -48,6 +49,7 @@ export default function VivaCoachPage() {
   const [coursesLoading, setCoursesLoading] = useState(true);
   const [courseId, setCourseId] = useState("");
   const [focusTopic, setFocusTopic] = useState("");
+  const [mode, setMode] = useState<"tutor" | "viva">("tutor");
 
   const viva = useVivaVoice();
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
@@ -74,15 +76,15 @@ export default function VivaCoachPage() {
           Voice Coach
         </h1>
         <p className="text-muted-foreground">
-          A live oral exam on your actual course material — the AI examiner
-          asks, listens, probes and grades you.
+          Talk it through out loud with a tutor that knows your course, or
+          practise a viva with an examiner who probes and grades you.
         </p>
       </div>
 
       {viva.status === "idle" || viva.status === "error" ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Start a mock viva</CardTitle>
+            <CardTitle className="text-base">Start a voice session</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {viva.error && (
@@ -91,6 +93,37 @@ export default function VivaCoachPage() {
                 {viva.error}
               </div>
             )}
+            <div
+              role="radiogroup"
+              aria-label="Session type"
+              className="grid grid-cols-2 gap-2"
+            >
+              {(
+                [
+                  ["tutor", "Tutor", "Explain it, quiz me, help me get it"],
+                  ["viva", "Viva practice", "An examiner asks and grades you"],
+                ] as const
+              ).map(([value, title, hint]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={mode === value}
+                  onClick={() => setMode(value)}
+                  className={cn(
+                    "rounded-xl border px-4 py-3 text-left transition-colors",
+                    mode === value
+                      ? "border-foreground bg-accent"
+                      : "border-border hover:bg-accent/60",
+                  )}
+                >
+                  <span className="block text-sm font-medium">{title}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {hint}
+                  </span>
+                </button>
+              ))}
+            </div>
             <div className="space-y-2">
               <Label>Course *</Label>
               {coursesLoading ? (
@@ -129,14 +162,17 @@ export default function VivaCoachPage() {
             <Button
               className="w-full"
               disabled={!courseId}
-              onClick={() => viva.start(courseId, focusTopic || undefined)}
+              onClick={() =>
+                viva.start(courseId, focusTopic || undefined, mode)
+              }
             >
               <Mic className="mr-2 h-4 w-4" />
-              Start viva
+              {mode === "tutor" ? "Start talking" : "Start viva"}
             </Button>
             <p className="text-xs text-muted-foreground">
-              Uses your microphone. The examiner speaks first — answer out loud,
-              and expect follow-up questions.
+              {mode === "tutor"
+                ? 'Uses your microphone. Your tutor speaks first. Ask anything, or say "quiz me".'
+                : "Uses your microphone. The examiner speaks first. Answer out loud, and expect follow-up questions."}
             </p>
           </CardContent>
         </Card>
@@ -227,6 +263,29 @@ export default function VivaCoachPage() {
           <CardContent className="py-12 text-center text-muted-foreground flex items-center justify-center gap-2">
             <Loader2 className="h-5 w-5 animate-spin" />
             The examiner is writing up your results…
+          </CardContent>
+        </Card>
+      )}
+
+      {viva.status === "completed" && viva.mode === "tutor" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Session saved</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {viva.turns.filter((t) => t.role === "student").length} things you
+              said, {viva.turns.filter((t) => t.role === "examiner").length}{" "}
+              from your tutor. Your tutor's last turn sums up what to revise.
+            </p>
+            {viva.turns.at(-1)?.role === "examiner" && (
+              <blockquote className="rounded-xl border bg-secondary/50 px-4 py-3 text-sm">
+                {viva.turns.at(-1)?.text}
+              </blockquote>
+            )}
+            <Button variant="outline" onClick={viva.reset}>
+              Start another session
+            </Button>
           </CardContent>
         </Card>
       )}
