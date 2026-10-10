@@ -56,7 +56,7 @@ async function main() {
       .insert(ProgramSchema)
       .values({
         code: "CS",
-        name: "B.Sc Computer Science",
+        name: "Computer Science",
         description:
           "Bachelor of Science in Computer Science. 4-year program covering theoretical foundations, software development, data structures, algorithms, and applied computing.",
         departmentId: csDept.id,

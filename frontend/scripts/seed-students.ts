@@ -409,7 +409,7 @@ async function main() {
 
   if (!program) {
     console.error(
-      "❌ Program B.Sc Computer Science (code=CS) not found. Run seed-demo-data.ts first.",
+      "❌ Program Computer Science (code=CS) not found. Run seed-demo-data.ts first.",
     );
     process.exit(1);
   }
