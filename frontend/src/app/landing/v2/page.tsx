@@ -528,7 +528,7 @@ export default function LandingV2() {
           </p>
         </div>
         <div className="mt-14 grid grid-cols-1 gap-12 lg:mt-[68px] lg:grid-cols-[1fr_1.25fr] lg:gap-[55px]">
-          <div className="relative">
+          <div className="relative self-start">
             <ScreenTile
               name="mDeadlines"
               variant="phone"
