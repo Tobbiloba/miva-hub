@@ -78,3 +78,28 @@ export function voiceAllowancePlan(
 export function sessionLimitSeconds(remainingSeconds: number): number {
   return Math.max(0, Math.min(remainingSeconds, MAX_SESSION_SECONDS));
 }
+
+/** What the Voice Coach page shows about a student's minutes */
+export type AllowanceView = {
+  kind: "trial" | "monthly";
+  limitSeconds: number;
+  remainingSeconds: number;
+  resetsAt: string | null;
+};
+
+/** "7 of 10 free-trial voice minutes left", "54 of 60 voice minutes left this month · refills 1 Nov" */
+export function allowanceLine(a: AllowanceView, locale?: string): string {
+  const total = Math.round(a.limitSeconds / 60);
+  const minutes = Math.floor(a.remainingSeconds / 60);
+  const left =
+    minutes >= 1 ? `${minutes} of ${total}` : `Under a minute of your ${total}`;
+  if (a.kind === "trial") return `${left} free-trial voice minutes left`;
+  const refill = a.resetsAt
+    ? new Date(a.resetsAt).toLocaleDateString(locale, {
+        day: "numeric",
+        month: "short",
+        timeZone: "Africa/Lagos",
+      })
+    : null;
+  return `${left} voice minutes left this month${refill ? ` · refills ${refill}` : ""}`;
+}

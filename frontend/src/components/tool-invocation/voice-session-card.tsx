@@ -63,7 +63,7 @@ export function VoiceSessionCard({ part }: { part: ToolUIPart }) {
         <p className="truncate text-xs text-muted-foreground">
           {output.focusTopic || output.courseTitle}
           {typeof output.minutesLeft === "number" &&
-            ` · ${output.minutesLeft} min left`}
+            ` · ${output.minutesLeft >= 1 ? `${output.minutesLeft} min` : "under a minute"} left`}
         </p>
       </div>
       <Button asChild size="sm" className="min-h-11 shrink-0">

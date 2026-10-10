@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useVivaVoice } from "@/lib/ai/speech/gemini/use-viva-voice";
+import { type AllowanceView, allowanceLine } from "@/lib/voice/allowance-rules";
 import { cn } from "lib/utils";
 
 const CRITERION_LABELS: Record<string, string> = {
@@ -38,26 +39,8 @@ const CRITERION_LABELS: Record<string, string> = {
   responsiveness_to_probing: "Responsiveness to Probing",
 };
 
-type Allowance = {
-  kind: "trial" | "monthly";
-  limitSeconds: number;
-  remainingSeconds: number;
-  resetsAt: string | null;
-};
-
-function allowanceLine(a: Allowance): string {
-  const left = Math.floor(a.remainingSeconds / 60);
-  const total = Math.round(a.limitSeconds / 60);
-  if (a.kind === "trial") {
-    return `${left} of ${total} free-trial voice minutes left`;
-  }
-  const refill = a.resetsAt
-    ? new Date(a.resetsAt).toLocaleDateString(undefined, {
-        day: "numeric",
-        month: "short",
-      })
-    : null;
-  return `${left} of ${total} voice minutes left this month${refill ? ` · refills ${refill}` : ""}`;
+function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? "" : "s"}`;
 }
 
 function formatClock(seconds: number): string {
@@ -84,7 +67,7 @@ export default function VivaCoachPage() {
 
   const viva = useVivaVoice();
   const router = useRouter();
-  const [allowance, setAllowance] = useState<Allowance | null>(null);
+  const [allowance, setAllowance] = useState<AllowanceView | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   // Minutes left: on load, and again whenever a session finishes
@@ -103,6 +86,7 @@ export default function VivaCoachPage() {
   // Tick the in-session countdown
   useEffect(() => {
     if (!viva.endsAt) return;
+    setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, [viva.endsAt]);
@@ -151,11 +135,11 @@ export default function VivaCoachPage() {
 
   const followUps = viva.threadId ? (
     <div className="grid gap-2 sm:grid-cols-2">
-      <Button onClick={makeFlashcards}>
+      <Button className="min-h-11" onClick={makeFlashcards}>
         <Layers className="mr-2 h-4 w-4" />
         Make flashcards from my weak spots
       </Button>
-      <Button variant="outline" asChild>
+      <Button className="min-h-11" variant="outline" asChild>
         <Link href={`/chat/${viva.threadId}`}>
           <MessageSquare className="mr-2 h-4 w-4" />
           Continue in chat
@@ -239,7 +223,7 @@ export default function VivaCoachPage() {
                 </p>
               ) : (
                 <Select value={courseId} onValueChange={setCourseId}>
-                  <SelectTrigger>
+                  <SelectTrigger className="min-h-11">
                     <SelectValue placeholder="Select a course" />
                   </SelectTrigger>
                   <SelectContent>
@@ -255,6 +239,7 @@ export default function VivaCoachPage() {
             <div className="space-y-2">
               <Label htmlFor="focus">Focus topic (optional)</Label>
               <Input
+                className="min-h-11"
                 id="focus"
                 value={focusTopic}
                 onChange={(e) => setFocusTopic(e.target.value)}
@@ -263,7 +248,7 @@ export default function VivaCoachPage() {
               />
             </div>
             <Button
-              className="w-full"
+              className="min-h-11 w-full"
               disabled={!courseId || outOfMinutes}
               onClick={() =>
                 viva.start(courseId, focusTopic || undefined, mode)
@@ -379,11 +364,18 @@ export default function VivaCoachPage() {
               <div ref={transcriptEndRef} />
             </div>
             <div className="flex gap-2">
-              <Button className="flex-1" onClick={() => viva.end(false)}>
+              <Button
+                className="min-h-11 flex-1"
+                onClick={() => viva.end(false)}
+              >
                 <Award className="mr-2 h-4 w-4" />
                 {tutor ? "End session" : "End viva & get my results"}
               </Button>
-              <Button variant="outline" onClick={() => viva.end(true)}>
+              <Button
+                className="min-h-11"
+                variant="outline"
+                onClick={() => viva.end(true)}
+              >
                 <MicOff className="mr-2 h-4 w-4" />
                 Abandon
               </Button>
@@ -410,8 +402,11 @@ export default function VivaCoachPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              {viva.turns.filter((t) => t.role === "student").length} things you
-              said, {viva.turns.filter((t) => t.role === "examiner").length}{" "}
+              {plural(
+                viva.turns.filter((t) => t.role === "student").length,
+                "thing",
+              )}{" "}
+              you said, {viva.turns.filter((t) => t.role === "examiner").length}{" "}
               from your tutor. It's saved in your chats, so you can pick it up
               by text.
             </p>
@@ -421,7 +416,11 @@ export default function VivaCoachPage() {
               </blockquote>
             )}
             {followUps}
-            <Button variant="ghost" className="w-full" onClick={viva.reset}>
+            <Button
+              variant="ghost"
+              className="min-h-11 w-full"
+              onClick={viva.reset}
+            >
               Start another session
             </Button>
           </CardContent>
@@ -487,7 +486,11 @@ export default function VivaCoachPage() {
               </div>
             </div>
             {followUps}
-            <Button variant="ghost" className="w-full" onClick={viva.reset}>
+            <Button
+              variant="ghost"
+              className="min-h-11 w-full"
+              onClick={viva.reset}
+            >
               Take another viva
             </Button>
           </CardContent>

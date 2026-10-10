@@ -3,6 +3,7 @@ import {
   MAX_SESSION_SECONDS,
   MONTHLY_VOICE_SECONDS,
   TRIAL_VOICE_SECONDS,
+  allowanceLine,
   monthBounds,
   sessionLimitSeconds,
   voiceAllowancePlan,
@@ -57,5 +58,37 @@ describe("sessionLimitSeconds", () => {
     expect(sessionLimitSeconds(120)).toBe(120);
     expect(sessionLimitSeconds(3600)).toBe(MAX_SESSION_SECONDS);
     expect(sessionLimitSeconds(-5)).toBe(0);
+  });
+});
+
+describe("allowanceLine", () => {
+  it("words each case once", () => {
+    expect(
+      allowanceLine({
+        kind: "trial",
+        limitSeconds: 600,
+        remainingSeconds: 437,
+        resetsAt: null,
+      }),
+    ).toBe("7 of 10 free-trial voice minutes left");
+    expect(
+      allowanceLine({
+        kind: "trial",
+        limitSeconds: 600,
+        remainingSeconds: 45,
+        resetsAt: null,
+      }),
+    ).toBe("Under a minute of your 10 free-trial voice minutes left");
+    expect(
+      allowanceLine(
+        {
+          kind: "monthly",
+          limitSeconds: 3600,
+          remainingSeconds: 3300,
+          resetsAt: "2026-10-31T23:00:00.000Z",
+        },
+        "en-GB",
+      ),
+    ).toBe("55 of 60 voice minutes left this month · refills 1 Nov");
   });
 });
