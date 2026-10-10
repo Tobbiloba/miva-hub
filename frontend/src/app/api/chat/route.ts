@@ -31,11 +31,13 @@ import globalLogger from "logger";
 
 import { errorIf, safe } from "ts-safe";
 
+import { LIVE_QUIZ_PROMPT, SNAP_SOLVE_PROMPT, readPhoto } from "@/lib/ai/snap";
 import { s3Service } from "@/lib/aws/s3-service";
 import {
   MAX_CHAT_IMAGE_BYTES,
   prepareImagesForModel,
   sanitizeIncomingParts,
+  withholdPhotos,
 } from "@/lib/chat/attachments";
 import { auth } from "auth/server";
 import { colorize } from "consola/utils";
@@ -137,11 +139,31 @@ export async function POST(request: Request) {
 
     // What the model sees: the newest photos as bytes, older ones as a note.
     // `messages` itself keeps the app URLs that get saved.
-    const modelMessages = await prepareImagesForModel(
+    let modelMessages = await prepareImagesForModel(
       messages,
       session.user.id,
       (key) => s3Service.getObjectBytes(key, MAX_CHAT_IMAGE_BYTES),
     );
+    // Snap-to-Solve: the photo in this turn (as bytes), if any
+    const photoDataUrl = (
+      modelMessages
+        .at(-1)
+        ?.parts.find(
+          (p) => p.type === "file" && p.url.startsWith("data:image/"),
+        ) as { url: string } | undefined
+    )?.url;
+    // Read the photo first: its question drives retrieval, and a live,
+    // graded quiz is withheld from the model entirely so it can't answer it
+    const photo = photoDataUrl ? await readPhoto(photoDataUrl) : null;
+    if (photo?.liveQuiz) {
+      modelMessages = [
+        ...modelMessages.slice(0, -1),
+        withholdPhotos(
+          modelMessages.at(-1)!,
+          `[Photo withheld: a live, graded quiz in progress. Topic: ${photo.topic || "unknown"}]`,
+        ),
+      ];
+    }
 
     const supportToolCall = !isToolCallUnsupportedModel(model);
 
@@ -185,8 +207,14 @@ export async function POST(request: Request) {
     // inline. Prefer semantic retrieval (RAG); fall back to whole-course context
     // when the course has no embedded chunks yet. Null when no course is
     // selected or the user is not enrolled.
-    const groundingQuery =
-      (message.parts?.find((p: any) => p.type === "text") as any)?.text ?? "";
+    // Retrieval reads text, so a photo's question is read off it first
+    const groundingQuery = [
+      (message.parts?.find((p: any) => p.type === "text") as any)?.text ?? "",
+      // (a live quiz never drives retrieval: the notes could hold its answer)
+      courseId && photo && !photo.liveQuiz ? photo.question : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
     const courseGrounding = courseId
       ? ((await retrieveCourseContext(
           session.user.id,
@@ -349,6 +377,11 @@ export async function POST(request: Request) {
           baseSystemPrompt + conversationContext,
           buildMcpServerCustomizationsSystemPrompt(mcpServerCustomizations),
           courseGroundingPrompt,
+          !photo
+            ? undefined
+            : photo.liveQuiz
+              ? `${LIVE_QUIZ_PROMPT}\n\nTopic: ${photo.topic || "the subject of their course"}`
+              : SNAP_SOLVE_PROMPT,
           !supportToolCall && buildToolCallUnsupportedModelSystemPrompt,
         );
 

@@ -170,3 +170,12 @@ export async function prepareImagesForModel(
     return { ...message, parts };
   });
 }
+
+/**
+ * The same message with its photos replaced by `note`, for when a photo must
+ * not reach the model (a live, graded quiz). Never mutates the input.
+ */
+export function withholdPhotos(message: UIMessage, note: string): UIMessage {
+  const parts = message.parts.filter((p) => p.type !== "file");
+  return { ...message, parts: [{ type: "text", text: note }, ...parts] };
+}

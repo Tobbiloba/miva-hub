@@ -1,7 +1,11 @@
+import { normalizeMathDelimiters } from "lib/markdown-math";
 import { isJson, isString, toAny } from "lib/utils";
 import React, { memo, PropsWithChildren } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
+import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import "katex/dist/katex.min.css";
 import JsonView from "ui/json-view";
 import {
   Table,
@@ -219,8 +223,14 @@ const NonMemoizedMarkdown = ({ children }: { children: string }) => {
       {isJson(children) ? (
         <JsonView data={children} />
       ) : (
-        <ReactMarkdown components={components} remarkPlugins={[remarkGfm]}>
-          {children}
+        <ReactMarkdown
+          components={components}
+          remarkPlugins={[remarkGfm, remarkMath]}
+          rehypePlugins={[
+            [rehypeKatex, { throwOnError: false, strict: false }],
+          ]}
+        >
+          {normalizeMathDelimiters(children)}
         </ReactMarkdown>
       )}
     </article>

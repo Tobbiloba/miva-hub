@@ -10,6 +10,7 @@ import {
   prepareImagesForModel,
   sanitizeIncomingParts,
   sniffImageType,
+  withholdPhotos,
 } from "./attachments";
 
 const ada = "4b8c1f6e-0a3d-4c4e-9a1b-2f3e4d5c6b7a";
@@ -131,5 +132,14 @@ describe("prepareImagesForModel", () => {
       text("[A photo was attached here but could not be loaded.]"),
       text("hi"),
     ]);
+  });
+});
+
+describe("withholdPhotos", () => {
+  it("swaps photos for a note and keeps the text", () => {
+    const m = msg("q", [image(chatImageKey(ada, "image/jpeg")), text("help")]);
+    const out = withholdPhotos(m, "[withheld]");
+    expect(out.parts).toEqual([text("[withheld]"), text("help")]);
+    expect(m.parts[0].type).toBe("file");
   });
 });
