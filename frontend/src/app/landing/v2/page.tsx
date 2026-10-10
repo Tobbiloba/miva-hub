@@ -1,9 +1,3 @@
-import {
-  INDIVIDUAL_PLANS,
-  PLAN_FEATURES,
-  YEARLY_SAVINGS_KOBO,
-  formatNaira,
-} from "lib/billing/plans";
 import { cn } from "lib/utils";
 import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
@@ -14,7 +8,7 @@ import { Faq, QuoteSlider, WaitlistForm } from "./interactive";
 
 /*
  * Landing v2: the editorial reference layout in design/ (f0811f5a…webp),
- * rebuilt section by section with Askly's product, copy and pricing.
+ * rebuilt section by section with Askly's product, copy and real screens.
  */
 
 export const metadata: Metadata = {
@@ -115,7 +109,7 @@ const NAV = [
   ["How you study", "study"],
   ["Features", "features"],
   ["Capture", "capture"],
-  ["Pricing", "pricing"],
+  ["Inside Askly", "inside"],
   ["FAQ", "faq"],
 ] as const;
 
@@ -142,47 +136,80 @@ const FEATURES = [
   ],
 ] as const;
 
-const { monthly, yearly } = INDIVIDUAL_PLANS;
+/**
+ * Real Askly screens (light theme, 2x), cropped to the one piece of UI that
+ * matters and duotoned into the page's ink and cream so they sit in the
+ * design instead of on top of it.
+ */
+const SCREENS = {
+  answer: { src: "/landing/v2/screens/answer.webp", w: 1605, h: 1170 },
+  flashcards: { src: "/landing/v2/screens/flashcards.webp", w: 1605, h: 1000 },
+  quiz: { src: "/landing/v2/screens/quiz.webp", w: 1605, h: 1070 },
+  deadlines: { src: "/landing/v2/screens/deadlines.webp", w: 1603, h: 1030 },
+  courses: { src: "/landing/v2/screens/courses.webp", w: 2200, h: 1130 },
+} as const;
 
-const PLANS = [
+const INSIDE: {
+  screen: keyof typeof SCREENS;
+  tag: string;
+  title: string;
+  body: string;
+  alt: string;
+}[] = [
   {
-    name: "Free trial",
-    badge: "Get started",
-    blurb: "Everything in Askly, free for 7 days.",
-    price: formatNaira(0),
-    per: "/ 7 days",
-    items: [
-      "AI chat with sources",
-      "Quizzes and flashcards",
-      "Deadlines in one list",
-      "Chrome capture",
-      "No card needed",
-    ],
-    cta: "Join the waitlist",
-    note: "Then choose a plan, or stop.",
+    screen: "answer",
+    tag: "Chat",
+    title: "Answers with their sources",
+    body: "Every answer cites the lecture or reading it came from, so you can open it and check.",
+    alt: "An Askly answer about the parts of a computer, citing two COS101 week 2 sources",
   },
   {
-    name: "Monthly",
-    badge: "Stay flexible",
-    blurb: "Full access, a month at a time.",
-    price: formatNaira(monthly.priceKobo),
-    per: `/ ${monthly.periodLabel}`,
-    items: [...PLAN_FEATURES],
-    cta: "Join the waitlist",
-    note: `${formatNaira(monthly.priceKobo)} billed monthly with Paystack.`,
+    screen: "flashcards",
+    tag: "Flashcards",
+    title: "A deck from your notes",
+    body: "Flip through cards in chat, then save the set as a deck for spaced review.",
+    alt: "A five-card COS101 flashcard deck on the anatomy of a computer system",
   },
   {
-    name: "Yearly",
-    badge: "Best value",
-    blurb: "A whole academic year, sorted.",
-    price: formatNaira(yearly.priceKobo),
-    per: `/ ${yearly.periodLabel}`,
-    items: [...PLAN_FEATURES],
-    cta: "Join the waitlist",
-    note: `${formatNaira(yearly.priceKobo)} billed yearly · ${formatNaira(yearly.priceKobo / 12)} / month.`,
-    dark: true,
+    screen: "quiz",
+    tag: "Quizzes",
+    title: "A quiz before the test",
+    body: "Five questions from any lesson, marked as you go, with a score at the end.",
+    alt: "A five-question COS101 practice quiz on the history of computing",
+  },
+  {
+    screen: "deadlines",
+    tag: "Deadlines",
+    title: "Everything that's due",
+    body: "Assignments and quizzes you capture land here, grouped into this week and later.",
+    alt: "Askly's deadlines list with four upcoming assignments and quizzes",
   },
 ];
+
+/** A real app screen bleeding off the bottom of its card. */
+function Screen({
+  name,
+  alt,
+  sizes = "(min-width: 1024px) 45vw, 100vw",
+}: {
+  name: keyof typeof SCREENS;
+  alt: string;
+  sizes?: string;
+}) {
+  const s = SCREENS[name];
+  return (
+    <div className="overflow-hidden rounded-t-[16px] shadow-[0_24px_60px_-28px_rgba(29,42,35,0.45)] ring-1 ring-[#1d2a23]/[0.06]">
+      <Image
+        src={s.src}
+        alt={alt}
+        width={s.w}
+        height={s.h}
+        sizes={sizes}
+        className="block h-auto w-full"
+      />
+    </div>
+  );
+}
 
 export default function LandingV2() {
   return (
@@ -609,122 +636,77 @@ export default function LandingV2() {
         </div>
       </section>
 
-      {/* ── Pricing ────────────────────────────────────────── */}
+      {/* ── 005 Inside Askly ───────────────────────────────── */}
       <section
-        id="pricing"
+        id="inside"
         className="bg-[#f5f4f0] px-6 pt-24 pb-28 lg:pt-[116px] lg:pb-[119px]"
       >
-        <Label>Pricing</Label>
+        <Label n="005">Inside Askly</Label>
         <div className="mt-12 grid grid-cols-1 gap-6 lg:mt-12 lg:grid-cols-[1fr_auto] lg:items-end">
           <h2 className={h2}>
-            Start free.
+            Real screens.
             <br />
-            Stay when it helps.
+            Real coursework.
           </h2>
           <p className="pb-1 text-lg text-[#4d5550] lg:text-[19px]">
-            Try everything free for 7 days, then pay in naira with Paystack.
+            A COS101 student&apos;s week in Askly, from question to deadline.
           </p>
         </div>
-        <div className="mt-14 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr_1.234fr]">
-          {PLANS.map((p) => (
-            <div
-              key={p.name}
-              className={cn(
-                "flex flex-col rounded-[24px] px-[34px] pt-7 pb-10",
-                p.dark ? "bg-[#263c32] text-[#f6f5f1]" : "bg-white",
-              )}
+        <div className="mt-14 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {INSIDE.map((item) => (
+            <article
+              key={item.screen}
+              className="group flex flex-col overflow-hidden rounded-[24px] bg-[#e7ebdf]"
             >
-              <div className="flex items-center justify-between">
-                <p className="text-[30px] tracking-[-0.01em]">{p.name}</p>
-                <span
-                  className={cn(
-                    "rounded-full px-3 py-1.5 text-[11px] tracking-[0.04em] uppercase",
-                    p.dark ? "bg-[#d6eb9a] text-[#1d2a23]" : "bg-[#f3f2ee]",
-                  )}
-                >
-                  {p.badge}
-                </span>
+              <div className="px-7 pt-8 sm:px-9 sm:pt-9">
+                <p className={meta}>{item.tag}</p>
+                <h3 className="mt-4 text-[28px] leading-[1.15] tracking-[-0.01em] lg:text-[32px]">
+                  {item.title}
+                </h3>
+                <p className="mt-3 max-w-[460px] text-[17px] leading-[1.5] text-[#5f665f]">
+                  {item.body}
+                </p>
               </div>
-              <p
-                className={cn(
-                  "mt-5 text-[17px]",
-                  p.dark ? "text-white/80" : "text-[#5f665f]",
-                )}
-              >
-                {p.blurb}
-              </p>
-              <p className="mt-6 flex items-baseline gap-3">
-                <span className="text-[52px] leading-none tracking-[-0.02em]">
-                  {p.price}
-                </span>
-                <span
-                  className={cn(
-                    "text-[17px]",
-                    p.dark ? "text-white/80" : "text-[#5f665f]",
-                  )}
-                >
-                  {p.per}
-                </span>
-              </p>
-              <ul
-                className={cn(
-                  "mt-7 space-y-[15px] border-t pt-7 text-[17px]",
-                  p.dark ? "border-white/10" : "border-[#e4e4df]",
-                )}
-              >
-                {p.items.map((it) => (
-                  <li key={it} className="flex items-center gap-3">
-                    <span
-                      className={cn(
-                        "size-[5px] rounded-full",
-                        p.dark ? "bg-[#d6eb9a]" : "bg-[#1d2a23]",
-                      )}
-                    />
-                    {it}
-                  </li>
-                ))}
-              </ul>
-              <a
-                href="#waitlist"
-                className={cn(
-                  "mt-6 flex h-[52px] items-center justify-center gap-10 rounded-[18px] text-base transition-colors",
-                  p.dark
-                    ? "bg-[#f6f5f1] text-[#1d2a23] hover:bg-white"
-                    : "bg-[#263c32] text-white hover:bg-[#1f342b]",
-                )}
-              >
-                {p.cta}
-                <span
-                  className={cn(
-                    "grid size-8 place-items-center rounded-[9px]",
-                    p.dark
-                      ? "bg-[#263c32] text-white"
-                      : "bg-[#f6f5f1] text-[#1d2a23]",
-                  )}
-                >
-                  <ArrowUpRight className="size-4" strokeWidth={1.75} />
-                </span>
-              </a>
-              <p
-                className={cn(
-                  "mt-6 text-[15px]",
-                  p.dark ? "text-white/85" : "text-[#5f665f]",
-                )}
-              >
-                {p.note}
-              </p>
-            </div>
+              <div className="mt-auto px-7 pt-10 transition-transform duration-500 ease-out group-hover:-translate-y-1.5 sm:px-12">
+                <Screen name={item.screen} alt={item.alt} />
+              </div>
+            </article>
           ))}
+          <article className="group grid grid-cols-1 overflow-hidden rounded-[24px] bg-[#263c32] text-[#f6f5f1] lg:col-span-2 lg:grid-cols-[1fr_1.9fr]">
+            <div className="flex flex-col px-7 pt-8 sm:px-9 sm:pt-9 lg:pb-9">
+              <p className="text-xs tracking-[0.02em] text-white/70 uppercase">
+                My Courses
+              </p>
+              <h3 className="mt-4 text-[28px] leading-[1.15] tracking-[-0.01em] lg:text-[32px]">
+                Every course, one tap from a question
+              </h3>
+              <p className="mt-3 max-w-[380px] text-[17px] leading-[1.5] text-white/75">
+                Your courses and credits in one place, each with a shortcut to
+                ask about it.
+              </p>
+              <Pill tone="white" className="mt-8 w-fit lg:mt-auto">
+                Join the waitlist
+              </Pill>
+            </div>
+            <div className="mt-10 pl-7 transition-transform duration-500 ease-out group-hover:-translate-y-1.5 sm:pl-12 lg:mt-12">
+              <div className="overflow-hidden rounded-tl-[16px] shadow-[0_24px_60px_-28px_rgba(0,0,0,0.6)]">
+                <Image
+                  src={SCREENS.courses.src}
+                  alt="Askly's My Courses page with four enrolled MIVA courses"
+                  width={SCREENS.courses.w}
+                  height={SCREENS.courses.h}
+                  sizes="(min-width: 1024px) 60vw, 100vw"
+                  className="block h-auto w-full"
+                />
+              </div>
+            </div>
+          </article>
         </div>
-        <p className="mt-14 text-center text-[17px] text-[#4d5550]">
-          Save {formatNaira(YEARLY_SAVINGS_KOBO)} a year with the yearly plan.
-          Universities can buy seats for a whole class.
-        </p>
       </section>
 
       {/* ── 006 FAQ ────────────────────────────────────────── */}
       <section id="faq" className="px-6 pt-24 pb-28 lg:pt-[117px] lg:pb-[90px]">
-        <Label n="005">A few good questions</Label>
+        <Label n="006">A few good questions</Label>
         <div className="mt-14 grid grid-cols-1 gap-12 lg:mt-[66px] lg:grid-cols-[1fr_1.52fr] lg:gap-[55px]">
           <div>
             <h2 className={cn(h2, "max-w-[480px]")}>

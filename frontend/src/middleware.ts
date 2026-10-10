@@ -77,7 +77,6 @@ export async function middleware(request: NextRequest) {
     !sessionCookie &&
     !pathname.startsWith("/sign-in") &&
     !pathname.startsWith("/sign-up") &&
-    !pathname.startsWith("/pricing") &&
     !pathname.startsWith("/landing") &&
     !pathname.startsWith("/unauthorized") &&
     !pathname.startsWith("/privacy") &&
