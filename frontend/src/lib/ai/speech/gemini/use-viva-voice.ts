@@ -5,7 +5,7 @@ import {
   type LiveServerMessage,
   type Session,
 } from "@google/genai";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Real-time viva voice session against the Gemini Live API.
@@ -14,9 +14,13 @@ import { useCallback, useRef, useState } from "react";
  * token (the real API key never reaches the browser; model + examiner
  * system prompt are locked server-side in the token's constraints).
  *
- * Audio: mic → AudioContext@16kHz → PCM16 chunks → sendRealtimeInput;
- * model audio arrives as base64 PCM@24kHz and is schedule-played through
- * a second AudioContext. Transcripts for both sides stream in via
+ * Audio: mic → AudioWorklet at the device rate → downsampled to 16kHz PCM16
+ * → sendRealtimeInput; model audio arrives as base64 PCM@24kHz and is
+ * schedule-played through a second AudioContext. Both contexts are created
+ * inside the start tap, because iOS only lets audio start from a gesture.
+ *
+ * Each session has a time limit from the server (the student's remaining
+ * voice minutes, at most 15); the hook ends the session when it's reached. Transcripts for both sides stream in via
  * input/outputTranscription and accumulate into an ordered turn list.
  */
 
@@ -43,6 +47,7 @@ export type VivaStatus =
   | "error";
 
 import { base64ToFloat32, floatTo16BitPcmBase64 } from "./pcm";
+import { PcmDownsampler, createCaptureNode } from "./resampler";
 
 const INPUT_SAMPLE_RATE = 16_000;
 const OUTPUT_SAMPLE_RATE = 24_000;
@@ -56,6 +61,8 @@ export function useVivaVoice() {
   const [mode, setMode] = useState<"viva" | "tutor">("viva");
   /** The chat thread the finished session was saved to */
   const [threadId, setThreadId] = useState<string | null>(null);
+  /** When this session's time runs out (ms epoch), while one is running */
+  const [endsAt, setEndsAt] = useState<number | null>(null);
   const [course, setCourse] = useState<{
     courseCode: string;
     title: string;
@@ -65,7 +72,13 @@ export function useVivaVoice() {
   const vivaIdRef = useRef<string | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
   const inputCtxRef = useRef<AudioContext | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const captureRef = useRef<AudioWorkletNode | null>(null);
+  const limitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** True from "active" until end() starts, so a socket close can end it */
+  const liveRef = useRef(false);
+  /** Set once end() runs, so it can't run twice for one session */
+  const endingRef = useRef(false);
+  const endRef = useRef<(abandoned?: boolean) => Promise<void>>(async () => {});
   const outputCtxRef = useRef<AudioContext | null>(null);
   const nextPlayTimeRef = useRef(0);
   const playingSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
@@ -152,8 +165,14 @@ export function useVivaVoice() {
   );
 
   const teardownAudio = useCallback(() => {
-    processorRef.current?.disconnect();
-    processorRef.current = null;
+    if (limitTimerRef.current) clearTimeout(limitTimerRef.current);
+    limitTimerRef.current = null;
+    setEndsAt(null);
+    if (captureRef.current) {
+      captureRef.current.port.onmessage = null;
+      captureRef.current.disconnect();
+    }
+    captureRef.current = null;
     micStreamRef.current?.getTracks().forEach((t) => t.stop());
     micStreamRef.current = null;
     inputCtxRef.current?.close().catch(() => {});
@@ -169,6 +188,15 @@ export function useVivaVoice() {
       focusTopic?: string,
       sessionMode: "viva" | "tutor" = "viva",
     ) => {
+      // Create the audio contexts now, inside the tap (iOS needs a gesture)
+      const outputCtx = new AudioContext();
+      const inputCtx = new AudioContext();
+      outputCtxRef.current = outputCtx;
+      inputCtxRef.current = inputCtx;
+      void outputCtx.resume();
+      void inputCtx.resume();
+
+      endingRef.current = false;
       setStatus("connecting");
       setMode(sessionMode);
       setError(null);
@@ -178,6 +206,36 @@ export function useVivaVoice() {
       studentBufferRef.current = "";
       examinerBufferRef.current = "";
       try {
+        micStreamRef.current = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true },
+        });
+
+        // Mic first, then the worklet: if either fails, no session is opened.
+        // Mic → worklet (device rate) → 16kHz PCM16 → Live API
+        const source = inputCtx.createMediaStreamSource(micStreamRef.current);
+        const capture = await createCaptureNode(inputCtx);
+        captureRef.current = capture;
+        const downsampler = new PcmDownsampler(
+          inputCtx.sampleRate,
+          INPUT_SAMPLE_RATE,
+        );
+        const mimeType = `audio/pcm;rate=${downsampler.outRate}`;
+        capture.port.onmessage = (event: MessageEvent<Float32Array>) => {
+          if (!sessionRef.current) return;
+          const pcm = downsampler.process(event.data);
+          if (pcm.length === 0) return;
+          sessionRef.current.sendRealtimeInput({
+            audio: { data: floatTo16BitPcmBase64(pcm), mimeType },
+          });
+        };
+        // The worklet has to sit in a graph that reaches the speakers to be
+        // run; a muted gain keeps the mic out of them
+        const mute = inputCtx.createGain();
+        mute.gain.value = 0;
+        source.connect(capture);
+        capture.connect(mute);
+        mute.connect(inputCtx.destination);
+
         const res = await fetch("/api/student/viva/token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -189,14 +247,6 @@ export function useVivaVoice() {
         }
         vivaIdRef.current = data.sessionId;
         setCourse(data.course ?? null);
-
-        micStreamRef.current = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true },
-        });
-
-        outputCtxRef.current = new AudioContext({
-          sampleRate: OUTPUT_SAMPLE_RATE,
-        });
 
         const ai = new GoogleGenAI({
           apiKey: data.token,
@@ -215,36 +265,44 @@ export function useVivaVoice() {
             },
             onclose: () => {
               setIsExaminerSpeaking(false);
+              // The connection dropped (or the token ran out) mid-session:
+              // save what was said rather than leaving a dead session open
+              if (liveRef.current) void endRef.current(false);
             },
           },
         });
         sessionRef.current = session;
 
-        // Mic → 16kHz PCM16 → Live API. ScriptProcessor is deprecated but
-        // dependency-free; the browser resamples to the context rate for us.
-        const inputCtx = new AudioContext({ sampleRate: INPUT_SAMPLE_RATE });
-        inputCtxRef.current = inputCtx;
-        const source = inputCtx.createMediaStreamSource(micStreamRef.current);
-        const processor = inputCtx.createScriptProcessor(4096, 1, 1);
-        processorRef.current = processor;
-        processor.onaudioprocess = (event) => {
-          if (!sessionRef.current) return;
-          const pcm = event.inputBuffer.getChannelData(0);
-          sessionRef.current.sendRealtimeInput({
-            audio: {
-              data: floatTo16BitPcmBase64(pcm),
-              mimeType: `audio/pcm;rate=${INPUT_SAMPLE_RATE}`,
-            },
-          });
-        };
-        source.connect(processor);
-        processor.connect(inputCtx.destination);
+        // Ended while still connecting: don't go live
+        if (endingRef.current) throw new Error("cancelled");
 
+        const limitSeconds = Number(data.limitSeconds) || 15 * 60;
+        setEndsAt(Date.now() + limitSeconds * 1000);
+        limitTimerRef.current = setTimeout(() => {
+          void endRef.current(false);
+        }, limitSeconds * 1000);
+
+        liveRef.current = true;
         setStatus("active");
       } catch (err) {
         teardownAudio();
         sessionRef.current?.close();
         sessionRef.current = null;
+        // A session row was opened (e.g. then the mic was refused): close it
+        // so it doesn't count against the student's minutes
+        const openId = vivaIdRef.current;
+        vivaIdRef.current = null;
+        if (openId) {
+          void fetch(`/api/student/viva/${openId}/complete`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ transcript: [], abandoned: true }),
+          }).catch(() => {});
+        }
+        if (endingRef.current) {
+          setStatus("idle");
+          return;
+        }
         setError(err instanceof Error ? err.message : "Failed to start viva");
         setStatus("error");
       }
@@ -255,6 +313,9 @@ export function useVivaVoice() {
   /** End the viva: close the live session, then grade the transcript. */
   const end = useCallback(
     async (abandoned = false) => {
+      if (endingRef.current) return;
+      endingRef.current = true;
+      liveRef.current = false;
       // Flush any partial buffers so the grader sees the full exchange.
       if (studentBufferRef.current) {
         pushTurn("student", studentBufferRef.current);
@@ -295,6 +356,33 @@ export function useVivaVoice() {
     },
     [pushTurn, teardownAudio],
   );
+  endRef.current = end;
+
+  // Closing or leaving the tab mid-session: close the session server-side
+  // so the minutes stop counting (sendBeacon survives the page going away)
+  useEffect(() => {
+    const onPageHide = () => {
+      const vivaId = vivaIdRef.current;
+      if (!liveRef.current || !vivaId) return;
+      liveRef.current = false;
+      navigator.sendBeacon(
+        `/api/student/viva/${vivaId}/complete`,
+        new Blob(
+          [JSON.stringify({ transcript: turnsRef.current, abandoned: true })],
+          { type: "application/json" },
+        ),
+      );
+    };
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      // Navigating away inside the app: same, and let go of the mic
+      window.removeEventListener("pagehide", onPageHide);
+      onPageHide();
+      sessionRef.current?.close();
+      sessionRef.current = null;
+      teardownAudio();
+    };
+  }, [teardownAudio]);
 
   const reset = useCallback(() => {
     teardownAudio();
@@ -319,6 +407,7 @@ export function useVivaVoice() {
     mode,
     course,
     threadId,
+    endsAt,
     start,
     end,
     reset,

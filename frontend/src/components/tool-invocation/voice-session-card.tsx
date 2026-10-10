@@ -11,6 +11,7 @@ type VoiceSessionOutput = {
   courseTitle?: string;
   mode?: "tutor" | "viva";
   focusTopic?: string | null;
+  minutesLeft?: number;
   error?: string;
 };
 
@@ -61,6 +62,8 @@ export function VoiceSessionCard({ part }: { part: ToolUIPart }) {
         </p>
         <p className="truncate text-xs text-muted-foreground">
           {output.focusTopic || output.courseTitle}
+          {typeof output.minutesLeft === "number" &&
+            ` · ${output.minutesLeft} min left`}
         </p>
       </div>
       <Button asChild size="sm" className="min-h-11 shrink-0">

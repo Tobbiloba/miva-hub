@@ -38,6 +38,33 @@ const CRITERION_LABELS: Record<string, string> = {
   responsiveness_to_probing: "Responsiveness to Probing",
 };
 
+type Allowance = {
+  kind: "trial" | "monthly";
+  limitSeconds: number;
+  remainingSeconds: number;
+  resetsAt: string | null;
+};
+
+function allowanceLine(a: Allowance): string {
+  const left = Math.floor(a.remainingSeconds / 60);
+  const total = Math.round(a.limitSeconds / 60);
+  if (a.kind === "trial") {
+    return `${left} of ${total} free-trial voice minutes left`;
+  }
+  const refill = a.resetsAt
+    ? new Date(a.resetsAt).toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "short",
+      })
+    : null;
+  return `${left} of ${total} voice minutes left this month${refill ? ` · refills ${refill}` : ""}`;
+}
+
+function formatClock(seconds: number): string {
+  const s = Math.max(0, Math.ceil(seconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
 const VERDICT_STYLES: Record<string, string> = {
   distinction: "bg-primary/10 text-primary border-primary/40",
   pass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/40",
@@ -57,6 +84,30 @@ export default function VivaCoachPage() {
 
   const viva = useVivaVoice();
   const router = useRouter();
+  const [allowance, setAllowance] = useState<Allowance | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  // Minutes left: on load, and again whenever a session finishes
+  const sessionOpen =
+    viva.status === "connecting" ||
+    viva.status === "active" ||
+    viva.status === "scoring";
+  useEffect(() => {
+    if (sessionOpen) return;
+    fetch("/api/student/viva/usage")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setAllowance(data?.allowance ?? null))
+      .catch(() => setAllowance(null));
+  }, [sessionOpen]);
+
+  // Tick the in-session countdown
+  useEffect(() => {
+    if (!viva.endsAt) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [viva.endsAt]);
+  const secondsLeft = viva.endsAt ? (viva.endsAt - now) / 1000 : null;
+  const outOfMinutes = !!allowance && allowance.remainingSeconds < 30;
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -213,7 +264,7 @@ export default function VivaCoachPage() {
             </div>
             <Button
               className="w-full"
-              disabled={!courseId}
+              disabled={!courseId || outOfMinutes}
               onClick={() =>
                 viva.start(courseId, focusTopic || undefined, mode)
               }
@@ -221,6 +272,20 @@ export default function VivaCoachPage() {
               <Mic className="mr-2 h-4 w-4" />
               {mode === "tutor" ? "Start talking" : "Start viva"}
             </Button>
+            {allowance && (
+              <p
+                className={cn(
+                  "text-xs",
+                  outOfMinutes ? "text-destructive" : "text-muted-foreground",
+                )}
+              >
+                {outOfMinutes
+                  ? allowance.kind === "trial"
+                    ? "You've used the 10 voice minutes in your free trial. Subscribe to get 60 minutes a month."
+                    : "You've used this month's voice minutes. They refill on the 1st."
+                  : allowanceLine(allowance)}
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
               {mode === "tutor"
                 ? 'Uses your microphone. Your tutor speaks first. Ask anything, or say "quiz me".'
@@ -268,11 +333,20 @@ export default function VivaCoachPage() {
                   </>
                 )}
               </span>
-              {viva.course && (
-                <span className="text-xs font-normal text-muted-foreground">
-                  {viva.course.courseCode}
-                </span>
-              )}
+              <span className="flex items-center gap-2 text-xs font-normal text-muted-foreground">
+                {viva.course?.courseCode}
+                {secondsLeft !== null && viva.status === "active" && (
+                  <span
+                    className={cn(
+                      "font-mono tabular-nums",
+                      secondsLeft <= 60 && "text-destructive",
+                    )}
+                    aria-label="Time left in this session"
+                  >
+                    {formatClock(secondsLeft)} left
+                  </span>
+                )}
+              </span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">

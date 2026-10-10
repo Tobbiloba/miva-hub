@@ -1,6 +1,6 @@
 import "server-only";
 
-import { decidePaidAccess } from "@/lib/billing/rules";
+import { type PaidAccessDecision, decidePaidAccess } from "@/lib/billing/rules";
 import {
   getAccessGrantingSubscription,
   getBillingUser,
@@ -18,9 +18,13 @@ import {
  * then trial → own subscription → university seat. Cheap checks first; the
  * subscription/seat queries only run for students past their trial.
  */
-export async function checkPaidAccess(
-  userId: string,
-): Promise<{ allowed: true } | { allowed: false; reason: string }> {
+export async function checkPaidAccess(userId: string): Promise<
+  | {
+      allowed: true;
+      via: Extract<PaidAccessDecision, { allowed: true }>["via"];
+    }
+  | { allowed: false; reason: string }
+> {
   const now = new Date();
   const user = await getBillingUser(userId);
 
@@ -36,7 +40,7 @@ export async function checkPaidAccess(
     hasActiveSubscription: false,
     coveredByUniversity: false,
   });
-  if (quick.allowed) return { allowed: true };
+  if (quick.allowed) return { allowed: true, via: quick.via };
   if (!user || quick.code === "no_user") {
     return { allowed: false, reason: quick.reason };
   }
@@ -50,7 +54,7 @@ export async function checkPaidAccess(
     coveredByUniversity: !!coverage,
   });
   return decision.allowed
-    ? { allowed: true }
+    ? { allowed: true, via: decision.via }
     : { allowed: false, reason: decision.reason };
 }
 

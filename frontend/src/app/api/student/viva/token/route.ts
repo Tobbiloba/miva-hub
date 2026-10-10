@@ -15,6 +15,11 @@ import { pgDb } from "lib/db/pg/db.pg";
 import { VivaSessionSchema } from "lib/db/pg/schema.pg";
 import { buildStudentMemory } from "lib/memory/student-memory";
 import { checkRateLimit, rateLimitResponse } from "lib/rate-limit";
+import { getVoiceAllowance, voiceLimitResponse } from "lib/voice/allowance";
+import {
+  MIN_START_SECONDS,
+  sessionLimitSeconds,
+} from "lib/voice/allowance-rules";
 import globalLogger from "logger";
 
 const logger = globalLogger.withDefaults({ message: "Viva Token API: " });
@@ -35,6 +40,13 @@ export async function POST(request: NextRequest) {
     // Paywall: AI features need a trial, subscription, or university seat
     const access = await checkPaidAccess(session.user.id);
     if (!access.allowed) return paymentRequiredResponse(access.reason);
+
+    // Voice minutes: refuse when used up, and cap this session at what's left
+    const allowance = await getVoiceAllowance(session.user.id, access.via);
+    if (allowance.remainingSeconds < MIN_START_SECONDS) {
+      return voiceLimitResponse(allowance);
+    }
+    const limitSeconds = sessionLimitSeconds(allowance.remainingSeconds);
 
     // Live sessions are expensive: 3 new vivas per 5 minutes per student.
     const rateLimit = await checkRateLimit(`viva:${session.user.id}`, 3, 300);
@@ -99,7 +111,11 @@ export async function POST(request: NextRequest) {
     const token = await client.authTokens.create({
       config: {
         uses: 1,
-        expireTime: new Date(Date.now() + 30 * 60_000).toISOString(),
+        // The client ends the session at limitSeconds; the token outlives it
+        // by a minute so the closing turn isn't cut off
+        expireTime: new Date(
+          Date.now() + (limitSeconds + 60) * 1000,
+        ).toISOString(),
         newSessionExpireTime: new Date(Date.now() + 2 * 60_000).toISOString(),
         liveConnectConstraints: {
           model: VIVA_LIVE_MODEL,
@@ -133,6 +149,8 @@ export async function POST(request: NextRequest) {
       token: token.name,
       model: VIVA_LIVE_MODEL,
       mode,
+      limitSeconds,
+      allowance,
       course: {
         courseCode: context.course.courseCode,
         title: context.course.title,

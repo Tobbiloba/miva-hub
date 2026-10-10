@@ -1,7 +1,10 @@
+import { checkPaidAccess } from "@/lib/billing/access";
 import { tool as createTool } from "ai";
 import { and, eq } from "drizzle-orm";
 import { pgDb } from "lib/db/pg/db.pg";
 import { CourseSchema, StudentEnrollmentSchema } from "lib/db/pg/schema.pg";
+import { getVoiceAllowance } from "lib/voice/allowance";
+import { MIN_START_SECONDS } from "lib/voice/allowance-rules";
 import { z } from "zod";
 
 /**
@@ -55,6 +58,17 @@ export const createStartVoiceSessionTool = (userId: string) =>
           enrolledCourses: enrolled.map((c) => c.courseCode),
         };
       }
+      const access = await checkPaidAccess(userId);
+      if (!access.allowed) return { error: access.reason };
+      const allowance = await getVoiceAllowance(userId, access.via);
+      if (allowance.remainingSeconds < MIN_START_SECONDS) {
+        return {
+          error:
+            allowance.kind === "trial"
+              ? "the free trial's 10 voice minutes are used up; subscribing gives 60 minutes a month"
+              : "this month's voice minutes are used up; they refill on the 1st",
+        };
+      }
       const topic = focusTopic?.trim() || null;
       const params = new URLSearchParams({ course: course.id, mode });
       if (topic) params.set("topic", topic);
@@ -64,6 +78,7 @@ export const createStartVoiceSessionTool = (userId: string) =>
         courseTitle: course.title,
         mode,
         focusTopic: topic,
+        minutesLeft: Math.floor(allowance.remainingSeconds / 60),
       };
     },
     // The card in chat carries the link; keep it from the model so the reply
