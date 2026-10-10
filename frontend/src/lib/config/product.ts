@@ -20,6 +20,8 @@ export const STUDENT_PAGES = [
   { title: "My Courses", href: "/student/courses" },
   { title: "Deadlines", href: "/student/deadlines" },
   { title: "Flashcards", href: "/student/flashcards" },
+  // AI Voice Coach: spoken practice grounded in the course (Gemini Live)
+  { title: "Voice Coach", href: "/student/viva" },
 ] as const;
 
 /** /student paths that stay open: the nav pages above plus their sub-pages. */
@@ -33,7 +35,6 @@ const STUDENT_OPEN_PREFIXES = [
 
 /** APIs whose only callers are archived student features. */
 const ARCHIVED_API_PREFIXES = [
-  "/api/student/viva",
   "/api/student/professor",
   "/api/student/credentials",
   "/api/student/whatsapp",

@@ -71,7 +71,7 @@ export default function VivaCoachPage() {
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <GraduationCap className="h-6 w-6 text-primary" />
-          Viva Coach
+          Voice Coach
         </h1>
         <p className="text-muted-foreground">
           A live oral exam on your actual course material — the AI examiner
