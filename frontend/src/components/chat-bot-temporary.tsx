@@ -356,6 +356,7 @@ function DrawerTemporaryContent({
           placeholder={t("TemporaryChat.feelFreeToAskAnythingTemporarily")}
           setInput={setInput}
           voiceDisabled
+          attachmentsDisabled
           isLoading={isLoading}
           onStop={stop}
         />

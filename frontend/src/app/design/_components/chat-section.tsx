@@ -174,6 +174,7 @@ export function ChatSection() {
                 placeholder="Ask your AI professor anything…"
                 voiceDisabled
                 disabledMention
+                attachmentsDisabled
               />
             </div>
           </div>

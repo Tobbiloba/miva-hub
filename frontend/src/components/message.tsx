@@ -88,6 +88,12 @@ const PurePreviewMessage = ({
               );
             }
 
+            if (part.type === "file") {
+              return (
+                <FileMessagePart key={key} part={part} isUser={isUserMessage} />
+              );
+            }
+
             if (isUserMessage && part.type === "text" && part.text) {
               return (
                 <UserMessagePart
@@ -277,3 +283,35 @@ export const ErrorMessage = ({
     </div>
   );
 };
+
+/**
+ * A photo attached to a message (Snap-to-Solve). The URL is the app's own
+ * ownership-checked route, so it only loads for the student who sent it.
+ */
+function FileMessagePart({
+  part,
+  isUser,
+}: {
+  part: Extract<UIMessage["parts"][number], { type: "file" }>;
+  isUser: boolean;
+}) {
+  if (!part.mediaType?.startsWith("image/")) return null;
+  return (
+    <div className={cn("flex", isUser && "justify-end")}>
+      <a
+        href={part.url}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-block max-w-[min(100%,22rem)] overflow-hidden rounded-2xl border border-border bg-secondary transition-opacity hover:opacity-90"
+        aria-label="Open the photo"
+      >
+        <img
+          src={part.url}
+          alt={part.filename ? `Photo: ${part.filename}` : "Attached photo"}
+          loading="lazy"
+          className="block h-auto max-h-72 w-auto max-w-full"
+        />
+      </a>
+    </div>
+  );
+}

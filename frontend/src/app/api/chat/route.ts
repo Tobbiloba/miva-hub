@@ -31,6 +31,12 @@ import globalLogger from "logger";
 
 import { errorIf, safe } from "ts-safe";
 
+import { s3Service } from "@/lib/aws/s3-service";
+import {
+  MAX_CHAT_IMAGE_BYTES,
+  prepareImagesForModel,
+  sanitizeIncomingParts,
+} from "@/lib/chat/attachments";
 import { auth } from "auth/server";
 import { colorize } from "consola/utils";
 import { SEARCH_TOOL_NAME, groundingCitationSources } from "lib/ai/citations";
@@ -93,6 +99,10 @@ export async function POST(request: Request) {
       courseId,
     } = chatApiSchemaRequestBodySchema.parse(json);
 
+    // Photos: keep only this student's own uploads (never an external or
+    // inline URL), before the message is used or saved
+    message.parts = sanitizeIncomingParts(message.parts ?? [], session.user.id);
+
     const model = await customModelProvider.getModel(chatModel);
 
     let thread = await chatRepository.selectThreadDetails(id);
@@ -124,6 +134,14 @@ export async function POST(request: Request) {
       messages.pop();
     }
     messages.push(message);
+
+    // What the model sees: the newest photos as bytes, older ones as a note.
+    // `messages` itself keeps the app URLs that get saved.
+    const modelMessages = await prepareImagesForModel(
+      messages,
+      session.user.id,
+      (key) => s3Service.getObjectBytes(key, MAX_CHAT_IMAGE_BYTES),
+    );
 
     const supportToolCall = !isToolCallUnsupportedModel(model);
 
@@ -368,7 +386,7 @@ export async function POST(request: Request) {
         const result = streamText({
           model,
           system: systemPrompt,
-          messages: convertToModelMessages(messages),
+          messages: convertToModelMessages(modelMessages),
           experimental_transform: smoothStream({ chunking: "word" }),
           maxRetries: 2,
           tools: vercelAITooles,

@@ -3,18 +3,22 @@
 import { appStore } from "@/app/store";
 import { UIMessage, UseChatHelpers } from "@ai-sdk/react";
 import { ChatMention, ChatModel } from "app-types/chat";
+import { MAX_IMAGES_PER_MESSAGE } from "lib/chat/attachments";
+import { compressImage } from "lib/chat/compress-image";
 import {
   ArrowUp,
   AudioWaveformIcon,
   ChevronDown,
-  PlusIcon,
+  ImagePlusIcon,
+  Loader2,
   Square,
+  TriangleAlertIcon,
   XIcon,
 } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "ui/button";
-import { notImplementedToast } from "ui/shared-toast";
 import { useShallow } from "zustand/shallow";
 import { CourseContextSelector } from "./course-context-selector";
 import { SelectModel } from "./select-model";
@@ -53,7 +57,20 @@ interface PromptInputProps {
   threadId?: string;
   disabledMention?: boolean;
   onFocus?: () => void;
+  /** Photos need /api/chat (temporary chat and demos don't resolve them) */
+  attachmentsDisabled?: boolean;
 }
+
+/** A photo in the composer, uploaded as soon as it's added. */
+type Attachment = {
+  id: string;
+  preview: string;
+  status: "uploading" | "ready" | "error";
+  url?: string;
+  mediaType?: string;
+};
+
+const DEFAULT_PHOTO_PROMPT = "Help me work through this question.";
 
 const ChatMentionInput = dynamic(() => import("./chat-mention-input"), {
   ssr: false,
@@ -76,6 +93,7 @@ export default function PromptInput({
   voiceDisabled,
   threadId,
   disabledMention,
+  attachmentsDisabled,
 }: PromptInputProps) {
   const t = useTranslations("Chat");
   const { data: session } = authClient.useSession();
@@ -100,6 +118,80 @@ export default function PromptInput({
   }, [model, globalModel]);
 
   const editorRef = useRef<Editor | null>(null);
+
+  // ── Photos (Snap-to-Solve) ────────────────────────────────────────────
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const attachmentsRef = useRef<Attachment[]>([]);
+  attachmentsRef.current = attachments;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const isUploading = attachments.some((a) => a.status === "uploading");
+
+  const patchAttachment = useCallback(
+    (id: string, patch: Partial<Attachment>) =>
+      setAttachments((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, ...patch } : a)),
+      ),
+    [],
+  );
+
+  const removeAttachment = useCallback((id: string) => {
+    setAttachments((prev) => {
+      const gone = prev.find((a) => a.id === id);
+      if (gone) URL.revokeObjectURL(gone.preview);
+      return prev.filter((a) => a.id !== id);
+    });
+  }, []);
+
+  const addFiles = useCallback(
+    (files: File[]) => {
+      if (attachmentsDisabled) return;
+      const images = files.filter((f) => f.type.startsWith("image/"));
+      if (!images.length) return;
+      const room = MAX_IMAGES_PER_MESSAGE - attachmentsRef.current.length;
+      if (room <= 0 || images.length > room) {
+        toast.info(`You can add up to ${MAX_IMAGES_PER_MESSAGE} photos.`);
+      }
+      for (const file of images.slice(0, Math.max(room, 0))) {
+        const id = crypto.randomUUID();
+        setAttachments((prev) => [
+          ...prev,
+          { id, preview: URL.createObjectURL(file), status: "uploading" },
+        ]);
+        (async () => {
+          try {
+            const blob = await compressImage(file);
+            const body = new FormData();
+            body.append("file", blob, "photo.jpg");
+            const res = await fetch("/api/chat/attachments", {
+              method: "POST",
+              body,
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || "Upload failed");
+            patchAttachment(id, {
+              status: "ready",
+              url: data.url,
+              mediaType: data.mediaType,
+            });
+          } catch (error) {
+            patchAttachment(id, { status: "error" });
+            toast.error(
+              error instanceof Error
+                ? error.message
+                : "Couldn't upload the photo. Try again.",
+            );
+          }
+        })();
+      }
+    },
+    [attachmentsDisabled, patchAttachment],
+  );
+
+  useEffect(
+    () => () =>
+      attachmentsRef.current.forEach((a) => URL.revokeObjectURL(a.preview)),
+    [],
+  );
 
   const setChatModel = useCallback(
     (model: ChatModel) => {
@@ -193,15 +285,28 @@ export default function PromptInput({
 
   const submit = () => {
     if (isLoading) return;
+    if (isUploading) {
+      toast.info("Your photo is still uploading.");
+      return;
+    }
+    const ready = attachments.filter((a) => a.status === "ready");
     const userMessage = input?.trim() || "";
-    if (userMessage.length === 0) return;
+    if (userMessage.length === 0 && ready.length === 0) return;
     setInput("");
+    attachments.forEach((a) => URL.revokeObjectURL(a.preview));
+    setAttachments([]);
     sendMessage({
       role: "user",
       parts: [
+        ...ready.map((a) => ({
+          type: "file" as const,
+          mediaType: a.mediaType!,
+          url: a.url!,
+          filename: "photo.jpg",
+        })),
         {
           type: "text",
-          text: userMessage,
+          text: userMessage || DEFAULT_PHOTO_PROMPT,
         },
       ],
     });
@@ -234,7 +339,28 @@ export default function PromptInput({
   return (
     <div className="max-w-[52rem] mx-auto fade-in animate-in">
       <div className="z-10 mx-auto w-full max-w-[52rem] relative">
-        <fieldset className="flex w-full min-w-0 max-w-full flex-col px-4">
+        <fieldset
+          className="flex w-full min-w-0 max-w-full flex-col px-4"
+          onPasteCapture={(e) => {
+            const files = Array.from(e.clipboardData?.files ?? []);
+            if (
+              attachmentsDisabled ||
+              !files.some((f) => f.type.startsWith("image/"))
+            )
+              return;
+            e.preventDefault();
+            addFiles(files);
+          }}
+          onDragOver={(e) => {
+            if (!attachmentsDisabled && e.dataTransfer.types.includes("Files"))
+              e.preventDefault();
+          }}
+          onDrop={(e) => {
+            if (attachmentsDisabled || !e.dataTransfer.files.length) return;
+            e.preventDefault();
+            addFiles(Array.from(e.dataTransfer.files));
+          }}
+        >
           <div className="relative z-10 flex w-full cursor-text flex-col items-stretch overflow-hidden rounded-[20px] border border-border bg-card shadow-[var(--shadow-float)] transition-[border-color,box-shadow] duration-200 focus-within:border-input">
             {mentions.length > 0 && (
               <div className="m-2 flex flex-col gap-4 rounded-xl border bg-secondary p-3">
@@ -296,6 +422,49 @@ export default function PromptInput({
                 })}
               </div>
             )}
+            {attachments.length > 0 && (
+              <ul
+                className="flex gap-2 px-4 pt-3.5"
+                aria-label="Attached photos"
+              >
+                {attachments.map((a) => (
+                  <li
+                    key={a.id}
+                    className="relative size-16 shrink-0 overflow-hidden rounded-xl border border-border bg-secondary"
+                  >
+                    <img
+                      src={a.preview}
+                      alt="Attached photo"
+                      className={cn(
+                        "size-full object-cover",
+                        a.status !== "ready" && "opacity-60",
+                      )}
+                    />
+                    {a.status === "uploading" && (
+                      <span className="absolute inset-0 grid place-items-center">
+                        <Loader2 className="size-5 animate-spin text-foreground" />
+                      </span>
+                    )}
+                    {a.status === "error" && (
+                      <span
+                        className="absolute inset-0 grid place-items-center bg-destructive/20"
+                        title="Upload failed"
+                      >
+                        <TriangleAlertIcon className="size-5 text-destructive" />
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      aria-label="Remove photo"
+                      onClick={() => removeAttachment(a.id)}
+                      className="absolute top-1 right-1 grid size-6 place-items-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
+                    >
+                      <XIcon className="size-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
             <div className="px-4 pt-3.5 pb-1">
               <div className="relative min-h-[2.75rem] min-w-0 text-[15px]">
                 <ChatMentionInput
@@ -311,15 +480,35 @@ export default function PromptInput({
               </div>
             </div>
             <div className="z-30 flex w-full min-w-0 items-center gap-0.5 overflow-x-auto px-2 pb-2 text-muted-foreground [scrollbar-width:none]">
-              <Button
-                variant={"ghost"}
-                size={"sm"}
-                aria-label="Attach"
-                className="rounded-lg p-2! text-muted-foreground"
-                onClick={notImplementedToast}
-              >
-                <PlusIcon />
-              </Button>
+              {!attachmentsDisabled && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    hidden
+                    onChange={(e) => {
+                      addFiles(Array.from(e.target.files ?? []));
+                      e.target.value = "";
+                    }}
+                  />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={"ghost"}
+                        size={"sm"}
+                        aria-label="Add a photo of a question"
+                        className="rounded-lg p-2! text-muted-foreground"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <ImagePlusIcon />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Add a photo of a question</TooltipContent>
+                  </Tooltip>
+                </>
+              )}
 
               {!toolDisabled && (
                 <>
@@ -372,7 +561,10 @@ export default function PromptInput({
                   <ChevronDown className="size-3" />
                 </Button>
               </SelectModel>
-              {!isLoading && !input.length && !voiceDisabled ? (
+              {!isLoading &&
+              !input.length &&
+              !attachments.length &&
+              !voiceDisabled ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
