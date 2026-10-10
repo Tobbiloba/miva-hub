@@ -2,10 +2,12 @@
 
 import {
   INDIVIDUAL_PLANS,
-  PLAN_FEATURES,
+  type IndividualPlanKey,
+  PREMIUM_YEARLY_SAVINGS_KOBO,
   YEARLY_SAVINGS_KOBO,
   formatNaira,
   getIndividualPlanByName,
+  planChangeCreditMs,
 } from "lib/billing/plans";
 import {
   CheckCircle,
@@ -13,9 +15,11 @@ import {
   CreditCard,
   GraduationCap,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,6 +49,7 @@ interface BillingStatus {
     status: string;
     plan: string;
     current_period_end: string;
+    next_payment_date: string | null;
     cancel_at_period_end: boolean;
   } | null;
   covered_by_university: boolean;
@@ -76,7 +81,7 @@ export default function BillingPage() {
     loadStatus();
   }, [loadStatus]);
 
-  async function handleCheckout(plan: "monthly" | "yearly") {
+  async function handleCheckout(plan: IndividualPlanKey) {
     setCheckoutLoading(plan);
     try {
       const res = await fetch("/api/billing/checkout", {
@@ -88,10 +93,10 @@ export default function BillingPage() {
       if (data.authorization_url) {
         window.location.href = data.authorization_url;
       } else {
-        alert(data.error || "Failed to start checkout");
+        toast.error(data.error || "Failed to start checkout");
       }
     } catch {
-      alert("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setCheckoutLoading(null);
     }
@@ -109,10 +114,10 @@ export default function BillingPage() {
         );
         setStatus(updated);
       } else {
-        alert(data.error || "Failed to cancel");
+        toast.error(data.error || "Failed to cancel");
       }
     } catch {
-      alert("Something went wrong.");
+      toast.error("Something went wrong.");
     } finally {
       setCancelLoading(false);
     }
@@ -150,6 +155,8 @@ export default function BillingPage() {
   const hasActiveSub =
     !!status.subscription && status.subscription.status === "active";
   const isCanceled = status.subscription?.cancel_at_period_end;
+  // A student who subscribed during the trial is shown their paid plan
+  const showTrial = status.in_trial && !hasActiveSub;
 
   // ─── Covered by university: no personal payment needed ───
   if (status.covered_by_university) {
@@ -180,8 +187,26 @@ export default function BillingPage() {
             </CardHeader>
           </Card>
 
+          <div className="space-y-3">
+            <p className="text-center text-sm text-muted-foreground">
+              Your university covers the standard plan. Askly Premium adds
+              SIWES, the final-year project companion and 300 voice minutes a
+              month.
+            </p>
+            <PlanCards
+              onCheckout={handleCheckout}
+              checkoutLoading={checkoutLoading}
+              premiumOnly
+            />
+          </div>
+
           <div className="text-center">
-            <Button variant="ghost" size="sm" onClick={() => router.push("/")}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="min-h-11"
+              onClick={() => router.push("/")}
+            >
               Back to chat
             </Button>
           </div>
@@ -236,7 +261,7 @@ export default function BillingPage() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  {status.in_trial ? (
+                  {showTrial ? (
                     <>
                       <Clock className="h-5 w-5 text-amber-500" />
                       Free Trial
@@ -249,27 +274,23 @@ export default function BillingPage() {
                   )}
                 </CardTitle>
                 <CardDescription>
-                  {status.in_trial
+                  {showTrial
                     ? `${status.days_left_in_trial} day${status.days_left_in_trial !== 1 ? "s" : ""} remaining`
                     : isCanceled
                       ? `Cancels on ${formatDate(status.subscription!.current_period_end)}`
-                      : `Next charge on ${formatDate(status.subscription!.current_period_end)}`}
+                      : nextChargeLine(status.subscription!)}
                 </CardDescription>
               </div>
               <Badge
                 variant={
-                  status.in_trial
+                  showTrial
                     ? "secondary"
                     : isCanceled
                       ? "destructive"
                       : "default"
                 }
               >
-                {status.in_trial
-                  ? "Trial"
-                  : isCanceled
-                    ? "Canceling"
-                    : "Active"}
+                {showTrial ? "Trial" : isCanceled ? "Canceling" : "Active"}
               </Badge>
             </div>
           </CardHeader>
@@ -278,7 +299,12 @@ export default function BillingPage() {
             <CardContent>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" disabled={cancelLoading}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="min-h-11"
+                    disabled={cancelLoading}
+                  >
                     {cancelLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     ) : null}
@@ -317,23 +343,38 @@ export default function BillingPage() {
           )}
         </Card>
 
-        {/* Upgrade cards for trial users */}
-        {status.in_trial && (
+        {/* Plans: subscribe during the trial, or change plan */}
+        {(status.in_trial || hasActiveSub) && (
           <>
             <div className="text-center">
               <p className="text-sm text-muted-foreground">
-                Upgrade now to keep uninterrupted access when your trial ends.
+                {hasActiveSub
+                  ? "Change plan. You pay for the new plan now, and your unused time carries over to it."
+                  : "Subscribe now to keep uninterrupted access when your trial ends."}
               </p>
             </div>
             <PlanCards
               onCheckout={handleCheckout}
               checkoutLoading={checkoutLoading}
+              current={
+                hasActiveSub
+                  ? {
+                      plan: status.subscription!.plan,
+                      periodEnd: status.subscription!.current_period_end,
+                    }
+                  : undefined
+              }
             />
           </>
         )}
 
         <div className="text-center">
-          <Button variant="ghost" size="sm" onClick={() => router.push("/")}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="min-h-11"
+            onClick={() => router.push("/")}
+          >
             Back to chat
           </Button>
         </div>
@@ -347,105 +388,157 @@ export default function BillingPage() {
 function PlanCards({
   onCheckout,
   checkoutLoading,
+  current,
+  premiumOnly = false,
 }: {
-  onCheckout: (plan: "monthly" | "yearly") => void;
+  onCheckout: (plan: IndividualPlanKey) => void;
   checkoutLoading: string | null;
+  /** The student's current paid plan, for "Current plan" and the credit note */
+  current?: { plan: string; periodEnd: string };
+  /** Only offer Premium (the university already covers the standard plan) */
+  premiumOnly?: boolean;
 }) {
-  const monthly = INDIVIDUAL_PLANS.monthly;
-  const yearly = INDIVIDUAL_PLANS.yearly;
-  const yearlyPerMonth = Math.round(yearly.priceKobo / 12);
+  const currentDef = getIndividualPlanByName(current?.plan);
+  const [yearly, setYearly] = useState(currentDef?.interval === "yearly");
+  const keys: IndividualPlanKey[] = premiumOnly
+    ? [yearly ? "premium_yearly" : "premium_monthly"]
+    : yearly
+      ? ["yearly", "premium_yearly"]
+      : ["monthly", "premium_monthly"];
 
   return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-      <Card className="border-2">
-        <CardHeader>
-          <CardTitle className="text-xl">Monthly</CardTitle>
-          <CardDescription>
-            <span className="text-2xl font-bold text-foreground">
-              {formatNaira(monthly.priceKobo)}
-            </span>
-            <span className="text-muted-foreground">
-              /{monthly.periodLabel}
-            </span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2 text-sm text-muted-foreground mb-4">
-            {PLAN_FEATURES.slice(0, 3).map((feature) => (
-              <li key={feature} className="flex items-center gap-2">
-                <CheckCircle
-                  className="h-4 w-4 text-emerald-500"
-                  aria-hidden="true"
-                />{" "}
-                {feature}
-              </li>
-            ))}
-          </ul>
-          <Button
-            className="w-full min-h-11"
-            onClick={() => onCheckout("monthly")}
-            disabled={!!checkoutLoading}
+    <div className="space-y-4">
+      <div
+        role="radiogroup"
+        aria-label="Billing period"
+        className="mx-auto grid w-full max-w-xs grid-cols-2 rounded-full border p-1"
+      >
+        {(
+          [
+            [false, "Monthly"],
+            [true, "Yearly"],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={label}
+            type="button"
+            role="radio"
+            aria-checked={yearly === value}
+            onClick={() => setYearly(value)}
+            className={`min-h-11 rounded-full text-sm font-medium transition-colors ${
+              yearly === value
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
           >
-            {checkoutLoading === "monthly" ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : null}
-            Choose Monthly
-          </Button>
-        </CardContent>
-      </Card>
+            {label}
+          </button>
+        ))}
+      </div>
 
-      <Card className="border-2 border-primary">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl">Yearly</CardTitle>
-            <Badge variant="secondary" className="text-xs">
-              Save {formatNaira(YEARLY_SAVINGS_KOBO)}
-            </Badge>
-          </div>
-          <CardDescription>
-            <span className="text-2xl font-bold text-foreground">
-              {formatNaira(yearly.priceKobo)}
-            </span>
-            <span className="text-muted-foreground">/{yearly.periodLabel}</span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2 text-sm text-muted-foreground mb-4">
-            <li className="flex items-center gap-2">
-              <CheckCircle
-                className="h-4 w-4 text-emerald-500"
-                aria-hidden="true"
-              />{" "}
-              Everything in Monthly
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle
-                className="h-4 w-4 text-emerald-500"
-                aria-hidden="true"
-              />{" "}
-              Effective {formatNaira(yearlyPerMonth)}/month
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle
-                className="h-4 w-4 text-emerald-500"
-                aria-hidden="true"
-              />{" "}
-              Best value
-            </li>
-          </ul>
-          <Button
-            className="w-full min-h-11"
-            variant="default"
-            onClick={() => onCheckout("yearly")}
-            disabled={!!checkoutLoading}
-          >
-            {checkoutLoading === "yearly" ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : null}
-            Choose Yearly
-          </Button>
-        </CardContent>
-      </Card>
+      <div
+        className={`grid grid-cols-1 gap-4 ${premiumOnly ? "" : "sm:grid-cols-2"}`}
+      >
+        {keys.map((key) => {
+          const plan = INDIVIDUAL_PLANS[key];
+          const premium = plan.tier === "premium";
+          const isCurrent = currentDef?.key === key;
+          const perMonth =
+            plan.interval === "yearly" ? Math.round(plan.priceKobo / 12) : null;
+          const savings =
+            plan.interval === "yearly"
+              ? premium
+                ? PREMIUM_YEARLY_SAVINGS_KOBO
+                : YEARLY_SAVINGS_KOBO
+              : 0;
+          // Unused time on the current plan, as days of this one
+          const creditDays =
+            current && currentDef && !isCurrent
+              ? Math.floor(
+                  planChangeCreditMs({
+                    now: new Date(),
+                    oldPeriodEnd: new Date(current.periodEnd),
+                    oldPriceKobo: currentDef.priceKobo,
+                    oldInterval: currentDef.interval,
+                    newPriceKobo: plan.priceKobo,
+                    newInterval: plan.interval,
+                  }) / 86_400_000,
+                )
+              : 0;
+          const action = isCurrent
+            ? "Current plan"
+            : current
+              ? `Switch to ${premium ? "Premium" : "Askly"}`
+              : premium
+                ? "Get Premium"
+                : `Choose ${plan.interval === "yearly" ? "Yearly" : "Monthly"}`;
+          return (
+            <Card
+              key={key}
+              className={`border-2 ${premium ? "border-primary" : ""}`}
+            >
+              <CardHeader>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    {premium && (
+                      <Sparkles className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    {premium ? "Askly Premium" : "Askly"}
+                  </CardTitle>
+                  {savings > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      Save {formatNaira(savings)}
+                    </Badge>
+                  )}
+                </div>
+                <CardDescription>
+                  <span className="text-2xl font-bold text-foreground">
+                    {formatNaira(plan.priceKobo)}
+                  </span>
+                  <span className="text-muted-foreground">
+                    /{plan.periodLabel}
+                  </span>
+                  {perMonth && (
+                    <span className="block text-xs">
+                      Effectively {formatNaira(perMonth)}/month
+                    </span>
+                  )}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="mb-4 space-y-2 text-sm text-muted-foreground">
+                  {plan.features.slice(0, 4).map((feature) => (
+                    <li key={feature} className="flex items-start gap-2">
+                      <CheckCircle
+                        className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500"
+                        aria-hidden="true"
+                      />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  className="min-h-11 w-full"
+                  variant={premium ? "default" : "outline"}
+                  onClick={() => onCheckout(key)}
+                  disabled={!!checkoutLoading || isCurrent}
+                >
+                  {checkoutLoading === key ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  {action}
+                </Button>
+                {creditDays > 0 && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Your unused {currentDef?.displayName} time adds about{" "}
+                    {creditDays} day{creditDays === 1 ? "" : "s"} to this plan.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -456,6 +549,21 @@ function getPlanDisplayName(plan?: string): string {
   const def = getIndividualPlanByName(plan);
   if (!def) return plan || "Askly";
   return `${def.displayName} - ${formatNaira(def.priceKobo)}/${def.periodLabel}`;
+}
+
+/** "Next charge on 10 Nov", plus the extra days a plan change carried over */
+function nextChargeLine(sub: {
+  current_period_end: string;
+  next_payment_date: string | null;
+}): string {
+  const next = sub.next_payment_date ?? sub.current_period_end;
+  const extraDays = Math.floor(
+    (new Date(sub.current_period_end).getTime() - new Date(next).getTime()) /
+      86_400_000,
+  );
+  return extraDays >= 1
+    ? `Next charge on ${formatDate(next)} · ${extraDays} extra day${extraDays === 1 ? "" : "s"} carried over from your previous plan`
+    : `Next charge on ${formatDate(next)}`;
 }
 
 function formatDate(iso: string): string {

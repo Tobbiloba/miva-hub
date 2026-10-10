@@ -1,7 +1,8 @@
 /**
  * One-time Paystack plan creation script.
- * Creates ASKLY_MONTHLY and ASKLY_YEARLY plans on Paystack,
- * then prints the plan codes to add to .env.local.
+ * Creates every plan in src/lib/billing/plans.ts on Paystack (reusing ones
+ * that already exist at the same price) and stores the plan codes on the
+ * subscription_plan rows.
  *
  * Usage: pnpm tsx scripts/setup-paystack-plans.ts
  */
@@ -84,67 +85,46 @@ async function main() {
     results.push({ name: plan.name, planCode: res.data.plan_code });
   }
 
-  console.log("\n=== Add to .env.local ===\n");
-
-  const monthly = results.find(
-    (r) => r.name === INDIVIDUAL_PLANS.monthly.paystackName,
+  // Store each plan's code on its subscription_plan row (POSTGRES_URL:
+  // .env.local wins, so this is the local DB unless you point it elsewhere)
+  if (results.length === 0) return;
+  const POSTGRES_URL = process.env.POSTGRES_URL;
+  const byName = new Map(
+    Object.values(INDIVIDUAL_PLANS).map((p) => [p.paystackName, p.name]),
   );
-  const yearly = results.find(
-    (r) => r.name === INDIVIDUAL_PLANS.yearly.paystackName,
-  );
-
-  if (monthly) console.log(`PAYSTACK_PLAN_MONTHLY=${monthly.planCode}`);
-  if (yearly) console.log(`PAYSTACK_PLAN_YEARLY=${yearly.planCode}`);
-
-  // Update DB with plan codes
-  if (monthly || yearly) {
-    console.log("\n=== Updating DB plan codes ===\n");
-
-    const POSTGRES_URL = process.env.POSTGRES_URL;
-    if (!POSTGRES_URL) {
+  if (!POSTGRES_URL) {
+    console.log("\nPOSTGRES_URL not set — update subscription_plan manually:");
+    for (const r of results) {
       console.log(
-        "POSTGRES_URL not set — update subscription_plan table manually:",
+        `  UPDATE subscription_plan SET paystack_plan_code='${r.planCode}' WHERE name='${byName.get(r.name)}';`,
       );
-      if (monthly)
-        console.log(
-          `  UPDATE subscription_plan SET paystack_plan_code='${monthly.planCode}' WHERE name='${INDIVIDUAL_PLANS.monthly.name}';`,
-        );
-      if (yearly)
-        console.log(
-          `  UPDATE subscription_plan SET paystack_plan_code='${yearly.planCode}' WHERE name='${INDIVIDUAL_PLANS.yearly.name}';`,
-        );
-    } else {
-      const { pgDb } = await import("../src/lib/db/pg/db.pg");
-      const { SubscriptionPlanSchema } = await import(
-        "../src/lib/db/pg/schema.pg"
-      );
-      const { eq } = await import("drizzle-orm");
-
-      if (monthly) {
-        await pgDb
-          .update(SubscriptionPlanSchema)
-          .set({ paystackPlanCode: monthly.planCode })
-          .where(
-            eq(SubscriptionPlanSchema.name, INDIVIDUAL_PLANS.monthly.name),
-          );
-        console.log(
-          `  ${INDIVIDUAL_PLANS.monthly.name} → ${monthly.planCode} (updated in DB)`,
-        );
-      }
-      if (yearly) {
-        await pgDb
-          .update(SubscriptionPlanSchema)
-          .set({ paystackPlanCode: yearly.planCode })
-          .where(eq(SubscriptionPlanSchema.name, INDIVIDUAL_PLANS.yearly.name));
-        console.log(
-          `  ${INDIVIDUAL_PLANS.yearly.name} → ${yearly.planCode} (updated in DB)`,
-        );
-      }
     }
+    return;
   }
-
-  console.log("\nDone.");
-  process.exit(0);
+  console.log("\n=== Updating DB plan codes ===\n");
+  const { pgDb } = await import("../src/lib/db/pg/db.pg");
+  const { SubscriptionPlanSchema } = await import("../src/lib/db/pg/schema.pg");
+  const { eq } = await import("drizzle-orm");
+  for (const r of results) {
+    const name = byName.get(r.name);
+    if (!name) continue;
+    const updated = await pgDb
+      .update(SubscriptionPlanSchema)
+      .set({ paystackPlanCode: r.planCode })
+      .where(eq(SubscriptionPlanSchema.name, name))
+      .returning({ id: SubscriptionPlanSchema.id });
+    console.log(
+      updated.length
+        ? `  ${name} → ${r.planCode} (updated in DB)`
+        : `  ${name}: no subscription_plan row — run pnpm db:seed:plans first`,
+    );
+  }
 }
 
-main();
+main().then(
+  () => process.exit(0),
+  (error) => {
+    console.error(error);
+    process.exit(1);
+  },
+);

@@ -3,17 +3,14 @@
  * each student gets a budget:
  *   - free trial: 10 minutes in total
  *   - subscription or university seat: 60 minutes per calendar month
- * (Premium, 300 minutes a month, plugs in here when that plan exists.)
+ *   - Askly Premium: 300 minutes per calendar month
  *
  * Usage is measured from viva_session's server-recorded start and end
  * times, never from anything the browser reports.
  */
 
-export type VoiceAccessVia =
-  | "exempt_role"
-  | "trial"
-  | "subscription"
-  | "university";
+/** Which allowance applies: the student's own plan first, then the trial */
+export type VoiceTier = "trial" | "standard" | "premium";
 
 /** One Live audio session can't run longer than this (Gemini's limit too) */
 export const MAX_SESSION_SECONDS = 15 * 60;
@@ -22,9 +19,11 @@ export const MIN_START_SECONDS = 30;
 
 export const TRIAL_VOICE_SECONDS = 10 * 60;
 export const MONTHLY_VOICE_SECONDS = 60 * 60;
+export const PREMIUM_VOICE_SECONDS = 300 * 60;
 
 export type VoiceAllowancePlan = {
   kind: "trial" | "monthly";
+  tier: VoiceTier;
   limitSeconds: number;
   /** Count sessions started at or after this; null = all time (trial) */
   periodStart: Date | null;
@@ -53,13 +52,14 @@ export function monthBounds(
 }
 
 export function voiceAllowancePlan(
-  via: VoiceAccessVia,
+  tier: VoiceTier,
   now: Date,
   utcOffset: string,
 ): VoiceAllowancePlan {
-  if (via === "trial") {
+  if (tier === "trial") {
     return {
       kind: "trial",
+      tier,
       limitSeconds: TRIAL_VOICE_SECONDS,
       periodStart: null,
       resetsAt: null,
@@ -68,7 +68,9 @@ export function voiceAllowancePlan(
   const { start, next } = monthBounds(now, utcOffset);
   return {
     kind: "monthly",
-    limitSeconds: MONTHLY_VOICE_SECONDS,
+    tier,
+    limitSeconds:
+      tier === "premium" ? PREMIUM_VOICE_SECONDS : MONTHLY_VOICE_SECONDS,
     periodStart: start,
     resetsAt: next,
   };
@@ -82,10 +84,26 @@ export function sessionLimitSeconds(remainingSeconds: number): number {
 /** What the Voice Coach page shows about a student's minutes */
 export type AllowanceView = {
   kind: "trial" | "monthly";
+  tier?: VoiceTier;
   limitSeconds: number;
   remainingSeconds: number;
   resetsAt: string | null;
 };
+
+/** What to tell a student whose minutes are used up */
+export function voiceLimitMessage(a: {
+  kind: "trial" | "monthly";
+  tier?: VoiceTier;
+  limitSeconds: number;
+}): string {
+  if (a.kind === "trial") {
+    return "You've used the 10 voice minutes in your free trial. Subscribe for 60 minutes a month, or Askly Premium for 300.";
+  }
+  const total = Math.round(a.limitSeconds / 60);
+  return a.tier === "premium"
+    ? `You've used your ${total} voice minutes for this month. They refill on the 1st.`
+    : `You've used your ${total} voice minutes for this month. They refill on the 1st, or upgrade to Askly Premium for 300 a month.`;
+}
 
 /** "7 of 10 free-trial voice minutes left", "54 of 60 voice minutes left this month · refills 1 Nov" */
 export function allowanceLine(a: AllowanceView, locale?: string): string {

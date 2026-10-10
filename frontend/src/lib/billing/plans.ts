@@ -12,12 +12,24 @@
  * checkout refuses to charge if they drift (see assertPlanRowMatches).
  */
 
-export type IndividualPlanKey = "monthly" | "yearly";
+export type IndividualPlanKey =
+  | "monthly"
+  | "yearly"
+  | "premium_monthly"
+  | "premium_yearly";
+
+/** standard: the core app; premium adds SIWES, final-year project, 300 voice min */
+export type PlanTier = "standard" | "premium";
 
 export interface IndividualPlan {
   key: IndividualPlanKey;
+  tier: PlanTier;
   /** subscription_plan.name */
-  name: "ASKLY_MONTHLY" | "ASKLY_YEARLY";
+  name:
+    | "ASKLY_MONTHLY"
+    | "ASKLY_YEARLY"
+    | "ASKLY_PREMIUM_MONTHLY"
+    | "ASKLY_PREMIUM_YEARLY";
   displayName: string;
   /** Plan name on Paystack (setup-paystack-plans.ts matches on it). */
   paystackName: string;
@@ -29,6 +41,8 @@ export interface IndividualPlan {
   paystackInterval: "monthly" | "annually";
   /** "month" / "year" for "₦3,000/month" style copy. */
   periodLabel: "month" | "year";
+  /** What the plan includes, for the billing page, receipts and the DB row */
+  features: readonly string[];
 }
 
 export const PLAN_FEATURES = [
@@ -37,6 +51,13 @@ export const PLAN_FEATURES = [
   "Flashcards & quizzes",
   "Progress tracking",
   "Email notifications",
+] as const;
+
+export const PREMIUM_FEATURES = [
+  "Everything in the standard plan",
+  "300 Voice Coach minutes a month",
+  "SIWES logbook and report (coming soon)",
+  "Final-year project companion (coming soon)",
 ] as const;
 
 export const INDIVIDUAL_PLANS: Record<IndividualPlanKey, IndividualPlan> = {
@@ -50,6 +71,8 @@ export const INDIVIDUAL_PLANS: Record<IndividualPlanKey, IndividualPlan> = {
     interval: "monthly",
     paystackInterval: "monthly",
     periodLabel: "month",
+    tier: "standard",
+    features: PLAN_FEATURES,
   },
   yearly: {
     key: "yearly",
@@ -61,12 +84,52 @@ export const INDIVIDUAL_PLANS: Record<IndividualPlanKey, IndividualPlan> = {
     interval: "yearly",
     paystackInterval: "annually",
     periodLabel: "year",
+    tier: "standard",
+    features: PLAN_FEATURES,
+  },
+  premium_monthly: {
+    key: "premium_monthly",
+    name: "ASKLY_PREMIUM_MONTHLY",
+    displayName: "Askly Premium Monthly",
+    paystackName: "Askly Premium Monthly",
+    description:
+      "Askly plus SIWES, final-year project and more voice — billed monthly",
+    priceKobo: 750000, // ₦7,500
+    interval: "monthly",
+    paystackInterval: "monthly",
+    periodLabel: "month",
+    tier: "premium",
+    features: PREMIUM_FEATURES,
+  },
+  premium_yearly: {
+    key: "premium_yearly",
+    name: "ASKLY_PREMIUM_YEARLY",
+    displayName: "Askly Premium Yearly",
+    paystackName: "Askly Premium Yearly",
+    description:
+      "Askly plus SIWES, final-year project and more voice — billed yearly (save ₦15,000)",
+    priceKobo: 7500000, // ₦75,000
+    interval: "yearly",
+    paystackInterval: "annually",
+    periodLabel: "year",
+    tier: "premium",
+    features: PREMIUM_FEATURES,
   },
 };
+
+export function isIndividualPlanKey(
+  value: unknown,
+): value is IndividualPlanKey {
+  // Own keys only: "toString" etc. are `in` every object
+  return typeof value === "string" && Object.hasOwn(INDIVIDUAL_PLANS, value);
+}
 
 /** Yearly saving vs 12 monthly payments, in kobo. */
 export const YEARLY_SAVINGS_KOBO =
   INDIVIDUAL_PLANS.monthly.priceKobo * 12 - INDIVIDUAL_PLANS.yearly.priceKobo;
+export const PREMIUM_YEARLY_SAVINGS_KOBO =
+  INDIVIDUAL_PLANS.premium_monthly.priceKobo * 12 -
+  INDIVIDUAL_PLANS.premium_yearly.priceKobo;
 
 /**
  * Per-seat org (university) pricing in kobo.
@@ -83,6 +146,39 @@ export function getIndividualPlanByName(
   name: string | null | undefined,
 ): IndividualPlan | undefined {
   return Object.values(INDIVIDUAL_PLANS).find((p) => p.name === name);
+}
+
+/** The tier of a subscription_plan row by name; legacy/unknown plans are standard. */
+export function planTierByName(name: string | null | undefined): PlanTier {
+  return getIndividualPlanByName(name)?.tier ?? "standard";
+}
+
+/**
+ * Changing plan mid-period: the unused paid time on the old plan is turned
+ * into time on the new one by value, so nobody loses what they paid for and
+ * no refund is needed. 15 days left on ₦3,000/month (~₦1,500) becomes ~6
+ * days of ₦7,500/month Premium; switching down gives more days instead.
+ */
+const INTERVAL_MS = {
+  monthly: 30 * 24 * 60 * 60 * 1000,
+  yearly: 365 * 24 * 60 * 60 * 1000,
+} as const;
+
+export function planChangeCreditMs(opts: {
+  now: Date;
+  oldPeriodEnd: Date;
+  oldPriceKobo: number;
+  oldInterval: "monthly" | "yearly";
+  newPriceKobo: number;
+  newInterval: "monthly" | "yearly";
+}): number {
+  const remaining = opts.oldPeriodEnd.getTime() - opts.now.getTime();
+  if (remaining <= 0 || opts.oldPriceKobo <= 0 || opts.newPriceKobo <= 0) {
+    return 0;
+  }
+  const oldRate = opts.oldPriceKobo / INTERVAL_MS[opts.oldInterval];
+  const newRate = opts.newPriceKobo / INTERVAL_MS[opts.newInterval];
+  return Math.floor((remaining * oldRate) / newRate);
 }
 
 /** "₦3,000" from 300000 kobo. */

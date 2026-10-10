@@ -4,7 +4,10 @@ import { and, eq } from "drizzle-orm";
 import { pgDb } from "lib/db/pg/db.pg";
 import { CourseSchema, StudentEnrollmentSchema } from "lib/db/pg/schema.pg";
 import { getVoiceAllowance } from "lib/voice/allowance";
-import { MIN_START_SECONDS } from "lib/voice/allowance-rules";
+import {
+  MIN_START_SECONDS,
+  voiceLimitMessage,
+} from "lib/voice/allowance-rules";
 import { z } from "zod";
 
 /**
@@ -62,12 +65,7 @@ export const createStartVoiceSessionTool = (userId: string) =>
       if (!access.allowed) return { error: access.reason };
       const allowance = await getVoiceAllowance(userId, access.via);
       if (allowance.remainingSeconds < MIN_START_SECONDS) {
-        return {
-          error:
-            allowance.kind === "trial"
-              ? "the free trial's 10 voice minutes are used up; subscribing gives 60 minutes a month"
-              : "this month's voice minutes are used up; they refill on the 1st",
-        };
+        return { error: voiceLimitMessage(allowance) };
       }
       const topic = focusTopic?.trim() || null;
       const params = new URLSearchParams({ course: course.id, mode });

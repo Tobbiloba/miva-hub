@@ -23,6 +23,9 @@ export interface BillingStatus {
     status: string;
     plan: string;
     current_period_end: string;
+    /** When Paystack next charges; earlier than current_period_end when a
+     * plan-change credit adds days on top of the billing cycle */
+    next_payment_date: string | null;
     cancel_at_period_end: boolean;
   } | null;
   /** True when the student holds a seat on an active university subscription. */
@@ -70,6 +73,7 @@ export async function getAccessGrantingSubscription(userId: string) {
       status: UserSubscriptionSchema.status,
       planId: UserSubscriptionSchema.planId,
       currentPeriodEnd: UserSubscriptionSchema.currentPeriodEnd,
+      nextPaymentDate: UserSubscriptionSchema.nextPaymentDate,
       cancelAtPeriodEnd: UserSubscriptionSchema.cancelAtPeriodEnd,
     })
     .from(UserSubscriptionSchema)
@@ -165,6 +169,7 @@ export async function getBillingStatus(userId: string): Promise<BillingStatus> {
         status: "active",
         plan: "university",
         current_period_end: universityCoverage.currentPeriodEnd.toISOString(),
+        next_payment_date: null,
         cancel_at_period_end: false,
       },
       covered_by_university: true,
@@ -191,6 +196,7 @@ export async function getBillingStatus(userId: string): Promise<BillingStatus> {
           status: sub.status,
           plan: planName,
           current_period_end: sub.currentPeriodEnd.toISOString(),
+          next_payment_date: sub.nextPaymentDate?.toISOString() ?? null,
           cancel_at_period_end: sub.cancelAtPeriodEnd ?? false,
         }
       : null,

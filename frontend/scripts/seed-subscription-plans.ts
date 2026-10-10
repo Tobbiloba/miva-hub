@@ -1,5 +1,5 @@
 /**
- * Seed the live Askly plans (ASKLY_MONTHLY / ASKLY_YEARLY) into
+ * Seed the live Askly plans (standard and Premium, monthly and yearly) into
  * subscription_plan from the pricing source of truth (src/lib/billing/plans).
  * Upserts by name; never touches paystack_plan_code (that is set by
  * scripts/setup-paystack-plans.ts). Legacy plans (STUDENT/PREMIUM/FACULTY/
@@ -13,7 +13,7 @@
  */
 import "load-env";
 import { inArray } from "drizzle-orm";
-import { INDIVIDUAL_PLANS, PLAN_FEATURES } from "lib/billing/plans";
+import { INDIVIDUAL_PLANS } from "lib/billing/plans";
 import { pgDb as db } from "lib/db/pg/db.pg";
 import { SubscriptionPlanSchema } from "lib/db/pg/schema.pg";
 
@@ -38,7 +38,7 @@ async function seedSubscriptionPlans(): Promise<boolean> {
         description: plan.description,
         priceNgn: plan.priceKobo,
         interval: plan.interval,
-        features: [...PLAN_FEATURES],
+        features: [...plan.features],
         limits: UNLIMITED_LIMITS,
         isActive: true,
       };

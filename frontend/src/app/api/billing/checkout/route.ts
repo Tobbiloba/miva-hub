@@ -2,8 +2,8 @@ import { auth } from "@/lib/auth/server";
 import { getAppBaseUrl } from "@/lib/billing/app-url";
 import {
   INDIVIDUAL_PLANS,
-  type IndividualPlanKey,
   assertPlanRowMatches,
+  isIndividualPlanKey,
 } from "@/lib/billing/plans";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { subscriptionRepository } from "@/lib/db/pg/repositories/subscription-repository.pg";
@@ -37,28 +37,45 @@ export async function POST(req: NextRequest) {
 
     const { plan } = (await req.json()) as { plan?: string };
 
-    if (plan !== "monthly" && plan !== "yearly") {
-      return NextResponse.json(
-        { error: "Invalid plan. Must be 'monthly' or 'yearly'." },
-        { status: 400 },
-      );
-    }
-    const planDef = INDIVIDUAL_PLANS[plan as IndividualPlanKey];
-
-    // Check for existing subscription that still runs (incl. one set to
-    // cancel at period end — a second checkout would double-bill).
-    const existing = await subscriptionRepository.getUserActiveSubscription(
-      session.user.id,
-    );
-    if (existing) {
+    if (!isIndividualPlanKey(plan)) {
       return NextResponse.json(
         {
-          error: existing.cancelAtPeriodEnd
-            ? "Your current subscription is still active until the end of its period. You can subscribe again after it ends."
-            : "You already have an active subscription.",
+          error: `Invalid plan. Must be one of: ${Object.keys(INDIVIDUAL_PLANS).join(", ")}.`,
         },
         { status: 400 },
       );
+    }
+    const planDef = INDIVIDUAL_PLANS[plan];
+
+    // A subscription that still runs (incl. one set to cancel at period
+    // end): buying the same plan again would double-bill, so refuse; a
+    // different plan is a plan change — paid now, the unused time credited,
+    // and the old Paystack subscription stopped once it's paid.
+    const existing = await subscriptionRepository.getUserActiveSubscription(
+      session.user.id,
+    );
+    let planChange: { fromSubscriptionId: string; fromPlanId: string } | null =
+      null;
+    if (existing) {
+      const [current] = await pgDb
+        .select({ name: SubscriptionPlanSchema.name })
+        .from(SubscriptionPlanSchema)
+        .where(eq(SubscriptionPlanSchema.id, existing.planId))
+        .limit(1);
+      if (current?.name === planDef.name) {
+        return NextResponse.json(
+          {
+            error: existing.cancelAtPeriodEnd
+              ? "You're on this plan until the end of its period. You can subscribe again after it ends."
+              : "You're already on this plan.",
+          },
+          { status: 400 },
+        );
+      }
+      planChange = {
+        fromSubscriptionId: existing.id,
+        fromPlanId: existing.planId,
+      };
     }
 
     // One checkout at a time. Two open checkouts (two tabs, a retry) can
@@ -151,7 +168,9 @@ export async function POST(req: NextRequest) {
     // Paystack is the source of truth for recurring billing: a live
     // subscription there (e.g. past_due and retrying, or one our webhook
     // never recorded) means a new checkout would bill twice.
-    if (customerCode) {
+    // (A plan change expects the current one to be live; it's stopped after
+    // the new plan is paid.)
+    if (customerCode && !planChange) {
       let live: Awaited<
         ReturnType<typeof paystackService.getCustomerSubscriptions>
       >;
@@ -230,7 +249,9 @@ export async function POST(req: NextRequest) {
       status: "pending",
       customerEmail: user.email,
       customerName: user.name,
-      description: `${dbPlan.displayName} Subscription`,
+      description: planChange
+        ? `Switch to ${dbPlan.displayName}`
+        : `${dbPlan.displayName} Subscription`,
       metadata: {
         planId: dbPlan.id,
         planName: dbPlan.name,
@@ -238,6 +259,7 @@ export async function POST(req: NextRequest) {
         plan,
         // Returned to a repeat checkout within the open window (see above)
         authorizationUrl: initRes.data.authorization_url,
+        ...(planChange ? { planChange } : {}),
       },
     });
 

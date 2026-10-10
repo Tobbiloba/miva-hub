@@ -2,6 +2,7 @@ import "server-only";
 
 import { sendPaymentReceiptEmail } from "@/lib/billing/receipt";
 import {
+  addInterval,
   computeExtendedPeriodEnd,
   isPlaceholderSubscriptionCode,
   normalizeInterval,
@@ -15,8 +16,9 @@ import {
   UserSchema,
   UserSubscriptionSchema,
 } from "@/lib/db/pg/schema.pg";
-import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
-import { INDIVIDUAL_PLANS } from "./plans";
+import { paystackService } from "@/lib/payment/paystack-service";
+import { and, desc, eq, gte, inArray, ne, sql } from "drizzle-orm";
+import { INDIVIDUAL_PLANS, planChangeCreditMs } from "./plans";
 
 /**
  * Individual (student) subscription lifecycle, driven by Paystack data.
@@ -215,6 +217,20 @@ function pickSubscriptionCode(
   return `charge_${reference}`;
 }
 
+/** Plan-change credit on a row, in ms (see applyPlanChange) */
+function creditOf(row: SubscriptionRow | undefined): number {
+  const credit = Number(row?.metadata?.planChangeCreditMs ?? 0);
+  return Number.isFinite(credit) && credit > 0 ? credit : 0;
+}
+
+/** Where the row's Paystack billing cycle ends, without the credit */
+function cycleEndOf(row: SubscriptionRow): Date {
+  return (
+    row.nextPaymentDate ??
+    new Date(row.currentPeriodEnd.getTime() - creditOf(row))
+  );
+}
+
 async function upsertSubscription(
   tx: Tx,
   opts: {
@@ -230,6 +246,8 @@ async function upsertSubscription(
     amountKobo?: number;
     nonRenewing?: boolean;
     countsAsPayment: boolean;
+    /** The student chose to switch plans in checkout (see applyPlanChange) */
+    planChange?: boolean;
   },
 ): Promise<{ row: SubscriptionRow; created: boolean }> {
   const existing = await findRowToUpsert(
@@ -237,12 +255,20 @@ async function upsertSubscription(
     opts.userId,
     opts.subscriptionCode,
   );
-  const periodEnd = computeExtendedPeriodEnd({
-    currentPeriodEnd: existing?.currentPeriodEnd,
+  if (opts.planChange && existing && existing.planId !== opts.plan.id) {
+    return applyPlanChange(tx, existing, opts);
+  }
+  // Paystack bills on its own cycle; a plan-change credit sits on top of it
+  // (access = cycle end + credit), so renewals keep the credit and repeated
+  // events for one payment still converge on the same dates.
+  const creditMs = creditOf(existing);
+  const cycleEnd = computeExtendedPeriodEnd({
+    currentPeriodEnd: existing ? cycleEndOf(existing) : undefined,
     paidAt: opts.paidAt,
     interval: normalizeInterval(opts.plan.interval),
     nextPaymentDate: opts.nextPaymentDate,
   });
+  const periodEnd = new Date(cycleEnd.getTime() + creditMs);
   const extended =
     !existing || periodEnd.getTime() !== existing.currentPeriodEnd.getTime();
   const now = new Date();
@@ -278,8 +304,12 @@ async function upsertSubscription(
     );
   }
 
+  // ...and must not switch the student's plan either (a late renewal of a
+  // subscription they replaced in a plan change would flip them back)
+  const strayOtherSub = isDifferentPaystackSub && existingStillLive;
+
   const values = {
-    planId: opts.plan.id,
+    planId: strayOtherSub ? existing!.planId : opts.plan.id,
     paystackSubscriptionCode:
       isDifferentPaystackSub && existingStillLive
         ? existing!.paystackSubscriptionCode
@@ -297,7 +327,7 @@ async function upsertSubscription(
     currentPeriodStart:
       extended || !existing ? opts.paidAt : existing.currentPeriodStart,
     currentPeriodEnd: periodEnd,
-    nextPaymentDate: cancelAtPeriodEnd ? null : periodEnd,
+    nextPaymentDate: cancelAtPeriodEnd ? null : cycleEnd,
     cancelAtPeriodEnd,
     cancelledAt: cancelAtPeriodEnd ? (existing?.cancelledAt ?? now) : null,
     ...(opts.countsAsPayment
@@ -327,6 +357,163 @@ async function upsertSubscription(
     reason: "Initial subscription purchase",
   });
   return { row, created: true };
+}
+
+/**
+ * A paid plan change (Monthly → Premium, Premium → Yearly, …): the row moves
+ * to the new plan now, its unused paid time is converted into time on the
+ * new plan by value (planChangeCreditMs), and the old Paystack subscription
+ * code is dropped (it's disabled once the payment is applied — see
+ * disableOtherPaystackSubscriptions). The credit keeps the value already
+ * paid for (more days on a cheaper plan, fewer on a dearer one) and is
+ * stored on the row so later renewals keep it (see creditOf).
+ */
+async function applyPlanChange(
+  tx: Tx,
+  existing: SubscriptionRow,
+  opts: Parameters<typeof upsertSubscription>[1],
+): Promise<{ row: SubscriptionRow; created: boolean }> {
+  const [oldPlan] = await tx
+    .select()
+    .from(SubscriptionPlanSchema)
+    .where(eq(SubscriptionPlanSchema.id, existing.planId))
+    .limit(1);
+  const live =
+    existing.status === "active" && existing.currentPeriodEnd > opts.paidAt;
+  const creditMs =
+    live && oldPlan
+      ? planChangeCreditMs({
+          now: opts.paidAt,
+          oldPeriodEnd: existing.currentPeriodEnd,
+          oldPriceKobo: oldPlan.priceNgn,
+          oldInterval: normalizeInterval(oldPlan.interval),
+          newPriceKobo: opts.plan.priceNgn,
+          newInterval: normalizeInterval(opts.plan.interval),
+        })
+      : 0;
+  const base =
+    opts.nextPaymentDate && !Number.isNaN(opts.nextPaymentDate.getTime())
+      ? opts.nextPaymentDate
+      : addInterval(opts.paidAt, normalizeInterval(opts.plan.interval));
+  const periodEnd = new Date(base.getTime() + creditMs);
+  const now = new Date();
+  const [row] = await tx
+    .update(UserSubscriptionSchema)
+    .set({
+      planId: opts.plan.id,
+      paystackSubscriptionCode:
+        opts.subscriptionCode &&
+        !isPlaceholderSubscriptionCode(opts.subscriptionCode)
+          ? opts.subscriptionCode
+          : `charge_${opts.reference}`,
+      paystackCustomerCode:
+        opts.customerCode || existing.paystackCustomerCode || null,
+      paystackAuthorizationCode:
+        opts.authorizationCode || existing.paystackAuthorizationCode || null,
+      // The old token belongs to the old subscription
+      paystackEmailToken: opts.emailToken || null,
+      status: "active",
+      currentPeriodStart: opts.paidAt,
+      currentPeriodEnd: periodEnd,
+      // Paystack charges on its own cycle; the credit is extra access on top
+      nextPaymentDate: base,
+      metadata: { ...(existing.metadata ?? {}), planChangeCreditMs: creditMs },
+      cancelAtPeriodEnd: false,
+      cancelledAt: null,
+      ...(opts.countsAsPayment
+        ? { lastPaymentDate: opts.paidAt, amountPaidNgn: opts.amountKobo }
+        : {}),
+      updatedAt: now,
+    })
+    .where(eq(UserSubscriptionSchema.id, existing.id))
+    .returning();
+  const monthlyRate = (p: PlanRow) =>
+    normalizeInterval(p.interval) === "yearly" ? p.priceNgn / 12 : p.priceNgn;
+  await tx.insert(SubscriptionChangeLogSchema).values({
+    userId: opts.userId,
+    subscriptionId: existing.id,
+    changeType:
+      oldPlan && monthlyRate(opts.plan) < monthlyRate(oldPlan)
+        ? "downgrade"
+        : "upgrade",
+    fromPlanId: existing.planId,
+    toPlanId: opts.plan.id,
+    reason: `Plan change to ${opts.plan.name}; ${Math.round(creditMs / 3_600_000)}h credited from unused time`,
+  });
+  return { row, created: false };
+}
+
+/**
+ * Whether the student started a checkout to switch to `planId` recently.
+ * Paystack may send subscription.create before or after charge.success, so
+ * both handlers check this to apply the change whichever comes first.
+ */
+async function hasRecentPlanChangeCheckout(
+  userId: string,
+  planId: string,
+): Promise<boolean> {
+  const [row] = await pgDb
+    .select({ id: PaymentTransactionSchema.id })
+    .from(PaymentTransactionSchema)
+    .where(
+      and(
+        eq(PaymentTransactionSchema.userId, userId),
+        sql`${PaymentTransactionSchema.metadata}->>'planId' = ${planId}`,
+        // metadata is json (not jsonb): no ? operator
+        sql`${PaymentTransactionSchema.metadata}->>'planChange' IS NOT NULL`,
+        inArray(PaymentTransactionSchema.status, ["pending", "success"]),
+        gte(PaymentTransactionSchema.createdAt, sql`now() - interval '2 days'`),
+      ),
+    )
+    .limit(1);
+  return !!row;
+}
+
+/**
+ * After a plan change, stop the student's other live Paystack
+ * subscriptions (the plan they left) so they aren't billed for both. Keeps
+ * any subscription on the new plan. Failures are logged loudly; a late
+ * charge on the old one can't switch the plan back (see strayOtherSub).
+ */
+export async function disableOtherPaystackSubscriptions(
+  userId: string,
+  keepPlanCode: string | null,
+): Promise<void> {
+  const [user] = await pgDb
+    .select({ customerCode: UserSchema.paystackCustomerCode })
+    .from(UserSchema)
+    .where(eq(UserSchema.id, userId))
+    .limit(1);
+  if (!user?.customerCode || !keepPlanCode) return;
+  try {
+    const live = (
+      await paystackService.getCustomerSubscriptions(user.customerCode)
+    ).filter((s) => s.status === "active" || s.status === "attention");
+    for (const sub of live) {
+      const details = await paystackService.getSubscription(
+        sub.subscription_code,
+      );
+      const planCode = details?.data?.plan?.plan_code;
+      if (planCode === keepPlanCode) continue;
+      const token = sub.email_token ?? details?.data?.email_token;
+      const res = token
+        ? await paystackService.disableSubscription(
+            sub.subscription_code,
+            token,
+          )
+        : null;
+      if (!res?.status) {
+        console.error(
+          `[billing] plan change: could not disable old Paystack subscription ${sub.subscription_code} for user ${userId} — disable it by hand`,
+        );
+      }
+    }
+  } catch (error) {
+    console.error(
+      `[billing] plan change: Paystack lookup failed for user ${userId} — old subscription may still renew`,
+      error,
+    );
+  }
 }
 
 async function markUserSubscribed(
@@ -419,12 +606,15 @@ export async function applyIndividualCharge(
   const paidAt =
     parseDate(data.paid_at) ?? parseDate(data.paidAt) ?? new Date();
 
+  const planChange = !!txn?.metadata?.planChange;
+
   const outcome = await pgDb.transaction(async (tx) => {
     await lockUser(tx, userId);
 
     const { row } = await upsertSubscription(tx, {
       userId,
       plan,
+      planChange,
       reference: data.reference,
       subscriptionCode,
       customerCode: data.customer?.customer_code,
@@ -481,6 +671,10 @@ export async function applyIndividualCharge(
     }
     return { row, firstSuccess };
   });
+
+  if (planChange) {
+    await disableOtherPaystackSubscriptions(userId, plan.paystackPlanCode);
+  }
 
   if (outcome.firstSuccess) {
     const [user] = await pgDb
@@ -551,12 +745,14 @@ export async function applySubscriptionCreate(
 
   const createdAt =
     parseDate(data.createdAt) ?? parseDate(data.created_at) ?? new Date();
+  const planChange = await hasRecentPlanChangeCheckout(userId, plan.id);
 
   await pgDb.transaction(async (tx) => {
     await lockUser(tx, userId);
     await upsertSubscription(tx, {
       userId,
       plan,
+      planChange,
       reference: data.subscription_code ?? createdAt.toISOString(),
       subscriptionCode: data.subscription_code,
       customerCode: data.customer?.customer_code,
@@ -569,6 +765,9 @@ export async function applySubscriptionCreate(
     });
     await markUserSubscribed(tx, userId, plan, data.customer?.customer_code);
   });
+  if (planChange) {
+    await disableOtherPaystackSubscriptions(userId, plan.paystackPlanCode);
+  }
   return "applied";
 }
 

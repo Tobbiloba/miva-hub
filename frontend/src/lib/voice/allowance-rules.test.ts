@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_SESSION_SECONDS,
   MONTHLY_VOICE_SECONDS,
+  PREMIUM_VOICE_SECONDS,
   TRIAL_VOICE_SECONDS,
   allowanceLine,
   monthBounds,
   sessionLimitSeconds,
   voiceAllowancePlan,
+  voiceLimitMessage,
 } from "./allowance-rules";
 
 describe("monthBounds", () => {
@@ -43,13 +45,16 @@ describe("voiceAllowancePlan", () => {
     });
   });
 
-  it("gives paid and university students 60 minutes a month", () => {
-    for (const via of ["subscription", "university", "exempt_role"] as const) {
-      const plan = voiceAllowancePlan(via, now, "+01:00");
-      expect(plan.kind).toBe("monthly");
-      expect(plan.limitSeconds).toBe(MONTHLY_VOICE_SECONDS);
-      expect(plan.periodStart?.toISOString()).toBe("2026-09-30T23:00:00.000Z");
-    }
+  it("gives standard plans 60 minutes and Premium 300 minutes a month", () => {
+    const standard = voiceAllowancePlan("standard", now, "+01:00");
+    expect(standard.kind).toBe("monthly");
+    expect(standard.limitSeconds).toBe(MONTHLY_VOICE_SECONDS);
+    expect(standard.periodStart?.toISOString()).toBe(
+      "2026-09-30T23:00:00.000Z",
+    );
+    const premium = voiceAllowancePlan("premium", now, "+01:00");
+    expect(premium).toMatchObject({ kind: "monthly", tier: "premium" });
+    expect(premium.limitSeconds).toBe(PREMIUM_VOICE_SECONDS);
   });
 });
 
@@ -90,5 +95,29 @@ describe("allowanceLine", () => {
         "en-GB",
       ),
     ).toBe("55 of 60 voice minutes left this month · refills 1 Nov");
+  });
+});
+
+describe("voiceLimitMessage", () => {
+  it("points each plan at its next step", () => {
+    expect(voiceLimitMessage({ kind: "trial", limitSeconds: 600 })).toMatch(
+      /Subscribe for 60 minutes a month, or Askly Premium for 300/,
+    );
+    expect(
+      voiceLimitMessage({
+        kind: "monthly",
+        tier: "standard",
+        limitSeconds: 3600,
+      }),
+    ).toMatch(/upgrade to Askly Premium/);
+    expect(
+      voiceLimitMessage({
+        kind: "monthly",
+        tier: "premium",
+        limitSeconds: 18000,
+      }),
+    ).toBe(
+      "You've used your 300 voice minutes for this month. They refill on the 1st.",
+    );
   });
 });

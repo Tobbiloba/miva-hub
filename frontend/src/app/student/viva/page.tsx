@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { PremiumUpgradeCard } from "@/components/premium/premium-upgrade-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useVivaVoice } from "@/lib/ai/speech/gemini/use-viva-voice";
-import { type AllowanceView, allowanceLine } from "@/lib/voice/allowance-rules";
+import {
+  type AllowanceView,
+  allowanceLine,
+  voiceLimitMessage,
+} from "@/lib/voice/allowance-rules";
 import { cn } from "lib/utils";
 
 const CRITERION_LABELS: Record<string, string> = {
@@ -265,9 +270,7 @@ export default function VivaCoachPage() {
                 )}
               >
                 {outOfMinutes
-                  ? allowance.kind === "trial"
-                    ? "You've used the 10 voice minutes in your free trial. Subscribe to get 60 minutes a month."
-                    : "You've used this month's voice minutes. They refill on the 1st."
+                  ? voiceLimitMessage(allowance)
                   : allowanceLine(allowance)}
               </p>
             )}
@@ -276,6 +279,12 @@ export default function VivaCoachPage() {
                 ? 'Uses your microphone. Your tutor speaks first. Ask anything, or say "quiz me".'
                 : "Uses your microphone. The examiner speaks first. Answer out loud, and expect follow-up questions."}
             </p>
+            {outOfMinutes && allowance?.tier !== "premium" && (
+              <PremiumUpgradeCard
+                title="Want more time to talk?"
+                description="Askly Premium gives you 300 voice minutes a month."
+              />
+            )}
           </CardContent>
         </Card>
       ) : null}
