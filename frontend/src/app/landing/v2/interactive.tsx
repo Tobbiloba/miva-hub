@@ -212,7 +212,7 @@ export function WaitlistForm({ source }: { source: string }) {
   const loading = state.kind === "loading";
   return (
     <form onSubmit={submit} noValidate className="w-full max-w-[460px]">
-      <div className="flex h-[60px] items-center gap-2 rounded-[20px] bg-white/[0.07] pr-1.5 pl-5 ring-1 ring-white/10 transition focus-within:ring-white/30">
+      <div className="flex flex-col gap-2 rounded-[20px] bg-white/[0.07] p-1.5 ring-1 ring-white/10 transition focus-within:ring-white/30 sm:h-[60px] sm:flex-row sm:items-center sm:pl-5">
         <label htmlFor={`${id}-email`} className="sr-only">
           Email address
         </label>
@@ -230,7 +230,7 @@ export function WaitlistForm({ source }: { source: string }) {
           aria-invalid={state.kind === "error"}
           aria-describedby={state.kind === "error" ? `${id}-err` : undefined}
           disabled={loading}
-          className="h-full min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-white/40"
+          className="h-12 min-w-0 flex-1 bg-transparent px-3.5 text-base text-white outline-none placeholder:text-white/40 sm:h-full sm:px-0"
         />
         <input
           type="text"
@@ -244,7 +244,7 @@ export function WaitlistForm({ source }: { source: string }) {
           type="submit"
           disabled={loading}
           aria-busy={loading}
-          className="group inline-flex h-12 shrink-0 items-center gap-4 rounded-[15px] bg-[#f6f5f1] pr-2 pl-4 text-[15px] text-[#1d2a23] transition-colors hover:bg-white disabled:opacity-60"
+          className="group inline-flex h-12 shrink-0 items-center justify-between gap-4 rounded-[15px] whitespace-nowrap bg-[#f6f5f1] pr-2 pl-4 text-[15px] text-[#1d2a23] transition-colors hover:bg-white disabled:opacity-60"
         >
           {loading ? "Joining…" : "Join the waitlist"}
           <span className="grid size-8 place-items-center rounded-[9px] bg-[#263c32] text-white">

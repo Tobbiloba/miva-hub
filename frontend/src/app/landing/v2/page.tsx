@@ -39,7 +39,7 @@ function Pill({
     <a
       href={href}
       className={cn(
-        "group inline-flex h-[52px] items-center gap-8 rounded-[18px] pr-2.5 pl-[22px] text-base transition-colors",
+        "group inline-flex h-[52px] shrink-0 items-center gap-8 rounded-[18px] pr-2.5 pl-[22px] text-base whitespace-nowrap transition-colors",
         tone === "white" && "bg-[#f6f5f1] text-[#1d2a23] hover:bg-white",
         tone === "light" && "bg-[#f3f2ee] text-[#1d2a23] hover:bg-[#ebeae5]",
         tone === "dark" && "bg-[#263f35] text-white hover:bg-[#1f342b]",
