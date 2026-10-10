@@ -1,21 +1,29 @@
 "use client";
 
 import { cn } from "lib/utils";
-import { ArrowLeft, ArrowRight, Minus, Plus } from "lucide-react";
-import { useState } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  Loader2,
+  Minus,
+  Plus,
+} from "lucide-react";
+import { useId, useState } from "react";
 
 const QUOTES = [
   {
-    text: "You don’t have to become a different person to begin. Just bring yourself, exactly as you are. We’ll meet you on the mat.",
-    by: "Elliot Reed · Founder",
+    text: "Every answer should show where it came from. If your notes don’t cover something, Askly tells you instead of guessing.",
+    by: "Our first principle · Sources",
   },
   {
-    text: "Ten quiet minutes in the morning changed the shape of my whole day. That’s all Souma asks for.",
-    by: "Maya Lin · Instructor",
+    text: "Studying starts from your own course: your lecturer’s words, your week’s readings, your deadlines. Not the whole internet.",
+    by: "Our second principle · Your course",
   },
   {
-    text: "We built the practice we wanted for ourselves: gentle, honest, and there whenever you’re ready.",
-    by: "Jonah Brooks · Co-founder",
+    text: "Small, steady sessions beat late-night cramming. A quiz here, ten flashcards there, and the week takes care of itself.",
+    by: "Our third principle · Rhythm",
   },
 ];
 
@@ -69,24 +77,24 @@ export function QuoteSlider() {
 
 const FAQS = [
   {
-    q: "Can I start as a beginner?",
-    a: "Absolutely. Start with gentle foundations, follow the cues, and take every movement at your own pace. You don’t need to be flexible to begin.",
+    q: "Where do Askly’s answers come from?",
+    a: "From the lessons you capture: lecture videos, PDFs, quizzes and assignments from your courses. Every answer shows its sources, and when your materials don’t cover something, Askly says so instead of guessing.",
   },
   {
-    q: "How much time do I need?",
-    a: "As little as five minutes. Most sessions run between 5 and 30 minutes, so there’s always one that fits your day.",
+    q: "What can the Chrome extension capture?",
+    a: "Video lessons, PDF notes, quiz pages and assignment pages on the MIVA LMS. It reads the course, week and lesson title from the page; you just press Capture.",
   },
   {
-    q: "Do I need any equipment?",
-    a: "Just a little space and a mat if you have one. A cushion or a couple of books can stand in for blocks.",
+    q: "Do I need the extension to use Askly?",
+    a: "No. You can chat, make quizzes and flashcards and track deadlines without it. The extension is what lets Askly answer from your own lectures.",
   },
   {
-    q: "What kinds of practice will I find?",
-    a: "Gentle flows, mindful movement, breathwork, mobility and evening wind-downs, organised by how you want to feel.",
+    q: "Who can see my captures?",
+    a: "Only you. Askly reads content for the courses you’ve added, and you can remove a capture at any time from My Courses.",
   },
   {
-    q: "Where can I download Souma?",
-    a: "Souma is available on the App Store and Google Play. Start free, no payment needed.",
+    q: "When can I start?",
+    a: "We’re letting students in in small groups. Join the waitlist and we’ll email you when your spot opens.",
   },
 ];
 
@@ -134,5 +142,133 @@ export function Faq() {
         );
       })}
     </div>
+  );
+}
+
+type WaitlistState =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "done" }
+  | { kind: "error"; message: string };
+
+/**
+ * Waitlist form for the dark footer. Same contract as the main landing's
+ * form: POST /api/waitlist {email, source}, idempotent per email.
+ */
+export function WaitlistForm({ source }: { source: string }) {
+  const id = useId();
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<WaitlistState>({ kind: "idle" });
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (state.kind === "loading") return;
+    // Honeypot: bots fill every field, people never see this one
+    if (new FormData(e.currentTarget).get("company")) {
+      return setState({ kind: "done" });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
+      return setState({
+        kind: "error",
+        message: "Enter a valid email address.",
+      });
+    }
+    setState({ kind: "loading" });
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, source }),
+      });
+      if (res.ok) return setState({ kind: "done" });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      setState({
+        kind: "error",
+        message: data.error ?? "Something went wrong. Try again in a moment.",
+      });
+    } catch {
+      setState({
+        kind: "error",
+        message: "No connection. Check your internet and try again.",
+      });
+    }
+  }
+
+  if (state.kind === "done") {
+    return (
+      <p
+        role="status"
+        aria-live="polite"
+        className="flex max-w-[460px] items-center gap-3 rounded-[18px] bg-white/[0.06] p-4 text-base"
+      >
+        <span className="grid size-8 shrink-0 place-items-center rounded-[9px] bg-[#d6eb9a] text-[#1d2a23]">
+          <Check className="size-4" />
+        </span>
+        You&apos;re on the list. We&apos;ll email you when your spot opens.
+      </p>
+    );
+  }
+
+  const loading = state.kind === "loading";
+  return (
+    <form onSubmit={submit} noValidate className="w-full max-w-[460px]">
+      <div className="flex h-[60px] items-center gap-2 rounded-[20px] bg-white/[0.07] pr-1.5 pl-5 ring-1 ring-white/10 transition focus-within:ring-white/30">
+        <label htmlFor={`${id}-email`} className="sr-only">
+          Email address
+        </label>
+        <input
+          id={`${id}-email`}
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          placeholder="you@miva.edu.ng"
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (state.kind === "error") setState({ kind: "idle" });
+          }}
+          aria-invalid={state.kind === "error"}
+          aria-describedby={state.kind === "error" ? `${id}-err` : undefined}
+          disabled={loading}
+          className="h-full min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-white/40"
+        />
+        <input
+          type="text"
+          name="company"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden
+          className="absolute -left-[9999px] size-px opacity-0"
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          aria-busy={loading}
+          className="group inline-flex h-12 shrink-0 items-center gap-4 rounded-[15px] bg-[#f6f5f1] pr-2 pl-4 text-[15px] text-[#1d2a23] transition-colors hover:bg-white disabled:opacity-60"
+        >
+          {loading ? "Joining…" : "Join the waitlist"}
+          <span className="grid size-8 place-items-center rounded-[9px] bg-[#263c32] text-white">
+            {loading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <ArrowUpRight className="size-4" strokeWidth={1.75} />
+            )}
+          </span>
+        </button>
+      </div>
+      {state.kind === "error" ? (
+        <p
+          id={`${id}-err`}
+          role="alert"
+          className="mt-3 px-1 text-sm text-[#f3a99a]"
+        >
+          {state.message}
+        </p>
+      ) : (
+        <p className="mt-3 px-1 text-sm text-white/55">
+          Early access for students. One email when it&apos;s your turn.
+        </p>
+      )}
+    </form>
   );
 }

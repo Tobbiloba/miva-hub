@@ -1,27 +1,34 @@
+import {
+  INDIVIDUAL_PLANS,
+  PLAN_FEATURES,
+  YEARLY_SAVINGS_KOBO,
+  formatNaira,
+} from "lib/billing/plans";
 import { cn } from "lib/utils";
 import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import type { ReactNode } from "react";
-import { Faq, QuoteSlider } from "./interactive";
+import { Faq, QuoteSlider, WaitlistForm } from "./interactive";
 
 /*
- * Landing v2: a faithful build of the "Souma" reference in design/
- * (f0811f5a…webp), section by section, with matching photography.
+ * Landing v2: the editorial reference layout in design/ (f0811f5a…webp),
+ * rebuilt section by section with Askly's product, copy and pricing.
  */
 
 export const metadata: Metadata = {
-  title: "Souma · A little space for you",
+  title: "Askly · Your AI study partner",
   description:
-    "Guided yoga and mindful moments, made for real life. Move gently. Breathe deeply. Come back to yourself.",
+    "Answers from your own lecture notes, with sources. Quizzes, flashcards and deadlines in one place. Built for MIVA students.",
 };
 
-/** "Download the app" pill with the dark square arrow (52px tall). */
+/** "Join the waitlist" pill with the dark square arrow (52px tall). */
 function Pill({
   children,
   tone = "light",
   className,
-  href = "#",
+  href = "#waitlist",
 }: {
   children: ReactNode;
   tone?: "light" | "white" | "dark" | "plain";
@@ -104,86 +111,75 @@ function Photo({
 }
 
 const NAV = [
-  "About",
-  "Practice",
-  "Programs",
-  "Classes",
-  "Philosophy",
-  "Pricing",
-  "FAQ",
-];
+  ["About", "about"],
+  ["How you study", "study"],
+  ["Features", "features"],
+  ["Capture", "capture"],
+  ["Pricing", "pricing"],
+  ["FAQ", "faq"],
+] as const;
 
-const FLOWS = [
+const FEATURES = [
   [
-    "Begin with the basics",
-    "A welcoming introduction to movement, breath, and finding your feet on the mat.",
-    "Beginner · Gentle",
+    "Ask about any lecture",
+    "Answers come from the lessons you capture, with numbered sources you can open.",
+    "Chat · With sources",
   ],
   [
-    "Wake up gently",
-    "Easy morning flows to stretch into the day with a little more intention.",
-    "Morning · Energizing",
+    "Quiz yourself before the test",
+    "A practice quiz from any lesson in seconds, marked as you go.",
+    "Quizzes · Instant feedback",
   ],
   [
-    "Slow down, settle in",
-    "Unhurried stretches and quiet breathing to create a softer end to your day.",
-    "Evening · Restorative",
+    "Remember it for longer",
+    "Flip flashcards in chat, then save them as a deck. Cards you miss come back sooner.",
+    "Flashcards · Spaced review",
   ],
   [
-    "Move a little more freely",
-    "Thoughtful mobility sessions for everyday ease, one small stretch at a time.",
-    "Anytime · Mobility",
+    "Never miss a due date",
+    "Assignments and quizzes you capture land in one list, with their due dates.",
+    "Deadlines · One list",
   ],
-];
+] as const;
+
+const { monthly, yearly } = INDIVIDUAL_PLANS;
 
 const PLANS = [
   {
-    name: "Free",
+    name: "Free trial",
     badge: "Get started",
-    blurb: "A gentle place to begin.",
-    price: "$0",
-    per: "/ forever",
+    blurb: "Everything in Askly, free for 7 days.",
+    price: formatNaira(0),
+    per: "/ 7 days",
     items: [
-      "A selection of starter classes",
-      "5–15 minute daily sessions",
-      "Introductory breathwork",
-      "Practice reminders",
-      "Save your favourite classes",
+      "AI chat with sources",
+      "Quizzes and flashcards",
+      "Deadlines in one list",
+      "Chrome capture",
+      "No card needed",
     ],
-    cta: "Start free",
-    note: "No payment needed.",
+    cta: "Join the waitlist",
+    note: "Then choose a plan, or stop.",
   },
   {
     name: "Monthly",
     badge: "Stay flexible",
-    blurb: "More room to explore, every day.",
-    price: "$7",
-    per: "/ month",
-    items: [
-      "Full yoga & breathwork library",
-      "Guided multi-week programs",
-      "Download classes for offline use",
-      "Practice reminders",
-      "Track your practice",
-    ],
-    cta: "Choose monthly",
-    note: "$7 billed monthly.",
+    blurb: "Full access, a month at a time.",
+    price: formatNaira(monthly.priceKobo),
+    per: `/ ${monthly.periodLabel}`,
+    items: [...PLAN_FEATURES],
+    cta: "Join the waitlist",
+    note: `${formatNaira(monthly.priceKobo)} billed monthly with Paystack.`,
   },
   {
     name: "Yearly",
     badge: "Best value",
-    blurb: "A year of showing up for yourself.",
-    price: "$69",
-    per: "/ year",
-    items: [
-      "Full yoga & breathwork library",
-      "Guided multi-week programs",
-      "Download classes for offline use",
-      "Practice reminders",
-      "Track your practice",
-    ],
-    cta: "Choose yearly",
-    note: "$69 billed yearly · $5.75 / month.",
+    blurb: "A whole academic year, sorted.",
+    price: formatNaira(yearly.priceKobo),
+    per: `/ ${yearly.periodLabel}`,
+    items: [...PLAN_FEATURES],
+    cta: "Join the waitlist",
+    note: `${formatNaira(yearly.priceKobo)} billed yearly · ${formatNaira(yearly.priceKobo / 12)} / month.`,
     dark: true,
   },
 ];
@@ -195,8 +191,8 @@ export default function LandingV2() {
       <section className="p-2.5">
         <div className="relative h-[max(640px,min(100svh,940px))] overflow-hidden rounded-[22px] bg-[#1e2a20]">
           <Image
-            src="/landing/v2/hero-hand.webp"
-            alt="A hand holding a phone showing the Souma app among sunlit plants"
+            src="/landing/v2/askly-hero.webp"
+            alt="A hand holding a phone showing an Askly answer with sources among sunlit plants"
             fill
             priority
             sizes="100vw"
@@ -211,50 +207,56 @@ export default function LandingV2() {
                 href="#"
                 className="text-[28px] tracking-[-0.02em] lg:text-[36px]"
               >
-                Souma*
+                Askly<span className="text-[#d6eb9a]">*</span>
               </a>
               <ul className="hidden items-center gap-[26px] text-[13.5px] text-white/90 lg:flex">
-                {NAV.map((n) => (
-                  <li key={n}>
+                {NAV.map(([label, id]) => (
+                  <li key={id}>
                     <a
-                      href={`#${n.toLowerCase()}`}
+                      href={`#${id}`}
                       className="transition-colors hover:text-white"
                     >
-                      {n}
+                      {label}
                     </a>
                   </li>
                 ))}
               </ul>
-              <Pill tone="white" href="#pricing">
-                Get the app
-              </Pill>
+              <div className="flex items-center gap-5">
+                <Link
+                  href="/sign-in"
+                  className="hidden text-[13.5px] text-white/90 transition-colors hover:text-white sm:block"
+                >
+                  Sign in
+                </Link>
+                <Pill tone="white">Get early access</Pill>
+              </div>
             </nav>
           </header>
 
           <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-10 px-6 pb-28 text-white sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:pb-[150px]">
             <div>
               <h1 className="max-w-[760px] text-[44px] leading-[1.02] tracking-[-0.02em] sm:text-6xl lg:text-[72px]">
-                A little space for you.
-                <br />A better rhythm for your day.
+                Your lectures, answered.
+                <br />A calmer way to study.
               </h1>
             </div>
             <div className="max-w-[340px]">
               <p className="flex items-center gap-2.5 text-xs tracking-[0.14em] text-[#d9eaa3] uppercase">
                 <span className="size-1 rounded-full bg-[#d9eaa3]" />
-                Your everyday yoga companion
+                Your AI study partner
               </p>
               <p className="mt-7 text-lg leading-[1.5] text-white/90 lg:text-xl">
-                Guided yoga and mindful moments, made for real life. Move
-                gently. Breathe deeply. Come back to yourself.
+                Answers from your own lecture notes, with sources. Quizzes,
+                flashcards and deadlines in one place.
               </p>
               <Pill tone="white" className="mt-10">
-                Download the app
+                Join the waitlist
               </Pill>
             </div>
           </div>
           <p className="absolute bottom-[76px] left-6 z-10 hidden gap-6 text-xs tracking-[0.01em] text-white/85 uppercase sm:flex">
-            <span>Move with intention.</span>
-            <span>Live with more ease.</span>
+            <span>Answers with sources.</span>
+            <span>Built for MIVA students.</span>
           </p>
         </div>
       </section>
@@ -264,49 +266,50 @@ export default function LandingV2() {
         id="about"
         className="px-6 pt-24 pb-28 lg:pt-[108px] lg:pb-[108px]"
       >
-        <Label n="001">A little about Souma</Label>
+        <Label n="001">A little about Askly</Label>
         <div className="mt-14 grid grid-cols-1 gap-12 lg:mt-[66px] lg:grid-cols-[1fr_1.25fr] lg:gap-[55px]">
           <div>
             <Photo
-              src="/landing/v2/meditate.webp"
-              alt="A woman meditating cross-legged in a sunlit room"
+              src="/landing/v2/study-desk.webp"
+              alt="A student studying at a sunlit desk with notes and a laptop"
               className="aspect-[1.1/1]"
               position="50% 40%"
             />
-            <p className="mt-10 text-xl">Less pressure. More presence.</p>
+            <p className="mt-10 text-xl">Less guessing. More understanding.</p>
             <p className="mt-5 text-base text-[#6f7570]">
-              A practice that feels like coming home.
+              Built around your own course, not the whole internet.
             </p>
           </div>
           <div>
             <h2 className="text-[32px] leading-[1.08] tracking-[-0.02em] sm:text-[40px] lg:text-[46px]">
-              &ldquo;We believe yoga belongs in your everyday life—a little room
-              to move, breathe, and feel more like yourself.&rdquo;
+              &ldquo;We believe studying should start from your own
+              lectures—answers you can trust, with the source one tap
+              away.&rdquo;
             </h2>
             <div className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-[0.885fr_1fr] lg:mt-[70px] lg:gap-[49px]">
               <Photo
-                src="/landing/v2/mats.webp"
-                alt="Yoga mats and cork blocks on a warm wooden floor"
+                src="/landing/v2/notes.webp"
+                alt="An open notebook and pen beside a laptop on a sunlit desk"
                 className="aspect-[0.77/1]"
                 sizes="(min-width: 1024px) 25vw, 50vw"
               />
               <div className="flex flex-col">
                 <p className={lead}>
-                  Start where you are. Find a moment that fits your day, and let
-                  Souma guide you from there.
+                  Start with the course you&apos;re on. Capture a lesson, ask a
+                  question, and let Askly take it from there.
                 </p>
                 <Pill tone="light" className="mt-12 w-fit">
-                  Download the app
+                  Join the waitlist
                 </Pill>
                 <div className="mt-8 rounded-[22px] bg-[#d6eb9a] p-6 lg:mt-auto">
                   <p className="text-xs tracking-[0.14em] text-[#3d4a36] uppercase">
-                    Your week in balance
+                    Your week in review
                   </p>
                   <p className="mt-5 text-[52px] leading-none tracking-[-0.02em]">
-                    65 min
+                    42 cards
                   </p>
                   <p className="mt-5 text-sm text-[#3d4a36]">
-                    Small moments. Lasting rhythm.
+                    Short sessions. Lasting recall.
                   </p>
                   <div className="mt-6 flex justify-between">
                     {[1, 1, 1, 1, 0, 0, 0].map((on, k) => (
@@ -328,19 +331,19 @@ export default function LandingV2() {
 
       {/* ── 002 Daily practice ─────────────────────────────── */}
       <section
-        id="practice"
+        id="study"
         className="bg-[#f5f4f0] px-6 pt-24 pb-28 lg:pt-[112px] lg:pb-[132px]"
       >
-        <Label n="002">Your daily practice</Label>
+        <Label n="002">How you study</Label>
         <div className="mt-14 grid grid-cols-1 gap-12 lg:mt-[66px] lg:grid-cols-[1.25fr_1fr] lg:gap-[55px]">
           <div className="flex flex-col">
-            <h2 className={h2}>A practice that moves with your life.</h2>
+            <h2 className={h2}>A study partner that fits your week.</h2>
             <div className="mt-8 flex flex-wrap gap-2.5">
               {[
-                "Gentle flow",
-                "Mindful movement",
-                "Breathwork",
-                "Daily rituals",
+                "Answers with sources",
+                "Practice quizzes",
+                "Flashcards",
+                "Deadlines",
               ].map((t) => (
                 <span
                   key={t}
@@ -351,48 +354,49 @@ export default function LandingV2() {
               ))}
             </div>
             <p className={cn(lead, "mt-9 max-w-[700px]")}>
-              Some days you need energy. Some days you need a softer landing.
-              Choose how you want to feel, and find a practice to meet you
-              there.
+              Some days you need a quick answer before a quiz. Some days you
+              need week three to finally make sense. Ask, practise or plan, and
+              Askly meets you there.
             </p>
             <div className="mt-auto flex flex-col gap-8 pt-16 sm:flex-row sm:items-end">
               <Photo
-                src="/landing/v2/guide.webp"
-                alt="A smiling instructor with curly hair"
+                src="/landing/v2/student-portrait.webp"
+                alt="A smiling student"
                 className="aspect-[0.67/1] w-[185px] shrink-0"
                 sizes="200px"
                 position="50% 25%"
               />
               <div>
                 <p className="max-w-[400px] text-[30px] leading-[1.25] tracking-[-0.01em]">
-                  A gentle guide, always with you.
+                  Honest when it doesn&apos;t know.
                 </p>
                 <p className="mt-6 max-w-[420px] text-[19px] leading-[1.5] text-[#6f7570]">
-                  Clear cues. Room to pause. Permission to go at your own pace.
+                  Every answer shows the note it came from. When your materials
+                  don&apos;t cover it, Askly says so.
                 </p>
-                <Pill tone="dark" className="mt-8">
-                  Find your flow
+                <Pill tone="dark" href="#capture" className="mt-8">
+                  See how it works
                 </Pill>
               </div>
             </div>
           </div>
           <div>
             <Photo
-              src="/landing/v2/warrior.webp"
-              alt="A woman in warrior pose in a sunlit studio"
+              src="/landing/v2/reading.webp"
+              alt="A student focused on their notes in a sunlit room"
               className="aspect-square"
               position="50% 50%"
             />
             <div className="mt-[23px] rounded-[22px] bg-[#c2d5a8] px-[27px] pt-6 pb-[22px]">
               <p className="text-xs tracking-[0.14em] text-[#4d5a48] uppercase">
-                Your next moment
+                Up next
               </p>
               <div className="mt-4 flex items-baseline justify-between">
-                <p className="text-[30px] tracking-[-0.01em]">Morning flow</p>
-                <p className="text-base">15 min</p>
+                <p className="text-[30px] tracking-[-0.01em]">COS101 quiz</p>
+                <p className="text-base">Friday</p>
               </div>
               <p className="mt-3 text-lg text-[#4d5a48]">
-                A little movement. A fresh start.
+                9 of 14 lessons captured. You&apos;re on track.
               </p>
               <div className="mt-5 grid grid-cols-14 gap-[7px]">
                 {Array.from({ length: 14 }, (_, k) => (
@@ -412,45 +416,46 @@ export default function LandingV2() {
 
       {/* ── 003 Find your flow ─────────────────────────────── */}
       <section
-        id="programs"
+        id="features"
         className="px-6 pt-24 pb-28 lg:pt-[108px] lg:pb-[108px]"
       >
-        <Label n="003">Find your flow</Label>
+        <Label n="003">What you can do</Label>
         <div className="mt-14 grid grid-cols-1 gap-6 lg:mt-[66px] lg:grid-cols-[1fr_1.25fr] lg:items-end lg:gap-[55px]">
           <h2 className={h2}>
-            A little movement.
-            <br />A whole new feeling.
+            Ask it once.
+            <br />
+            Know it for good.
           </h2>
           <p className={cn(lead, "pb-1")}>
-            Build a practice around what you need today.
+            Pick what you need today. Askly does the rest.
           </p>
         </div>
         <div className="mt-14 grid grid-cols-1 gap-12 lg:mt-[68px] lg:grid-cols-[1fr_1.25fr] lg:gap-[55px]">
           <div className="relative">
             <Photo
-              src="/landing/v2/tree.webp"
-              alt="A woman balancing in tree pose with prayer hands"
+              src="/landing/v2/library.webp"
+              alt="A student reading in a warm, quiet library"
               className="aspect-[0.74/1]"
               position="50% 30%"
             />
             <div className="absolute inset-x-6 bottom-6 rounded-[18px] bg-[#eef3d2] p-7">
               <p className="text-xs tracking-[0.14em] text-[#5f665f] uppercase">
-                Today&apos;s intention
+                Today&apos;s focus
               </p>
               <p className="mt-6 text-[40px] leading-none tracking-[-0.02em] lg:text-[48px]">
-                Make space.
+                Week 3, sorted.
               </p>
               <p className="mt-6 text-base text-[#5f665f] lg:text-lg">
-                One breath. One stretch. One moment for you.
+                Twelve flashcards from your COS101 notes.
               </p>
               <div className="mt-6 flex items-baseline justify-between">
-                <span className="text-[30px] tracking-[-0.01em]">12 min</span>
-                <span className="text-lg">All levels</span>
+                <span className="text-[30px] tracking-[-0.01em]">12 cards</span>
+                <span className="text-lg">Due today</span>
               </div>
             </div>
           </div>
           <ul className="flex flex-col">
-            {FLOWS.map(([title, body, tag]) => (
+            {FEATURES.map(([title, body, tag]) => (
               <li
                 key={title}
                 className="border-b border-[#e2e2dd] pt-10 pb-8 first:pt-7"
@@ -470,26 +475,27 @@ export default function LandingV2() {
 
       {/* ── 004 Pocket studio ──────────────────────────────── */}
       <section
-        id="classes"
+        id="capture"
         className="bg-[#f5f4f0] px-6 pt-24 pb-28 lg:pt-[108px] lg:pb-[110px]"
       >
-        <Label n="004">Your pocket studio</Label>
+        <Label n="004">Askly Capture</Label>
         <h2 className={cn(h2, "mt-14 max-w-[800px] lg:mt-[66px]")}>
-          Daily rituals, made to fit your rhythm.
+          Your course, captured in one click.
         </h2>
         <div className="mt-14 grid grid-cols-1 gap-12 lg:mt-[73px] lg:grid-cols-[1fr_0.87fr_1fr] lg:gap-[51px]">
           <div>
             <Photo
-              src="/landing/v2/props.webp"
-              alt="A rolled yoga mat with cork blocks on a wooden bench"
+              src="/landing/v2/stilllife.webp"
+              alt="Books, highlighters and notes on a sunlit wooden desk"
               className="aspect-[1.39/1]"
               sizes="(min-width: 1024px) 33vw, 100vw"
             />
             <p className="mt-8 text-[30px] tracking-[-0.01em]">
-              Your mat. Your moment.
+              Your notes. Your answers.
             </p>
             <p className="mt-6 max-w-[440px] text-lg leading-[1.45] text-[#6f7570] lg:text-xl">
-              Bring a little studio feeling to whatever space you call yours.
+              Askly only answers from what you capture, so it speaks your
+              course&apos;s language.
             </p>
           </div>
 
@@ -514,40 +520,40 @@ export default function LandingV2() {
               </span>
             </div>
             <p className="mt-8 text-center text-[32px] tracking-[-0.02em]">
-              souma
+              askly<span className="text-[#7fa36a]">*</span>
             </p>
             <p className="mt-8 text-[32px] leading-[1.1] tracking-[-0.02em]">
-              How do you want to feel?
+              What do you want to study?
             </p>
             <div className="mt-6 flex gap-3 text-[13px]">
               <span className="rounded-full bg-[#d6eb9a] px-3 py-2">
-                Grounded
+                Explain
               </span>
               <span className="rounded-full bg-[#ecebe5] px-3 py-2">
-                Energized
+                Quiz me
               </span>
               <span className="rounded-full bg-[#ecebe5] px-3 py-2">
-                Rested
+                Flashcards
               </span>
             </div>
             <Photo
-              src="/landing/v2/seated.webp"
+              src="/landing/v2/lesson.webp"
               alt=""
               className="mt-6 aspect-[1.14/1] rounded-[18px]"
               sizes="340px"
               position="55% 50%"
             />
-            <p className="mt-6 text-[30px] tracking-[-0.01em]">A fresh start</p>
+            <p className="mt-6 text-[30px] tracking-[-0.01em]">Algorithms</p>
             <p className="mt-4 text-[15px] text-[#6f7570]">
-              15 min&nbsp;&nbsp;·&nbsp;&nbsp;Gentle flow
+              COS101&nbsp;&nbsp;·&nbsp;&nbsp;Week 3 lecture
             </p>
             <span className="mt-7 grid h-[55px] place-items-center rounded-[20px] bg-[#263f35] text-base text-white">
-              Start practice
+              Ask about this lesson
             </span>
             <div className="mt-8 flex justify-center gap-[21px] text-[13px] text-[#6f7570]">
-              <span>Home</span>
-              <span>Explore</span>
-              <span>Practice</span>
+              <span>Chat</span>
+              <span>Courses</span>
+              <span>Deadlines</span>
               <span>You</span>
             </div>
             <div className="mx-auto mt-8 h-1 w-[115px] rounded-full bg-[#263f35]" />
@@ -555,24 +561,24 @@ export default function LandingV2() {
 
           <div className="flex flex-col">
             <p className="text-xs tracking-[0.14em] text-[#5f665f] uppercase">
-              Featured practice
+              How capture works
             </p>
             <h3 className="mt-9 text-[40px] leading-none tracking-[-0.02em] lg:text-[48px]">
-              A fresh start
+              Open. Capture. Ask.
             </h3>
             <p className={cn(lead, "mt-8")}>
-              Unroll your mat and ease into a gentle sequence. A small ritual to
-              make the morning yours.
+              Open a lecture video, PDF, quiz or assignment on the MIVA LMS and
+              press Capture. The extension fills in the course, week and lesson.
             </p>
             <p className={cn(meta, "mt-7")}>
-              15 minutes&nbsp;&nbsp;/&nbsp;&nbsp;All levels
+              Chrome&nbsp;&nbsp;/&nbsp;&nbsp;Video, PDF, quiz, assignment
             </p>
             <Pill tone="plain" className="mt-6 w-fit">
-              Download the app
+              Join the waitlist
             </Pill>
             <Photo
-              src="/landing/v2/breathe.webp"
-              alt="A woman breathing with her eyes closed in a forest"
+              src="/landing/v2/outdoors.webp"
+              alt="A student studying outdoors under green trees"
               className="mt-10 aspect-[0.87/1] lg:mt-auto"
               sizes="(min-width: 1024px) 33vw, 100vw"
               position="60% 40%"
@@ -582,18 +588,18 @@ export default function LandingV2() {
       </section>
 
       {/* ── Philosophy band ────────────────────────────────── */}
-      <section id="philosophy" className="bg-[#f5f4f0] px-2.5 sm:px-6">
+      <section id="why" className="bg-[#f5f4f0] px-2.5 sm:px-6">
         <div className="rounded-[30px] bg-[#263c32] px-4 pt-14 pb-4 text-[#f6f5f1] sm:px-6 sm:pb-6 lg:pt-[70px]">
           <p className="text-xs tracking-[0.14em] text-white/80 uppercase">
-            / Philosophy
+            / Why Askly
           </p>
           <h2 className="mt-12 text-[40px] leading-[1.05] tracking-[-0.02em] sm:text-[52px] lg:mt-[52px] lg:text-[64px]">
-            More than a practice. A kinder way to show up.
+            More than a chatbot. A partner you can trust.
           </h2>
           <div className="mt-12 grid grid-cols-1 gap-[22px] lg:mt-20 lg:grid-cols-[1fr_2.2fr]">
             <Photo
-              src="/landing/v2/founder.webp"
-              alt="Founder portrait"
+              src="/landing/v2/student-books.webp"
+              alt="A smiling student in warm light"
               className="aspect-[0.87/1]"
               sizes="(min-width: 1024px) 30vw, 100vw"
               position="45% 35%"
@@ -608,16 +614,15 @@ export default function LandingV2() {
         id="pricing"
         className="bg-[#f5f4f0] px-6 pt-24 pb-28 lg:pt-[116px] lg:pb-[119px]"
       >
-        <Label>Find your rhythm</Label>
+        <Label>Pricing</Label>
         <div className="mt-12 grid grid-cols-1 gap-6 lg:mt-12 lg:grid-cols-[1fr_auto] lg:items-end">
           <h2 className={h2}>
-            A little commitment.
+            Start free.
             <br />
-            More room for you.
+            Stay when it helps.
           </h2>
           <p className="pb-1 text-lg text-[#4d5550] lg:text-[19px]">
-            Begin for free, or make Souma part of your everyday. Choose your
-            plan in the app.
+            Try everything free for 7 days, then pay in naira with Paystack.
           </p>
         </div>
         <div className="mt-14 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr_1.234fr]">
@@ -680,7 +685,7 @@ export default function LandingV2() {
                 ))}
               </ul>
               <a
-                href="#"
+                href="#waitlist"
                 className={cn(
                   "mt-6 flex h-[52px] items-center justify-center gap-10 rounded-[18px] text-base transition-colors",
                   p.dark
@@ -712,27 +717,24 @@ export default function LandingV2() {
           ))}
         </div>
         <p className="mt-14 text-center text-[17px] text-[#4d5550]">
-          A gentler price for a longer rhythm. Save $15 a year with the yearly
-          plan.
+          Save {formatNaira(YEARLY_SAVINGS_KOBO)} a year with the yearly plan.
+          Universities can buy seats for a whole class.
         </p>
       </section>
 
       {/* ── 006 FAQ ────────────────────────────────────────── */}
-      <section
-        id="faq"
-        className="px-6 pt-24 pb-28 lg:pt-[117px] lg:pb-[90px]"
-      >
-        <Label n="006">A few good questions</Label>
+      <section id="faq" className="px-6 pt-24 pb-28 lg:pt-[117px] lg:pb-[90px]">
+        <Label n="005">A few good questions</Label>
         <div className="mt-14 grid grid-cols-1 gap-12 lg:mt-[66px] lg:grid-cols-[1fr_1.52fr] lg:gap-[55px]">
           <div>
             <h2 className={cn(h2, "max-w-[480px]")}>
               Everything you need to begin.
             </h2>
             <p className={cn(lead, "mt-8 max-w-[460px] lg:text-[21px]")}>
-              A little clarity before your first moment on the mat.
+              How Askly works, the Chrome extension, and who can see your notes.
             </p>
             <Pill tone="light" className="mt-12">
-              Download the app
+              Join the waitlist
             </Pill>
           </div>
           <Faq />
@@ -740,35 +742,33 @@ export default function LandingV2() {
       </section>
 
       {/* ── Footer ─────────────────────────────────────────── */}
-      <footer className="bg-[#131a15] px-6 pt-20 pb-10 text-[#f6f5f1] lg:pt-[78px]">
+      <footer
+        id="waitlist"
+        className="scroll-mt-4 bg-[#131a15] px-6 pt-20 pb-10 text-[#f6f5f1] lg:pt-[78px]"
+      >
         <div className="grid grid-cols-2 gap-x-6 gap-y-12 lg:grid-cols-[787fr_357fr_357fr_431fr] lg:gap-0">
-          <div className="col-span-2 lg:col-span-1">
+          <div className="col-span-2 lg:col-span-1 lg:pr-12">
             <p className="text-[36px] leading-[1.05] tracking-[-0.015em] lg:text-[48px]">
-              Begin your journey.
+              Study smarter.
               <br />
-              Find your own rhythm.
+              Start from your notes.
             </p>
-            <Pill tone="white" className="mt-8">
-              Download the app
-            </Pill>
+            <div className="mt-8">
+              <WaitlistForm source="landing-v2" />
+            </div>
           </div>
           <div>
             <p className="text-xs tracking-[0.02em] text-white/60 uppercase">
               Explore
             </p>
             <ul className="mt-7 space-y-[26px] text-[17px]">
-              {[
-                "About Souma",
-                "Daily practice",
-                "Programs",
-                "Class library",
-                "Philosophy",
-                "Pricing",
-                "FAQ",
-              ].map((l) => (
-                <li key={l}>
-                  <a href="#" className="transition-colors hover:text-white/70">
-                    {l}
+              {NAV.map(([label, id]) => (
+                <li key={id}>
+                  <a
+                    href={`#${id}`}
+                    className="transition-colors hover:text-white/70"
+                  >
+                    {label}
                   </a>
                 </li>
               ))}
@@ -776,36 +776,45 @@ export default function LandingV2() {
           </div>
           <div>
             <p className="text-xs tracking-[0.02em] text-white/60 uppercase">
-              Follow Souma
+              Account
             </p>
             <ul className="mt-7 space-y-[26px] text-[17px]">
-              {["Instagram", "Pinterest", "Twitter"].map((l) => (
-                <li key={l}>
-                  <a href="#" className="transition-colors hover:text-white/70">
-                    {l}
-                  </a>
+              {[
+                ["Sign in", "/sign-in"],
+                ["Privacy", "/privacy"],
+                ["Terms", "/terms"],
+              ].map(([label, href]) => (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    className="transition-colors hover:text-white/70"
+                  >
+                    {label}
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
           <div className="col-span-2 lg:col-span-1">
             <p className="text-xs tracking-[0.02em] text-white/60 uppercase">
-              Made for real life
+              Made for students
             </p>
-            <p className="mt-7 max-w-[300px] text-[22px] leading-[1.45]">
-              A little movement. A deeper breath. More room for you.
+            <p className="mt-7 max-w-[320px] text-[22px] leading-[1.45]">
+              Answers from your lectures. Revision that sticks. Deadlines you
+              won&apos;t miss.
             </p>
           </div>
         </div>
         <div className="mt-20 grid grid-cols-1 items-center gap-6 border-t border-[#33443a] pt-9 lg:grid-cols-[787fr_714fr_431fr] lg:gap-0">
           <p className="text-[54px] leading-none tracking-[-0.02em] text-[#d6eb9a]">
-            Souma<span className="text-[#5f8a5a]">*</span>
+            Askly<span className="text-[#5f8a5a]">*</span>
           </p>
           <p className="text-[11px] text-white/60">
-            Designed by <span className="text-white">Gennady Muzych</span>
+            Built for <span className="text-white">MIVA Open University</span>{" "}
+            students
           </p>
           <p className="text-[11px] text-white/60 uppercase lg:text-right">
-            © 2026 Souma. Find your own rhythm.
+            © {new Date().getFullYear()} Askly. All rights reserved.
           </p>
         </div>
       </footer>
