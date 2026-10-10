@@ -1,4 +1,5 @@
 import type { LanguageModelUsage, UIMessage } from "ai";
+import type { CitationSource } from "lib/ai/citations";
 import { tag } from "lib/tag";
 import { z } from "zod";
 import { AllowedMCPServerZodSchema } from "./mcp";
@@ -10,6 +11,8 @@ export type ChatMetadata = {
   toolChoice?: "auto" | "none" | "manual";
   toolCount?: number;
   agentId?: string;
+  /** Course passages numbered into the prompt, so [S#] in the answer link. */
+  groundingSources?: CitationSource[];
 };
 
 export type ChatModel = {

@@ -1,10 +1,14 @@
 import { type UIMessage, getToolName, isToolUIPart } from "ai";
+import type { TutorSource } from "./course-tutor-context";
 
 /**
- * Course-material citations in chat answers. search-course-materials numbers
- * its passages S1..Sn and the model cites them as [S1]; numbering restarts
- * with every search, so an answer's [S#] refer to the most recent search
- * before that text in the same message.
+ * Course-material citations in chat answers. Passages are numbered S1..Sn
+ * and the model cites them as [S1]. They come from one of two places:
+ * - a search-course-materials call: numbering restarts with every search, so
+ *   an answer's [S#] refer to the most recent search before that text;
+ * - course grounding: with a course selected, the server numbers passages
+ *   into the system prompt and sends the same list as message metadata
+ *   (ChatMetadata.groundingSources). Used when the message has no search.
  */
 
 export const SEARCH_TOOL_NAME = "search-course-materials";
@@ -17,10 +21,28 @@ export type CitationSource = {
   materialId: string;
 };
 
-/** The passages of the last material search before `partIndex`, by S#. */
+/** The grounding passages the server numbered into the prompt, as sources. */
+export function groundingCitationSources(
+  sources: TutorSource[],
+  courseCode: string,
+): CitationSource[] {
+  return sources.map((s) => ({
+    source: `S${s.index}`,
+    title: s.title,
+    course: courseCode,
+    week: s.weekNumber,
+    materialId: s.materialId,
+  }));
+}
+
+/**
+ * What the text at `partIndex` can cite, by S#: the last material search
+ * before it, or else the course-grounding sources sent with the message.
+ */
 export function citationSourcesBefore(
   parts: UIMessage["parts"],
   partIndex: number,
+  grounding: CitationSource[] = [],
 ): Map<string, CitationSource> {
   for (let i = partIndex - 1; i >= 0; i--) {
     const part = parts[i];
@@ -42,7 +64,7 @@ export function citationSourcesBefore(
     }
     return map;
   }
-  return new Map();
+  return new Map(grounding.map((s) => [s.source, s]));
 }
 
 export function citationHref(source: CitationSource): string {

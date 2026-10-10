@@ -33,7 +33,7 @@ import { errorIf, safe } from "ts-safe";
 
 import { auth } from "auth/server";
 import { colorize } from "consola/utils";
-import { SEARCH_TOOL_NAME } from "lib/ai/citations";
+import { SEARCH_TOOL_NAME, groundingCitationSources } from "lib/ai/citations";
 import { buildCourseTutorContext } from "lib/ai/course-tutor-context";
 import { retrieveCourseContext } from "lib/ai/rag/retrieve";
 import { checkPaidAccess, paymentRequiredResponse } from "lib/billing/access";
@@ -185,6 +185,15 @@ export async function POST(request: Request) {
           },
         )))
       : null;
+
+    // The passages in the prompt go to the client too, so [S#] in the answer
+    // become source chips (there's no search tool call to read them from).
+    if (courseGrounding && courseGrounding.sources.length > 0) {
+      metadata.groundingSources = groundingCitationSources(
+        courseGrounding.sources,
+        courseGrounding.course.courseCode,
+      );
+    }
 
     const stream = createUIMessageStream({
       execute: async ({ writer: dataStream }) => {
@@ -371,6 +380,8 @@ export async function POST(request: Request) {
         dataStream.merge(
           result.toUIMessageStream({
             messageMetadata: ({ part }) => {
+              // Sent at the start so citations link while the answer streams
+              if (part.type == "start") return metadata;
               if (part.type == "finish") {
                 metadata.usage = part.totalUsage;
                 return metadata;

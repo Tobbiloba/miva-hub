@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   type CitationSource,
   citationSourcesBefore,
+  groundingCitationSources,
   linkCitations,
   stripCitationMarkers,
 } from "./citations";
@@ -63,6 +64,48 @@ describe("citationSourcesBefore", () => {
       s1.materialId,
     );
     expect(citationSourcesBefore(parts, 0).size).toBe(0);
+  });
+
+  it("falls back to the course-grounding sources when there is no search", () => {
+    const parts = [{ type: "text", text: "Answer [S1]" }] as any;
+    const map = citationSourcesBefore(parts, 0, [s1, s2]);
+    expect(map.get("S1")?.materialId).toBe(s1.materialId);
+    expect(map.get("S2")?.course).toBe("COS101");
+  });
+
+  it("prefers a search over grounding, since its numbering restarts", () => {
+    const parts = [
+      search([{ ...s1, materialId: "searched" }]),
+      { type: "text", text: "Answer [S1]" },
+    ] as any;
+    expect(citationSourcesBefore(parts, 1, [s1]).get("S1")?.materialId).toBe(
+      "searched",
+    );
+  });
+});
+
+describe("groundingCitationSources", () => {
+  it("maps prompt passages to citation sources with the course code", () => {
+    const [source] = groundingCitationSources(
+      [
+        {
+          index: 3,
+          materialId: "m3",
+          title: "Week 2 Reading",
+          materialType: "pdf",
+          weekNumber: 2,
+          hasFullText: true,
+        },
+      ],
+      "COS101",
+    );
+    expect(source).toEqual({
+      source: "S3",
+      title: "Week 2 Reading",
+      course: "COS101",
+      week: 2,
+      materialId: "m3",
+    });
   });
 });
 

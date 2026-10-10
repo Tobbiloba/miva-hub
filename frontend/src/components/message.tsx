@@ -49,10 +49,16 @@ const PurePreviewMessage = ({
   sendMessage,
 }: Props) => {
   const isUserMessage = useMemo(() => message.role === "user", [message.role]);
-  // What each text part can cite: the last material search before it
+  // What each text part can cite: the last material search before it, or
+  // the course passages the server grounded this answer in
+  const groundingSources = (message.metadata as ChatMetadata | undefined)
+    ?.groundingSources;
   const citationsByPart = useMemo(
-    () => message.parts.map((_, i) => citationSourcesBefore(message.parts, i)),
-    [message.parts],
+    () =>
+      message.parts.map((_, i) =>
+        citationSourcesBefore(message.parts, i, groundingSources),
+      ),
+    [message.parts, groundingSources],
   );
 
   if (message.role == "system") {
