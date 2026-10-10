@@ -106,10 +106,10 @@ function Photo({
 
 const NAV = [
   ["About", "about"],
-  ["How you study", "study"],
+  ["Study", "study"],
   ["Features", "features"],
   ["Capture", "capture"],
-  ["Inside Askly", "inside"],
+  ["Screens", "inside"],
   ["FAQ", "faq"],
 ] as const;
 
@@ -147,6 +147,16 @@ const SCREENS = {
   quiz: { src: "/landing/v2/screens/quiz.webp", w: 1605, h: 1070 },
   deadlines: { src: "/landing/v2/screens/deadlines.webp", w: 1603, h: 1030 },
   courses: { src: "/landing/v2/screens/courses.webp", w: 2200, h: 1130 },
+  home: { src: "/landing/v2/screens/home.webp", w: 1605, h: 1120 },
+  popup: { src: "/landing/v2/screens/popup.webp", w: 1080, h: 1161 },
+  mAnswer: { src: "/landing/v2/screens/m-answer.webp", w: 1170, h: 2532 },
+  mSources: { src: "/landing/v2/screens/m-sources.webp", w: 1050, h: 870 },
+  mFlashcards: {
+    src: "/landing/v2/screens/m-flashcards.webp",
+    w: 1170,
+    h: 2532,
+  },
+  mDeadlines: { src: "/landing/v2/screens/m-deadlines.webp", w: 1170, h: 2532 },
 } as const;
 
 const INSIDE: {
@@ -185,6 +195,60 @@ const INSIDE: {
     alt: "Askly's deadlines list with four upcoming assignments and quizzes",
   },
 ];
+
+/**
+ * A real app screen on a sage panel, sized like the photo slot it fills.
+ * phone: a mobile screen, centred, bleeding off the bottom.
+ * inset: a desktop screen tucked into the top-left, bleeding right and down.
+ * fit: the whole screen, centred with breathing room.
+ */
+function ScreenTile({
+  name,
+  alt,
+  variant,
+  className,
+  sizes = "(min-width: 1024px) 40vw, 100vw",
+}: {
+  name: keyof typeof SCREENS;
+  alt: string;
+  variant: "phone" | "inset" | "fit";
+  className?: string;
+  sizes?: string;
+}) {
+  const s = SCREENS[name];
+  return (
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-[22px] bg-[#e3e8d9]",
+        className,
+      )}
+    >
+      <div
+        className={cn(
+          "absolute",
+          variant === "phone" && "top-[8%] left-1/2 w-[64%] -translate-x-1/2",
+          variant === "inset" && "top-[10%] left-[8%] w-[118%]",
+          variant === "fit" &&
+            "top-1/2 left-1/2 w-[84%] -translate-x-1/2 -translate-y-1/2",
+        )}
+      >
+        <Image
+          src={s.src}
+          alt={alt}
+          width={s.w}
+          height={s.h}
+          sizes={sizes}
+          className={cn(
+            "block h-auto w-full shadow-[0_24px_60px_-24px_rgba(29,42,35,0.4)] ring-1 ring-[#1d2a23]/[0.06]",
+            variant === "phone" && "rounded-[26px]",
+            variant === "inset" && "rounded-tl-[16px]",
+            variant === "fit" && "rounded-[16px]",
+          )}
+        />
+      </div>
+    </div>
+  );
+}
 
 /** A real app screen bleeding off the bottom of its card. */
 function Screen({
@@ -236,7 +300,7 @@ export default function LandingV2() {
               >
                 Askly<span className="text-[#d6eb9a]">*</span>
               </a>
-              <ul className="hidden items-center gap-[26px] text-[13.5px] text-white/90 lg:flex">
+              <ul className="hidden items-center gap-[26px] text-[13.5px] whitespace-nowrap text-white/90 lg:flex">
                 {NAV.map(([label, id]) => (
                   <li key={id}>
                     <a
@@ -251,7 +315,7 @@ export default function LandingV2() {
               <div className="flex items-center gap-5">
                 <Link
                   href="/sign-in"
-                  className="hidden text-[13.5px] text-white/90 transition-colors hover:text-white sm:block"
+                  className="hidden text-[13.5px] whitespace-nowrap text-white/90 transition-colors hover:text-white sm:block"
                 >
                   Sign in
                 </Link>
@@ -314,11 +378,12 @@ export default function LandingV2() {
               away.&rdquo;
             </h2>
             <div className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-[0.885fr_1fr] lg:mt-[70px] lg:gap-[49px]">
-              <Photo
-                src="/landing/v2/notes.webp"
-                alt="An open notebook and pen beside a laptop on a sunlit desk"
+              <ScreenTile
+                name="mFlashcards"
+                variant="phone"
+                alt="A COS101 flashcard deck on a phone"
                 className="aspect-[0.77/1]"
-                sizes="(min-width: 1024px) 25vw, 50vw"
+                sizes="(min-width: 1024px) 18vw, 60vw"
               />
               <div className="flex flex-col">
                 <p className={lead}>
@@ -386,12 +451,12 @@ export default function LandingV2() {
               Askly meets you there.
             </p>
             <div className="mt-auto flex flex-col gap-8 pt-16 sm:flex-row sm:items-end">
-              <Photo
-                src="/landing/v2/student-portrait.webp"
-                alt="A smiling student"
-                className="aspect-[0.67/1] w-[185px] shrink-0"
-                sizes="200px"
-                position="50% 25%"
+              <ScreenTile
+                name="mSources"
+                variant="fit"
+                alt="An answer citing its two COS101 sources, S1 and S2"
+                className="aspect-[0.9/1] w-[240px] shrink-0"
+                sizes="240px"
               />
               <div>
                 <p className="max-w-[400px] text-[30px] leading-[1.25] tracking-[-0.01em]">
@@ -408,11 +473,11 @@ export default function LandingV2() {
             </div>
           </div>
           <div>
-            <Photo
-              src="/landing/v2/reading.webp"
-              alt="A student focused on their notes in a sunlit room"
+            <ScreenTile
+              name="home"
+              variant="inset"
+              alt="Askly's home screen: Good morning, Ada, with study starters"
               className="aspect-square"
-              position="50% 50%"
             />
             <div className="mt-[23px] rounded-[22px] bg-[#c2d5a8] px-[27px] pt-6 pb-[22px]">
               <p className="text-xs tracking-[0.14em] text-[#4d5a48] uppercase">
@@ -459,25 +524,25 @@ export default function LandingV2() {
         </div>
         <div className="mt-14 grid grid-cols-1 gap-12 lg:mt-[68px] lg:grid-cols-[1fr_1.25fr] lg:gap-[55px]">
           <div className="relative">
-            <Photo
-              src="/landing/v2/library.webp"
-              alt="A student reading in a warm, quiet library"
+            <ScreenTile
+              name="mDeadlines"
+              variant="phone"
+              alt="Askly's deadlines list on a phone"
               className="aspect-[0.74/1]"
-              position="50% 30%"
             />
-            <div className="absolute inset-x-6 bottom-6 rounded-[18px] bg-[#eef3d2] p-7">
+            <div className="absolute inset-x-6 bottom-6 hidden rounded-[18px] bg-[#eef3d2] p-7 lg:block">
               <p className="text-xs tracking-[0.14em] text-[#5f665f] uppercase">
-                Today&apos;s focus
+                This week
               </p>
               <p className="mt-6 text-[40px] leading-none tracking-[-0.02em] lg:text-[48px]">
-                Week 3, sorted.
+                Two things due.
               </p>
               <p className="mt-6 text-base text-[#5f665f] lg:text-lg">
-                Twelve flashcards from your COS101 notes.
+                COS101 Assignment 2 comes first, then a MTH101 quiz.
               </p>
               <div className="mt-6 flex items-baseline justify-between">
-                <span className="text-[30px] tracking-[-0.01em]">12 cards</span>
-                <span className="text-lg">Due today</span>
+                <span className="text-[30px] tracking-[-0.01em]">2 due</span>
+                <span className="text-lg">Next: Monday</span>
               </div>
             </div>
           </div>
@@ -511,9 +576,10 @@ export default function LandingV2() {
         </h2>
         <div className="mt-14 grid grid-cols-1 gap-12 lg:mt-[73px] lg:grid-cols-[1fr_0.87fr_1fr] lg:gap-[51px]">
           <div>
-            <Photo
-              src="/landing/v2/stilllife.webp"
-              alt="Books, highlighters and notes on a sunlit wooden desk"
+            <ScreenTile
+              name="answer"
+              variant="inset"
+              alt="An Askly answer about the parts of a computer, with its sources"
               className="aspect-[1.39/1]"
               sizes="(min-width: 1024px) 33vw, 100vw"
             />
@@ -563,13 +629,25 @@ export default function LandingV2() {
                 Flashcards
               </span>
             </div>
-            <Photo
-              src="/landing/v2/lesson.webp"
-              alt=""
-              className="mt-6 aspect-[1.14/1] rounded-[18px]"
-              sizes="340px"
-              position="55% 50%"
-            />
+            <div className="mt-6 flex aspect-[1.14/1] flex-col justify-between rounded-[18px] bg-[#263c32] p-5 text-[#f6f5f1]">
+              <span className="w-fit rounded-full bg-white/10 px-2.5 py-1 text-[11px] tracking-[0.04em] uppercase">
+                Lecture video · 42 min
+              </span>
+              <div className="flex items-end justify-between gap-4">
+                <p className="text-[22px] leading-[1.15] tracking-[-0.01em]">
+                  Algorithms and flowcharts
+                </p>
+                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[#d6eb9a] text-[#1d2a23]">
+                  <svg
+                    viewBox="0 0 12 14"
+                    className="ml-0.5 size-3.5"
+                    aria-hidden="true"
+                  >
+                    <path d="M0 0l12 7-12 7z" fill="currentColor" />
+                  </svg>
+                </span>
+              </div>
+            </div>
             <p className="mt-6 text-[30px] tracking-[-0.01em]">Algorithms</p>
             <p className="mt-4 text-[15px] text-[#6f7570]">
               COS101&nbsp;&nbsp;·&nbsp;&nbsp;Week 3 lecture
@@ -603,12 +681,12 @@ export default function LandingV2() {
             <Pill tone="plain" className="mt-6 w-fit">
               Join the waitlist
             </Pill>
-            <Photo
-              src="/landing/v2/outdoors.webp"
-              alt="A student studying outdoors under green trees"
+            <ScreenTile
+              name="popup"
+              variant="fit"
+              alt="The Askly Capture extension, filled in for a COS101 video lesson"
               className="mt-10 aspect-[0.87/1] lg:mt-auto"
-              sizes="(min-width: 1024px) 33vw, 100vw"
-              position="60% 40%"
+              sizes="(min-width: 1024px) 30vw, 100vw"
             />
           </div>
         </div>
@@ -624,12 +702,12 @@ export default function LandingV2() {
             More than a chatbot. A partner you can trust.
           </h2>
           <div className="mt-12 grid grid-cols-1 gap-[22px] lg:mt-20 lg:grid-cols-[1fr_2.2fr]">
-            <Photo
-              src="/landing/v2/student-books.webp"
-              alt="A smiling student in warm light"
+            <ScreenTile
+              name="mAnswer"
+              variant="phone"
+              alt="An Askly answer on a phone, with its sources from COS101 week 2"
               className="aspect-[0.87/1]"
-              sizes="(min-width: 1024px) 30vw, 100vw"
-              position="45% 35%"
+              sizes="(min-width: 1024px) 25vw, 70vw"
             />
             <QuoteSlider />
           </div>
