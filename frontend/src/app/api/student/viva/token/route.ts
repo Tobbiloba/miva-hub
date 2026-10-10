@@ -1,5 +1,6 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 import { buildCourseTutorContext } from "@/lib/ai/course-tutor-context";
 import { VIVA_LIVE_MODEL, buildVivaSystemPrompt } from "@/lib/ai/viva";
@@ -45,9 +46,9 @@ export async function POST(request: NextRequest) {
       courseId?: string;
       focusTopic?: string;
     };
-    if (!body.courseId) {
+    if (!body.courseId || !z.string().uuid().safeParse(body.courseId).success) {
       return NextResponse.json(
-        { error: "courseId is required" },
+        { error: "A valid courseId is required" },
         { status: 400 },
       );
     }

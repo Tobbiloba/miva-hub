@@ -150,7 +150,14 @@ export async function scoreVivaTranscript(input: {
     decision: `action: scored viva ${rubric.overallScore}/100 (${rubric.verdict})`,
     confidence: 1,
     status: "executed",
-    metadata: { verdict: rubric.verdict, overallScore: rubric.overallScore },
+    metadata: {
+      verdict: rubric.verdict,
+      overallScore: rubric.overallScore,
+      // Live audio never touches our server — the browser reports the
+      // transcript. Duration-plausibility is checked upstream, but auditors
+      // must know this evidence is self-reported, not server-witnessed.
+      transcriptSource: "client-reported",
+    },
   }).catch((error) => logger.warn("ledger write failed", error));
 
   return rubric;

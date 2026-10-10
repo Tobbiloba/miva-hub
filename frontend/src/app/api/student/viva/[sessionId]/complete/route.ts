@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { recordAIDecision } from "@/lib/ai/decision-ledger";
 import { type VivaTurn, scoreVivaTranscript } from "@/lib/ai/viva";
 import { getUserUniversity } from "@/lib/tenant";
 import { getApiSession } from "auth/server";
@@ -59,6 +60,7 @@ export async function POST(
         status: VivaSessionSchema.status,
         focusTopic: VivaSessionSchema.focusTopic,
         courseId: VivaSessionSchema.courseId,
+        startedAt: VivaSessionSchema.startedAt,
         courseCode: CourseSchema.courseCode,
         courseTitle: CourseSchema.title,
       })
@@ -99,6 +101,56 @@ export async function POST(
     }
 
     const university = await getUserUniversity(session.user.id);
+
+    // Integrity guard: the Live audio flows browser<->Google directly, so the
+    // transcript is client-reported and forgeable. Bind it to the only thing
+    // the client cannot forge — the server-observed session window. Real
+    // speech runs ~12-15 chars/sec; ~25 chars/sec across both speakers is a
+    // generous ceiling, and no gradeable multi-question viva fits in <60s.
+    const elapsedSeconds = Math.max(
+      (now.getTime() - viva.startedAt.getTime()) / 1000,
+      1,
+    );
+    const transcriptChars = transcript.reduce((n, t) => n + t.text.length, 0);
+    if (elapsedSeconds < 60 || transcriptChars > elapsedSeconds * 25) {
+      await pgDb
+        .update(VivaSessionSchema)
+        .set({
+          status: "abandoned",
+          transcript,
+          endedAt: now,
+          updatedAt: now,
+        })
+        .where(eq(VivaSessionSchema.id, viva.id));
+      await recordAIDecision({
+        universityId: university?.id ?? null,
+        decisionType: "grading",
+        actor: "viva-coach",
+        subjectType: "viva_session",
+        subjectId: viva.id,
+        userId: session.user.id,
+        model: "none",
+        inputSummary: `Viva (${viva.courseCode}) rejected before scoring: ${transcriptChars} transcript chars in ${Math.round(elapsedSeconds)}s session window`,
+        decision:
+          "action: refused to grade — transcript implausible for the server-observed session duration",
+        confidence: 1,
+        status: "rejected",
+        metadata: {
+          feature: "viva",
+          flag: "implausible_transcript",
+          transcriptChars,
+          elapsedSeconds: Math.round(elapsedSeconds),
+        },
+      }).catch((error) => logger.warn("ledger write failed", error));
+      return NextResponse.json(
+        {
+          error:
+            "Transcript is inconsistent with the session duration and cannot be graded",
+        },
+        { status: 422 },
+      );
+    }
+
     const rubric = await scoreVivaTranscript({
       sessionId: viva.id,
       studentId: session.user.id,

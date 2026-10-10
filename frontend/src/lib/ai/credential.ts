@@ -246,7 +246,7 @@ export async function issueCredential(
         ? `Best viva rubric detail: ${JSON.stringify(evidence.vivaRubric).slice(0, 2000)}`
         : "",
       "",
-      "Rules: honest and evidence-bound — a 40% average is 'developing', not 'proficient'. Cite numbers. This text appears on a public verification page.",
+      "Rules: honest and evidence-bound — a 40% average is 'developing', not 'proficient'. The summary appears on a PUBLIC verification page: describe competence in plain words and level bands, never raw scores, percentages, or attempt counts. In each competency's evidence sentence (shown only to the student and auditors), cite the specific numbers.",
     ]
       .filter(Boolean)
       .join("\n"),
@@ -293,7 +293,14 @@ export async function issueCredential(
     decision: `action: issued micro-credential at level "${assessment.overallLevel}" with ${competencies.length} competencies`,
     confidence: 0.9,
     status: "executed",
-    metadata: { feature: "micro-credential" },
+    metadata: {
+      feature: "micro-credential",
+      // Viva scores derive from client-reported transcripts (plausibility
+      // checked, not server-witnessed) — record that provenance for auditors.
+      ...(evidence.completedVivas > 0
+        ? { vivaTranscriptSource: "client-reported" }
+        : {}),
+    },
   }).catch((error) => logger.warn("ledger write failed", error));
 
   if (inserted) return { status: "issued", credential: inserted };
