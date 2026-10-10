@@ -309,6 +309,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           material_id: existingDup.id,
           updated: true,
+          visibility: "private",
           message: "Updated your capture of this page.",
         });
       }
@@ -327,6 +328,7 @@ export async function POST(request: NextRequest) {
           {
             material_id: existingDup.id,
             retried: true,
+            visibility: "private",
             message:
               "Your earlier capture of this lesson failed, so we're trying it again.",
           },

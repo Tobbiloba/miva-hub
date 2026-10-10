@@ -273,9 +273,12 @@ export default function SignUpPage() {
           </CardTitle>
           <CardDescription className="py-6">
             <div className="flex flex-col gap-2">
-              <p className="text-xs text-muted-foreground text-right">
-                Step {step} of 2
-              </p>
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">
+                  {step === 1 ? "Basic information" : "Academic information"}
+                </span>
+                <span>Step {step} of 2</span>
+              </div>
               <div className="h-2 w-full relative bg-input rounded-full overflow-hidden">
                 <div
                   style={{ width: `${(step / 2) * 100}%` }}
@@ -406,7 +409,7 @@ export default function SignUpPage() {
                     <SelectContent>
                       {programs.map((p) => (
                         <SelectItem key={p.id} value={p.id}>
-                          B.Sc {p.name}
+                          {p.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -530,11 +533,6 @@ export default function SignUpPage() {
                 </label>
               </div>
             )}
-
-            {/* ── Step label ──────────────────────────────────────────── */}
-            <p className="text-muted-foreground text-xs mb-2">
-              {step === 1 ? "Basic Information" : "Academic Information"}
-            </p>
 
             {/* ── Navigation buttons ──────────────────────────────────── */}
             <div className="flex gap-2">

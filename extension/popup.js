@@ -179,7 +179,14 @@ captureBtn.addEventListener("click", async () => {
   captureBtn.textContent = "Capture this lesson";
 
   if (result?.ok) {
-    const { visibility, shareable } = result.data;
+    const { visibility, shareable, updated, retried, message } = result.data;
+    // Re-capturing your own page refreshes it (or retries a failed one);
+    // the server says which, so show its words rather than a new-capture line.
+    if ((updated || retried) && message) {
+      showSuccess(message);
+      loadRecentCaptures();
+      return;
+    }
     showSuccess(
       visibility === "private"
         ? shareable
