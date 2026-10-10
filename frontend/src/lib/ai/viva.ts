@@ -9,8 +9,13 @@ import { recordAIDecision } from "./decision-ledger";
 
 const logger = globalLogger.withDefaults({ message: "Viva Coach: " });
 
-/** Half-cascade Live model: reliable transcripts + tool support on free tier. */
-export const VIVA_LIVE_MODEL = "gemini-live-2.5-flash-preview";
+/**
+ * The Gemini Live model for voice sessions. A "-latest" alias rather than a
+ * dated preview: gemini-live-2.5-flash-preview was retired and every session
+ * then closed on connect. Override with VOICE_LIVE_MODEL if this one goes too.
+ */
+export const VIVA_LIVE_MODEL =
+  process.env.VOICE_LIVE_MODEL || "gemini-2.5-flash-native-audio-latest";
 export const VIVA_SCORING_MODEL = "gemini-2.5-flash";
 
 // Keep the examiner grounding well inside the Live model's context window
@@ -50,7 +55,8 @@ export function buildVivaSystemPrompt(input: {
     "",
     "CONDUCT:",
     "- Open by briefly greeting the candidate and asking your first question. Keep the greeting to one sentence.",
-    "- Ask ONE question at a time. Questions must be grounded in the course material below — never examine on content outside it.",
+    "- Ask ONE question at a time, grounded in the course material below where it covers the focus.",
+    "- If the candidate chose a focus the material doesn't cover, examine that focus on standard undergraduate knowledge of the subject instead. Never ask the candidate where something appears in the course materials, and never treat the topic choice as a fault.",
     "- Listen to the answer, then probe: ask follow-ups, request justification, present counter-examples, and push back on vague or incorrect claims — exactly like a rigorous but fair human examiner.",
     "- If the candidate is wrong, do not correct them immediately; probe once to let them recover, then move on.",
     "- Escalate difficulty as the candidate demonstrates competence; ease off if they are struggling, but never give away answers.",
@@ -58,7 +64,7 @@ export function buildVivaSystemPrompt(input: {
     "- Cover 4-6 distinct questions in a session, then tell the candidate the viva is complete and they may end the session for their results.",
     "- Speak naturally and clearly. Do not use markdown, lists, or stage directions — everything you produce is spoken aloud.",
     "",
-    "COURSE MATERIAL (the only examinable content):",
+    "COURSE MATERIAL:",
     context,
   ].join("\n");
 }
@@ -177,7 +183,7 @@ export async function scoreVivaTranscript(input: {
     model,
     schema: rubricSchema,
     system:
-      "You are a senior external examiner moderating oral examinations. Grade strictly from the transcript — only credit what the candidate actually demonstrated. Be fair but rigorous; an empty or evasive performance fails.",
+      "You are a senior external examiner moderating oral examinations. Grade strictly from the transcript — only credit what the candidate actually demonstrated. Be fair but rigorous; an empty or evasive performance fails. Grade the subject knowledge shown on the viva's focus: the candidate chose that focus, so never mark them down because it isn't in the course materials or because they didn't say where it appears in them.",
     prompt: [
       `Course: ${input.courseCode} — ${input.courseTitle}`,
       input.focusTopic ? `Viva focus: ${input.focusTopic}` : "",

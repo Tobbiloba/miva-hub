@@ -121,9 +121,12 @@ export async function POST(
 
     const now = new Date();
 
-    // Too short to grade, or explicitly abandoned: close without a rubric.
+    // Abandoned, or nothing worth keeping: close without a rubric or thread.
+    // A viva needs two answers to grade; a tutor chat is worth saving once
+    // the student has asked something.
     const studentTurns = transcript.filter((t) => t.role === "student").length;
-    if (parsed.data.abandoned || studentTurns < 2) {
+    const minTurns = viva.mode === "tutor" ? 1 : 2;
+    if (parsed.data.abandoned || studentTurns < minTurns) {
       await pgDb
         .update(VivaSessionSchema)
         .set({

@@ -124,6 +124,8 @@ export async function POST(request: NextRequest) {
             systemInstruction: systemPrompt,
             inputAudioTranscription: {},
             outputAudioTranscription: {},
+            // Answer straight away: thinking first adds seconds of silence
+            thinkingConfig: { thinkingBudget: 0 },
           },
         },
         httpOptions: { apiVersion: "v1alpha" },

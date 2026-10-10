@@ -78,6 +78,8 @@ export function useVivaVoice() {
   const liveRef = useRef(false);
   /** Set once end() runs, so it can't run twice for one session */
   const endingRef = useRef(false);
+  /** Why the voice connection closed, when it closed by itself */
+  const dropReasonRef = useRef<string | null>(null);
   const endRef = useRef<(abandoned?: boolean) => Promise<void>>(async () => {});
   const outputCtxRef = useRef<AudioContext | null>(null);
   const nextPlayTimeRef = useRef(0);
@@ -133,6 +135,12 @@ export function useVivaVoice() {
 
       // The candidate's words: flush into a turn once the examiner replies.
       if (content.inputTranscription?.text) {
+        // The student started talking: whatever the tutor/examiner said
+        // before this comes first in the transcript
+        if (examinerBufferRef.current) {
+          pushTurn("examiner", examinerBufferRef.current);
+          examinerBufferRef.current = "";
+        }
         studentBufferRef.current += content.inputTranscription.text;
       }
       if (content.outputTranscription?.text) {
@@ -197,6 +205,7 @@ export function useVivaVoice() {
       void inputCtx.resume();
 
       endingRef.current = false;
+      dropReasonRef.current = null;
       setStatus("connecting");
       setMode(sessionMode);
       setError(null);
@@ -263,15 +272,29 @@ export function useVivaVoice() {
               setError(e.message || "Voice connection error");
               setStatus("error");
             },
-            onclose: () => {
+            onclose: (event: CloseEvent) => {
               setIsExaminerSpeaking(false);
               // The connection dropped (or the token ran out) mid-session:
               // save what was said rather than leaving a dead session open
-              if (liveRef.current) void endRef.current(false);
+              if (liveRef.current) {
+                dropReasonRef.current = event.reason || `code ${event.code}`;
+                void endRef.current(false);
+              }
             },
           },
         });
         sessionRef.current = session;
+        // Live models wait for input; nudge the tutor/examiner to open, as
+        // their prompt says they should
+        session.sendClientContent({
+          turns: [
+            {
+              role: "user",
+              parts: [{ text: "(The student has joined. Please begin.)" }],
+            },
+          ],
+          turnComplete: true,
+        });
 
         // Ended while still connecting: don't go live
         if (endingRef.current) throw new Error("cancelled");
@@ -303,7 +326,16 @@ export function useVivaVoice() {
           setStatus("idle");
           return;
         }
-        setError(err instanceof Error ? err.message : "Failed to start viva");
+        const denied =
+          err instanceof DOMException &&
+          (err.name === "NotAllowedError" || err.name === "SecurityError");
+        setError(
+          denied
+            ? "Askly needs your microphone. Allow microphone access for this site in your browser, then try again."
+            : err instanceof Error
+              ? err.message
+              : "Failed to start viva",
+        );
         setStatus("error");
       }
     },
@@ -345,8 +377,19 @@ export function useVivaVoice() {
         if (!res.ok) throw new Error(data.error || "Grading failed");
         setRubric(data.rubric ?? null);
         setThreadId(data.threadId ?? null);
-        // A graded viva shows its rubric; a tutor session shows its recap
-        setStatus(data.status === "completed" ? "completed" : "idle");
+        if (data.status === "completed") {
+          // A graded viva shows its rubric; a tutor session shows its recap
+          setStatus("completed");
+        } else if (dropReasonRef.current) {
+          // Cut off before anything worth saving: say so, don't just reset
+          console.warn("[voice] connection closed:", dropReasonRef.current);
+          setError(
+            "The voice connection closed before we got going. Please try again.",
+          );
+          setStatus("error");
+        } else {
+          setStatus("idle");
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Grading failed");
         setStatus("error");
