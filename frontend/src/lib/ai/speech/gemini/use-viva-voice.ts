@@ -54,6 +54,8 @@ export function useVivaVoice() {
   const [error, setError] = useState<string | null>(null);
   const [rubric, setRubric] = useState<VivaRubricView | null>(null);
   const [mode, setMode] = useState<"viva" | "tutor">("viva");
+  /** The chat thread the finished session was saved to */
+  const [threadId, setThreadId] = useState<string | null>(null);
   const [course, setCourse] = useState<{
     courseCode: string;
     title: string;
@@ -281,6 +283,7 @@ export function useVivaVoice() {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || "Grading failed");
         setRubric(data.rubric ?? null);
+        setThreadId(data.threadId ?? null);
         // A graded viva shows its rubric; a tutor session shows its recap
         setStatus(data.status === "completed" ? "completed" : "idle");
       } catch (err) {
@@ -301,6 +304,7 @@ export function useVivaVoice() {
     turnsRef.current = [];
     setTurns([]);
     setRubric(null);
+    setThreadId(null);
     setError(null);
     setCourse(null);
     setStatus("idle");
@@ -314,6 +318,7 @@ export function useVivaVoice() {
     rubric,
     mode,
     course,
+    threadId,
     start,
     end,
     reset,

@@ -14,6 +14,7 @@ import { createManageDeadlinesTool } from "./manage-deadlines.tool";
 import { createMyActivityTool } from "./my-activity.tool";
 import { createMyCoursesTool } from "./my-courses.tool";
 import { createSearchMaterialsTool } from "./search-materials.tool";
+import { createStartVoiceSessionTool } from "./start-voice-session.tool";
 
 export interface AcademicToolUser {
   userId: string;
@@ -32,5 +33,6 @@ export function createAcademicTools(
     "get-my-activity": createMyActivityTool(user.userId),
     "find-faculty": createFacultyDirectoryTool(user.universityId),
     "get-academic-schedule": createAcademicScheduleTool(user.userId),
+    "start-voice-session": createStartVoiceSessionTool(user.userId),
   };
 }

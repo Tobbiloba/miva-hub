@@ -3,12 +3,16 @@
 import {
   Award,
   GraduationCap,
+  Layers,
   Loader2,
+  MessageSquare,
   Mic,
   MicOff,
   Sparkles,
   XCircle,
 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -52,15 +56,63 @@ export default function VivaCoachPage() {
   const [mode, setMode] = useState<"tutor" | "viva">("tutor");
 
   const viva = useVivaVoice();
+  const router = useRouter();
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    // The chat's start-voice-session tool links here with the session preset:
+    // ?course=<courseId>&mode=tutor|viva&topic=...
+    const preset = new URLSearchParams(window.location.search);
+    const presetMode = preset.get("mode");
+    if (presetMode === "tutor" || presetMode === "viva") setMode(presetMode);
+    const presetTopic = preset.get("topic");
+    if (presetTopic) setFocusTopic(presetTopic.slice(0, 200));
+    const presetCourse = preset.get("course");
+
     fetch("/api/student/tutor")
       .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data) => setCourses(data.courses || []))
+      .then((data) => {
+        const list: { id: string }[] = data.courses || [];
+        setCourses(data.courses || []);
+        if (presetCourse && list.some((c) => c.id === presetCourse)) {
+          setCourseId(presetCourse);
+        }
+      })
       .catch(() => toast.error("Failed to load your courses"))
       .finally(() => setCoursesLoading(false));
   }, []);
+
+  /** Open the saved session in chat and ask for flashcards there */
+  const makeFlashcards = () => {
+    if (!viva.threadId) return;
+    try {
+      sessionStorage.setItem(
+        `askly:pending-prompt:${viva.threadId}`,
+        viva.mode === "viva"
+          ? "Make flashcards from my weak spots in this mock viva: the points under 'Revise this' and anything I got wrong."
+          : "Make flashcards from the parts of this voice session I found hard or got wrong.",
+      );
+    } catch {
+      // Storage blocked: the thread still opens and they can ask by text
+    }
+    router.push(`/chat/${viva.threadId}`);
+  };
+
+  const followUps = viva.threadId ? (
+    <div className="grid gap-2 sm:grid-cols-2">
+      <Button onClick={makeFlashcards}>
+        <Layers className="mr-2 h-4 w-4" />
+        Make flashcards from my weak spots
+      </Button>
+      <Button variant="outline" asChild>
+        <Link href={`/chat/${viva.threadId}`}>
+          <MessageSquare className="mr-2 h-4 w-4" />
+          Continue in chat
+        </Link>
+      </Button>
+    </div>
+  ) : null;
+  const tutor = viva.mode === "tutor";
 
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -186,7 +238,7 @@ export default function VivaCoachPage() {
                 {viva.status === "connecting" ? (
                   <>
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    Connecting to your examiner…
+                    Connecting to your {tutor ? "tutor" : "examiner"}…
                   </>
                 ) : (
                   <>
@@ -207,8 +259,12 @@ export default function VivaCoachPage() {
                       />
                     </span>
                     {viva.isExaminerSpeaking
-                      ? "Examiner speaking…"
-                      : "Listening — speak your answer"}
+                      ? tutor
+                        ? "Tutor speaking…"
+                        : "Examiner speaking…"
+                      : tutor
+                        ? "Listening…"
+                        : "Listening — speak your answer"}
                   </>
                 )}
               </span>
@@ -236,7 +292,11 @@ export default function VivaCoachPage() {
                     }`}
                   >
                     <p className="text-xs font-medium text-muted-foreground mb-0.5">
-                      {turn.role === "examiner" ? "Examiner" : "You"}
+                      {turn.role === "examiner"
+                        ? tutor
+                          ? "Tutor"
+                          : "Examiner"
+                        : "You"}
                     </p>
                     {turn.text}
                   </div>
@@ -247,7 +307,7 @@ export default function VivaCoachPage() {
             <div className="flex gap-2">
               <Button className="flex-1" onClick={() => viva.end(false)}>
                 <Award className="mr-2 h-4 w-4" />
-                End viva &amp; get my results
+                {tutor ? "End session" : "End viva & get my results"}
               </Button>
               <Button variant="outline" onClick={() => viva.end(true)}>
                 <MicOff className="mr-2 h-4 w-4" />
@@ -262,7 +322,9 @@ export default function VivaCoachPage() {
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground flex items-center justify-center gap-2">
             <Loader2 className="h-5 w-5 animate-spin" />
-            The examiner is writing up your results…
+            {tutor
+              ? "Saving your session…"
+              : "The examiner is writing up your results…"}
           </CardContent>
         </Card>
       )}
@@ -276,14 +338,16 @@ export default function VivaCoachPage() {
             <p className="text-sm text-muted-foreground">
               {viva.turns.filter((t) => t.role === "student").length} things you
               said, {viva.turns.filter((t) => t.role === "examiner").length}{" "}
-              from your tutor. Your tutor's last turn sums up what to revise.
+              from your tutor. It's saved in your chats, so you can pick it up
+              by text.
             </p>
             {viva.turns.at(-1)?.role === "examiner" && (
               <blockquote className="rounded-xl border bg-secondary/50 px-4 py-3 text-sm">
                 {viva.turns.at(-1)?.text}
               </blockquote>
             )}
-            <Button variant="outline" onClick={viva.reset}>
+            {followUps}
+            <Button variant="ghost" className="w-full" onClick={viva.reset}>
               Start another session
             </Button>
           </CardContent>
@@ -348,7 +412,8 @@ export default function VivaCoachPage() {
                 </ul>
               </div>
             </div>
-            <Button variant="outline" className="w-full" onClick={viva.reset}>
+            {followUps}
+            <Button variant="ghost" className="w-full" onClick={viva.reset}>
               Take another viva
             </Button>
           </CardContent>

@@ -349,16 +349,23 @@ export default function ChatBot({
       });
   }, [isInitialThreadEntry]);
 
-  // Pick up a prompt handed off from the student dashboard "Ask Askly" box and
-  // send it automatically once, on a fresh empty chat thread.
+  // Pick up a prompt handed off from elsewhere in the app and send it once:
+  // one queued for this thread (e.g. "make flashcards" after a voice
+  // session), or the dashboard "Ask Askly" box on a fresh empty thread.
   const pendingPromptSentRef = useRef(false);
   useEffect(() => {
     if (pendingPromptSentRef.current) return;
-    if (initialMessages.length > 0 || messages.length > 0) return;
     let pending: string | null = null;
     try {
-      pending = sessionStorage.getItem("askly:pending-prompt");
-      if (pending) sessionStorage.removeItem("askly:pending-prompt");
+      const threadKey = `askly:pending-prompt:${threadId}`;
+      pending = sessionStorage.getItem(threadKey);
+      if (pending) {
+        sessionStorage.removeItem(threadKey);
+      } else {
+        if (initialMessages.length > 0 || messages.length > 0) return;
+        pending = sessionStorage.getItem("askly:pending-prompt");
+        if (pending) sessionStorage.removeItem("askly:pending-prompt");
+      }
     } catch {
       return;
     }
@@ -368,7 +375,7 @@ export default function ChatBot({
       role: "user",
       parts: [{ type: "text", text: pending.trim() }],
     });
-  }, [initialMessages.length, messages.length, sendMessage]);
+  }, [threadId, initialMessages.length, messages.length, sendMessage]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

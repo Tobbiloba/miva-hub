@@ -62,6 +62,7 @@ import {
   AcademicToolStatus,
   isAcademicStatusTool,
 } from "./tool-invocation/academic-tool-status";
+import { VoiceSessionCard } from "./tool-invocation/voice-session-card";
 
 import { appStore } from "@/app/store";
 import { BACKGROUND_COLORS, EMOJI_DATA } from "lib/const";
@@ -943,6 +944,13 @@ export const ToolMessagePart = memo(
     }, [isCompleted, output, state, errorText]);
 
     const CustomToolComponent = useMemo(() => {
+      if (
+        toolName === DefaultToolName.StartVoiceSession &&
+        !isManualToolInvocation
+      ) {
+        return <VoiceSessionCard part={part} />;
+      }
+
       // Our academic tools read as one plain status line for students
       if (isAcademicStatusTool(toolName) && !isManualToolInvocation) {
         return <AcademicToolStatus part={part} />;

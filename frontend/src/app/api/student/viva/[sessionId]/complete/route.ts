@@ -3,15 +3,50 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { recordAIDecision } from "@/lib/ai/decision-ledger";
-import { type VivaTurn, scoreVivaTranscript } from "@/lib/ai/viva";
+import {
+  type VivaRubric,
+  type VivaTurn,
+  scoreVivaTranscript,
+} from "@/lib/ai/viva";
 import { checkPaidAccess, paymentRequiredResponse } from "@/lib/billing/access";
 import { getUserUniversity } from "@/lib/tenant";
 import { getApiSession } from "auth/server";
 import { pgDb } from "lib/db/pg/db.pg";
-import { CourseSchema, VivaSessionSchema } from "lib/db/pg/schema.pg";
+import {
+  ChatMessageSchema,
+  ChatThreadSchema,
+  CourseSchema,
+  VivaSessionSchema,
+} from "lib/db/pg/schema.pg";
+import {
+  voiceSessionMessages,
+  voiceThreadTitle,
+} from "lib/voice/session-thread";
 import globalLogger from "logger";
 
 const logger = globalLogger.withDefaults({ message: "Viva Complete API: " });
+
+type Tx = Parameters<Parameters<typeof pgDb.transaction>[0]>[0];
+
+/** Save the finished session as a chat thread; returns its id. */
+async function saveSessionThread(
+  tx: Tx,
+  userId: string,
+  session: Parameters<typeof voiceThreadTitle>[0] & {
+    transcript: VivaTurn[];
+    rubric: VivaRubric | null;
+    startedAt: Date;
+  },
+): Promise<string> {
+  const [thread] = await tx
+    .insert(ChatThreadSchema)
+    .values({ title: voiceThreadTitle(session), userId })
+    .returning({ id: ChatThreadSchema.id });
+  await tx
+    .insert(ChatMessageSchema)
+    .values(voiceSessionMessages({ ...session, threadId: thread.id }));
+  return thread.id;
+}
 
 const bodySchema = z.object({
   transcript: z
@@ -103,14 +138,27 @@ export async function POST(
 
     // Tutor sessions aren't graded: keep the transcript and close
     if (viva.mode === "tutor") {
-      await pgDb
-        .update(VivaSessionSchema)
-        .set({ status: "completed", transcript, endedAt: now, updatedAt: now })
-        .where(eq(VivaSessionSchema.id, viva.id));
+      const threadId = await pgDb.transaction(async (tx) => {
+        await tx
+          .update(VivaSessionSchema)
+          .set({
+            status: "completed",
+            transcript,
+            endedAt: now,
+            updatedAt: now,
+          })
+          .where(eq(VivaSessionSchema.id, viva.id));
+        return saveSessionThread(tx, session.user.id, {
+          ...viva,
+          transcript,
+          rubric: null,
+        });
+      });
       return NextResponse.json({
         status: "completed",
         mode: "tutor",
         rubric: null,
+        threadId,
       });
     }
 
@@ -175,19 +223,26 @@ export async function POST(
       transcript,
     });
 
-    await pgDb
-      .update(VivaSessionSchema)
-      .set({
-        status: "completed",
+    const threadId = await pgDb.transaction(async (tx) => {
+      await tx
+        .update(VivaSessionSchema)
+        .set({
+          status: "completed",
+          transcript,
+          rubric,
+          overallScore: rubric.overallScore,
+          endedAt: now,
+          updatedAt: now,
+        })
+        .where(eq(VivaSessionSchema.id, viva.id));
+      return saveSessionThread(tx, session.user.id, {
+        ...viva,
         transcript,
         rubric,
-        overallScore: rubric.overallScore,
-        endedAt: now,
-        updatedAt: now,
-      })
-      .where(eq(VivaSessionSchema.id, viva.id));
+      });
+    });
 
-    return NextResponse.json({ status: "completed", rubric });
+    return NextResponse.json({ status: "completed", rubric, threadId });
   } catch (error) {
     logger.error("failed to complete viva", error);
     return NextResponse.json(
