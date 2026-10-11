@@ -55,11 +55,15 @@ export async function POST(request: Request) {
     }
 
     const key = chatImageKey(userId, type);
-    await s3Service.uploadFile(
+    // uploadFile reports failure in its result rather than throwing
+    const stored = await s3Service.uploadFile(
       new File([bytes], `photo.${CHAT_IMAGE_TYPES[type]}`, { type }),
       key,
       { userId, userRole: "student" },
     );
+    if (!stored.success) {
+      throw new Error(stored.error || "S3 upload failed");
+    }
 
     return NextResponse.json(
       { url: attachmentUrl(key), mediaType: type },
