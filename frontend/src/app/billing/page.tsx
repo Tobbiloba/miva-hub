@@ -557,7 +557,8 @@ function nextChargeLine(sub: {
   next_payment_date: string | null;
 }): string {
   const next = sub.next_payment_date ?? sub.current_period_end;
-  const extraDays = Math.floor(
+  // Credit is exact to the second (e.g. 5.997 days), so round, don't floor
+  const extraDays = Math.round(
     (new Date(sub.current_period_end).getTime() - new Date(next).getTime()) /
       86_400_000,
   );

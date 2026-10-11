@@ -39,7 +39,7 @@ export function AppHeader() {
 
   const title = useMemo(() => pageTitle(currentPaths), [currentPaths]);
   const iconButton =
-    "size-8 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground [&_svg]:size-[18px]!";
+    "size-11 md:size-8 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground [&_svg]:size-[18px]!";
 
   return (
     <header className="sticky top-0 z-50 flex h-12 shrink-0 items-center gap-1.5 px-3 md:px-4">
@@ -224,7 +224,7 @@ function ThreadDropdownComponent() {
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                className="flex h-8 cursor-pointer items-center gap-1 rounded-lg px-2 text-[15px] font-semibold tracking-[-0.01em] hover:bg-accent data-[state=open]:bg-accent"
+                className="flex h-11 md:h-8 cursor-pointer items-center gap-1 rounded-lg px-2 text-[15px] font-semibold tracking-[-0.01em] hover:bg-accent data-[state=open]:bg-accent"
               >
                 {generatingTitleThreadIds.includes(currentThread.id) ? (
                   <TextShimmer className="truncate max-w-60 min-w-0 mr-1">

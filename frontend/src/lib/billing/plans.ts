@@ -56,7 +56,7 @@ export const PLAN_FEATURES = [
 export const PREMIUM_FEATURES = [
   "Everything in the standard plan",
   "300 Voice Coach minutes a month",
-  "SIWES logbook and report (coming soon)",
+  "SIWES log book (report coming soon)",
   "Final-year project companion (coming soon)",
 ] as const;
 
