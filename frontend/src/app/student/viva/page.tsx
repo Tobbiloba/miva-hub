@@ -416,7 +416,7 @@ export default function VivaCoachPage() {
                 "thing",
               )}{" "}
               you said, {viva.turns.filter((t) => t.role === "examiner").length}{" "}
-              from your tutor. It's saved in your chats, so you can pick it up
+              from your tutor. It&apos;s saved in your chats, so you can pick it up
               by text.
             </p>
             {viva.turns.at(-1)?.role === "examiner" && (

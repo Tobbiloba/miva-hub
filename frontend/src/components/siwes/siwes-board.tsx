@@ -176,7 +176,7 @@ export function SiwesBoard({
           className="flex items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm"
         >
           <AlertCircle className="size-4 text-destructive" />
-          Couldn't load your log book.
+          Couldn&apos;t load your log book.
           <Button
             variant="outline"
             size="sm"
@@ -210,7 +210,7 @@ export function SiwesBoard({
             </Button>
           }
         >
-          Add where you're doing SIWES and the dates (or upload your placement
+          Add where you&apos;re doing SIWES and the dates (or upload your placement
           letter), then log your days.
         </EmptyState>
       ) : editing ? (
@@ -412,7 +412,7 @@ function PlacementForm({
       {fromLetter && (
         <p className="rounded-lg bg-secondary px-3 py-2 text-sm">
           Details read from your letter. Check them before saving; the letter
-          itself isn't stored.
+          itself isn&apos;t stored.
         </p>
       )}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -589,7 +589,7 @@ function LogBookView({
         className="flex items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm"
       >
         <AlertCircle className="size-4 text-destructive" />
-        Couldn't load the log book.
+        Couldn&apos;t load the log book.
         <Button
           variant="outline"
           size="sm"
@@ -628,8 +628,8 @@ function LogBookView({
       />
       {data.loggedDays === 0 && (
         <EmptyState icon={<NotebookPen />} title="No days logged yet">
-          Log your first day above, or tell Askly in chat: "log today: I set up
-          the office printers".
+          Log your first day above, or tell Askly in chat: &ldquo;log today: I set up
+          the office printers&rdquo;.
         </EmptyState>
       )}
       {months.map((m) => (
