@@ -337,6 +337,13 @@
       "when": 1791661420927,
       "tag": "0047_voice_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1791679176816,
+      "tag": "0048_siwes_logbook",
+      "breakpoints": true
     }
   ]
 }

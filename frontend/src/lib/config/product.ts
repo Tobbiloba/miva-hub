@@ -22,6 +22,7 @@ export const STUDENT_PAGES = [
   { title: "Flashcards", href: "/student/flashcards" },
   // AI Voice Coach: spoken practice grounded in the course (Gemini Live)
   { title: "Voice Coach", href: "/student/viva" },
+  { title: "SIWES Log Book", href: "/student/siwes" },
 ] as const;
 
 /** /student paths that stay open: the nav pages above plus their sub-pages. */

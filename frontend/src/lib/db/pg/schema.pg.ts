@@ -2326,6 +2326,135 @@ export const StudentDeadlineSchema = pgTable(
 
 export type StudentDeadlineEntity = typeof StudentDeadlineSchema.$inferSelect;
 
+// ── SIWES log book (Askly Premium) ─────────────────────────────────────────
+// Mirrors MIVA's "Field Practicum" log book: one placement per SIWES phase,
+// a row per working day (Mon–Sat), week pages and monthly summaries. Only
+// the student's own parts live here — supervisor comments, ratings and
+// signatures are left for the paper/printed book.
+export const SiwesPlacementSchema = pgTable(
+  "siwes_placement",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    universityId: uuid("university_id").references(() => UniversitySchema.id, {
+      onDelete: "set null",
+    }),
+    /** SIWES I or SIWES II (the book has a section for each) */
+    phase: varchar("phase", { enum: ["I", "II"] }).notNull(),
+    organization: text("organization").notNull(),
+    address: text("address"),
+    organizationSize: varchar("organization_size", {
+      enum: ["large", "medium", "small"],
+    }),
+    /** "Products/jobs undertaken" (the book has room for 6) */
+    productsJobs: json("products_jobs").$type<string[]>().notNull().default([]),
+    /** For "Description of Organization Structure (With Chart)" */
+    structureDescription: text("structure_description"),
+    departmentSection: text("department_section"),
+    industrySupervisorName: text("industry_supervisor_name"),
+    industrySupervisorEmail: text("industry_supervisor_email"),
+    schoolSupervisor: text("school_supervisor"),
+    startDate: date("start_date", { mode: "string" }).notNull(),
+    endDate: date("end_date", { mode: "string" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("siwes_placement_user_phase_idx").on(table.userId, table.phase),
+  ],
+);
+export type SiwesPlacementEntity = typeof SiwesPlacementSchema.$inferSelect;
+
+export const SiwesLogEntrySchema = pgTable(
+  "siwes_log_entry",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    placementId: uuid("placement_id")
+      .notNull()
+      .references(() => SiwesPlacementSchema.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    /** A Monday–Saturday day of the placement */
+    entryDate: date("entry_date", { mode: "string" }).notNull(),
+    present: boolean("present").notNull().default(true),
+    absenceReason: text("absence_reason"),
+    /** What the student wrote; always kept */
+    rawNote: text("raw_note").notNull().default(""),
+    /** The log-book wording Askly drafted from the note (student can edit) */
+    formattedEntry: text("formatted_entry").notNull().default(""),
+    skills: json("skills").$type<string[]>().notNull().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("siwes_log_entry_placement_date_idx").on(
+      table.placementId,
+      table.entryDate,
+    ),
+    index("siwes_log_entry_user_date_idx").on(table.userId, table.entryDate),
+  ],
+);
+export type SiwesLogEntryEntity = typeof SiwesLogEntrySchema.$inferSelect;
+
+/** The student's fields of a weekly page (week ending = the Saturday) */
+export const SiwesWeekSchema = pgTable(
+  "siwes_week",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    placementId: uuid("placement_id")
+      .notNull()
+      .references(() => SiwesPlacementSchema.id, { onDelete: "cascade" }),
+    weekEnding: date("week_ending", { mode: "string" }).notNull(),
+    generalDescription: text("general_description"),
+    departmentSection: text("department_section"),
+    projectJob: text("project_job"),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("siwes_week_placement_week_idx").on(
+      table.placementId,
+      table.weekEnding,
+    ),
+  ],
+);
+export type SiwesWeekEntity = typeof SiwesWeekSchema.$inferSelect;
+
+/** The student's monthly summary ("YYYY-MM") */
+export const SiwesMonthSchema = pgTable(
+  "siwes_month",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    placementId: uuid("placement_id")
+      .notNull()
+      .references(() => SiwesPlacementSchema.id, { onDelete: "cascade" }),
+    month: varchar("month", { length: 7 }).notNull(),
+    summary: text("summary"),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("siwes_month_placement_month_idx").on(
+      table.placementId,
+      table.month,
+    ),
+  ],
+);
+export type SiwesMonthEntity = typeof SiwesMonthSchema.$inferSelect;
+
 // ================================================
 // IN-APP NOTIFICATIONS
 // ================================================

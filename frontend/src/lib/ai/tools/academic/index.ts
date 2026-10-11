@@ -11,6 +11,7 @@ import { createAssignmentTrackerTool } from "./assignment-tracker.tool";
 import { createCourseContentTool } from "./course-content.tool";
 import { createFacultyDirectoryTool } from "./faculty-directory.tool";
 import { createManageDeadlinesTool } from "./manage-deadlines.tool";
+import { createManageSiwesTool } from "./manage-siwes.tool";
 import { createMyActivityTool } from "./my-activity.tool";
 import { createMyCoursesTool } from "./my-courses.tool";
 import { createSearchMaterialsTool } from "./search-materials.tool";
@@ -34,5 +35,6 @@ export function createAcademicTools(
     "find-faculty": createFacultyDirectoryTool(user.universityId),
     "get-academic-schedule": createAcademicScheduleTool(user.userId),
     "start-voice-session": createStartVoiceSessionTool(user.userId),
+    "manage-siwes": createManageSiwesTool(user),
   };
 }

@@ -13,6 +13,7 @@ import {
   LayersIcon,
   type LucideIcon,
   MicIcon,
+  NotebookPenIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
@@ -29,6 +30,7 @@ const STUDENT_PAGE_ICONS: Record<
   "/student/deadlines": CalendarClockIcon,
   "/student/flashcards": LayersIcon,
   "/student/viva": MicIcon,
+  "/student/siwes": NotebookPenIcon,
 };
 
 export function AppSidebarMenus({ role }: { role?: string }) {

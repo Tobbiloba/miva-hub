@@ -30,6 +30,7 @@ export enum DefaultToolName {
   ManageDeadlines = "manage-deadlines",
   MyActivity = "get-my-activity",
   StartVoiceSession = "start-voice-session",
+  ManageSiwes = "manage-siwes",
   FindFaculty = "find-faculty",
   AcademicSchedule = "get-academic-schedule",
 }

@@ -6,6 +6,7 @@ import {
   CalendarClock,
   History,
   Loader,
+  NotebookPen,
   Search,
   TriangleAlert,
   Users,
@@ -68,6 +69,18 @@ const LINES: Record<string, Line> = {
             : i?.action === "complete"
               ? "Marked done in your deadlines"
               : "Updated your deadlines",
+  },
+  "manage-siwes": {
+    icon: NotebookPen,
+    running: "Updating your SIWES log book",
+    done: (o, i) =>
+      o?.error
+        ? `Couldn't update your log book: ${o.error}`
+        : i?.action === "log_day" && o?.saved
+          ? `Logged in your SIWES log book: ${o.saved.day}`
+          : i?.action === "set_placement" && o?.saved
+            ? `Saved your ${o.saved.phase} placement at ${o.saved.organization}`
+            : "Checked your SIWES log book",
   },
   "get-my-activity": {
     icon: History,
