@@ -23,6 +23,8 @@ export const STUDENT_PAGES = [
   // AI Voice Coach: spoken practice grounded in the course (Gemini Live)
   { title: "Voice Coach", href: "/student/viva" },
   { title: "SIWES Log Book", href: "/student/siwes" },
+  // The Askly Capture extension: connect it and track what's been captured
+  { title: "Askly Capture", href: "/student/capture" },
 ] as const;
 
 /** /student paths that stay open: the nav pages above plus their sub-pages. */

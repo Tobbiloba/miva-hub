@@ -14,6 +14,7 @@ import {
   type LucideIcon,
   MicIcon,
   NotebookPenIcon,
+  PuzzleIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
@@ -31,6 +32,7 @@ const STUDENT_PAGE_ICONS: Record<
   "/student/flashcards": LayersIcon,
   "/student/viva": MicIcon,
   "/student/siwes": NotebookPenIcon,
+  "/student/capture": PuzzleIcon,
 };
 
 export function AppSidebarMenus({ role }: { role?: string }) {

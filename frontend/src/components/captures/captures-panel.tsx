@@ -18,9 +18,14 @@ import useSWR from "swr";
 import { Badge } from "ui/badge";
 import { Button } from "ui/button";
 
-type CaptureState = "processing" | "ready" | "no_text" | "in_review" | "failed";
+export type CaptureState =
+  | "processing"
+  | "ready"
+  | "no_text"
+  | "in_review"
+  | "failed";
 
-type Capture = {
+export type Capture = {
   key: string;
   title: string;
   contentType: string;
@@ -32,10 +37,10 @@ type Capture = {
   own: boolean;
 };
 
-const INSTALL_URL = process.env.NEXT_PUBLIC_EXTENSION_INSTALL_URL;
+export const INSTALL_URL = process.env.NEXT_PUBLIC_EXTENSION_INSTALL_URL;
 const COLLAPSED = 8;
 
-const STATE: Record<
+export const STATE: Record<
   CaptureState,
   { label: string; className: string; Icon: typeof CheckCircle2 }
 > = {
@@ -73,10 +78,10 @@ const fetcher = async (url: string) => {
 };
 
 /**
- * What the student has captured with Askly Capture, and whether Askly can
- * answer from each item yet. Polls while anything is processing.
+ * The student's captures with retry/remove, polling while anything is
+ * processing. Shared by the My Courses panel and the Askly Capture page.
  */
-export function CapturesPanel() {
+export function useCaptures() {
   const { data, error, isLoading, mutate } = useSWR(
     "/api/student/captures",
     fetcher,
@@ -85,7 +90,6 @@ export function CapturesPanel() {
         latest?.some((c) => c.state === "processing") ? 4000 : 0,
     },
   );
-  const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
   async function retry(capture: Capture) {
@@ -128,7 +132,101 @@ export function CapturesPanel() {
     );
   }
 
-  const captures = data ?? [];
+  return {
+    captures: data ?? [],
+    error: error as Error | undefined,
+    isLoading,
+    reload: () => mutate(),
+    busy,
+    retry,
+    remove,
+  };
+}
+
+/** One capture: type, title (links to the material once ready), course, state */
+export function CaptureRow({
+  capture,
+  busy,
+  onRetry,
+  onRemove,
+}: {
+  capture: Capture;
+  busy: boolean;
+  onRetry: (c: Capture) => void;
+  onRemove: (c: Capture) => void;
+}) {
+  const { label, className, Icon } = STATE[capture.state];
+  const TypeIcon = capture.contentType === "video" ? Video : FileText;
+  return (
+    <li className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+      <TypeIcon
+        className="mt-0.5 size-7 shrink-0 rounded-lg border bg-secondary p-1.5 text-muted-foreground"
+        aria-hidden
+      />
+      <div className="min-w-0 flex-1">
+        {capture.materialId && capture.state === "ready" ? (
+          <Link
+            href={`/student/lecture-study/${capture.materialId}`}
+            className="break-words font-medium hover:underline"
+          >
+            {capture.title}
+          </Link>
+        ) : (
+          <p className="break-words font-medium">{capture.title}</p>
+        )}
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+          <Badge variant="secondary">{capture.course.code}</Badge>
+          <span className={cn("flex items-center gap-1", className)}>
+            <Icon
+              className={cn(
+                "size-3.5",
+                capture.state === "processing" && "animate-spin",
+              )}
+              aria-hidden
+            />
+            {label}
+          </span>
+        </div>
+        {capture.error && capture.state !== "ready" && (
+          <p className="mt-1 text-xs text-muted-foreground">{capture.error}</p>
+        )}
+      </div>
+      {capture.state === "failed" && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-11 shrink-0"
+          aria-label={`Retry "${capture.title}"`}
+          disabled={busy}
+          onClick={() => onRetry(capture)}
+        >
+          <RotateCw className="size-4" />
+        </Button>
+      )}
+      {capture.own && capture.state !== "processing" && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-11 shrink-0"
+          aria-label={`Remove "${capture.title}"`}
+          disabled={busy}
+          onClick={() => onRemove(capture)}
+        >
+          <Trash2 className="size-4" />
+        </Button>
+      )}
+    </li>
+  );
+}
+
+/**
+ * What the student has captured with Askly Capture, and whether Askly can
+ * answer from each item yet. The full view is the Askly Capture page.
+ */
+export function CapturesPanel() {
+  const { captures, error, isLoading, reload, busy, retry, remove } =
+    useCaptures();
+  const [expanded, setExpanded] = useState(false);
   const count = (s: CaptureState) =>
     captures.filter((c) => c.state === s).length;
   const shown = expanded ? captures : captures.slice(0, COLLAPSED);
@@ -155,7 +253,7 @@ export function CapturesPanel() {
         <div role="alert" className="mt-3 flex items-center gap-3 text-sm">
           <AlertCircle className="size-4 text-destructive" aria-hidden />
           <span className="flex-1">{error.message}</span>
-          <Button variant="outline" size="sm" onClick={() => mutate()}>
+          <Button variant="outline" size="sm" onClick={reload}>
             Try again
           </Button>
         </div>
@@ -181,78 +279,15 @@ export function CapturesPanel() {
       ) : (
         <>
           <ul className="mt-3 divide-y">
-            {shown.map((capture) => {
-              const { label, className, Icon } = STATE[capture.state];
-              const TypeIcon =
-                capture.contentType === "video" ? Video : FileText;
-              return (
-                <li
-                  key={capture.key}
-                  className="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
-                >
-                  <TypeIcon
-                    className="mt-0.5 size-7 shrink-0 rounded-lg border bg-secondary p-1.5 text-muted-foreground"
-                    aria-hidden
-                  />
-                  <div className="min-w-0 flex-1">
-                    {capture.materialId && capture.state === "ready" ? (
-                      <Link
-                        href={`/student/lecture-study/${capture.materialId}`}
-                        className="break-words font-medium hover:underline"
-                      >
-                        {capture.title}
-                      </Link>
-                    ) : (
-                      <p className="break-words font-medium">{capture.title}</p>
-                    )}
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-                      <Badge variant="secondary">{capture.course.code}</Badge>
-                      <span
-                        className={cn("flex items-center gap-1", className)}
-                      >
-                        <Icon
-                          className={cn(
-                            "size-3.5",
-                            capture.state === "processing" && "animate-spin",
-                          )}
-                          aria-hidden
-                        />
-                        {label}
-                      </span>
-                    </div>
-                    {capture.error && capture.state !== "ready" && (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {capture.error}
-                      </p>
-                    )}
-                  </div>
-                  {capture.state === "failed" && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-11 shrink-0"
-                      aria-label={`Retry "${capture.title}"`}
-                      disabled={busy === capture.key}
-                      onClick={() => retry(capture)}
-                    >
-                      <RotateCw className="size-4" />
-                    </Button>
-                  )}
-                  {capture.own && capture.state !== "processing" && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-11 shrink-0"
-                      aria-label={`Remove "${capture.title}"`}
-                      disabled={busy === capture.key}
-                      onClick={() => remove(capture)}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  )}
-                </li>
-              );
-            })}
+            {shown.map((capture) => (
+              <CaptureRow
+                key={capture.key}
+                capture={capture}
+                busy={busy === capture.key}
+                onRetry={retry}
+                onRemove={remove}
+              />
+            ))}
           </ul>
           {captures.length > COLLAPSED && (
             <Button
@@ -264,6 +299,9 @@ export function CapturesPanel() {
               {expanded ? "Show fewer" : `Show all ${captures.length}`}
             </Button>
           )}
+          <Button asChild variant="link" size="sm" className="mt-2 px-0">
+            <Link href="/student/capture">Open Askly Capture</Link>
+          </Button>
         </>
       )}
     </section>
