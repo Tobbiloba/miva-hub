@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Askly Capture",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Save your MIVA University lessons to Askly so your AI study assistant can answer from them",
-  "permissions": ["activeTab", "storage"],
+  "permissions": ["activeTab", "storage", "alarms", "offscreen"],
   "host_permissions": [
     "https://lms.miva.university/*",
     "https://player.vimeo.com/*",
@@ -28,8 +28,13 @@
   "content_scripts": [
     {
       "matches": ["https://lms.miva.university/*"],
-      "js": ["content-script.js"],
+      "js": ["lms-extract.js", "content-script.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://askly-miva.vercel.app/*", "http://localhost:4001/*"],
+      "js": ["askly-bridge.js"],
+      "run_at": "document_start"
     }
   ],
   "icons": {

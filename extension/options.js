@@ -32,9 +32,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   apiUrlInput.value = askly_api_url || "";
 
   // Check login state
-  const sessionRes = await sendMessage({ type: "GET_SESSION" });
-  if (sessionRes?.ok && sessionRes.data?.token) {
-    showLoggedIn(sessionRes.data.user);
+  const state = await sendMessage({ type: "GET_STATE" });
+  if (state?.ok && state.data?.connected) {
+    showLoggedIn(state.data.user);
   } else {
     showLoginForm();
   }
@@ -52,16 +52,16 @@ loginBtn.addEventListener("click", async () => {
   }
 
   loginBtn.disabled = true;
-  loginBtn.textContent = "Logging in...";
+  loginBtn.textContent = "Signing in…";
   loginError.style.display = "none";
 
   const result = await sendMessage({ type: "LOGIN", email, password });
 
   loginBtn.disabled = false;
-  loginBtn.textContent = "Login";
+  loginBtn.textContent = "Sign in";
 
   if (result?.ok) {
-    loginSuccess.textContent = "Logged in successfully!";
+    loginSuccess.textContent = "Connected to Askly.";
     loginSuccess.style.display = "block";
     setTimeout(() => {
       showLoggedIn(result.data.user);
