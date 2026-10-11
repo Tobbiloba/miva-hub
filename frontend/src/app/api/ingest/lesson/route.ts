@@ -75,7 +75,11 @@ export async function POST(request: NextRequest) {
 
     if (!userRow?.universityId) {
       return NextResponse.json(
-        { error: "Your account is not linked to a university" },
+        {
+          error:
+            "Capturing works once your school is on Askly. We'll email you when it's added.",
+          code: "SCHOOL_PENDING",
+        },
         { status: 403 },
       );
     }

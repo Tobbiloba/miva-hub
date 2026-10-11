@@ -13,9 +13,10 @@ import {
   StudentEnrollmentSchema,
   UserSchema,
 } from "@/lib/db/pg/schema.pg";
+import { getPendingSchool } from "@/lib/schools/pending";
 import { termKey } from "@/lib/utils/semester";
 import { and, eq } from "drizzle-orm";
-import { CalendarOff, ChevronLeft } from "lucide-react";
+import { CalendarOff, ChevronLeft, Clock } from "lucide-react";
 import Link from "next/link";
 
 export default async function BrowseCoursesPage() {
@@ -31,10 +32,21 @@ export default async function BrowseCoursesPage() {
     .limit(1);
 
   if (!userRow?.universityId) {
+    const pending = await getPendingSchool(session.user.id);
     return (
-      <div className="py-12 text-center text-muted-foreground">
-        Your account is not linked to a university yet — contact your admin.
-      </div>
+      <EmptyState
+        icon={<Clock />}
+        title={
+          pending
+            ? `We're adding ${pending.schoolName} to Askly`
+            : "Your account isn't linked to a school yet"
+        }
+        className="py-12"
+      >
+        {pending
+          ? "Courses appear here once your school is on Askly. We'll email you when it's added."
+          : "Contact support and we'll link your account to your school."}
+      </EmptyState>
     );
   }
 

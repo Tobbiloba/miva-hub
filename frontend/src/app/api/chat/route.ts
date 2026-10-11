@@ -13,7 +13,7 @@ import {
 import { eq } from "drizzle-orm";
 import { STUDENT_MCP_TOOLS } from "lib/config/mcp-config";
 import { pgDb } from "lib/db/pg/db.pg";
-import { UserSchema } from "lib/db/pg/schema.pg";
+import { UniversitySchema, UserSchema } from "lib/db/pg/schema.pg";
 
 import { customModelProvider, isToolCallUnsupportedModel } from "lib/ai/models";
 
@@ -188,13 +188,26 @@ export async function POST(request: Request) {
     // Built-in academic tools are bound to the signed-in student (and their
     // university) server-side — never to an id the model supplies.
     const [viewer] = await pgDb
-      .select({ role: UserSchema.role, universityId: UserSchema.universityId })
+      .select({
+        role: UserSchema.role,
+        universityId: UserSchema.universityId,
+        universitySlug: UniversitySchema.slug,
+      })
       .from(UserSchema)
+      .leftJoin(
+        UniversitySchema,
+        eq(UniversitySchema.id, UserSchema.universityId),
+      )
       .where(eq(UserSchema.id, session.user.id))
       .limit(1);
+    // Students whose school isn't on Askly yet (no university) still get
+    // the user-scoped study tools; only university-wide ones are left out
     const academicUser =
-      (viewer?.role ?? "student") === "student" && viewer?.universityId
-        ? { userId: session.user.id, universityId: viewer.universityId }
+      (viewer?.role ?? "student") === "student"
+        ? {
+            userId: session.user.id,
+            universityId: viewer?.universityId ?? null,
+          }
         : undefined;
 
     // Get user academic context for all tool operations (moved outside to fix scope)
@@ -255,8 +268,11 @@ export async function POST(request: Request) {
             // Auto-enable MIVA Academic MCP server for MIVA students
             let effectiveAllowedMcpServers = allowedMcpServers;
             if (
-              // Academic context implies an enrolled university student
-              userAcademicContext?.studentId
+              // The MIVA Academic server holds MIVA's records: only a MIVA
+              // student with a matric number may query it (a matric typed
+              // by someone from another school must never reach it)
+              userAcademicContext?.studentId &&
+              viewer?.universitySlug === "miva"
             ) {
               logger.info(
                 `Auto-enabling MIVA Academic MCP server for student ${userAcademicContext.studentId}`,
@@ -289,8 +305,27 @@ export async function POST(request: Request) {
               );
             }
 
+            // Never let a student from another school (or none) reach MIVA's
+            // records, even by switching the server on or @mentioning it
+            const mivaServerId = mcpClients.find(
+              (client) => client.client.getInfo().name === "miva-academic",
+            )?.id;
+            const blockMiva =
+              viewer?.role === "student" &&
+              viewer?.universitySlug !== "miva" &&
+              !!mivaServerId;
+            if (blockMiva && effectiveAllowedMcpServers) {
+              const { [mivaServerId!]: _miva, ...rest } =
+                effectiveAllowedMcpServers;
+              effectiveAllowedMcpServers = rest;
+            }
+
             return loadMcpTools({
-              mentions,
+              mentions: blockMiva
+                ? mentions.filter(
+                    (m) => !("serverId" in m) || m.serverId !== mivaServerId,
+                  )
+                : mentions,
               allowedMcpServers: effectiveAllowedMcpServers,
               userContext: userAcademicContext,
             });

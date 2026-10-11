@@ -1,10 +1,10 @@
-import { paymentRequiredResponse } from "@/lib/billing/access";
-import { checkCaptureAccess } from "@/lib/ingest/access";
 import { getEnrolledCourse } from "@/lib/ai/course-tutor-context";
 import { s3Service } from "@/lib/aws/s3-service";
+import { paymentRequiredResponse } from "@/lib/billing/access";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { CourseSchema, UserSchema } from "@/lib/db/pg/schema.pg";
 import { getIngestUserId } from "@/lib/extension/token";
+import { checkCaptureAccess } from "@/lib/ingest/access";
 import {
   MAX_CAPTURE_PDF_BYTES,
   newCaptureUploadKey,
@@ -74,7 +74,11 @@ export async function POST(request: NextRequest) {
       .limit(1);
     if (!userRow?.universityId) {
       return NextResponse.json(
-        { error: "Your account is not linked to a university" },
+        {
+          error:
+            "Capturing works once your school is on Askly. We'll email you when it's added.",
+          code: "SCHOOL_PENDING",
+        },
         { status: 403 },
       );
     }

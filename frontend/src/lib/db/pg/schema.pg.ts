@@ -177,7 +177,8 @@ export const UniversitySchema = pgTable(
 
 export const UserSchema = pgTable("user", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
-  // Nullable: platform super_admins belong to no university
+  // Nullable: platform super_admins, and students whose school isn't on
+  // Askly yet (see school_request)
   universityId: uuid("university_id").references(() => UniversitySchema.id),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
@@ -2800,3 +2801,39 @@ export const WaitlistSignupSchema = pgTable(
   },
   (table) => [uniqueIndex("waitlist_signup_email_idx").on(table.email)],
 );
+
+// A student whose university isn't on Askly yet: they signed up with a school
+// email (user.university_id stays NULL) and wait for their school to be
+// added. One row per student; a super admin links the request to a
+// university, which attaches the student to it.
+export const SchoolRequestSchema = pgTable(
+  "school_request",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    // What the student typed, and the email domain it came from
+    schoolName: text("school_name").notNull(),
+    emailDomain: text("email_domain").notNull(),
+    status: varchar("status", { enum: ["pending", "linked"] })
+      .notNull()
+      .default("pending"),
+    universityId: uuid("university_id").references(() => UniversitySchema.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    linkedAt: timestamp("linked_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("school_request_user_idx").on(table.userId),
+    index("school_request_domain_status_idx").on(
+      table.emailDomain,
+      table.status,
+    ),
+  ],
+);
+
+export type SchoolRequestEntity = typeof SchoolRequestSchema.$inferSelect;

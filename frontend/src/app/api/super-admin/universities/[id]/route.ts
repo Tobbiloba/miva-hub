@@ -1,5 +1,6 @@
 import { requireSuperAdmin } from "@/lib/auth/admin";
 import { pgUniversityRepository } from "@/lib/db/pg/repositories/university-repository.pg";
+import { linkSchoolRequests } from "@/lib/schools/pending";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -46,6 +47,7 @@ export async function PATCH(
 
     const updated = await pgUniversityRepository.update(id, updates);
 
+    let linkedStudents = 0;
     if (updates.status && updates.status !== existing.status) {
       console.log("[Super Admin Universities] Status change:", {
         universityId: id,
@@ -54,9 +56,17 @@ export async function PATCH(
         to: updates.status,
         by: access.user.id,
       });
+      // Students who signed up while their school wasn't on Askly join it
+      // as soon as it's approved
+      if (updates.status === "active" && updated) {
+        linkedStudents = await linkSchoolRequests({
+          universityId: id,
+          emailDomains: updated.emailDomains,
+        });
+      }
     }
 
-    return NextResponse.json({ success: true, data: updated });
+    return NextResponse.json({ success: true, data: updated, linkedStudents });
   } catch (error) {
     console.error("[Super Admin Universities] PATCH Error:", error);
 

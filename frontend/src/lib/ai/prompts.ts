@@ -56,7 +56,7 @@ export const buildAcademicSystemPrompt = (
   academicContext?: UserAcademicContext | null,
 ) => {
   const assistantName =
-    agent?.name || userPreferences?.botName || "MIVA Academic Assistant";
+    agent?.name || userPreferences?.botName || "Askly";
   const currentTime = formatStudentTime(new Date());
 
   let prompt = `You are ${assistantName}, an intelligent academic assistant for university students. The current date and time is ${currentTime}.`;

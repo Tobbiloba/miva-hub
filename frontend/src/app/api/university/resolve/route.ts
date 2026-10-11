@@ -1,5 +1,6 @@
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
-import { resolveUniversityFromEmail } from "@/lib/tenant";
+import { emailDomain, resolveUniversityFromEmail } from "@/lib/tenant";
+import { isSchoolDomain } from "lib/auth/school-domain";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -20,7 +21,11 @@ export async function GET(request: NextRequest) {
 
   const university = await resolveUniversityFromEmail(email);
   if (!university) {
-    return NextResponse.json({ found: false });
+    // A school email can still sign up and wait for the school to be added
+    return NextResponse.json({
+      found: false,
+      schoolEmail: isSchoolDomain(emailDomain(email)),
+    });
   }
 
   return NextResponse.json({

@@ -28,8 +28,9 @@ export type SignupRole = "student" | "faculty" | "admin" | "super_admin";
  * - `universityId` omitted → resolve the tenant from the email domain and
  *   reject unknown domains (same gate as public sign-up).
  * - `universityId` given → trusted: the caller already authorized the tenant
- *   (admin of that university, a valid invite, ...). `null` = no tenant
- *   (platform super_admin only).
+ *   (admin of that university, a valid invite, ...). `null` = no tenant:
+ *   a platform super_admin, or a student whose school isn't on Askly yet
+ *   (api/auth/register checks the school email first).
  */
 export interface SignupAssignment {
   universityId?: string | null;
@@ -59,7 +60,7 @@ export type SignupDecision =
   | { kind: "assign"; data: SignupAssignmentData };
 
 export const UNKNOWN_EMAIL_DOMAIN_MESSAGE =
-  "Your email domain isn't registered with any university on Askly. Use your school email address, or ask your university to join the platform.";
+  "Sign up with your school email address (for example you@yourschool.edu.ng). Personal emails like Gmail or Yahoo can't be used.";
 
 /** Does this decision need the email-domain → university lookup? */
 export function needsDomainResolution(

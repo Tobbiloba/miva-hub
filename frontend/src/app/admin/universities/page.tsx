@@ -1,3 +1,4 @@
+import { SchoolRequestsPanel } from "@/components/admin/school-requests-panel";
 import { UniversityManagementClient } from "@/components/admin/university-management-client";
 import { checkIsSuperAdmin } from "@/lib/auth/admin";
 import { getSession } from "@/lib/auth/server";
@@ -16,5 +17,10 @@ export default async function UniversitiesPage() {
     redirect("/admin");
   }
 
-  return <UniversityManagementClient />;
+  return (
+    <div className="space-y-6">
+      <UniversityManagementClient />
+      <SchoolRequestsPanel />
+    </div>
+  );
 }

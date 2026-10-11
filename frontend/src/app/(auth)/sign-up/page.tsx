@@ -69,6 +69,10 @@ export default function SignUpPage() {
   const [emailWarning, setEmailWarning] = useState("");
   const [universityName, setUniversityName] = useState<string | null>(null);
   const [universitySlug, setUniversitySlug] = useState<string | null>(null);
+  // A school email whose school isn't on Askly yet: they can still sign up
+  // and wait for the school to be added
+  const [pendingSchool, setPendingSchool] = useState(false);
+  const [schoolName, setSchoolName] = useState("");
   const [matricError, setMatricError] = useState("");
 
   // Programs and the academic session belong to a university, so load them
@@ -100,6 +104,7 @@ export default function SignUpPage() {
   useEffect(() => {
     setUniversityName(null);
     setUniversitySlug(null);
+    setPendingSchool(false);
     setEmailWarning("");
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
 
@@ -111,9 +116,11 @@ export default function SignUpPage() {
             setUniversityName(data.university.name);
             setUniversitySlug(data.university.slug);
             setEmailWarning("");
+          } else if (data.schoolEmail) {
+            setPendingSchool(true);
           } else {
             setEmailWarning(
-              "This email domain isn't registered with any university on Askly. Use your school email address.",
+              "Use your school email (for example you@yourschool.edu.ng). Gmail, Yahoo and other personal emails can't be used.",
             );
           }
         })
@@ -147,9 +154,9 @@ export default function SignUpPage() {
       toast.error("Please enter a valid email address");
       return false;
     }
-    if (!universityName) {
+    if (!universityName && !pendingSchool) {
       toast.error(
-        "Use your school email address — this domain isn't registered with any university on Askly",
+        "Use your school email address. Personal emails like Gmail can't be used.",
       );
       return false;
     }
@@ -182,15 +189,20 @@ export default function SignUpPage() {
   // ── Step 2 validation + submit ─────────────────────────────────────────────
 
   const validateAndSubmit = async () => {
-    if (!programId) {
+    if (pendingSchool) {
+      if (schoolName.trim().length < 2) {
+        toast.error("Tell us the name of your school");
+        return;
+      }
+    } else if (!programId) {
       toast.error("Please select your program");
       return;
     }
-    if (!level) {
+    if (!pendingSchool && !level) {
       toast.error("Please select your level");
       return;
     }
-    if (!session) {
+    if (!pendingSchool && !session) {
       toast.error("No active academic session available. Contact admin.");
       return;
     }
@@ -208,15 +220,25 @@ export default function SignUpPage() {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.toLowerCase().trim(),
-          password,
-          programId,
-          level: Number(level),
-          matricNumber: matricNumber.trim() || undefined,
-          termsAccepted: true,
-        }),
+        body: JSON.stringify(
+          pendingSchool
+            ? {
+                name: name.trim(),
+                email: email.toLowerCase().trim(),
+                password,
+                schoolName: schoolName.trim(),
+                termsAccepted: true,
+              }
+            : {
+                name: name.trim(),
+                email: email.toLowerCase().trim(),
+                password,
+                programId,
+                level: Number(level),
+                matricNumber: matricNumber.trim() || undefined,
+                termsAccepted: true,
+              },
+        ),
       });
 
       const data = await response.json();
@@ -230,9 +252,11 @@ export default function SignUpPage() {
         data.semester === "first" ? "First Semester" : "Second Semester";
 
       toast.success(
-        enrolledCount > 0
-          ? `Welcome! You're enrolled in ${enrolledCount} courses for ${semesterLabel} ${data.academicYear}. Check your email to verify your account.`
-          : `Account created! Check your email to verify your account, then sign in.`,
+        data.pendingSchool
+          ? "Account created! Check your email to verify your account, then sign in. We'll email you when your school is added."
+          : enrolledCount > 0
+            ? `Welcome! You're enrolled in ${enrolledCount} courses for ${semesterLabel} ${data.academicYear}. Check your email to verify your account.`
+            : `Account created! Check your email to verify your account, then sign in.`,
         { duration: 8000 },
       );
 
@@ -275,7 +299,11 @@ export default function SignUpPage() {
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span className="font-medium text-foreground">
-                  {step === 1 ? "Basic information" : "Academic information"}
+                  {step === 1
+                    ? "Basic information"
+                    : pendingSchool
+                      ? "Your school"
+                      : "Academic information"}
                 </span>
                 <span>Step {step} of 2</span>
               </div>
@@ -322,10 +350,22 @@ export default function SignUpPage() {
                       Signing up for {universityName}
                     </p>
                   )}
+                  {pendingSchool && (
+                    <p className="text-xs text-muted-foreground flex items-start gap-1">
+                      <Info className="size-3 shrink-0 mt-0.5" />
+                      Your school isn&apos;t on Askly yet. You can still sign
+                      up, and we&apos;ll let you know when it&apos;s added.
+                    </p>
+                  )}
                   {emailWarning && (
-                    <p className="text-xs text-amber-500 flex items-center gap-1">
-                      <Info className="size-3 shrink-0" />
-                      {emailWarning}
+                    <p className="text-xs text-amber-600 dark:text-amber-500 flex items-start gap-1">
+                      <Info className="size-3 shrink-0 mt-0.5" />
+                      <span>
+                        {emailWarning}{" "}
+                        <Link href="/#waitlist" className="underline">
+                          Join the waitlist instead
+                        </Link>
+                      </span>
                     </p>
                   )}
                 </div>
@@ -387,8 +427,37 @@ export default function SignUpPage() {
               </>
             )}
 
+            {/* ── Step 2 (school not on Askly yet) ─────────────────────── */}
+            {step === 2 && pendingSchool && (
+              <>
+                <div className="rounded-xl border bg-muted/40 px-4 py-3.5">
+                  <p className="text-sm font-medium">
+                    Your school isn&apos;t on Askly yet
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    You can start now: ask questions, snap a photo of a problem,
+                    make flashcards and track your deadlines. We&apos;ll email
+                    you as soon as your school is added, and then Askly can
+                    answer from your own course materials.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="schoolName">Name of your school</Label>
+                  <Input
+                    id="schoolName"
+                    placeholder="e.g. University of Lagos"
+                    value={schoolName}
+                    onChange={(e) => setSchoolName(e.target.value)}
+                    maxLength={120}
+                    disabled={isLoading}
+                    autoFocus
+                  />
+                </div>
+              </>
+            )}
+
             {/* ── Step 2: Academic Info ────────────────────────────────── */}
-            {step === 2 && (
+            {step === 2 && !pendingSchool && (
               <>
                 <div className="flex flex-col gap-2">
                   <Label>Program</Label>

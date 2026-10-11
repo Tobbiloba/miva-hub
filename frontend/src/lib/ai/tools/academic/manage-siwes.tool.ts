@@ -24,7 +24,7 @@ const Day = z
  */
 export const createManageSiwesTool = (user: {
   userId: string;
-  universityId: string;
+  universityId: string | null;
 }) =>
   createTool({
     description: `Keep the student's SIWES (industrial training) log book. Use when they mention their SIWES/IT placement: starting one ("I started SIWES at Zenith Bank on Monday"), what they did on a work day ("log today: I set up 3 workstations"), being absent ("I was sick on Tuesday"), or asking what they logged. Today is ${studentToday()} (the student's time zone); resolve "today", "yesterday", "Tuesday" to YYYY-MM-DD yourself. The log book has rows for Monday to Saturday only. Put the student's own words in note; Askly drafts the log-book wording. Confirm back what was saved. Never invent work they didn't describe, and never write supervisor comments, ratings or signatures.`,

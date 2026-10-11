@@ -1,20 +1,23 @@
-import { termKey } from "@/lib/utils/semester";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
 import { sendEmail } from "@/lib/email/smtp-service";
+import { buildSchoolPendingEmail } from "@/lib/email/templates/school-pending";
 import { buildWelcomeEmail } from "@/lib/email/templates/welcome";
 import {
   checkRateLimit,
   getClientIp,
   rateLimitResponse,
 } from "@/lib/rate-limit";
+import { createSchoolRequest } from "@/lib/schools/pending";
+import { termKey } from "@/lib/utils/semester";
+import { APIError } from "better-auth/api";
+import { and, eq } from "drizzle-orm";
+import { isSchoolDomain } from "lib/auth/school-domain";
 import { auth } from "lib/auth/server";
 import { withSignupAssignment } from "lib/auth/signup-context";
 import { UNKNOWN_EMAIL_DOMAIN_MESSAGE } from "lib/auth/signup-policy";
 import { pgDb } from "lib/db/pg/db.pg";
 import { ProgramSchema, UserSchema } from "lib/db/pg/schema.pg";
-import { resolveUniversityFromEmail } from "lib/tenant";
-import { APIError } from "better-auth/api";
-import { and, eq } from "drizzle-orm";
+import { emailDomain, resolveUniversityFromEmail } from "lib/tenant";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -28,12 +31,14 @@ export async function POST(request: NextRequest) {
       level,
       matricNumber,
       termsAccepted,
+      schoolName,
     } = body;
 
-    // Validate required fields
-    if (!email || !name || !password || !programId || !level) {
+    // Validate required fields (program and level only apply when the
+    // student's school is on Askly; checked below)
+    if (!email || !name || !password) {
       return NextResponse.json(
-        { error: "Name, email, password, program, and level are required" },
+        { error: "Name, email and password are required" },
         { status: 400 },
       );
     }
@@ -69,9 +74,29 @@ export async function POST(request: NextRequest) {
     // user-create hook re-applies the domain gate when the row is inserted.
     const university = await resolveUniversityFromEmail(email);
     if (!university) {
+      // School not on Askly yet: a school email can still sign up and wait
+      // for the school to be added; any other email is refused
+      if (!isSchoolDomain(emailDomain(email))) {
+        return NextResponse.json(
+          {
+            error: UNKNOWN_EMAIL_DOMAIN_MESSAGE,
+            code: "UNKNOWN_EMAIL_DOMAIN",
+          },
+          { status: 403 },
+        );
+      }
+      return registerPendingSchoolStudent(request, {
+        email,
+        name,
+        password,
+        schoolName,
+      });
+    }
+
+    if (!programId || !level) {
       return NextResponse.json(
-        { error: UNKNOWN_EMAIL_DOMAIN_MESSAGE, code: "UNKNOWN_EMAIL_DOMAIN" },
-        { status: 403 },
+        { error: "Program and level are required" },
+        { status: 400 },
       );
     }
 
@@ -217,31 +242,104 @@ export async function POST(request: NextRequest) {
       semester: currentSemester,
     });
   } catch (error: any) {
-    if (
-      error instanceof APIError &&
-      error.body?.code === "UNKNOWN_EMAIL_DOMAIN"
-    ) {
-      return NextResponse.json(
-        { error: error.body.message, code: "UNKNOWN_EMAIL_DOMAIN" },
-        { status: 403 },
-      );
-    }
+    return registrationErrorResponse(error);
+  }
+}
 
-    console.error("Registration error:", error);
-
-    if (error.message?.includes("User already exists")) {
-      return NextResponse.json(
-        {
-          error: "An account with this email already exists",
-          code: "USER_EXISTS",
-        },
-        { status: 409 },
-      );
-    }
-
+/**
+ * Sign-up for a student whose school isn't on Askly yet: the account has no
+ * university (set explicitly, so the domain gate in the user-create hook
+ * doesn't apply) and a school_request records where they study. No program,
+ * enrollment or matric number until the school is added.
+ */
+async function registerPendingSchoolStudent(
+  request: NextRequest,
+  input: { email: string; name: string; password: string; schoolName: unknown },
+) {
+  const schoolName =
+    typeof input.schoolName === "string" ? input.schoolName.trim() : "";
+  if (schoolName.length < 2 || schoolName.length > 120) {
     return NextResponse.json(
-      { error: error.message || "Registration failed. Please try again." },
-      { status: 500 },
+      {
+        error: "Tell us the name of your school",
+        code: "SCHOOL_NAME_REQUIRED",
+      },
+      { status: 400 },
     );
   }
+  const email = input.email.toLowerCase().trim();
+  try {
+    const signUpResponse = await withSignupAssignment(
+      { role: "student", universityId: null },
+      () =>
+        auth.api.signUpEmail({
+          body: {
+            email,
+            name: input.name.trim(),
+            password: input.password,
+            callbackURL: "/",
+          },
+          headers: request.headers,
+        }),
+    );
+    if (!signUpResponse?.user) {
+      return NextResponse.json(
+        { error: "Failed to create account" },
+        { status: 500 },
+      );
+    }
+    const userId = signUpResponse.user.id;
+    await pgDb
+      .update(UserSchema)
+      .set({ isVerified: false, termsAcceptedAt: new Date() })
+      .where(eq(UserSchema.id, userId));
+    await createSchoolRequest({
+      userId,
+      schoolName,
+      emailDomain: emailDomain(email)!,
+    });
+
+    try {
+      const { subject, html, text } = buildSchoolPendingEmail({
+        firstName: input.name.trim().split(/\s+/)[0],
+        schoolName,
+      });
+      await sendEmail({ to: email, subject, html, text });
+    } catch (emailError) {
+      console.error("Welcome email error (non-fatal):", emailError);
+    }
+
+    return NextResponse.json({ ...signUpResponse, pendingSchool: schoolName });
+  } catch (error: any) {
+    return registrationErrorResponse(error);
+  }
+}
+
+function registrationErrorResponse(error: any) {
+  if (
+    error instanceof APIError &&
+    error.body?.code === "UNKNOWN_EMAIL_DOMAIN"
+  ) {
+    return NextResponse.json(
+      { error: error.body.message, code: "UNKNOWN_EMAIL_DOMAIN" },
+      { status: 403 },
+    );
+  }
+
+  console.error("Registration error:", error);
+
+  if (error.message?.includes("User already exists")) {
+    return NextResponse.json(
+      {
+        error: "An account with this email already exists",
+        code: "USER_EXISTS",
+      },
+      { status: 409 },
+    );
+  }
+
+  return NextResponse.json(
+    { error: error.message || "Registration failed. Please try again." },
+    { status: 500 },
+  );
 }

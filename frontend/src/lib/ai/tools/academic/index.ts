@@ -19,7 +19,8 @@ import { createStartVoiceSessionTool } from "./start-voice-session.tool";
 
 export interface AcademicToolUser {
   userId: string;
-  universityId: string;
+  /** null while the student's school isn't on Askly yet (school_request) */
+  universityId: string | null;
 }
 
 export function createAcademicTools(
@@ -32,7 +33,10 @@ export function createAcademicTools(
     "get-upcoming-assignments": createAssignmentTrackerTool(user.userId),
     "manage-deadlines": createManageDeadlinesTool(user.userId),
     "get-my-activity": createMyActivityTool(user.userId),
-    "find-faculty": createFacultyDirectoryTool(user.universityId),
+    // The faculty directory is per university
+    ...(user.universityId
+      ? { "find-faculty": createFacultyDirectoryTool(user.universityId) }
+      : {}),
     "get-academic-schedule": createAcademicScheduleTool(user.userId),
     "start-voice-session": createStartVoiceSessionTool(user.userId),
     "manage-siwes": createManageSiwesTool(user),
