@@ -1,6 +1,7 @@
 import { getEnrolledCourse } from "@/lib/ai/course-tutor-context";
 import { indexCourseMaterial } from "@/lib/ai/rag/index-material";
 import { paymentRequiredResponse } from "@/lib/billing/access";
+import { hasLiveSync } from "@/lib/capture-sync/sync";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import {
   AcademicSessionSchema,
@@ -17,6 +18,8 @@ import {
   escapeLike,
   isOwnCaptureUploadKey,
   isShareableCapture,
+  sanitizePdfFilename,
+  slugify,
 } from "@/lib/ingest/capture";
 import { listStudentCaptures, retryCapture } from "@/lib/ingest/captures";
 import { claimQueuedJobs, processIngestionJob } from "@/lib/ingest/process-job";
@@ -54,12 +57,24 @@ export async function POST(request: NextRequest) {
     const access = await checkCaptureAccess(userId);
     if (!access.allowed) return paymentRequiredResponse(access.reason);
 
-    // Caps protect extraction/embedding spend: bursts and daily volume
-    const burst = await checkRateLimit(`ingest:${userId}`, 30, 60 * 60);
+    const body = await request.json().catch(() => null);
+
+    // Caps protect extraction/embedding spend: bursts and daily volume.
+    // Automatic capture walks whole courses, so a live sync gets its own,
+    // larger allowance (still capped per student).
+    const viaSync = body?.via_sync === true && (await hasLiveSync(userId));
+    const caps = viaSync
+      ? { key: "ingest-sync", burst: 300, daily: 1500 }
+      : { key: "ingest", burst: 30, daily: 150 };
+    const burst = await checkRateLimit(
+      `${caps.key}:${userId}`,
+      caps.burst,
+      60 * 60,
+    );
     if (!burst.allowed) return rateLimitResponse(burst);
     const daily = await checkRateLimit(
-      `ingest-day:${userId}`,
-      150,
+      `${caps.key}-day:${userId}`,
+      caps.daily,
       24 * 60 * 60,
     );
     if (!daily.allowed) return rateLimitResponse(daily);
@@ -85,9 +100,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Parse and validate request body
-    const parsed = LessonCaptureSchema.safeParse(
-      await request.json().catch(() => null),
-    );
+    const parsed = LessonCaptureSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
         {
@@ -118,9 +131,17 @@ export async function POST(request: NextRequest) {
       assignment_instructions,
       assignment_requirements,
       assignment_metadata,
+      page_text,
     } = parsed.data;
 
-    /** Text + metadata of a captured quiz/assignment page. */
+    // Quiz, assignment and text pages carry their text in the capture itself
+    // and become a course_material directly (no download job)
+    const isPageCapture =
+      content_type === "quiz" ||
+      content_type === "assignment_external" ||
+      content_type === "page";
+
+    /** Text + metadata of a captured quiz/assignment/text page. */
     const pageCapture = () => {
       const transcriptText =
         content_type === "quiz"
@@ -129,25 +150,43 @@ export async function POST(request: NextRequest) {
               quiz_instructions ?? null,
               quiz_questions ?? null,
             )
-          : formatAssignmentTranscript(
-              lesson_title,
-              assignment_instructions ?? null,
-              assignment_requirements ?? null,
-              assignment_metadata ?? null,
-            );
+          : content_type === "page"
+            ? `${lesson_title}\n\n${page_text ?? ""}`
+            : formatAssignmentTranscript(
+                lesson_title,
+                assignment_instructions ?? null,
+                assignment_requirements ?? null,
+                assignment_metadata ?? null,
+              );
       const extMeta: Record<string, any> =
         content_type === "quiz"
           ? { ...(quiz_metadata || {}) }
-          : { ...(assignment_metadata || {}) };
+          : content_type === "page"
+            ? {}
+            : { ...(assignment_metadata || {}) };
       if (content_type === "quiz" && quiz_questions?.length) {
         extMeta.question_count = quiz_questions.length;
       }
+      // Lets automatic capture skip pages it already has
+      extMeta.source_url = source_url;
       return {
         transcriptText,
         wordCount: transcriptText.split(/\s+/).filter(Boolean).length,
         extMeta,
       };
     };
+    const pageDescription =
+      content_type === "quiz"
+        ? quiz_instructions
+        : content_type === "assignment_external"
+          ? assignment_instructions
+          : null;
+    const pageMaterialType =
+      content_type === "quiz"
+        ? ("quiz" as const)
+        : content_type === "page"
+          ? ("reading" as const)
+          : ("assignment_external" as const);
 
     // An uploaded PDF must be one this user uploaded via /api/ingest/upload-url
     if (upload_key && !isOwnCaptureUploadKey(upload_key, userId)) {
@@ -235,7 +274,8 @@ export async function POST(request: NextRequest) {
       content_type === "video" && vimeo_video_id
         ? eq(CourseMaterialSchema.vimeoVideoId, vimeo_video_id)
         : content_type === "pdf" && pdf_filename
-          ? sql`lower(${CourseMaterialSchema.fileName}) = lower(${pdf_filename})`
+          ? // Stored names are sanitized by the processor; compare like for like
+            sql`lower(${CourseMaterialSchema.fileName}) = lower(${sanitizePdfFilename(pdf_filename, slugify(lesson_title))})`
           : sql`lower(trim(${CourseMaterialSchema.title})) = lower(trim(${lesson_title}))`;
 
     const sameLesson = and(
@@ -290,16 +330,13 @@ export async function POST(request: NextRequest) {
     // up edits (an extended due date), and a capture that failed is retried
     // instead of being blocked as a duplicate.
     if (existingDup && isPrivate) {
-      if (content_type === "quiz" || content_type === "assignment_external") {
+      if (isPageCapture) {
         const { transcriptText, wordCount, extMeta } = pageCapture();
         await pgDb
           .update(CourseMaterialSchema)
           .set({
             title: lesson_title,
-            description:
-              content_type === "quiz"
-                ? quiz_instructions
-                : assignment_instructions,
+            description: pageDescription,
             transcriptText,
             transcriptWordCount: wordCount,
             transcriptExtractedAt: new Date(),
@@ -356,21 +393,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 7. Quiz/assignment → create course_material directly (no background job needed)
-    if (content_type === "quiz" || content_type === "assignment_external") {
+    // 7. Quiz/assignment/text page → create course_material directly
+    // (no background job needed)
+    if (isPageCapture) {
       const { transcriptText, wordCount, extMeta } = pageCapture();
 
       const [material] = await pgDb
         .insert(CourseMaterialSchema)
         .values({
           courseId: course.id,
-          materialType:
-            content_type === "quiz" ? "quiz" : "assignment_external",
+          materialType: pageMaterialType,
           title: lesson_title,
-          description:
-            content_type === "quiz"
-              ? quiz_instructions
-              : assignment_instructions,
+          description: pageDescription,
           mimeType: "text/plain",
           weekNumber: week_number ?? null,
           isPublic: false,

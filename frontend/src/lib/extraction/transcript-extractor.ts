@@ -11,7 +11,16 @@ import { eq } from "drizzle-orm";
 
 export async function extractPdfText(pdfBuffer: Buffer): Promise<string> {
   // Use legacy build to avoid ESM worker issues in Node/Next.js API routes
-  const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const [pdfjsLib, pdfWorker] = await Promise.all([
+    import("pdfjs-dist/legacy/build/pdf.mjs"),
+    import("pdfjs-dist/legacy/build/pdf.worker.mjs"),
+  ]);
+  // In Node, pdf.js runs its worker in-process and otherwise import()s
+  // pdf.worker.mjs from a path computed at runtime, which doesn't exist once
+  // the server is bundled ("Setting up fake worker failed"). Handing it the
+  // worker module (statically imported above, so the bundler includes it)
+  // makes it skip that lookup.
+  (globalThis as { pdfjsWorker?: unknown }).pdfjsWorker ??= pdfWorker;
 
   const data = new Uint8Array(pdfBuffer);
   const doc = await pdfjsLib.getDocument({ data, useSystemFonts: true })

@@ -351,6 +351,20 @@
       "when": 1791745005957,
       "tag": "0049_school_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1791751643308,
+      "tag": "0050_capture_sync",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1791753225632,
+      "tag": "0051_material_dedup_per_owner",
+      "breakpoints": true
     }
   ]
 }

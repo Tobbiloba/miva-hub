@@ -1,5 +1,6 @@
 import { UIMessage } from "ai";
 import { Agent } from "app-types/agent";
+import type { CaptureSyncCourse } from "app-types/capture-sync";
 import { ChatMetadata } from "app-types/chat";
 import { MCPServerConfig } from "app-types/mcp";
 import { UserPreferences } from "app-types/user";
@@ -2837,3 +2838,79 @@ export const SchoolRequestSchema = pgTable(
 );
 
 export type SchoolRequestEntity = typeof SchoolRequestSchema.$inferSelect;
+
+/**
+ * A course a student's LMS has but their university's Askly catalog doesn't.
+ * Raised by automatic capture (one row per student per course); an admin of
+ * that university adds the course, and the next sync captures it. Students
+ * never create catalog courses themselves.
+ */
+export const CourseRequestSchema = pgTable(
+  "course_request",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    universityId: uuid("university_id")
+      .notNull()
+      .references(() => UniversitySchema.id, { onDelete: "cascade" }),
+    // Normalised code ("COS409") and the LMS's own course name
+    courseCode: text("course_code").notNull(),
+    courseTitle: text("course_title").notNull(),
+    status: varchar("status", { enum: ["pending", "added", "dismissed"] })
+      .notNull()
+      .default("pending"),
+    courseId: uuid("course_id").references(() => CourseSchema.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("course_request_user_course_idx").on(
+      table.userId,
+      table.universityId,
+      table.courseCode,
+    ),
+    index("course_request_university_status_idx").on(
+      table.universityId,
+      table.status,
+    ),
+  ],
+);
+
+export type CourseRequestEntity = typeof CourseRequestSchema.$inferSelect;
+
+/**
+ * The student's automatic capture: the extension walks their LMS courses and
+ * reports progress here, so the Askly Capture page can show it live and
+ * remember when it last ran. One row per student, reused by every run.
+ */
+export const CaptureSyncSchema = pgTable(
+  "capture_sync",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => UserSchema.id, { onDelete: "cascade" }),
+    status: varchar("status", {
+      enum: ["running", "done", "stopped", "needs_login", "failed"],
+    }).notNull(),
+    courses: json("courses").notNull().$type<CaptureSyncCourse[]>().default([]),
+    currentItem: text("current_item"),
+    error: text("error"),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+  },
+  (table) => [uniqueIndex("capture_sync_user_idx").on(table.userId)],
+);
+
+export type CaptureSyncEntity = typeof CaptureSyncSchema.$inferSelect;

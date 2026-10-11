@@ -167,7 +167,8 @@ export function CaptureRow({
         {capture.materialId && capture.state === "ready" ? (
           <Link
             href={`/student/lecture-study/${capture.materialId}`}
-            className="break-words font-medium hover:underline"
+            // Padding grows the tap target to 44px without moving the layout
+            className="-my-3 block break-words py-3 font-medium hover:underline"
           >
             {capture.title}
           </Link>

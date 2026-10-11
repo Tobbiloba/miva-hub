@@ -1,6 +1,7 @@
 import { getEnrolledCourse } from "@/lib/ai/course-tutor-context";
 import { s3Service } from "@/lib/aws/s3-service";
 import { paymentRequiredResponse } from "@/lib/billing/access";
+import { hasLiveSync } from "@/lib/capture-sync/sync";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { CourseSchema, UserSchema } from "@/lib/db/pg/schema.pg";
 import { getIngestUserId } from "@/lib/extension/token";
@@ -45,12 +46,18 @@ export async function POST(request: NextRequest) {
     const access = await checkCaptureAccess(userId);
     if (!access.allowed) return paymentRequiredResponse(access.reason);
 
-    const limit = await checkRateLimit(`ingest-upload:${userId}`, 30, 60 * 60);
+    const body = await request.json().catch(() => null);
+    // Automatic capture uploads a whole course's PDFs; a live sync gets a
+    // larger (still capped) allowance, like /api/ingest/lesson
+    const viaSync = body?.via_sync === true && (await hasLiveSync(userId));
+    const limit = await checkRateLimit(
+      `${viaSync ? "ingest-sync-upload" : "ingest-upload"}:${userId}`,
+      viaSync ? 300 : 30,
+      60 * 60,
+    );
     if (!limit.allowed) return rateLimitResponse(limit);
 
-    const parsed = UploadUrlSchema.safeParse(
-      await request.json().catch(() => null),
-    );
+    const parsed = UploadUrlSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
         {

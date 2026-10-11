@@ -45,6 +45,8 @@ export type Capture = {
   createdAt: Date;
   /** A private capture the student may remove (shared ones go to moderation) */
   own: boolean;
+  /** The LMS page it was captured from, when known */
+  sourceUrl: string | null;
 };
 
 type Row = {
@@ -107,6 +109,9 @@ const materialState = {
   isPublished: CourseMaterialSchema.isPublished,
 };
 
+// Automatic capture files whole courses (often 50+ lessons each)
+const MAX_LISTED = 1000;
+
 export async function listStudentCaptures(userId: string): Promise<Capture[]> {
   const [jobs, directMaterials] = await Promise.all([
     // Videos/PDFs go through a job; its material may not exist yet
@@ -119,6 +124,7 @@ export async function listStudentCaptures(userId: string): Promise<Capture[]> {
         jobStatus: IngestionJobSchema.status,
         jobError: IngestionJobSchema.errorMessage,
         jobOwnerUserId: IngestionJobSchema.ownerUserId,
+        sourceUrl: IngestionJobSchema.sourceUrl,
         materialId: CourseMaterialSchema.id,
         materialDeletedAt: CourseMaterialSchema.deletedAt,
         dueAt: CourseMaterialSchema.dueAt,
@@ -133,7 +139,7 @@ export async function listStudentCaptures(userId: string): Promise<Capture[]> {
       )
       .where(eq(IngestionJobSchema.volunteerId, userId))
       .orderBy(desc(IngestionJobSchema.createdAt))
-      .limit(200),
+      .limit(MAX_LISTED),
     // Quiz/assignment pages become materials directly, without a job
     pgDb
       .select({
@@ -142,6 +148,9 @@ export async function listStudentCaptures(userId: string): Promise<Capture[]> {
         contentType: CourseMaterialSchema.materialType,
         createdAt: CourseMaterialSchema.createdAt,
         dueAt: CourseMaterialSchema.dueAt,
+        sourceUrl: sql<
+          string | null
+        >`${CourseMaterialSchema.externalMetadata}->>'source_url'`,
         course,
         ...materialState,
       })
@@ -168,7 +177,7 @@ export async function listStudentCaptures(userId: string): Promise<Capture[]> {
         ),
       )
       .orderBy(desc(CourseMaterialSchema.createdAt))
-      .limit(200),
+      .limit(MAX_LISTED),
   ]);
 
   const captures: Capture[] = [
@@ -184,6 +193,7 @@ export async function listStudentCaptures(userId: string): Promise<Capture[]> {
         dueAt: j.dueAt,
         createdAt: j.createdAt,
         own: j.jobOwnerUserId === userId,
+        sourceUrl: j.sourceUrl,
         ...captureState(j),
       })),
     ...directMaterials.map((m) => ({
@@ -195,6 +205,7 @@ export async function listStudentCaptures(userId: string): Promise<Capture[]> {
       dueAt: m.dueAt,
       createdAt: m.createdAt,
       own: m.ownerUserId === userId,
+      sourceUrl: m.sourceUrl,
       ...captureState({ ...m, jobStatus: null, jobError: null }),
     })),
   ];

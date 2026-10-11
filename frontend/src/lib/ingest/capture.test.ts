@@ -166,3 +166,32 @@ describe("capture upload keys", () => {
     ).toBe(true);
   });
 });
+
+describe("text page captures", () => {
+  const page = {
+    source_url: "https://lms.miva.university/mod/page/view.php?id=58030",
+    course_code: "COS409",
+    lesson_title: "Week 1: Reflection Questions",
+    content_type: "page",
+  };
+
+  it("needs the page's text", () => {
+    expect(LessonCaptureSchema.safeParse(page).success).toBe(false);
+    expect(
+      LessonCaptureSchema.safeParse({ ...page, page_text: "Too short" })
+        .success,
+    ).toBe(false);
+    expect(
+      LessonCaptureSchema.safeParse({
+        ...page,
+        page_text:
+          "Considering the research paradigms discussed, how would you justify your method?",
+        via_sync: true,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("are shareable course content", () => {
+    expect(isShareableCapture("page", page.source_url)).toBe(true);
+  });
+});

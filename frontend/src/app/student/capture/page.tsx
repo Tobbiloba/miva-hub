@@ -3,7 +3,12 @@ import { getSession } from "@/lib/auth/server";
 import { getPendingSchool } from "@/lib/schools/pending";
 import { and, asc, eq } from "drizzle-orm";
 import { pgDb } from "lib/db/pg/db.pg";
-import { CourseSchema, StudentEnrollmentSchema } from "lib/db/pg/schema.pg";
+import {
+  CourseSchema,
+  StudentEnrollmentSchema,
+  UniversitySchema,
+  UserSchema,
+} from "lib/db/pg/schema.pg";
 import { redirect } from "next/navigation";
 
 /** Askly Capture: connect the extension and track everything captured */
@@ -11,8 +16,17 @@ export default async function CapturePage() {
   const session = await getSession();
   if (!session?.user) redirect("/sign-in");
 
-  const [pendingSchool, courses] = await Promise.all([
+  const [pendingSchool, [school], courses] = await Promise.all([
     getPendingSchool(session.user.id),
+    pgDb
+      .select({ slug: UniversitySchema.slug })
+      .from(UserSchema)
+      .innerJoin(
+        UniversitySchema,
+        eq(UniversitySchema.id, UserSchema.universityId),
+      )
+      .where(eq(UserSchema.id, session.user.id))
+      .limit(1),
     // Capture files lessons under the student's enrolled courses
     pgDb
       .selectDistinct({
@@ -38,6 +52,8 @@ export default async function CapturePage() {
     <CaptureHub
       courses={courses}
       pendingSchool={pendingSchool?.schoolName ?? null}
+      // The extension reads MIVA's LMS; other schools capture page by page
+      lmsSupported={school?.slug === "miva"}
     />
   );
 }

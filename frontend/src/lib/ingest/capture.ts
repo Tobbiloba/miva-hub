@@ -94,7 +94,13 @@ export const LessonCaptureSchema = z
     week_number: z.number().int().min(0).max(60).nullish(),
     lesson_title: shortText(300).min(1),
     session_label: shortText(100).nullish(),
-    content_type: z.enum(["video", "pdf", "quiz", "assignment_external"]),
+    content_type: z.enum([
+      "video",
+      "pdf",
+      "quiz",
+      "assignment_external",
+      "page",
+    ]),
     vimeo_video_id: z
       .string()
       .regex(/^\d{1,15}$/)
@@ -122,12 +128,22 @@ export const LessonCaptureSchema = z
     assignment_metadata: z
       .record(z.string(), z.union([shortText(500), z.number()]))
       .nullish(),
+    // Text of an LMS page (e.g. reflection questions)
+    page_text: shortText(60_000).nullish(),
+    // Sent by automatic capture; a live sync gets a larger allowance
+    via_sync: z.boolean().nullish(),
   })
   .superRefine((v, ctx) => {
     if (v.content_type === "video" && !v.vimeo_video_id) {
       ctx.addIssue({
         code: "custom",
         message: "vimeo_video_id is required for video content",
+      });
+    }
+    if (v.content_type === "page" && (v.page_text?.length ?? 0) < 40) {
+      ctx.addIssue({
+        code: "custom",
+        message: "page_text is required for page content",
       });
     }
     if (v.content_type === "pdf" && !v.upload_key) {

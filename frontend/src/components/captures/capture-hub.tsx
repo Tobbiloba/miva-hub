@@ -13,17 +13,19 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 import { Button } from "ui/button";
 import { Input } from "ui/input";
+import { AutoCapture } from "./auto-capture";
 import {
   type Capture,
   CaptureRow,
   INSTALL_URL,
   useCaptures,
 } from "./captures-panel";
+import { type ExtensionStatus, useAsklyExtension } from "./use-askly-extension";
 
 type Course = { id: string; code: string; title: string };
 type Connection = {
@@ -66,12 +68,16 @@ function ago(iso: string | null): string {
 export function CaptureHub({
   courses,
   pendingSchool,
+  lmsSupported,
 }: {
   courses: Course[];
   pendingSchool: string | null;
+  /** Automatic capture knows this student's LMS (MIVA's, for now) */
+  lmsSupported: boolean;
 }) {
   const { captures, error, isLoading, reload, busy, retry, remove } =
     useCaptures();
+  const extension = useAsklyExtension();
   const [filter, setFilter] = useState<Filter>("all");
   const [courseId, setCourseId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -120,7 +126,7 @@ export function CaptureHub({
     <div className="mx-auto w-full max-w-5xl space-y-6">
       <PageHeader
         title="Askly Capture"
-        description="Save lecture videos, PDFs, quizzes and assignments from your LMS in one click. Askly answers from what you capture."
+        description="Askly saves your lecture videos, readings, slides and assignments from your LMS, and answers from them in chat."
         actions={
           INSTALL_URL ? (
             <Button asChild className="min-h-11">
@@ -154,7 +160,11 @@ export function CaptureHub({
       )}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
-        <ConnectionCard />
+        <ConnectionCard
+          installed={extension.installed}
+          status={extension.status}
+          call={extension.call}
+        />
         <section aria-label="Capture totals" className="grid grid-cols-2 gap-3">
           <StatTile
             label="Captured"
@@ -190,7 +200,17 @@ export function CaptureHub({
         </section>
       </div>
 
-      {!isLoading && !error && captures.length === 0 && <HowItWorks />}
+      {lmsSupported && !pendingSchool && (
+        <AutoCapture
+          extension={extension.status}
+          call={extension.call}
+          onProgress={reload}
+        />
+      )}
+
+      {!isLoading && !error && captures.length === 0 && (
+        <HowItWorks auto={lmsSupported && !pendingSchool} />
+      )}
 
       {byCourse.length > 0 && (
         <section aria-labelledby="courses-title" className="space-y-3">
@@ -377,7 +397,15 @@ const connectionFetcher = async (url: string): Promise<Connection> => {
   return res.json();
 };
 
-function ConnectionCard() {
+function ConnectionCard({
+  installed,
+  status,
+  call,
+}: {
+  installed: boolean | null;
+  status: ExtensionStatus | null;
+  call: (type: string, payload?: Record<string, unknown>) => Promise<any>;
+}) {
   const { data, error, isLoading, mutate } = useSWR(
     "/api/student/capture/connection",
     connectionFetcher,
@@ -386,6 +414,43 @@ function ConnectionCard() {
   );
   const [confirming, setConfirming] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  // This browser's extension isn't signed in (another browser's may be)
+  const canConnect = installed === true && !!status && !status.connected;
+
+  async function connect() {
+    setConnecting(true);
+    try {
+      const res = await fetch("/api/student/capture/connection", {
+        method: "POST",
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || "Couldn't connect");
+      await call("CONNECT", {
+        token: body.token,
+        expiresAt: body.expires_at,
+        user: body.user,
+      });
+      toast.success("Askly Capture is connected");
+      mutate();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't connect");
+    } finally {
+      setConnecting(false);
+    }
+  }
+
+  // The extension's popup sends students here with ?connect=1
+  const autoConnected = useRef(false);
+  useEffect(() => {
+    if (autoConnected.current || !canConnect) return;
+    if (new URLSearchParams(window.location.search).get("connect") !== "1")
+      return;
+    autoConnected.current = true;
+    connect();
+    // connect() only reads stable values
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canConnect]);
 
   async function disconnect() {
     setSigningOut(true);
@@ -398,6 +463,8 @@ function ConnectionCard() {
       toast.error("Couldn't sign the extension out. Try again.");
       return;
     }
+    // Also forget it in this browser's extension (it'd find out on its next call)
+    if (installed) await call("DISCONNECT").catch(() => {});
     toast.success("Signed out of Askly Capture");
     mutate({
       connected: false,
@@ -426,7 +493,7 @@ function ConnectionCard() {
             <p className="text-sm text-destructive">
               Couldn&apos;t check the extension.
             </p>
-          ) : data?.connected ? (
+          ) : data?.connected || status?.connected ? (
             <p className="flex items-center gap-2 text-sm">
               <span className="relative flex size-2.5" aria-hidden>
                 <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60 motion-reduce:animate-none" />
@@ -454,12 +521,32 @@ function ConnectionCard() {
         >
           Try again
         </Button>
+      ) : canConnect ? (
+        <>
+          <p className="text-sm text-muted-foreground">
+            {data?.connected
+              ? "Askly Capture is signed in on another browser. Connect this one too."
+              : "Askly Capture is installed. Connect it to your Askly account in one click."}
+          </p>
+          <Button
+            className="min-h-11 self-start"
+            disabled={connecting}
+            onClick={connect}
+          >
+            {connecting ? (
+              <Loader2 className="mr-2 size-4 animate-spin" />
+            ) : (
+              <PlugZap className="mr-2 size-4" />
+            )}
+            Connect
+          </Button>
+        </>
       ) : data?.connected ? (
         <>
           <p className="text-sm text-muted-foreground">
             Last used {ago(data.lastUsedAt)}
-            {data.devices > 1 && ` · signed in on ${data.devices} browsers`}.
-            Open a lesson on your LMS and press Capture.
+            {data.devices > 1 && ` · signed in on ${data.devices} browsers`}
+            {status?.version && ` · version ${status.version}`}.
           </p>
           {confirming ? (
             <div className="flex flex-wrap items-center gap-2">
@@ -493,31 +580,39 @@ function ConnectionCard() {
         </>
       ) : !isLoading ? (
         <p className="text-sm text-muted-foreground">
-          {INSTALL_URL
-            ? "Install Askly Capture, then sign in to it with your Askly email and password. This page updates by itself once it's connected."
-            : "Askly Capture is coming to the Chrome Web Store. Once it's installed and signed in, this page shows it as connected."}
+          {installed === null
+            ? "Looking for the extension…"
+            : INSTALL_URL
+              ? "Install Askly Capture in Chrome, then come back here and press Connect."
+              : "Askly Capture is coming to the Chrome Web Store. Once it's installed, connect it here in one click."}
         </p>
       ) : null}
     </section>
   );
 }
 
-function HowItWorks() {
+function HowItWorks({ auto }: { auto: boolean }) {
   const steps = [
     {
       Icon: Download,
-      title: "Install Askly Capture",
-      body: "Add the Chrome extension and sign in with your Askly account.",
+      title: "Install and connect",
+      body: "Add the Askly Capture extension to Chrome and press Connect on this page.",
     },
-    {
-      Icon: Layers,
-      title: "Open a lesson on your LMS",
-      body: "A lecture video, a PDF, a quiz or an assignment page.",
-    },
+    auto
+      ? {
+          Icon: Layers,
+          title: "Press Capture my courses",
+          body: "It goes through your LMS courses on its own. You can keep using Chrome.",
+        }
+      : {
+          Icon: Layers,
+          title: "Open a lesson on your LMS",
+          body: "A lecture video, a PDF, a quiz or an assignment page, then press Capture in the extension.",
+        },
     {
       Icon: CheckCircle2,
-      title: "Press Capture",
-      body: "Askly reads it, and you can ask about it in chat a minute later.",
+      title: "Ask about it",
+      body: "Askly reads each lesson, and you can ask about it in chat a minute later.",
     },
   ];
   return (

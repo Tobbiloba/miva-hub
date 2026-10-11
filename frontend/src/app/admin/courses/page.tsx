@@ -1,5 +1,6 @@
 "use client";
 
+import { CourseRequestsPanel } from "@/components/admin/course-requests-panel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -101,11 +102,15 @@ export default function CoursesManagePage() {
   const { toast } = useToast();
   const router = useRouter();
 
+  // Bumped when a requested course is added, to show it in the list
+  const [reloadKey, setReloadKey] = useState(0);
+
   // Fetch courses and departments
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setIsLoading(true);
+        // Only the first load blanks the page
+        if (reloadKey === 0) setIsLoading(true);
 
         // Fetch courses and departments in parallel
         const [coursesResponse, departmentsResponse] = await Promise.all([
@@ -142,7 +147,8 @@ export default function CoursesManagePage() {
     };
 
     fetchData();
-  }, []); // Remove toast from dependencies to prevent infinite loop
+    // toast left out of the dependencies to prevent an infinite loop
+  }, [reloadKey]);
 
   // Filter courses based on search and filters
   const filteredCourses = courses.filter((course) => {
@@ -284,6 +290,8 @@ export default function CoursesManagePage() {
           </Link>
         </div>
       </div>
+
+      <CourseRequestsPanel onAdded={() => setReloadKey((k) => k + 1)} />
 
       {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-4">

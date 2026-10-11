@@ -1,12 +1,9 @@
-import { termKey } from "@/lib/utils/semester";
+import { enrollStudent } from "@/lib/academic/enroll-student";
 import { getApiSession } from "@/lib/auth/server";
 import { pgDb } from "@/lib/db/pg/db.pg";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
-import {
-  CourseSchema,
-  StudentEnrollmentSchema,
-  UserSchema,
-} from "@/lib/db/pg/schema.pg";
+import { StudentEnrollmentSchema, UserSchema } from "@/lib/db/pg/schema.pg";
+import { termKey } from "@/lib/utils/semester";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -46,90 +43,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const [course] = await pgDb
-      .select({
-        id: CourseSchema.id,
-        courseCode: CourseSchema.courseCode,
-        isActive: CourseSchema.isActive,
-      })
-      .from(CourseSchema)
-      .where(
-        and(
-          eq(CourseSchema.id, courseId),
-          eq(CourseSchema.universityId, userRow.universityId),
-        ),
-      )
-      .limit(1);
-
-    if (!course || !course.isActive) {
-      return NextResponse.json(
-        { error: "Course not found or not open for enrollment" },
-        { status: 404 },
-      );
-    }
-
-    // Current term comes from the academic_session table (the platform's
-    // live source — academic_calendar is legacy and unpopulated)
-    const activeSession = await pgAcademicRepository.getActiveAcademicSession(
+    const result = await enrollStudent(
+      session.user.id,
       userRow.universityId,
-    );
-    if (!activeSession) {
-      return NextResponse.json(
-        { error: "No active academic session — enrollment is closed" },
-        { status: 409 },
-      );
-    }
-    // Canonical term key, e.g. "2025/2026-first" (same as registration)
-    const semester = termKey(
-      activeSession.sessionName,
-      activeSession.currentSemester,
-    );
-    const academicYear = activeSession.sessionName.replace("/", "-");
-
-    const [existing] = await pgDb
-      .select({
-        id: StudentEnrollmentSchema.id,
-        status: StudentEnrollmentSchema.status,
-      })
-      .from(StudentEnrollmentSchema)
-      .where(
-        and(
-          eq(StudentEnrollmentSchema.studentId, session.user.id),
-          eq(StudentEnrollmentSchema.courseId, courseId),
-          eq(StudentEnrollmentSchema.semester, semester),
-        ),
-      )
-      .limit(1);
-
-    if (existing) {
-      // Re-enrolling after a drop reactivates the same row
-      if (existing.status === "dropped") {
-        await pgDb
-          .update(StudentEnrollmentSchema)
-          .set({ status: "enrolled", updatedAt: new Date() })
-          .where(eq(StudentEnrollmentSchema.id, existing.id));
-        return NextResponse.json({
-          success: true,
-          message: `Re-enrolled in ${course.courseCode}`,
-        });
-      }
-      return NextResponse.json(
-        { error: "You are already enrolled in this course" },
-        { status: 409 },
-      );
-    }
-
-    await pgDb.insert(StudentEnrollmentSchema).values({
-      studentId: session.user.id,
       courseId,
-      semester,
-      academicYear,
-      status: "enrolled",
-    });
-
+    );
+    if (!result.ok) {
+      const [error, status] =
+        result.reason === "course_not_found"
+          ? ["Course not found or not open for enrollment", 404]
+          : result.reason === "no_active_session"
+            ? ["No active academic session — enrollment is closed", 409]
+            : ["You are already enrolled in this course", 409];
+      return NextResponse.json({ error }, { status });
+    }
     return NextResponse.json(
-      { success: true, message: `Enrolled in ${course.courseCode}` },
-      { status: 201 },
+      {
+        success: true,
+        message:
+          result.outcome === "reenrolled"
+            ? `Re-enrolled in ${result.courseCode}`
+            : `Enrolled in ${result.courseCode}`,
+      },
+      { status: result.outcome === "reenrolled" ? 200 : 201 },
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
