@@ -10,7 +10,7 @@ export default function AuthLayout({
       {/* Showcase panel in the landing's black style, with the real app */}
       <div className="dark relative hidden overflow-hidden bg-background text-foreground lg:m-3 lg:flex lg:w-1/2 lg:flex-col lg:rounded-[20px] lg:border lg:border-white/10">
         <div className="relative z-10 flex flex-col p-10">
-          <Link href="/landing" className="w-fit">
+          <Link href="/" className="w-fit">
             <AsklyLogo markClassName="bg-white text-black" />
           </Link>
           <h2 className="mt-16 max-w-md text-4xl leading-tight font-semibold tracking-[-0.035em]">
@@ -39,7 +39,7 @@ export default function AuthLayout({
       </div>
 
       <div className="flex w-full flex-col p-6 lg:w-1/2">
-        <Link href="/landing" className="w-fit lg:hidden">
+        <Link href="/" className="w-fit lg:hidden">
           <AsklyLogo />
         </Link>
         {children}

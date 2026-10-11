@@ -60,13 +60,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Payment wall for chat routes
-  if (pathname === "/" || pathname.startsWith("/(chat)")) {
+  // The landing lives at "/" (like github.com): its own URLs fold into it.
+  // A rewrite target isn't run through middleware again, so no loop.
+  if (pathname === "/landing" || pathname.startsWith("/landing/")) {
+    return NextResponse.redirect(new URL("/", request.url), 308);
+  }
+
+  // "/" is the landing page when signed out and the app when signed in,
+  // with the URL staying "/" either way
+  if (pathname === "/") {
     if (!sessionCookie) {
-      // Signed-out visitors on the root get the landing page (waitlist)
-      return NextResponse.redirect(
-        new URL(pathname === "/" ? "/landing" : "/sign-in", request.url),
-      );
+      return NextResponse.rewrite(new URL("/landing", request.url));
     }
     // Subscription check will be done in the page/layout components
     return NextResponse.next();
@@ -124,6 +128,6 @@ export async function middleware(request: NextRequest) {
 // the program list used by the sign-up page, and signed provider webhooks.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api/auth|api/programs/public|api/webhooks|sign-in|sign-up|reset-password|landing|unauthorized|privacy|terms).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api/auth|api/programs/public|api/webhooks|sign-in|sign-up|reset-password|unauthorized|privacy|terms).*)",
   ],
 };
