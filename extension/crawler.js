@@ -8,7 +8,7 @@
  * page) and to the background worker (badge + popup).
  */
 
-import { ApiError, api, submitCapture } from "./askly-api.js";
+import { ApiError, DriveSignInNeeded, NotAPdf, api, submitCapture } from "./askly-api.js";
 import { LmsLoggedOut, courseItems, fetchLmsPage, getSesskey } from "./lms-client.js";
 
 const L = globalThis.AsklyLms;
@@ -156,6 +156,7 @@ class Run {
 
     let captured = 0;
     let failed = 0;
+    let waiting = 0;
     for (const lesson of lessons) {
       try {
         await this.submit(lesson);
@@ -163,10 +164,18 @@ class Run {
       } catch (e) {
         if (e instanceof StopRun) throw e;
         if (e instanceof ApiError && e.status === 409) continue; // already in Askly
+        if (e instanceof NotAPdf) continue; // e.g. slides on Drive: nothing to read
+        if (e instanceof DriveSignInNeeded) {
+          // Needs the student signed in to Google: the next sync tries again
+          this.state.error = e.message;
+          waiting++;
+          continue;
+        }
         failed++;
       }
     }
     this.done.add(item.url);
+    if (waiting && !captured && !failed) return "skipped";
     if (!captured && !failed) {
       // Askly already had all of it (e.g. the same PDF linked twice)
       this.newlyIgnored.push(item.url);
@@ -246,6 +255,12 @@ class Run {
   }
 }
 
+/** A Drive file as a PDF to capture; its name comes from the lesson. */
+function driveFile(id, title) {
+  const slug = title.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "course-file";
+  return { url: L.driveDownloadUrl(id), filename: `${slug}.pdf` };
+}
+
 /**
  * What to send Askly for one LMS item. Mirrors the module types MIVA's
  * courses use: video/text pages, URL resources (PDFs on the asset CDN or
@@ -277,6 +292,8 @@ function lessonsFrom(course, item, doc, html) {
     if (L.isPdfUrl(target)) {
       return [pdfLesson({ url: target, filename: L.pdfName(target) }, item.url, item.name)];
     }
+    const driveId = L.driveFileId(target);
+    if (driveId) return [pdfLesson(driveFile(driveId, item.name), item.url, item.name)];
     return []; // interactive (SCORM) lessons and external links
   }
 
@@ -323,7 +340,10 @@ function lessonsFrom(course, item, doc, html) {
   // page: a video, embedded PDFs, or readable text
   const video = L.detectVideo(doc);
   if (video) return [{ ...base, page_type: "video", ...video }];
-  const pdfs = L.detectPDFs(doc);
+  const pdfs = [
+    ...L.detectPDFs(doc),
+    ...L.detectDriveFiles(doc).map((id, i) => driveFile(id, i ? `${item.name} ${i + 1}` : item.name)),
+  ];
   if (pdfs.length) {
     return pdfs.map((pdf, i) =>
       pdfLesson(

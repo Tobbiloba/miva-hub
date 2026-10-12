@@ -79,6 +79,35 @@
     return page ? { vimeo_video_id: page[1], vimeo_hash: page[2] || null } : null;
   }
 
+  /** A Google Drive file link ("…/file/d/<id>/preview", "open?id=<id>"). */
+  function driveFileId(url) {
+    try {
+      const u = new URL(url);
+      if (u.hostname !== "drive.google.com" && u.hostname !== "docs.google.com") return null;
+      const m = u.pathname.match(/\/file\/d\/([\w-]{10,})/);
+      if (m) return m[1];
+      const id = u.searchParams.get("id");
+      return u.pathname.startsWith("/open") || u.pathname.startsWith("/uc") ? id : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Direct download address for a Drive file (confirm=t skips the scan page). */
+  function driveDownloadUrl(id) {
+    return `https://drive.usercontent.google.com/download?id=${encodeURIComponent(id)}&export=download&confirm=t`;
+  }
+
+  /** Drive files embedded or linked in the lesson's content. */
+  function detectDriveFiles(doc) {
+    const ids = new Set();
+    for (const el of mainContent(doc).querySelectorAll("a[href], iframe[src]")) {
+      const id = driveFileId(el.getAttribute("href") || el.getAttribute("src") || "");
+      if (id) ids.add(id);
+    }
+    return [...ids];
+  }
+
   function isPdfUrl(url) {
     try {
       const u = new URL(url);
@@ -252,7 +281,14 @@
   function describePage(doc, url) {
     const path = new URL(url).pathname;
     const video = detectVideo(doc);
-    const pdfs = detectPDFs(doc);
+    const title = lessonTitleFrom(doc);
+    const pdfs = [
+      ...detectPDFs(doc),
+      ...detectDriveFiles(doc).map((id) => ({
+        url: driveDownloadUrl(id),
+        filename: `${title.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "course-file"}.pdf`,
+      })),
+    ];
     const q = path.includes("/mod/quiz/") ? quiz(doc) : null;
     const a = path.includes("/mod/assign/") ? assignment(doc) : null;
     const pageBody = path.includes("/mod/page/") && !video ? pageText(doc) : "";
@@ -264,7 +300,6 @@
     else if (pdfs.length) pageType = "pdf";
     else if (pageBody.length >= 80) pageType = "page";
 
-    const title = lessonTitleFrom(doc);
     return {
       page_type: pageType,
       source_url: url,
@@ -302,6 +337,9 @@
     detectPDFs,
     isPdfUrl,
     pdfName,
+    driveFileId,
+    driveDownloadUrl,
+    detectDriveFiles,
     urlResourceTarget,
     weekFrom,
     quiz,

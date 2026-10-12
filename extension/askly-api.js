@@ -8,6 +8,43 @@ export const DEFAULT_API_URL = "https://askly-miva.vercel.app";
 export const ALLOWED_API_ORIGINS = [DEFAULT_API_URL, "http://localhost:4001"];
 
 const MAX_PDF_BYTES = 50 * 1024 * 1024;
+const DRIVE_HOST = "drive.usercontent.google.com";
+
+/** A Google Drive file the student's browser isn't signed in to open. */
+export class DriveSignInNeeded extends Error {
+  constructor() {
+    super("Sign in to Google in Chrome with your school account to capture course files on Google Drive.");
+  }
+}
+
+/** The link is fine but it isn't a PDF (e.g. a slide deck on Drive). */
+export class NotAPdf extends Error {}
+
+/**
+ * Download a course file in the student's browser. Google Drive files are
+ * restricted to the school's Google accounts, so they use the student's own
+ * Google login; when it can't open the file, Drive redirects to sign-in.
+ */
+async function downloadCourseFile(source) {
+  if (source.hostname !== DRIVE_HOST) {
+    const res = await fetch(source.toString(), { credentials: "include" });
+    if (!res.ok) throw new Error(`Couldn't download the PDF from the LMS (HTTP ${res.status})`);
+    return res.blob();
+  }
+  // Chrome may hold several Google accounts; the school one isn't always first
+  for (const authuser of [0, 1, 2, 3]) {
+    const url = new URL(source);
+    url.searchParams.set("authuser", String(authuser));
+    const res = await fetch(url.toString(), { credentials: "include", redirect: "manual" });
+    if (res.type === "opaqueredirect" || res.status === 401 || res.status === 403) continue;
+    if (!res.ok) throw new Error(`Couldn't download the file from Google Drive (HTTP ${res.status})`);
+    if ((res.headers.get("content-type") || "").includes("text/html")) {
+      throw new NotAPdf("Google Drive didn't return a file");
+    }
+    return res.blob();
+  }
+  throw new DriveSignInNeeded();
+}
 
 export class ApiError extends Error {
   constructor(message, status, body, retryAfterSec = null) {
@@ -47,19 +84,18 @@ export async function api(ctx, path, init = {}) {
  */
 export async function uploadLmsPdf(ctx, { pdfUrl, filename, courseCode, viaSync }) {
   const source = new URL(pdfUrl);
-  if (source.protocol !== "https:" || source.hostname !== "lms-assets.miva.university") {
-    throw new Error("Only LMS-hosted PDFs can be captured");
+  if (
+    source.protocol !== "https:" ||
+    !["lms-assets.miva.university", DRIVE_HOST].includes(source.hostname)
+  ) {
+    throw new Error("Only course files from the LMS or Google Drive can be captured");
   }
-  const pdfRes = await fetch(source.toString(), { credentials: "include" });
-  if (!pdfRes.ok) {
-    throw new Error(`Couldn't download the PDF from the LMS (HTTP ${pdfRes.status})`);
-  }
-  const blob = await pdfRes.blob();
+  const blob = await downloadCourseFile(source);
   if (blob.size === 0) throw new Error("The PDF is empty");
   if (blob.size > MAX_PDF_BYTES) throw new Error("PDF is larger than 50 MB");
   const signature = new Uint8Array(await blob.slice(0, 5).arrayBuffer());
   if (String.fromCharCode(...signature) !== "%PDF-") {
-    throw new Error("The LMS didn't return a PDF file");
+    throw new NotAPdf("That file isn't a PDF");
   }
 
   const { upload_url, upload_key, headers } = await api(ctx, "/api/ingest/upload-url", {

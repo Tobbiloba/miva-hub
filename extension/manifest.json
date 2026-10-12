@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Askly Capture",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Save your MIVA University lessons to Askly so your AI study assistant can answer from them",
   "permissions": ["activeTab", "storage", "alarms", "offscreen"],
   "host_permissions": [
     "https://lms.miva.university/*",
     "https://player.vimeo.com/*",
     "https://lms-assets.miva.university/*",
+    "https://drive.usercontent.google.com/*",
     "https://*.amazonaws.com/*",
     "http://localhost:4001/*",
     "https://askly-miva.vercel.app/*"

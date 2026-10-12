@@ -156,6 +156,8 @@ function renderSync() {
     summary = `Stopped ${ago(sync.finishedAt)}. ${captured} new lesson${captured === 1 ? "" : "s"} before that.`;
   } else if (sync?.finishedAt) {
     summary = `Last synced ${ago(sync.finishedAt)} · ${captured} new lesson${captured === 1 ? "" : "s"}`;
+    // e.g. course files on Google Drive the browser couldn't open yet
+    if (sync.error) summary += `. ${sync.error}`;
   } else {
     summary = `${state.courses} course${state.courses === 1 ? "" : "s"} picked.`;
   }

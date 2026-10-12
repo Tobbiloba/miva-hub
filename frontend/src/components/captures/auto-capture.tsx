@@ -507,6 +507,12 @@ function LastRun({ sync }: { sync: Sync }) {
         )}
         {line}
       </p>
+      {sync.status === "done" && sync.error && (
+        // e.g. course files on Google Drive the browser couldn't open yet
+        <p className="rounded-lg bg-secondary px-3.5 py-3 text-sm text-muted-foreground">
+          {sync.error}
+        </p>
+      )}
       {sync.courses.length > 0 && <CourseList courses={sync.courses} />}
       <p className="flex items-center gap-2 text-xs text-muted-foreground">
         <Clock className="size-3.5" aria-hidden /> Askly checks for new lessons
