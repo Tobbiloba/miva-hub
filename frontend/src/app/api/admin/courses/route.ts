@@ -1,6 +1,9 @@
 import { requireAdmin } from "@/lib/auth/admin";
+import { pgDb } from "@/lib/db/pg/db.pg";
 import { pgAcademicRepository } from "@/lib/db/pg/repositories/academic-repository.pg";
+import { CourseSchema } from "@/lib/db/pg/schema.pg";
 import { getAdminScope, getUserUniversity } from "@/lib/tenant";
+import { and, eq, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -173,21 +176,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createCourseSchema.parse(body);
 
-    // Check for duplicate course code
-    const existingCourse = await pgAcademicRepository.getCourseByCode(
-      validatedData.courseCode,
-    );
-    if (existingCourse) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Course code already exists",
-          message: `A course with code "${validatedData.courseCode}" already exists`,
-        },
-        { status: 400 },
-      );
-    }
-
     // Verify department exists
     const department = await pgAcademicRepository.getDepartmentById(
       validatedData.departmentId,
@@ -228,11 +216,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Course codes are unique per university, not across universities:
+    // another school's COS101 must not block this one's
+    const courseCode = validatedData.courseCode.trim().toUpperCase();
+    const [existingCourse] = await pgDb
+      .select({ id: CourseSchema.id })
+      .from(CourseSchema)
+      .where(
+        and(
+          eq(CourseSchema.universityId, university.id),
+          sql`upper(${CourseSchema.courseCode}) = ${courseCode}`,
+        ),
+      )
+      .limit(1);
+    if (existingCourse) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Course code already exists",
+          message: `A course with code "${courseCode}" already exists`,
+        },
+        { status: 400 },
+      );
+    }
+
     // Create course using repository
     const createdCourse = await pgAcademicRepository.createCourse({
       ...validatedData,
       universityId: university.id,
-      courseCode: validatedData.courseCode.toUpperCase(),
+      courseCode,
       startDate: validatedData.startDate
         ? new Date(validatedData.startDate)
         : null,
